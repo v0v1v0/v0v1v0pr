@@ -1,0 +1,329 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>griddap</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Get ERDDAP gridded data</h2>
+
+<h3>Description</h3>
+
+<p>Get ERDDAP gridded data
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">griddap(
+  datasetx,
+  ...,
+  fields = "all",
+  stride = 1,
+  fmt = "nc",
+  url = eurl(),
+  store = disk(),
+  read = TRUE,
+  callopts = list()
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>datasetx</code></td>
+<td>
+<p>Anything coercable to an object of class info. So the output of a
+call to <code>info</code>, or a datasetid, which will internally be passed
+through <code>info</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Dimension arguments. See examples. Can be any 1 or more of the
+dimensions for the particular dataset - and the dimensions vary by dataset.
+For each dimension, pass in a vector of length two, with min and max value
+desired. at least 1 required.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fields</code></td>
+<td>
+<p>(character) Fields to return, in a character vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stride</code></td>
+<td>
+<p>(integer) How many values to get. 1 = get every value, 2 = get
+every other value, etc. Default: 1 (i.e., get every value)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fmt</code></td>
+<td>
+<p>(character) One of csv or nc (for netcdf). Default: nc</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>url</code></td>
+<td>
+<p>A URL for an ERDDAP server. Default:
+https://upwell.pfeg.noaa.gov/erddap/ - See <code>eurl()</code> for
+more information</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>store</code></td>
+<td>
+<p>One of <code>disk</code> (default) or <code>memory</code>. You
+can pass options to <code>disk</code>. Beware: if you choose <code>fmt="nc"</code>,
+we force <code>store=disk()</code> because nc files have to be written to disk.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>read</code></td>
+<td>
+<p>(logical) Read data into memory or not. Does not apply when
+<code>store</code> parameter is set to memory (which reads data into memory).
+For large csv, or especially netcdf files, you may want to set this to
+<code>FALSE</code>, which simply returns a summary of the dataset - and you can
+read in data piecemeal later. Default: <code>TRUE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>callopts</code></td>
+<td>
+<p>Curl options passed on to <code>verb-GET</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Details:
+</p>
+<p>If you run into an error like "HTTP Status 500 - There was a (temporary?)
+problem. Wait a minute, then try again.". it's likely they are hitting
+up against a size limit, and they should reduce the amount of data they
+are requesting either via space, time, or variables. Pass in
+<code>config = verbose()</code> to the request, and paste the URL into your
+browser to see if the output is garbled to examine if there's a problem
+with servers or this package
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>griddap_csv</code> if csv chosen or
+<code>griddap_nc</code> if nc file format chosen.
+</p>
+
+<ul>
+<li> <p><code>griddap_csv</code>: a data.frame created from the downloaded csv
+data
+</p>
+</li>
+<li> <p><code>griddap_nc</code>: a list, with slots "summary" and "data". "summary"
+is the unclassed output from <code>ncdf4::nc_open</code>, from which you can
+do any netcdf operations you like. "data" is a data.frame created
+from the netcdf data. the data.frame may be empty if there were problems
+parsing the netcdf data
+</p>
+</li>
+</ul>
+<p>Both have the attributes: datasetid (the dataset id), path (the path on file
+for the csv or nc file), url (the url requested to the ERDDAP server)
+</p>
+<p>If <code>read=FALSE</code>, the data.frame for <code>griddap_csv</code>
+and the data.frame in the "data" slot is empty for <code>griddap_nc</code>
+</p>
+
+
+<h3>Dimensions and Variables</h3>
+
+<p>ERDDAP grid dap data has this concept of dimenions vs. variables. Dimensions
+are things like time, latitude, longitude, altitude, and depth. Whereas
+variables are the measured variables, e.g., temperature, salinity, air.
+</p>
+<p>You can't separately adjust values for dimensions for different variables.
+So, here's how it's gonna work:
+</p>
+<p>Pass in lower and upper limits you want for each dimension as a vector
+(e.g., <code>c(1,2)</code>), or leave to defaults (i.e., don't pass anything to
+a dimension). Then pick which variables you want returned via the
+<code>fields</code> parameter. If you don't pass in options to the <code>fields</code>
+parameter, you get all variables back.
+</p>
+<p>To get the dimensions and variables, along with other metadata for a
+dataset, run <code>info</code>, and each will be shown, with their min
+and max values, and some other metadata.
+</p>
+
+
+<h3>Where does the data go?</h3>
+
+<p>You can choose where data is stored. Be careful though. You can easily get a
+single file of hundreds of MB's (upper limit: 2 GB) in size with a single
+request. To the <code>store</code> parameter, pass <code>memory</code> if you
+want to store the data in memory (saved as a data.frame), or pass
+<code>disk</code> if you want to store on disk in a file. Note that
+<code>memory</code> and <code>disk</code> are not character strings, but
+function calls. <code>memory</code> does not accept any inputs, while
+<code>disk</code> does. Possibly will add other options, like
+“sql” for storing in a SQL database.
+</p>
+
+
+<h3>Non-lat/lon grid data</h3>
+
+<p>Some gridded datasets have latitude/longitude components, but some do not.
+When nc format gridded datasets have latitude and longitude we "melt" them into a
+data.frame for easy downstream consumption. When nc format gridded datasets do
+not have latitude and longitude components, we do not read in the data, throw
+a warning saying so. You can readin the nc file yourself with the file path.
+CSV format is not affected by this issue as CSV data is easily turned into
+a data.frame regardless of whether latitude/longitude data are present.
+</p>
+
+
+<h3>References</h3>
+
+<p>https://upwell.pfeg.noaa.gov/erddap/rest.html
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# single variable dataset
+## You can pass in the outpu of a call to info
+(out &lt;- info('erdVHNchlamday'))
+## Or, pass in a dataset id
+(res &lt;- griddap('erdVHNchlamday',
+ time = c('2015-04-01','2015-04-10'),
+ latitude = c(18, 21),
+ longitude = c(-120, -119)
+))
+
+# multi-variable dataset
+(out &lt;- info('erdQMekm14day'))
+(res &lt;- griddap(out,
+ time = c('2015-12-28','2016-01-01'),
+ latitude = c(24, 23),
+ longitude = c(88, 90)
+))
+(res &lt;- griddap(out, time = c('2015-12-28','2016-01-01'),
+   latitude = c(24, 23), longitude = c(88, 90), fields = 'mod_current'))
+(res &lt;- griddap(out, time = c('2015-12-28','2016-01-01'),
+   latitude = c(24, 23), longitude = c(88, 90), fields = 'mod_current',
+   stride = c(1,2,1,2)))
+(res &lt;- griddap(out, time = c('2015-12-28','2016-01-01'),
+   latitude = c(24, 23), longitude = c(88, 90),
+   fields = c('mod_current','u_current')))
+
+
+# Write to memory (within R), or to disk
+(out &lt;- info('erdQSwindmday'))
+## disk, by default (to prevent bogging down system w/ large datasets)
+## you can also pass in path and overwrite options to disk()
+(res &lt;- griddap(out,
+ time = c('2006-07-11','2006-07-20'),
+ longitude = c(166, 170),
+ store = disk()
+))
+## the 2nd call is much faster as it's mostly just the time of reading in
+## the table from disk
+system.time( griddap(out,
+ time = c('2006-07-11','2006-07-15'),
+ longitude = c(10, 15),
+ store = disk()
+) )
+system.time( griddap(out,
+ time = c('2006-07-11','2006-07-15'),
+ longitude = c(10, 15),
+ store = disk()
+) )
+
+## memory - you have to choose fmt="csv" if you use memory
+(res &lt;- griddap("erdMBchla1day",
+ time = c('2015-01-01','2015-01-03'),
+ latitude = c(14, 15),
+ longitude = c(125, 126),
+ fmt = "csv", store = memory()
+))
+
+## Use ncdf4 package to parse data
+info("erdMBchla1day")
+(res &lt;- griddap("erdMBchla1day",
+ time = c('2015-01-01','2015-01-03'),
+ latitude = c(14, 15),
+ longitude = c(125, 126)
+))
+
+# Get data in csv format
+## by default, we get netcdf format data
+(res &lt;- griddap('erdMBchla1day',
+ time = c('2015-01-01','2015-01-03'),
+ latitude = c(14, 15),
+ longitude = c(125, 126),
+ fmt = "csv"
+))
+
+# Use a different ERDDAP server url
+## NOAA IOOS PacIOOS
+url = "https://cwcgom.aoml.noaa.gov/erddap/"
+out &lt;- info("miamiacidification", url = url)
+(res &lt;- griddap(out,
+ time = c('2019-11-01','2019-11-03'),
+ latitude = c(15, 16),
+ longitude = c(-90, -88)
+))
+## pass directly into griddap() - if you pass a datasetid string directly
+## you must pass in the url or you'll be querying the default ERDDAP url,
+## which isn't the one you want if you're not using the default ERDDAP url
+griddap("miamiacidification", url = url,
+ time = c('2019-11-01','2019-11-03'),
+ latitude = c(15, 16),
+ longitude = c(-90, -88)
+)
+
+# Using 'last'
+## with time
+griddap('erdVHNchlamday',
+ time = c('last-5','last'),
+ latitude = c(18, 21),
+ longitude = c(-120, -119)
+)
+## with latitude
+griddap('erdVHNchlamday',
+  time = c('2015-04-01','2015-04-10'),
+  latitude = c('last', 'last'),
+  longitude = c(-120, -119)
+)
+## with longitude
+griddap('erdVHNchlamday',
+  time = c('2015-04-01','2015-04-10'),
+  latitude = c(18, 21),
+  longitude = c('last', 'last')
+)
+
+# datasets without lat/lon grid and with fmt=nc
+# FIXME: this dataset is gone
+# (x &lt;- info('glos_tds_5912_ca66_3f41'))
+# res &lt;- griddap(x,
+#   time = c('2018-04-01','2018-04-10'),
+#   ny = c(1, 2),
+#   nx = c(3, 5)
+# )
+## data.frame is empty
+# res$data
+## read in from the nc file path
+# ncdf4::nc_open(res$summary$filename)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

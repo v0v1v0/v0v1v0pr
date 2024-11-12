@@ -1,0 +1,309 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>reproducibleOptions</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+<code>reproducible</code> options</h2>
+
+<h3>Description</h3>
+
+<p>These provide top-level, powerful settings for a comprehensive
+reproducible workflow. To see defaults, run <code>reproducibleOptions()</code>.
+See Details below.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">reproducibleOptions()
+</code></pre>
+
+
+<h3>Details</h3>
+
+<p>Below are options that can be set with <code>options("reproducible.xxx" = newValue)</code>,
+where <code>xxx</code> is one of the values below, and <code>newValue</code> is a new value to
+give the option. Sometimes these options can be placed in the user's <code>.Rprofile</code>
+file so they persist between sessions.
+</p>
+<p>The following options are likely of interest to most users:
+</p>
+
+<dl>
+<dt><code>ask</code></dt>
+<dd>
+<p>Default: <code>TRUE</code>. Used in <code>clearCache()</code> and <code>keepCache()</code>.
+</p>
+</dd>
+<dt><code>cachePath</code></dt>
+<dd>
+<p>Default: <code>.reproducibleTempCacheDir</code>. Used in <code>Cache()</code> and many others.
+The default path for repositories if not passed as an argument.
+</p>
+</dd>
+<dt><code>cacheSaveFormat</code></dt>
+<dd>
+<p>Default: <code>"rds"</code>. What save format to use; currently, <code>"qs"</code> or <code>"rds"</code>.
+</p>
+</dd>
+<dt><code>cacheSpeed</code></dt>
+<dd>
+<p>Default <code>"slow"</code>. One of <code>"slow"</code> or <code>"fast"</code> (1 or 2).
+<code>"slow"</code> uses <code>digest::digest</code> internally, which is transferable across operating
+systems, but much slower than <code style="white-space: pre;">⁠digest::digest(algo = "spooky)⁠</code>.
+So, if all caching is happening on a single machine, <code>"fast"</code> would be a good setting.
+</p>
+</dd>
+<dt><code>conn</code></dt>
+<dd>
+<p>Default: <code>NULL</code>. Sets a specific connection to a database, e.g.,
+<code>dbConnect(drv = RSQLite::SQLite())</code> or <code style="white-space: pre;">⁠dbConnect(drv = RPostgres::Postgres()⁠</code>.
+For remote database servers, setting one connection may be far faster than using
+<code>drv</code> which must make a new connection every time.
+</p>
+</dd>
+<dt><code>destinationPath</code></dt>
+<dd>
+<p>Default: <code>NULL</code>. Used in <code>prepInputs()</code> and <code>preProcess()</code>.
+Can be set globally here.
+</p>
+</dd>
+<dt><code>drv</code></dt>
+<dd>
+<p>Default: <code>RSQLite::SQLite()</code>. Sets the default driver for the backend database system.
+Only tested with <code>RSQLite::SQLite()</code> and <code>RPostgres::Postgres()</code>.
+</p>
+</dd>
+<dt><code>futurePlan</code></dt>
+<dd>
+<p>Default: <code>FALSE</code>. On Linux OSes, <code>Cache</code> and <code>cloudCache</code> have some
+functionality that uses the <code>future</code> package.
+Default is to not use these, as they are experimental.
+They may, however, be very effective in speeding up some things, specifically,
+uploading cached elements via <code>googledrive</code> in <code>cloudCache</code>.
+</p>
+</dd>
+<dt><code>gdalwarp</code></dt>
+<dd>
+<p>Default: <code>FALSE</code>. Experimental. During <code>postProcessTo</code> the standard approach
+is to use <code>terra</code> functions directly, with several strategic uses of <code>sf</code>. However,
+in the special case when <code>from</code> is a <code>SpatRaster</code> or <code>Raster</code>, <code>maskTo</code> is a
+<code>SpatVector</code> or <code>SFC_POLYGON</code> and <code>projectTo</code> is a <code>SpatRaster</code> or <code>Raster</code>, setting
+this option to <code>TRUE</code> will use <code>sf::gdal_utils("warp")</code>. In many test cases,
+this is much faster than the <code>terra</code> sequence. The resulting <code>SpatRaster</code> is
+not identical, but it is very similar.
+</p>
+</dd>
+<dt><code>gdalwarpThreads</code></dt>
+<dd>
+<p>Default: <code>2</code>. This will set <code style="white-space: pre;">⁠-wo NUM_THREADS=⁠</code> to this number. Default is now <code>2</code>, meaning
+<code>gdalwarp</code> will use 2 threads with <code>gdalProject</code>. To turn off threading, set to <code>0</code>, <code>1</code> or <code>NA</code>.
+</p>
+</dd>
+<dt><code>inputPaths</code></dt>
+<dd>
+<p>Default: <code>NULL</code>. Used in <code>prepInputs()</code> and <code>preProcess()</code>.
+If set to a path, this will cause these functions to save their downloaded and preprocessed
+file to this location, with a hardlink (via <code>file.link</code>) to the file created in the
+<code>destinationPath</code>.
+This can be used so that individual projects that use common data sets can maintain
+modularity (by placing downloaded objects in their <code>destinationPath</code>, but also minimize
+re-downloading the same (perhaps large) file over and over for each project.
+Because the files are hardlinks, there is no extra space taken up by the apparently
+duplicated files.
+</p>
+</dd>
+<dt><code>inputPathsRecursive</code></dt>
+<dd>
+<p>Default: <code>FALSE</code>. Used in <code>prepInputs()</code> and <code>preProcess()</code>.
+Should the <code>reproducible.inputPaths</code> be searched recursively for existence of a file?
+</p>
+</dd>
+<dt><code>memoisePersist</code></dt>
+<dd>
+<p>Default: <code>FALSE</code>. Used in <code>Cache()</code>.
+Should the memoised copy of the Cache objects persist even if <code>reproducible</code> reloads
+e.g., via <code>devtools::load_all</code>? This is mostly useful for developers of
+<code>reproducible</code>. If <code>TRUE</code>, a object named <code>paste0(".reproducibleMemoise_", cachePath)</code>
+will be placed in the <code>.GlobalEnv</code>, i.e., one for each <code>cachePath</code>.
+</p>
+</dd>
+<dt><code>nThreads</code></dt>
+<dd>
+<p>Default: <code>1</code>. The number of threads to use for reading/writing cache files.
+</p>
+</dd>
+<dt><code>objSize</code></dt>
+<dd>
+<p>Default: <code>TRUE</code>. Logical. If <code>TRUE</code>, then object sizes will be included in
+the cache database. Simplying calculating object size of large objects can
+be time consuming, so setting this to <code>FALSE</code> will make caching up to 10%
+faster, depending on the objects.
+</p>
+</dd>
+<dt><code>overwrite</code></dt>
+<dd>
+<p>Default: <code>FALSE</code>. Used in <code>prepInputs()</code>, <code>preProcess()</code>,
+<code>downloadFile()</code>, and <code>postProcess()</code>.
+</p>
+</dd>
+<dt><code>quick</code></dt>
+<dd>
+<p>Default: <code>FALSE</code>. Used in <code>Cache()</code>. This will cause <code>Cache</code> to use
+<code>file.size(file)</code> instead of the <code>digest::digest(file)</code>.
+Less robust to changes, but faster. <em>NOTE: this will only affect objects on disk</em>.
+</p>
+</dd>
+<dt><code>rasterRead</code></dt>
+<dd>
+<p>Used during <code>prepInputs</code> when reading <code>.tif</code>, <code>.grd</code>, and <code>.asc</code> files.
+Default: <code>terra::rast</code>. Can be <code>raster::raster</code> for backwards compatibility.
+Can be set using environment variable <code>R_REPRODUCIBLE_RASTER_READ</code>.
+</p>
+</dd>
+<dt><code>shapefileRead</code></dt>
+<dd>
+<p>Default <code>NULL</code>. Used during <code>prepInputs</code> when reading a <code>.shp</code> file.
+If <code>NULL</code>, it will use <code>sf::st_read</code> if <code>sf</code> package is available; otherwise,
+it will use <code>raster::shapefile</code>
+</p>
+</dd>
+<dt><code>showSimilar</code></dt>
+<dd>
+<p>Default <code>FALSE</code>. Passed to <code>Cache</code>.
+</p>
+</dd>
+<dt><code>timeout</code></dt>
+<dd>
+<p>Default <code>1200</code>. Used in <code>preProcess</code> when downloading occurs. If a user has <code>R.utils</code>
+package installed, <code>R.utils::withTimeout(  , timeout = getOption("reproducible.timeout"))</code>
+will be wrapped around the download so that it will timeout (and error) after this many
+seconds.
+</p>
+</dd>
+<dt><code>useCache</code></dt>
+<dd>
+<p>Default: <code>TRUE</code>. Used in <code>Cache()</code>. If <code>FALSE</code>, then the entire
+<code>Cache</code> machinery is skipped and the functions are run as if there was no Cache occurring.
+Can also take 2 other values: <code>'overwrite'</code> and <code>'devMode'</code>.
+<code>'overwrite'</code> will cause no recovery of objects from the cache repository, only new
+ones will be created. If the hash is identical to a previous one, then this will overwrite
+the previous one.
+<code>'devMode'</code> will function as normally <code>Cache</code> except it will use the
+<code>userTags</code> to determine if a previous function has been run. If the <code>userTags</code>
+are identical, but the digest value is different, the old value will be deleted from the
+cache repository and this new value will be added.
+This addresses a common situation during the development stage: functions are changing
+frequently, so any entry in the cache repository will be stale following changes to
+functions, i.e., they will likely never be relevant again.
+This will therefore keep the cache repository clean of stale objects.
+If there is ambiguity in the <code>userTags</code>, i.e., they do not uniquely identify a single
+entry in the <code>cachePath</code>, then this option will default back to the non-dev-mode
+behaviour to avoid deleting objects.
+This, therefore, is most useful if the user is using unique values for <code>userTags</code>.
+</p>
+</dd>
+<dt><code>useCloud</code></dt>
+<dd>
+<p>Default <code>FALSE</code>. Passed to <code>Cache</code>.
+</p>
+</dd>
+<dt><code>useDBI</code></dt>
+<dd>
+<p>Default: <code>TRUE</code> if <span class="pkg">DBI</span> is available.
+Default value can be overridden by setting environment variable <code>R_REPRODUCIBLE_USE_DBI</code>.
+As of version 0.3, the backend is now <span class="pkg">DBI</span> instead of <span class="pkg">archivist</span>.
+</p>
+</dd>
+<dt><code>useGdown</code></dt>
+<dd>
+<p>Default: <code>FALSE</code>. If a user provides a Google Drive url to <code>preProcess</code>/<code>prepInputs</code>,
+<code>reproducible</code> will use the <code>googledrive</code> package. This works reliably in most cases.
+However, for large files on unstable internet connections, it will stall and
+stop the download with no error. If a user is finding this behaviour, they can
+install the <code>gdown</code> package, making sure it is available on the PATH. This call
+to <code>gdown</code> will only work for files that do not need authentication. If authentication
+is needed, <code>dlGoogle</code> will fall back to <code>googledrive::drive_download</code>, even
+if this option is <code>TRUE</code>, with a message.
+.
+</p>
+</dd>
+<dt><code>useMemoise</code></dt>
+<dd>
+<p>Default: <code>FALSE</code>. Used in <code>Cache()</code>. If <code>TRUE</code>, recovery of cached
+elements from the <code>cachePath</code> will use <code>memoise::memoise</code>.
+This means that the 2nd time running a function will be much faster than the first
+in a session (which either will create a new cache entry to disk or read a cached
+entry from disk).
+<em>NOTE: memoised values are removed when the R session is restarted</em>.
+<strong>This option will use more RAM</strong> and so may need to be turned off if RAM is limiting.
+<code>clearCache</code> of any sort will cause all memoising to be 'forgotten' (<code>memoise::forget</code>).
+</p>
+</dd>
+<dt><code>useNewDigestAlgorithm</code></dt>
+<dd>
+<p>Default: <code>1</code>. Option 1 is the version that has existed for sometime.
+There is now an option <code>2</code> which is substantially faster.
+It will, however, create Caches that are not compatible with previous ones.
+Options <code>1</code> and <code>2</code> are not compatible with the earlier <code>0</code>.
+<code>1</code> and <code>2</code> will make <code>Cache</code> less sensitive to minor but irrelevant changes
+(like changing the order of arguments) and will work successfully across operating systems
+(especially relevant for the new <code>cloudCache</code> function.
+</p>
+</dd>
+<dt><code>useTerra</code></dt>
+<dd>
+<p>Default: <code>FALSE</code>. The GIS operations in postProcess, by default use primarily
+the Raster package. The newer terra package does similar operations, but usually
+faster. A user can now set this option to <code>TRUE</code> and <code>prepInputs</code>
+and several components of <code>postProcess</code> will use <code>terra</code> internally.
+</p>
+</dd>
+<dt><code>verbose</code></dt>
+<dd>
+<p>Default: <code>FALSE</code>. If set to <code>TRUE</code> then every <code>Cache</code> call will show a
+summary of the objects being cached, their <code>object.size</code> and the time it took to digest
+them and also the time it took to run the call and save the call to the cache repository or
+load the cached copy from the repository.
+This may help diagnosing some problems that may occur.
+</p>
+</dd>
+</dl>
+<h3>Value</h3>
+
+<p>This function returns a list of all the options that the <code>reproducible</code> package
+sets and uses. See below for details of each.
+</p>
+
+
+<h3>Advanced</h3>
+
+<p>The following options are likely not needed by a user.
+</p>
+
+<dl>
+<dt><code>cloudChecksumsFilename</code></dt>
+<dd>
+<p>Default: <code>file.path(dirname(.reproducibleTempCacheDir()), "checksums.rds")</code>.
+Used as an experimental argument in <code>Cache()</code>
+</p>
+</dd>
+<dt><code>length</code></dt>
+<dd>
+<p>Default: <code>Inf</code>. Used in <code>Cache()</code>, specifically to the internal
+calls to <code>CacheDigest()</code>. This is passed to <code>digest::digest</code>.
+Mostly this would be changed from default <code>Inf</code> if the digesting is taking too long.
+Use this with caution, as some objects will have <em>many</em> <code>NA</code> values in their first
+<em>many</em> elements
+</p>
+</dd>
+<dt><code>useragent</code></dt>
+<dd>
+<p>Default: <code>"https://github.com/PredictiveEcology/reproducible"</code>.
+User agent for downloads using this package.
+</p>
+</dd>
+</dl>
+</div>

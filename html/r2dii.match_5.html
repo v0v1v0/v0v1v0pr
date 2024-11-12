@@ -1,0 +1,164 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>prioritize</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Pick rows where <code>score</code> is 1 and <code>level</code> per loan is of highest <code>priority</code>
+</h2>
+
+<h3>Description</h3>
+
+<p>When multiple perfect matches are found per loan (e.g. a match at
+<code>direct_loantaker</code> level and <code>ultimate_parent</code> level), we must prioritize the
+desired match. By default, the highest <code>priority</code> is the most granular match
+(i.e. <code>direct_loantaker</code>).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">prioritize(data, priority = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame like the validated output of <code>match_name()</code>. See
+<em>Details</em> on how to validate <code>data</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>priority</code></td>
+<td>
+<p>One of:
+</p>
+
+<ul>
+<li> <p><code>NULL</code>: defaults to the default level priority as returned by
+<code>prioritize_level()</code>.
+</p>
+</li>
+<li>
+<p> A character vector giving a custom priority.
+</p>
+</li>
+<li>
+<p> A function to apply to the output of <code>prioritize_level()</code>, e.g. <code>rev</code>.
+</p>
+</li>
+<li>
+<p> A quosure-style lambda function, e.g. <code>~ rev(.x)</code>.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><strong>How to validate <code>data</code></strong>
+Write the output of <code>match_name()</code> into a .csv file with:
+</p>
+<div class="sourceCode"><pre># Writting to current working directory
+matched %&gt;%
+  readr::write_csv("matched.csv")
+</pre></div>
+<p>Compare, edit, and save the data manually:
+</p>
+
+<ul>
+<li>
+<p> Open <em>matched.csv</em> with any spreadsheet editor (Excel, Google Sheets, etc.).
+</p>
+</li>
+<li>
+<p> Compare the columns <code>name</code> and <code>name_abcd</code> manually to determine if the match is valid. Other information can be used in conjunction with just the names to ensure the two entities match (sector, internal information on the company structure, etc.)
+</p>
+</li>
+<li>
+<p> Edit the data:
+</p>
+
+<ul>
+<li>
+<p> If you are happy with the match, set the <code>score</code> value to <code>1</code>.
+</p>
+</li>
+<li>
+<p> Otherwise set or leave the <code>score</code> value to anything other than <code>1</code>.
+</p>
+</li>
+</ul>
+</li>
+<li>
+<p> Save the edited file as, say, <em>valid_matches.csv</em>.
+</p>
+</li>
+</ul>
+<p>Re-read the edited file (validated) with:
+</p>
+<div class="sourceCode"><pre># Reading from current working directory
+valid_matches &lt;- readr::read_csv("valid_matches.csv")
+</pre></div>
+
+
+<h3>Value</h3>
+
+<p>A data frame with a single row per loan, where <code>score</code> is 1 and
+priority level is highest.
+</p>
+
+
+<h3>Handling grouped data</h3>
+
+<p>This function ignores but preserves existing groups.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>match_name()</code>, <code>prioritize_level()</code>.
+</p>
+<p>Other main functions: 
+<code>match_name()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(dplyr)
+
+# styler: off
+matched &lt;- tribble(
+  ~sector, ~sector_abcd,  ~score, ~id_loan,                ~level,
+   "coal",      "coal",       1,     "aa",     "ultimate_parent",
+   "coal",      "coal",       1,     "aa",    "direct_loantaker",
+   "coal",      "coal",       1,     "bb", "intermediate_parent",
+   "coal",      "coal",       1,     "bb",     "ultimate_parent",
+)
+# styler: on
+
+prioritize_level(matched)
+
+# Using default priority
+prioritize(matched)
+
+# Using the reverse of the default priority
+prioritize(matched, priority = rev)
+
+# Same
+prioritize(matched, priority = ~ rev(.x))
+
+# Using a custom priority
+bad_idea &lt;- c("intermediate_parent", "ultimate_parent", "direct_loantaker")
+
+prioritize(matched, priority = bad_idea)
+</code></pre>
+
+
+</div>

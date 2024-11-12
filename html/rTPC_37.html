@@ -1,0 +1,127 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rezende_2019</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Rezende model for fitting thermal performance curves</h2>
+
+<h3>Description</h3>
+
+<p>Rezende model for fitting thermal performance curves
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rezende_2019(temp, q10, a, b, c)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>temp</code></td>
+<td>
+<p>temperature in degrees centigrade</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>q10</code></td>
+<td>
+<p>defines the fold change in performance as a result of increasing the temperature by 10 ºC</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>a</code></td>
+<td>
+<p>parameter describing shifts in rate</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>b</code></td>
+<td>
+<p>parameter threshold temperature (ºC) beyond which the downward curve starts</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>c</code></td>
+<td>
+<p>parameter controlling the rate of decline beyond the threshold temperature, b</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Equation:
+</p>
+<p style="text-align: center;"><code class="reqn">\textrm{if} \quad temp &lt; b: rate = a \cdot 10 ^{\frac{\log_{10} (q_{10})}{(\frac{10}{temp})}}</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">\textrm{if} \quad temp &gt; b: rate = a \cdot 10 ^{\frac{\log_{10} (q_{10})}{(\frac{10}{temp})}} \cdot \bigg(1-c \cdot (b-temp)^2 \bigg)</code>
+</p>
+
+<p>Start values in <code>get_start_vals</code> are derived from the data and previous values in the literature.
+</p>
+<p>Limits in <code>get_lower_lims</code> and <code>get_upper_lims</code> are based on extreme values that are unlikely to occur in ecological settings.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a numeric vector of rate values based on the temperatures and parameter values provided to the function
+</p>
+
+
+<h3>Note</h3>
+
+<p>Generally we found this model easy to fit.
+</p>
+
+
+<h3>References</h3>
+
+<p>Rezende, Enrico L., and Francisco Bozinovic. Thermal performance across levels of biological organization. Philosophical Transactions of the Royal Society B 374.1778 (2019): 20180549.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># load in ggplot
+library(ggplot2)
+
+# subset for the first TPC curve
+data('chlorella_tpc')
+d &lt;- subset(chlorella_tpc, curve_id == 1)
+
+# get start values and fit model
+start_vals &lt;- get_start_vals(d$temp, d$rate, model_name = 'rezende_2019')
+# fit model
+mod &lt;- nls.multstart::nls_multstart(rate~rezende_2019(temp = temp, q10, a, b, c),
+data = d,
+iter = c(4,4,4,4),
+start_lower = start_vals - 10,
+start_upper = start_vals + 10,
+lower = get_lower_lims(d$temp, d$rate, model_name = 'rezende_2019'),
+upper = get_upper_lims(d$temp, d$rate, model_name = 'rezende_2019'),
+supp_errors = 'Y',
+convergence_count = FALSE)
+
+# look at model fit
+summary(mod)
+
+# get predictions
+preds &lt;- data.frame(temp = seq(min(d$temp), max(d$temp), length.out = 100))
+preds &lt;- broom::augment(mod, newdata = preds)
+
+# plot
+ggplot(preds) +
+geom_point(aes(temp, rate), d) +
+geom_line(aes(temp, .fitted), col = 'blue') +
+theme_bw()
+
+</code></pre>
+
+
+</div>

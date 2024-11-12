@@ -1,0 +1,234 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>redist_mergesplit_parallel</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Parallel Merge-Split/Recombination MCMC Redistricting Sampler</h2>
+
+<h3>Description</h3>
+
+<p><code>redist_mergesplit_parallel()</code> runs <code>redist_mergesplit()</code> on several
+chains in parallel.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">redist_mergesplit_parallel(
+  map,
+  nsims,
+  chains = 1,
+  warmup = if (is.null(init_plan)) 10 else max(100, nsims%/%5),
+  thin = 1L,
+  init_plan = NULL,
+  counties = NULL,
+  compactness = 1,
+  constraints = list(),
+  constraint_fn = function(m) rep(0, ncol(m)),
+  adapt_k_thresh = 0.99,
+  k = NULL,
+  ncores = NULL,
+  cl_type = "PSOCK",
+  return_all = TRUE,
+  init_name = NULL,
+  verbose = FALSE,
+  silent = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>map</code></td>
+<td>
+<p>A <code>redist_map</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nsims</code></td>
+<td>
+<p>The number of samples to draw, including warmup.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chains</code></td>
+<td>
+<p>the number of parallel chains to run. Each chain will have
+<code>nsims</code> draws. If <code>init_plan</code> is sampled, each chain will be initialized
+with its own sampled plan.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>warmup</code></td>
+<td>
+<p>The number of warmup samples to discard. Recommended to be at
+least the first 20% of samples, and in any case no less than around 100
+samples, unless initializing from a random plan.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thin</code></td>
+<td>
+<p>Save every <code>thin</code>-th sample. Defaults to no thinning (1).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init_plan</code></td>
+<td>
+<p>The initial state of the map, provided as a single vector
+to be shared across all chains, or a matrix with <code>chains</code> columns.
+If not provided, will default to the reference map of the map object, or if
+none exists, will sample a random initial state using redist_smc. You can
+also request a random initial state for each chain by setting
+init_plan="sample".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>counties</code></td>
+<td>
+<p>A vector containing county (or other administrative or
+geographic unit) labels for each unit, which may be integers ranging from 1
+to the number of counties, or a factor or character vector.  If provided,
+the algorithm will generate maps tend to follow county lines. There is no
+strength parameter associated with this constraint. To adjust the number of
+county splits further, or to constrain a second type of administrative
+split, consider using <code>add_constr_splits()</code>, <code>add_constr_multisplits()</code>,
+and <code>add_constr_total_splits()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>compactness</code></td>
+<td>
+<p>Controls the compactness of the generated districts, with
+higher values preferring more compact districts. Must be nonnegative. See the
+'Details' section for more information, and computational considerations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>constraints</code></td>
+<td>
+<p>A list containing information on constraints to implement.
+See the 'Details' section for more information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>constraint_fn</code></td>
+<td>
+<p>A function which takes in a matrix where each column is
+a redistricting plan and outputs a vector of log-weights, which will be
+added the the final weights.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adapt_k_thresh</code></td>
+<td>
+<p>The threshold value used in the heuristic to select a
+value <code>k_i</code> for each splitting iteration. Set to 0.9999 or 1 if
+the algorithm does not appear to be sampling from the target distribution.
+Must be between 0 and 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>The number of edges to consider cutting after drawing a spanning
+tree. Should be selected automatically in nearly all cases.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncores</code></td>
+<td>
+<p>the number of parallel processes to run. Defaults to the
+maximum available.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cl_type</code></td>
+<td>
+<p>the cluster type (see <code>makeCluster()</code>). Safest is <code>"PSOCK"</code>,
+but <code>"FORK"</code> may be appropriate in some settings.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return_all</code></td>
+<td>
+<p>if <code>TRUE</code> return all sampled plans; otherwise, just return
+the final plan from each chain.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init_name</code></td>
+<td>
+<p>a name for the initial plan, or <code>FALSE</code> to not include
+the initial plan in the output.  Defaults to the column name of the
+existing plan, or "<code>&lt;init&gt;</code>" if the initial plan is sampled.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Whether to print out intermediate information while sampling.
+Recommended.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>silent</code></td>
+<td>
+<p>Whether to suppress all diagnostic information.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function draws samples from a specific target measure, controlled by the
+<code>map</code>, <code>compactness</code>, and <code>constraints</code> parameters.
+</p>
+<p>Key to ensuring good performance is monitoring the acceptance rate, which
+is reported at the sample level in the output.
+Users should also check diagnostics of the sample by running
+<code>summary.redist_plans()</code>.
+</p>
+<p>Higher values of <code>compactness</code> sample more compact districts;
+setting this parameter to 1 is computationally efficient and generates nicely
+compact districts.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>redist_plans</code> object with all of the simulated plans, and an
+additional <code>chain</code> column indicating the chain the plan was drawn from.
+</p>
+
+
+<h3>References</h3>
+
+<p>Carter, D., Herschlag, G., Hunter, Z., and Mattingly, J. (2019). A
+merge-split proposal for reversible Monte Carlo Markov chain sampling of
+redistricting plans. arXiv preprint arXiv:1911.01503.
+</p>
+<p>McCartan, C., &amp; Imai, K. (2023). Sequential Monte Carlo for Sampling
+Balanced and Compact Redistricting Plans. <em>Annals of Applied Statistics</em> 17(4).
+Available at <a href="https://doi.org/10.1214/23-AOAS1763">doi:10.1214/23-AOAS1763</a>.
+</p>
+<p>DeFord, D., Duchin, M., and Solomon, J. (2019). Recombination: A family of
+Markov chains for redistricting. arXiv preprint arXiv:1911.05725.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+data(fl25)
+fl_map &lt;- redist_map(fl25, ndists = 3, pop_tol = 0.1)
+sampled &lt;- redist_mergesplit_parallel(fl_map, nsims = 100, chains = 100)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

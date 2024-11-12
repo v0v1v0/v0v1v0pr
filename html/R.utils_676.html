@@ -1,0 +1,140 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pushTemporaryFile</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Appends a temporary suffix to the pathname</h2>
+
+<h3>Description</h3>
+
+<p>Appends a temporary suffix to the pathname and, optionally, renames an existing file accordingly.
+</p>
+<p>In combination with <code>popTemporaryFile</code>(), this method is useful
+for creating a file/writing data to file <em>atomically</em>, by
+first writing to a temporary file which is the renamed.  If for
+some reason the generation of the file was interrupted, for instance
+by a user interrupt or a power failure, then it is only the temporary
+file that is incomplete.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## Default S3 method:
+pushTemporaryFile(filename, path=NULL, suffix=".tmp", isFile=FALSE, ..., verbose=FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>filename</code></td>
+<td>
+<p>The filename of the file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>path</code></td>
+<td>
+<p>The path of the file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>suffix</code></td>
+<td>
+<p>The suffix to be appended.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>isFile</code></td>
+<td>
+<p>If <code>TRUE</code>, the file must exist and will be renamed
+on the file system.  If <code>FALSE</code>, it is only the pathname string
+that will be modified. For details, see below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Not used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>A <code>logical</code> or <code>Verbose</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>If <code>isFile</code> is <code>FALSE</code>, the pathname where the suffix of the
+temporary pathname has been added is returned.
+If <code>isFile</code> is <code>TRUE</code>, the file is also renamed.
+Then, if the file does not exists or it was not successfully
+renamed, an exception is thrown.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns the pathname with the suffix appended.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Henrik Bengtsson</p>
+
+
+<h3>See Also</h3>
+
+<p><code>popTemporaryFile</code>().
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+createAtomically &lt;- function(pathname, ...) {
+  cat("Pathname: ", pathname, "\n", sep="");
+
+  # Generate a file atomically, i.e. the file will either be
+  # complete or not created at all.  If interrupted while
+  # writing, only a temporary file will exist/remain.
+  pathnameT &lt;- pushTemporaryFile(pathname);
+  cat("Temporary pathname: ", pathnameT, "\n", sep="");
+
+  cat(file=pathnameT, "This file was created atomically:\n");
+  for (kk in 1:10) {
+    cat(file=pathnameT, kk, "\n", append=TRUE);
+    # Emulate a slow process
+    if (interactive()) Sys.sleep(0.1)
+  }
+  cat(file=pathnameT, "END OF FILE\n", append=TRUE);
+
+  # Rename the temporary file
+  pathname &lt;- popTemporaryFile(pathnameT);
+
+  pathname;
+} # createAtomically()
+
+
+pathname &lt;- tempfile();
+
+tryCatch({
+  # Try to interrupt the process while writing...
+  pathname &lt;- createAtomically(pathname);
+}, interrupt=function(intr) {
+  str(intr);
+})
+
+# ...and this will throw an exception
+bfr &lt;- readLines(pathname);
+cat(bfr, sep="\n");
+</code></pre>
+
+
+</div>

@@ -1,0 +1,183 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>RRcor</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Bivariate correlations including randomized response variables</h2>
+
+<h3>Description</h3>
+
+<p><code>RRcor</code> calculates bivariate Pearson correlations of variables measured
+with or without RR.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">RRcor(
+  x,
+  y = NULL,
+  models,
+  p.list,
+  group = NULL,
+  bs.n = 0,
+  bs.type = c("se.n", "se.p", "pval"),
+  nCPU = 1
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a numeric vector, matrix or data frame.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p><code>NULL</code> (default) or a vector, matrix or data frame with
+compatible dimensions to <code>x</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>models</code></td>
+<td>
+<p>a vector defining which RR design is used for each variable.
+Must be in the same order as variables appear in <code>x</code> and <code>y</code> (by
+columns). Available discrete models: <code>Warner</code>, <code>Kuk</code>, <code>FR</code>,
+<code>Mangat</code>, <code>UQTknown</code>, <code>UQTunknown</code>, <code>Crosswise</code>,
+<code>Triangular</code>, <code>SLD</code> and <code>direct</code> (i.e., no randomized
+response design). Available continuous models: <code>mix.norm</code>,
+<code>mix.exp</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p.list</code></td>
+<td>
+<p>a <code>list</code> containing the randomization probabilities of the
+RR models defined in <code>models</code>. Either, all <code>direct</code>-variables
+(i.e., no randomized response) in <code>models</code> can be excluded in
+<code>p.list</code>; or, if specified, randomization probabilities <code>p</code> are
+ignored for <code>direct</code>-variables. See <code>RRuni</code> for a detailed
+specification of p.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group</code></td>
+<td>
+<p>a matrix defining the group membership of each participant
+(values 1 and 2) for all multiple group models(<code>SLD</code>,
+<code>UQTunknown</code>). If only one of these models is included in
+<code>models</code>, a vector can be used. For more than one model, each column
+should contain one grouping variable</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bs.n</code></td>
+<td>
+<p>number of samples used to get bootstrapped standard errors</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bs.type</code></td>
+<td>
+<p>to get boostrapped standard errors, use <code>"se.p"</code> for the
+parametric and/or <code>"se.n"</code> for the nonparametric bootstrap. Use
+<code>"pval"</code> to get p-values from the parametric bootstrap (assuming a
+true correlation of zero). Note that <code>bs.n</code> has to be larger than 0.
+The parametric bootstrap is based on the assumption, that the continuous
+variable is normally distributed within groups defined by the true state of
+the RR variable. For polytomous forced response (FR) designs, the RR
+variable is assumed to have equally spaced distances between categories
+(i.e., that it is interval scaled)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nCPU</code></td>
+<td>
+<p>only relevant for the bootstrap: either the number of CPU cores
+or a cluster initialized via <code>makeCluster</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Correlations of RR variables are calculated by the method of Fox &amp;
+Tracy (1984) by interpreting the variance induced by the RR procedure as
+uncorrelated measurement error. Since the error is independent, the
+correlation can be corrected to obtain an unbiased estimator.
+</p>
+<p>Note that the continuous RR model <code>mix.norm</code> with the randomization
+parameter <code>p=c(p.truth, mean, SD)</code> assumes that participants respond
+either to the sensitive question with probability <code>p.truth</code> or otherwise
+to a known masking distribution with known mean and SD. The estimated
+correlation only depends on the mean and SD and does not require normality.
+However, the assumption of normality is used in the parametric bootstrap to
+obtain standard errors.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>RRcor</code> returns a list with the following components::
+</p>
+<p><code>r</code> estimated correlation matrix
+</p>
+<p><code>rSE.p</code>, <code>rSE.n</code> standard errors from parametric/nonparametric
+bootstrap
+</p>
+<p><code>prob</code> two-sided p-values from parametric bootstrap
+</p>
+<p><code>samples.p</code>, <code>samples.n</code> sampled correlations from
+parametric/nonparametric bootstrap (for the standard errors)
+</p>
+
+
+<h3>References</h3>
+
+<p>Fox, J. A., &amp; Tracy, P. E. (1984). Measuring associations with
+randomized response. <em>Social Science Research, 13</em>, 188-197.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>vignette('RRreg')</code> or
+<a href="https://www.dwheck.de/vignettes/RRreg.html">https://www.dwheck.de/vignettes/RRreg.html</a> for a
+detailed description of the RR models and the appropriate definition of
+<code>p</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># generate first RR variable
+n &lt;- 1000
+p1 &lt;- c(.3, .7)
+gData &lt;- RRgen(n, pi = .3, model = "Kuk", p1)
+
+# generate second RR variable
+p2 &lt;- c(.8, .5)
+t2 &lt;- rbinom(n = n, size = 1, prob = (gData$true + 1) / 2)
+temp &lt;- RRgen(model = "UQTknown", p = p2, trueState = t2)
+gData$UQTresp &lt;- temp$response
+gData$UQTtrue &lt;- temp$true
+
+# generate continuous covariate
+gData$cov &lt;- rnorm(n, 0, 4) + gData$UQTtrue + gData$true
+
+# estimate correlations using directly measured / RR variables
+cor(gData[, c("true", "cov", "UQTtrue")])
+RRcor(
+  x = gData[, c("response", "cov", "UQTresp")],
+  models = c("Kuk", "d", "UQTknown"), p.list = list(p1, p2)
+)
+</code></pre>
+
+
+</div>

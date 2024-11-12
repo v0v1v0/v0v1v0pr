@@ -1,0 +1,169 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>comboGroupsSample</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Sample Partitions of a Vector into Groups
+</h2>
+
+<h3>Description</h3>
+
+
+<ul>
+<li>
+<p> Generate a specific (lexicographically) or random sample of partitions of groups.
+</p>
+</li>
+<li>
+<p> Produce results in parallel using the <code>Parallel</code> or <code>nThreads</code> arguments.
+</p>
+</li>
+<li>
+<p> GMP support allows for exploration where the number of results is large.
+</p>
+</li>
+</ul>
+<h3>Usage</h3>
+
+<pre><code class="language-R">comboGroupsSample(v, numGroups = NULL, grpSizes = NULL, retType = "matrix",
+                  n = NULL, sampleVec = NULL, seed = NULL, Parallel = FALSE,
+                  nThreads = NULL, namedSample = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>v</code></td>
+<td>
+<p>Source vector. If <code>v</code> is a positive integer, it will be converted to the sequence <code>1:v</code>. If <code>v</code> is a negative integer, it will be converted to the sequence <code>v:-1</code>. All atomic types are supported (See <code>is.atomic</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>numGroups</code></td>
+<td>
+<p>An Integer. The number of groups that the vector will be partitioned into. The default is <code>NULL</code>. If provided and <code>grpSize</code> is <code>NULL</code>, it must divide the length of v (if v is a vector) or v (if v is a scalar).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grpSizes</code></td>
+<td>
+<p>A vector of whole numbers representing the size of each group. The default is <code>NULL</code>. If provided, the sum of the elements must total the length of v (if v is a vector) or v (if v is a scalar).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>retType</code></td>
+<td>
+<p>A string, "3Darray" or "matrix", that determines the shape of the output. The default is "matrix". Note, "3Darray" can only be used when the size of each group is uniform. When the size of each group varies, the return output will always be a matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>Number of results to return. The default is <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sampleVec</code></td>
+<td>
+<p>A vector of numbers representing the lexicographical partition of groups to return. Accepts vectors of class <code>bigz</code> as well as vectors of characters</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>Random seed initialization. The default is <code>NULL</code>. N.B. If the gmp library is needed, this parameter must be set in order to have reproducible results (<em>E.g</em> <code>set.seed()</code> has no effect in these cases).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Parallel</code></td>
+<td>
+<p>Logical value indicating whether results should be generated in parallel. The default is <code>FALSE</code>. If <code>TRUE</code> and <code>nThreads = NULL</code>, the number of threads used is equal to the minimum of one minus the number of threads available on your system and the number of results requested (<em>e.g.</em> if user has 16 threads and only needs 5 results, 5 threads will be used (<em>i.e.</em> <code>min(16 - 1, 5) = 5</code>)). If <code>nThreads</code> is not <code>NULL</code>, it will be given preference (<em>e.g.</em> if user has 8 threads with <code>Parallel = TRUE</code> and <code>nThreads = 4</code>, only 4 threads will be spawned). If your system is single-threaded, the arguments <code>Parallel</code> and <code>nThreads</code> are ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nThreads</code></td>
+<td>
+<p>Specific number of threads to be used. The default is <code>NULL</code>. See <code>Parallel</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>namedSample</code></td>
+<td>
+<p>Logical flag. If <code>TRUE</code>, <code>rownames</code> corresponding to the lexicographical result, will be added to the returned matrix. The default is <code>FALSE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>These algorithms rely on efficiently generating the <code class="reqn">n^{th}</code> lexicographical result.
+</p>
+
+
+<h3>Value</h3>
+
+<p>By default, a matrix is returned with column names corresponding to the associated group. If <code>retType = "3Darray"</code>, a 3D array is returned.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Joseph Wood
+</p>
+
+
+<h3>References</h3>
+
+<p><a href="https://en.wikipedia.org/wiki/Lexicographical_order">Lexicographical order</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## generate 10 random partitions of groups of equal size
+comboGroupsSample(10, 2, n = 10, seed = 123)
+
+## generate 10 random partitions of groups of varying sizes
+comboGroupsSample(10, grpSizes = 1:4, n = 10, seed = 123)
+
+## using sampleVec to generate specific results
+comboGroupsSample(15, 5, sampleVec = c(1, 100, 1e3, 1e6))
+
+all.equal(comboGroupsSample(10, 5,
+            sampleVec = 1:comboGroupsCount(10, 5)),
+         comboGroups(10, 5))
+
+## Examples with enormous number of total results
+num = comboGroupsCount(100, 20)
+gmp::log2.bigz(num)
+## [1] 325.5498
+
+first = gmp::urand.bigz(n = 1, size = 325, seed = 123)
+mySamp = do.call(c, lapply(0:10, function(x) gmp::add.bigz(first, x)))
+
+class(mySamp)
+## [1] "bigz"
+
+## using the sampling function
+cbgSamp = comboGroupsSample(100, 20, sampleVec = mySamp)
+
+## using the standard function
+cbgGeneral = comboGroups(100, 20,
+                         lower = first,
+                         upper = gmp::add.bigz(first, 10))
+
+identical(cbgSamp, cbgGeneral)
+## [1] TRUE
+
+## Not run: 
+## Using Parallel
+system.time(comboGroupsSample(1000, 20, n = 80, seed = 10, Parallel = TRUE))
+
+## End(Not run)
+</code></pre>
+
+
+</div>

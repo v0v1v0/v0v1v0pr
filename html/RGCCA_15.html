@@ -1,0 +1,571 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rgcca_cv</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Tune RGCCA parameters by cross-validation</h2>
+
+<h3>Description</h3>
+
+<p>This function is used to select automatically "sparsity", "tau" or "ncomp"
+by cross-validation. This function only applies in a supervised setting,
+and filling the response argument is therefore mandatory.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rgcca_cv(
+  blocks,
+  method = "rgcca",
+  response = NULL,
+  par_type = "tau",
+  par_value = NULL,
+  par_length = 10,
+  validation = "kfold",
+  prediction_model = "lm",
+  metric = NULL,
+  k = 5,
+  n_run = 1,
+  n_cores = 1,
+  quiet = TRUE,
+  superblock = FALSE,
+  scale = TRUE,
+  scale_block = TRUE,
+  tol = 1e-08,
+  scheme = "factorial",
+  NA_method = "na.ignore",
+  rgcca_res = NULL,
+  tau = 1,
+  ncomp = 1,
+  sparsity = 1,
+  init = "svd",
+  bias = TRUE,
+  verbose = TRUE,
+  n_iter_max = 1000,
+  comp_orth = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>blocks</code></td>
+<td>
+<p>A list that contains the <code class="reqn">J</code> blocks of variables
+<code class="reqn">\mathbf{X_1}, \mathbf{X_2}, ..., \mathbf{X_J}</code>.
+Block <code class="reqn">\mathbf{X}_j</code> is a matrix of dimension
+<code class="reqn">n \times p_j</code> where <code class="reqn">n</code> is the number of
+observations and <code class="reqn">p_j</code> the number of variables. The blocks argument can
+be also a fitted cval, rgcca or permutation object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>A string specifying which multiblock component
+method to consider. Possible values are found using
+available_methods.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>response</code></td>
+<td>
+<p>A numerical value giving the position of the response block.
+When the response argument is filled, the supervised mode is automatically
+activated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>par_type</code></td>
+<td>
+<p>A character giving the parameter to tune among "sparsity",
+"tau" or "ncomp".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>par_value</code></td>
+<td>
+<p>The parameter values to be tested, either NULL,
+a numerical vector of size <code class="reqn">J</code>, or a matrix of size
+par_length <code class="reqn">\times J</code>.
+</p>
+<p>If par_value is NULL, up to par_length sets of parameters are generated
+uniformly from
+the minimum and maximum possible values of the parameter defined by par_type
+for each block. Minimum possible values are 0 for tau,
+<code class="reqn">1/\textrm{sqrt}(p_j)</code> for sparsity, and 1
+for ncomp. Maximum possible values are 1 for tau and sparsity, and
+<code class="reqn">p_j</code> for ncomp.
+</p>
+<p>If par_value is a vector, it overwrites the maximum values taken for the
+range of generated parameters.
+</p>
+<p>If par_value is a matrix, par_value directly corresponds to the set of
+tested parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>par_length</code></td>
+<td>
+<p>An integer indicating the number of sets of candidate
+parameters to be tested (if par_value is not a matrix).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>validation</code></td>
+<td>
+<p>A string specifying the type of validation among "loo" and
+"kfold". For small datasets (e.g. &lt;30 samples), it is recommended to use a
+loo (leave-one-out) procedure.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prediction_model</code></td>
+<td>
+<p>A string giving the model used for prediction.
+Please see caret::modelLookup() for a list of the available models.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>metric</code></td>
+<td>
+<p>A string indicating the metric of interest.
+It should be one of the following scores:
+</p>
+<p>For classification: "Accuracy", "Kappa", "F1", "Sensitivity", "Specificity",
+"Pos_Pred_Value", "Neg_Pred_Value", "Precision", "Recall", "Detection_Rate",
+"Balanced_Accuracy".
+</p>
+<p>For regression: "RMSE", "MAE".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>An integer giving the number of folds (if validation = 'kfold').</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_run</code></td>
+<td>
+<p>An integer giving the number of Monte-Carlo Cross-Validation
+(MCCV) to be run (if validation = 'kfold').</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_cores</code></td>
+<td>
+<p>The number of cores used for parallelization.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quiet</code></td>
+<td>
+<p>A logical value indicating if some diagnostic messages
+are reported.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>superblock</code></td>
+<td>
+<p>A logical value indicating if the
+superblock option is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>A logical value indicating if variables are standardized.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale_block</code></td>
+<td>
+<p>A logical value or a string indicating if each block is
+scaled.
+</p>
+<p>If TRUE or "inertia", each block is divided by the sum of eigenvalues
+of its empirical covariance matrix.
+</p>
+<p>If "lambda1", each block is divided by
+the square root of the highest eigenvalue of its empirical covariance matrix.
+</p>
+<p>If standardization is applied (scale = TRUE), the block scaling applies on
+the standardized blocks.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>The stopping value for the convergence of the algorithm
+(default: tol = 1e-08).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scheme</code></td>
+<td>
+<p>A string or a function specifying the scheme function applied
+to
+covariance maximization among "horst" (the identity function), "factorial"
+(the square function - default value), "centroid" (the absolute value
+function). The scheme function can be any continuously differentiable convex
+function and it is possible to design explicitly the scheme function
+(e.g. function(x) x^4) as argument of the function.  See (Tenenhaus et al,
+2017) for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>NA_method</code></td>
+<td>
+<p>A string indicating the method used for
+handling missing values ("na.ignore", "na.omit"). (default: "na.ignore").
+</p>
+
+<ul>
+<li>
+<p> "na.omit" corresponds to perform RGCCA on the fully observed
+observations (observations from which missing values have been removed).
+</p>
+</li>
+<li>
+<p> "na.ignore" corresponds to perform RGCCA algorithm on available
+data (See Tenenhaus et al, 2005).</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rgcca_res</code></td>
+<td>
+<p>A fitted RGCCA object (see  <code>rgcca</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tau</code></td>
+<td>
+<p>Either a numerical value, a numeric vector of size
+<code class="reqn">J</code>, or a
+numeric matrix of dimension
+<code class="reqn">\mathrm{max}(\textrm{ncomp}) \times J</code>
+containing the values of the regularization parameters
+(default: tau = 1, for each
+block and each dimension), or a string equal to "optimal".
+The regularization parameters varies from 0 (maximizing the correlation) to
+1 (maximizing the covariance).
+</p>
+<p>If tau is a numerical
+value, tau is identical across all constraints applied to all
+block weight vectors.
+</p>
+<p>If tau is a vector, tau[j] is used for the constraints applied to
+all the block weight vectors associated to block <code class="reqn">\mathbf X_j</code>.
+</p>
+<p>If tau is a matrix, tau[k, j] is associated with the constraints
+applied to the kth block weight vector corresponding to block
+<code class="reqn">\mathbf X_j</code>.
+</p>
+<p>If tau = "optimal" the regularization
+parameters are estimated for each block and each dimension using the Schafer
+and Strimmer (2005) analytical formula. The tau parameters can also be
+estimated using
+rgcca_permutation or rgcca_cv.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncomp</code></td>
+<td>
+<p>A numerical value or a vector of length <code class="reqn">J</code> indicating
+the number of components per block. If a single value is provided,
+the same number of components is extracted for every block.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sparsity</code></td>
+<td>
+<p>Either a numerical value, a numeric vector of
+size <code class="reqn">J</code> or a numeric matrix
+of dimension <code class="reqn">\textrm{max}(\textrm{ncomp}) \times J</code> encoding the L1
+constraints applied to the
+block weight vectors. For block <code class="reqn">j</code>, the amount of
+sparsity varies between
+<code class="reqn">1/\textrm{sqrt}(p_j)</code> and 1 (larger values of sparsity
+correspond to less penalization).
+</p>
+<p>If sparsity is a numerical value, then sparsity is identical across
+all constraints applied to all block weight vectors.
+</p>
+<p>If sparsity is a vector, sparsity[j] is identical across the constraints
+applied to the block weight vectors associated to block
+<code class="reqn">\mathbf X_j</code>:
+</p>
+<p style="text-align: center;"><code class="reqn">
+   \forall k, \Vert a_{j,k} \Vert_{1} \le \textrm{sparsity}[j] \sqrt{p_j}.
+</code>
+</p>
+
+<p>If sparsity is a matrix, sparsity[k, j] is associated with the constraints
+applied to the kth block weight vector corresponding to block
+<code class="reqn">\mathbf X_j</code>:
+</p>
+<p style="text-align: center;"><code class="reqn">
+   \Vert a_{j,k}\Vert_{1} \le \textrm{sparsity}[k,j] \sqrt{p_j}.
+</code>
+</p>
+
+<p>The sparsity parameter can be estimated by using rgcca_permutation or
+rgcca_cv.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init</code></td>
+<td>
+<p>A string giving the type of initialization to use in
+the RGCCA algorithm. It could be either by
+Singular Value Decompostion ("svd")
+or by random initialization ("random") (default: "svd").</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bias</code></td>
+<td>
+<p>A logical value for biased (<code class="reqn">1/n</code>) or unbiased
+(<code class="reqn">1/(n-1)</code>) estimator of the variance/covariance
+(default: bias = TRUE).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>A logical value indicating if the progress of the
+algorithm is reported while computing.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_iter_max</code></td>
+<td>
+<p>Integer giving the algorithm's maximum number of
+iterations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>comp_orth</code></td>
+<td>
+<p>A logical value indicating if the deflation should lead to
+orthogonal block components or orthogonal block weight vectors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional parameters to be passed to prediction_model.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>If the response block is univariate. The RGCCA components of each block
+are used as input variables of the predictive model (specified by
+"prediction_model") to predict the response block. The best combination of
+parameters is the one with the best cross-validated score.
+For multivariate response block, The RGCCA components of each block
+are used as input variables of the predictive models (specified by
+"prediction_model") to predict each column of the response block.
+The cross-validated scores of each model are then averaged. The best
+combination of parameters is the one with the best averaged cross-validated
+score.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A rgcca_cv object that can be printed and plotted.
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>An integer giving the number of folds.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_run</code></td>
+<td>
+<p>An integer giving the number of MCCV.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>opt</code></td>
+<td>
+<p>A list containing some options of the
+RGCCA model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>metric</code></td>
+<td>
+<p>A string indicating the metric used during the process
+of cross-validation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cv</code></td>
+<td>
+<p>A matrix of dimension par_length x (k x n_run).
+Each row of cv
+corresponds to one set of candidate parameters. Each column of cv corresponds
+to the cross-validated score of a specific fold in a specific run.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>A list of the input parameters of the RGCCA model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>par_type</code></td>
+<td>
+<p>The type of parameter tuned (either "tau",
+"sparsity", or "ncomp").</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>best_params</code></td>
+<td>
+<p>The set of parameters that yields the best
+cross-validated scores.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>params</code></td>
+<td>
+<p>A matrix reporting the sets of candidate parameters
+used during the cross-validation process.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>validation</code></td>
+<td>
+<p>A string specifying the type of validation
+(either "loo" or "kfold").</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stats</code></td>
+<td>
+<p>A data.frame containing various statistics (mean, sd,
+median, first quartile, third quartile) of the cross-validated score for
+each set of parameters that has been tested.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>classification </code></td>
+<td>
+<p>A boolean indicating if the model performs a
+classification task.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prediction_model </code></td>
+<td>
+<p>A string giving the model used for
+prediction.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Cross_validation for classification
+
+set.seed(27) #favorite number
+data(Russett)
+blocks &lt;- list(
+  agriculture = Russett[, 1:3],
+  industry = Russett[, 4:5],
+  politic = as.factor(apply(Russett[, 9:11], 1, which.max))
+)
+
+cv_out &lt;- rgcca_cv(blocks, response = 3, method = "rgcca",
+                   par_type = "tau",
+                   par_length = 5,
+                   prediction_model = "lda", #caret::modelLookup()
+                   metric = "Accuracy",
+                   k=3, n_run = 3,
+                   verbose = TRUE)
+
+
+print(cv_out)
+plot(cv_out)
+
+# A fitted cval object is given as output of the rgcca() function
+
+fit_opt = rgcca(cv_out)
+## Not run: 
+# Cross_validation for regression
+
+set.seed(27) #favorite number
+data(Russett)
+blocks &lt;- list(
+  agriculture = Russett[, 1:3],
+  industry = Russett[, 4:5],
+  politic =  Russett[, 6:8]
+)
+
+cv_out &lt;- rgcca_cv(blocks, response = 3, method = "rgcca",
+                   par_type = "tau",
+                   par_value = c(0.6, 0.75, 0.8),
+                   prediction_model = "lm", #caret::modelLookup()
+                   metric = "RMSE",
+                   k=3, n_run = 5,
+                   verbose = TRUE)
+
+print(cv_out)
+plot(cv_out)
+
+fit_opt = rgcca(cv_out)
+
+
+ data("ge_cgh_locIGR", package = "gliomaData")
+ blocks &lt;- ge_cgh_locIGR$multiblocks
+ Loc &lt;- factor(ge_cgh_locIGR$y)
+ levels(Loc) &lt;- colnames(ge_cgh_locIGR$multiblocks$y)
+ blocks[[3]] &lt;- Loc
+ set.seed(27) # favorite number
+
+  cv_out = rgcca_cv(blocks, response = 3,
+                   ncomp = 1,
+                   prediction_model = "glmnet",
+                   family = "multinomial", lambda = .001,
+                   par_type = "sparsity",
+                   par_value = c(.071, .2, 1),
+                   metric = "Balanced_Accuracy",
+                   n_cores = 2,
+ )
+
+ print(cv_out)
+ plot(cv_out, display_order = FALSE)
+
+  cv_out = rgcca_cv(blocks, response = 3,
+                   ncomp = 1,
+                   prediction_model = "glmnet",
+                   family = "multinomial", lambda = .001,
+                   par_type = "ncomp",
+                   par_value = c(5, 5, 1),
+                   metric = "Balanced_Accuracy",
+                   n_cores = 2,
+ )
+
+ print(cv_out)
+ plot(cv_out, display_order = FALSE)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

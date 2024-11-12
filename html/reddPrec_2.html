@@ -1,0 +1,122 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>gridPcp</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Gridded dataset creation</h2>
+
+<h3>Description</h3>
+
+<p>This function creates a gridded precipitation dataset from a station-based dataset.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">gridPcp(
+  prec,
+  grid,
+  sts,
+  dates,
+  ncpu,
+  thres,
+  neibs,
+  coords,
+  crs,
+  coords_as_preds
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>prec</code></td>
+<td>
+<p>matrix or data.frame containing the original (cleaned) precipitation data. Each column represents one station. The names of columns must coincide with the names of the stations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grid</code></td>
+<td>
+<p>SpatRaster. Collection of rasters representing each one of the predictors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sts</code></td>
+<td>
+<p>matrix or data.frame. A column "ID" (unique ID of stations) is required. The rest of the columns (all of them) will act as predictors of the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dates</code></td>
+<td>
+<p>vector of class "Date" with all days of observations (yyyy-mm-dd).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncpu</code></td>
+<td>
+<p>number of processor cores used to parallel computing.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thres</code></td>
+<td>
+<p>numeric. Maximum radius (in km) where neighboring stations will be searched. NA value uses the whole spatial domain.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>neibs</code></td>
+<td>
+<p>integer. Number of nearest neighbors to use.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coords</code></td>
+<td>
+<p>vector of two character elements. Names of the fields in "sts" containing longitude and latitude.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>crs</code></td>
+<td>
+<p>character. Coordinates system in EPSG format (e.g.: "EPSG:4326").</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coords_as_preds</code></td>
+<td>
+<p>logical. If TRUE (default), "coords" are also taken as predictors.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+alt &lt;- terra::rast(volcano, crs = 'EPSG:4326')
+terra::ext(alt) &lt;- c(-1,3,38,42)
+lon &lt;- terra::rast(cbind(terra::crds(alt),terra::crds(alt)[,1]),type='xyz',crs='EPSG:4326')
+lat &lt;- terra::rast(cbind(terra::crds(alt),terra::crds(alt)[,2]),type='xyz',crs='EPSG:4326')
+dcoast &lt;- terra::costDist(alt,target=min(terra::values(alt)))/1000
+grid &lt;- c(alt, lon, lat, dcoast)
+names(grid) &lt;- c('alt', 'lon', 'lat', 'dcoast')
+
+prec &lt;- round(matrix(rnorm(2*25, mean = 1.2, sd = 4), 2, 25), 1)+1
+prec[prec&lt;0] &lt;- 0
+colnames(prec) &lt;- paste0('sts_',1:25)
+sts &lt;- data.frame(ID = paste0('sts_',1:25), as.data.frame(terra::spatSample(grid, 25)))
+gridPcp(prec, grid, sts, 
+        dates = seq.Date(as.Date('2023-04-01'),as.Date('2023-04-02'),by='day'),
+        thres = NA, coords = c('lon','lat'),coords_as_preds = TRUE, 
+        crs = 'EPSG:4326', neibs = 10, ncpu = 2)
+
+r &lt;- terra::rast(c('./pred/20230401.tif','./err/20230401.tif'))
+
+## End(Not run)
+</code></pre>
+
+
+</div>

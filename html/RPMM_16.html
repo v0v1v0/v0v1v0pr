@@ -1,0 +1,202 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>blcTree</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2> Beta RPMM Tree </h2>
+
+<h3>Description</h3>
+
+<p>Performs beta latent class modeling using recursively-partitioned mixture model
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">blcTree(x, initFunctions = list(blcInitializeSplitFanny()), 
+   weight = NULL, index = NULL, wthresh = 1e-08, nodename = "root",
+   maxlevel = Inf, verbose = 2, nthresh = 5, level = 0, env = NULL, 
+   unsplit = NULL, splitCriterion = blcSplitCriterionBIC)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Data matrix (n x j) on which to perform clustering.  Missing values are supported.  All values should lie strictly between 0 and 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>initFunctions</code></td>
+<td>
+<p>List of functions of type “blcInitialize...” for initializing latent class model.  See <code>blcInitializeFanny</code> for an example of arguments and return values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weight</code></td>
+<td>
+<p>Weight corresponding to the indices passed (see <code>index</code>).  Defaults to 1 for all indices</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>index</code></td>
+<td>
+<p>Row indices of data matrix to include. Defaults to all (1 to n).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>wthresh</code></td>
+<td>
+<p>Weight threshold for filtering data to children.  Indices having weight less than this value will not be passed to children nodes.  Default=1E-8.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nodename</code></td>
+<td>
+<p>Name of object that will represent node in tree data object.  Defaults to “root”.  USER SHOULD NOT SET THIS.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxlevel</code></td>
+<td>
+<p>Maximum depth to recurse.  Default=Inf.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Level of verbosity.  Default=2 (too much).  0 for quiet.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nthresh</code></td>
+<td>
+<p>Total weight in node required for node to be a candidate for splitting.  Nodes with weight less than this value will never split.  Defaults to 5.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>level</code></td>
+<td>
+<p>Current level.  Defaults to 0.  USER SHUOLD NOT SET THIS.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>env</code></td>
+<td>
+<p>Object of class “blcTree” to store tree data.  Defaults to a new object.  USER SHOULD NOT SET THIS.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>unsplit</code></td>
+<td>
+<p>Latent class parameters from parent, to store in current node.  Defaults to NULL for root.  This is used in plotting functions.  USER SHOULD NOT SET THIS.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>splitCriterion</code></td>
+<td>
+<p>Function of type “blcSplitCriterion...” for determining whether a node should be split.  See <code>blcSplitCriterionBIC</code> for an example of arguments and return values. </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function is called recursively by itself.  Upon each recursion, certain arguments (e.g. nodename) are reset.  Do not attempt to set these arguments yourself.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class “blcTree”.  This is an environment, each of whose component objects represents a node in the tree.
+</p>
+
+
+<h3>Note</h3>
+
+<p>The class “blcTree” is currently implemented as an environment object with
+nodes represented flatly, with name indicating positition in hierarchy
+(e.g. “rLLR” = “right child of left child of left child of root”)
+This implementation is to make certain plotting and update functions simpler
+than would be required if the data were stored in a more natural “list of list”
+format.
+</p>
+<p>The following error may appear during the course of the algorithm:
+</p>
+<pre>
+      Error in optim(logab, betaObjf, ydata = y, wdata = w, weights = weights,  : 
+           non-finite value supplied by optim
+      </pre>
+<p>This is merely an indication that the node being split is too small, in which case
+the splitting will terminate at that node; in other words, it is nothing 
+to worry about.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>E. Andres Houseman</p>
+
+
+<h3>References</h3>
+
+<p>Houseman et al., Model-based clustering of DNA methylation array data: a recursive-partitioning algorithm for high-dimensional data arising as a mixture of beta distributions. BMC Bioinformatics 9:365, 2008. </p>
+
+
+<h3>See Also</h3>
+
+<p><code>glcTree</code></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+data(IlluminaMethylation)
+
+heatmap(IllumBeta, scale="n",
+  col=colorRampPalette(c("yellow","black","blue"),space="Lab")(128))
+
+# Fit Gaussian RPMM
+rpmm &lt;- blcTree(IllumBeta, verbose=0)
+rpmm
+
+# Get weight matrix and show first few rows
+rpmmWeightMatrix &lt;- blcTreeLeafMatrix(rpmm)
+rpmmWeightMatrix[1:3,]
+
+# Get class assignments and compare with tissue
+rpmmClass &lt;- blcTreeLeafClasses(rpmm)
+table(rpmmClass,tissue)
+
+# Plot fit
+par(mfrow=c(2,2))
+plot(rpmm) ; title("Image of RPMM Profile")
+plotTree.blcTree(rpmm) ; title("Dendrogram with Labels")
+plotTree.blcTree(rpmm, 
+  labelFunction=function(u,digits) table(as.character(tissue[u$index])))
+title("Dendrogram with Tissue Counts")
+
+# Alternate initialization
+rpmm2 &lt;- blcTree(IllumBeta, verbose=0, 
+  initFunctions=list(blcInitializeSplitEigen(),
+                     blcInitializeSplitFanny(nu=2.5)))
+rpmm2
+
+# Alternate split criterion
+rpmm3 &lt;- blcTree(IllumBeta, verbose=0, maxlev=3,
+  splitCriterion=blcSplitCriterionLevelWtdBIC)
+rpmm3
+
+rpmm4 &lt;- blcTree(IllumBeta, verbose=0, maxlev=3,
+  splitCriterion=blcSplitCriterionJustRecordEverything)
+rpmm4$rLL$splitInfo$llike1
+rpmm4$rLL$splitInfo$llike2
+
+## End(Not run)
+</code></pre>
+
+
+</div>

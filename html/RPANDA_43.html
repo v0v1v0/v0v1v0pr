@@ -1,0 +1,327 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fit_t_comp_subgroup</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Fits models of trait evolution incorporating competitive interactions, restricting competition to occur only between members of a subgroup
+</h2>
+
+<h3>Description</h3>
+
+<p>Fits matching competition (MC), diversity dependent linear (DDlin), or diversity dependent exponential (DDexp) models of trait evolution to a given dataset, phylogeny, and stochastic maps of both subgroup membership and biogeography.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">
+fit_t_comp_subgroup(full.phylo, data, subgroup, subgroup.map,
+  model=c("MC","DDexp","DDlin"), ana.events=NULL, clado.events=NULL,
+  stratified=FALSE, regime.map=NULL,error=NULL, par=NULL, 
+  method="Nelder-Mead", bounds=NULL)
+	
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>full.phylo</code></td>
+<td>
+
+<p>an object of type 'phylo' (see ape documentation) containing all of the tips used to estimate ancestral biogeography in BioGeoBEARS
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+
+<p>a named vector of trait values for subgroup members with names matching <code>full.phylo$tip.label</code>
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subgroup</code></td>
+<td>
+
+<p>subgroup whose members are competing
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subgroup.map</code></td>
+<td>
+
+<p>a phylo object created using <code>make.simmap</code> in phytools that contains reconstructed subgroup membership
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+
+<p>model chosen to fit trait data, <code>"MC"</code> is the matching competition model of Nuismer &amp; Harmon 2014, <code>"DDlin"</code> is the diversity-dependent linear model, and <code>"DDexp"</code> is the diversity-dependent exponential model of Weir &amp; Mursleen 2013.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ana.events</code></td>
+<td>
+
+<p>the "ana.events" table produced in BioGeoBEARS that lists anagenetic events in the stochastic map
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>clado.events</code></td>
+<td>
+
+<p>the "clado.events" table produced in BioGeoBEARS that lists cladogenetic events in the stochastic map
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stratified</code></td>
+<td>
+
+<p>logical indicating whether the stochastic map was built from a stratified analysis in BioGeoBEARS
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>regime.map</code></td>
+<td>
+
+<p>a phylo object created using <code>make.simmap</code> in phytools that contains reconstructed competitive regime membership (see Details)
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>error</code></td>
+<td>
+
+<p>A named vector with standard error (SE) for each species (with names matching <code>"phylo$tip.label"</code>). Default is NULL, if NA, then the SE is estimated from the data (a nuisance parameter for unknown errors). Note: When standard error are provided the nuisance parameter is also estimated.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>par</code></td>
+<td>
+
+<p>vector specifying starting parameter values for maximum likelihood optimization. If unspecified, default values are used (see Details)
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+
+<p>optimization algorithm to use (see <code>optim</code>; for DD models without biogeography, <code>method="BB"</code> is also supported, which uses spg)
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bounds</code></td>
+<td>
+
+<p>(optional) list of bounds to pass to optimization algorithm (see details at <code>optim</code>)
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>If unspecified, <code>par</code> takes the default values of <code>var(data)/max(nodeHeights(phylo))</code> for sig2 and 0 for either <code>S</code> for the matching competition model, 
+<code>b</code> for the linear diversity dependence model, or <code>r</code> for the exponential diversity dependence model. Values can be manually entered as a vector with the first element
+equal to the desired starting value for sig2 and the second value equal to the desired starting value for either <code>S</code>, <code>b</code>, or <code>r</code>. Note: since likelihood optimization
+uses sig rather than sig2, and since the starting value for is exponentiated to stabilize the likelihood search, if you input a <code>par</code> value, the first value specifying sig2 
+should be the log(sqrt()) of the desired sig2 starting value. We recommend running ML optimization with several different starting values to ensure convergence.
+</p>
+<p>Currently, this function can be used to implement the following models:
+1. Subgroup pruning with biogeography: matching competition, diversity dependent
+2. Subgroup pruning without biogeography: diversity dependent
+3. Subgroup pruning without biogeography (two-regimes): diversity dependent (for more details, see <code>fit_t_comp</code>
+</p>
+
+
+<h3>Value</h3>
+
+<p>a list with the following elements:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>LH</code></td>
+<td>
+<p>maximum log-likelihood value</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aic</code></td>
+<td>
+<p>Akaike Information Criterion value</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aicc</code></td>
+<td>
+<p>AIC value corrected for small sample size</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>free.parameters</code></td>
+<td>
+<p>number of free parameters from the model</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sig2</code></td>
+<td>
+<p>maximum-likelihood estimate of <code>sig2</code> parameter</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>S</code></td>
+<td>
+<p>maximum-likelihood estimate of <code>S</code> parameter of matching competition model (see Note)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>b</code></td>
+<td>
+<p>maximum-likelihood estimate of <code>b</code> parameter of linear diversity dependence model (see Note)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>r</code></td>
+<td>
+<p>maximum-likelihood estimate of <code>r</code> parameter of exponential diversity dependence model (see Note)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>z0</code></td>
+<td>
+<p>maximum-likelihood estimate of <code>z0</code>, the value at the root of the tree</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>convergence</code></td>
+<td>
+<p>convergence diagnostics from <code>optim</code> function (see optim documentation)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nuisance</code></td>
+<td>
+<p>maximum-likelihood estimate of <code>nuisance</code>, the unknown, nuisance contribution to measurement error when <code>error</code> argument is used (that is NA or a vector provided by the user)</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>In current version, the <code>S</code> parameter is restricted to take on negative values in MC + geography ML optimization.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Jonathan Drury <a href="mailto:jonathan.p.drury@gmail.com">jonathan.p.drury@gmail.com</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>Drury, J., Clavel, J. Tobias, J., Rolland, J., Sheard, C., and Morlon, H. Tempo and mode of morphological evolution are decoupled from latitude in birds. <em>PLOS Biology</em> doi:10.1371/journal.pbio.3001270
+</p>
+<p>Drury, J., Tobias, J., Burns, K., Mason, N., Shultz, A., and Morlon, H. 2018. Contrasting impacts of competition on ecological and social trait evolution in songbirds. <em>PLOS Biology</em> 16(1): e2003563.
+</p>
+<p>Drury, J., Clavel, J., Manceau, M., and Morlon, H. 2016. Estimating the effect of competition on trait evolution using maximum likelihood inference. <em>Systematic Biology</em> 65: 700-710
+</p>
+<p>Nuismer, S. &amp; Harmon, L. 2015. Predicting rates of interspecific interaction from phylogenetic trees. <em>Ecology Letters</em> 18:17-27.
+</p>
+<p>Weir, J. &amp; Mursleen, S. 2012. Diversity-dependent cladogenesis and trait evolution in the adaptive radiation of the auks (Aves: Alcidae). <em>Evolution</em> 67:403-416.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>likelihood_subgroup_model</code>
+<code>CreateGeobyClassObject</code>
+<code>fit_t_comp</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+
+
+data(BGB.examples)
+
+#Prepare dataset with subgroups and biogeography
+
+Canidae.phylo&lt;-BGB.examples$Canidae.phylo
+dummy.group&lt;-c(rep("B",3),rep("A",12),rep("B",2),rep("A",6),rep("B",5),rep("A",6))
+names(dummy.group)&lt;-Canidae.phylo$tip.label
+
+
+Canidae.simmap&lt;-phytools::make.simmap(Canidae.phylo,dummy.group)
+
+set.seed(123)
+Canidae.data&lt;-rnorm(length(Canidae.phylo$tip.label))
+names(Canidae.data)&lt;-Canidae.phylo$tip.label
+Canidae.A&lt;-Canidae.data[which(dummy.group=="A")]
+
+
+#Fit model with subgroup pruning and biogeography
+MC.fit_subgroup_geo&lt;-fit_t_comp_subgroup(full.phylo=Canidae.phylo,
+  ana.events=BGB.examples$Canidae.ana.events,
+  clado.events=BGB.examples$Canidae.clado.events,
+  stratified=FALSE,subgroup.map=Canidae.simmap, 
+  data=Canidae.A,subgroup="A",model="MC")
+
+DDexp.fit_subgroup_geo&lt;-fit_t_comp_subgroup(full.phylo=Canidae.phylo,
+  ana.events=BGB.examples$Canidae.ana.events, 
+  clado.events=BGB.examples$Canidae.clado.events,
+  stratified=FALSE,subgroup.map=Canidae.simmap, 
+  data=Canidae.A,subgroup="A",model="DDexp")
+
+DDlin.fit_subgroup_geo&lt;-fit_t_comp_subgroup(full.phylo=Canidae.phylo,
+  ana.events=BGB.examples$Canidae.ana.events, 
+  clado.events=BGB.examples$Canidae.clado.events,
+  stratified=FALSE,subgroup.map=Canidae.simmap, 
+  data=Canidae.A,subgroup="A",model="DDlin")
+
+#Fit model with subgroup pruning and no biogeography (for DD models only)
+DDexp.fit_subgroup_no.geo&lt;-fit_t_comp_subgroup(full.phylo=Canidae.phylo,
+  data=Canidae.A, subgroup="A", subgroup.map=Canidae.simmap,model="DDexp")
+
+DDlin.fit_subgroup_no.geo&lt;-fit_t_comp_subgroup(full.phylo=Canidae.phylo,
+  data=Canidae.A, subgroup="A", subgroup.map=Canidae.simmap,model="DDlin")
+
+
+#Prepare regime map for fitting two-regime models with subgroup pruning (for DD models only)
+regime&lt;-c(rep("regime1",15),rep("regime2",19))
+names(regime)&lt;-Canidae.phylo$tip.label
+regime.map&lt;-phytools::make.simmap(Canidae.phylo,regime)
+
+#Fit model with subgroup pruning and two-regimes (for DD models only)
+DDexp.fit_subgroup_two.regime&lt;-fit_t_comp_subgroup(full.phylo=Canidae.phylo,
+  data=Canidae.A,subgroup="A", subgroup.map=Canidae.simmap,
+  model="DDexp", regime.map=regime.map)
+
+DDlin.fit_subgroup_two.regime&lt;-fit_t_comp_subgroup(full.phylo=Canidae.phylo,
+  data=Canidae.A, subgroup="A", subgroup.map=Canidae.simmap,
+  model="DDlin",regime.map=regime.map)
+
+	
+
+
+</code></pre>
+
+
+</div>

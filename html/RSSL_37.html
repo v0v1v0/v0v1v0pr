@@ -1,0 +1,178 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>GRFClassifier</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Label propagation using Gaussian Random Fields and Harmonic functions</h2>
+
+<h3>Description</h3>
+
+<p>Implements the approach proposed in Zhu et al. (2003) to label propagation over an affinity graph. Note, as in the original paper, we consider the transductive scenario, so the implementation does not generalize to out of sample predictions. The approach minimizes the squared difference in labels assigned to different objects, where the contribution of each difference to the loss is weighted by the affinity between the objects. The default in this implementation is to use a knn adjacency matrix based on euclidean distance to determine this weight. Setting <code>adjacency="heat"</code> will use an RBF kernel over euclidean distances between objects to determine the weights.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">GRFClassifier(X, y, X_u, adjacency = "nn",
+  adjacency_distance = "euclidean", adjacency_k = 6,
+  adjacency_sigma = 0.1, class_mass_normalization = FALSE, scale = FALSE,
+  x_center = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>matrix; Design matrix for labeled data</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>factor or integer vector; Label vector</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X_u</code></td>
+<td>
+<p>matrix; Design matrix for unlabeled data</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adjacency</code></td>
+<td>
+<p>character; "nn" for nearest neighbour graph or "heat" for radial basis adjacency matrix</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adjacency_distance</code></td>
+<td>
+<p>character; distance metric for nearest neighbour adjacency matrix</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adjacency_k</code></td>
+<td>
+<p>integer; number of neighbours for the nearest neighbour adjacency matrix</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adjacency_sigma</code></td>
+<td>
+<p>double; width of the rbf adjacency matrix</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>class_mass_normalization</code></td>
+<td>
+<p>logical; Should the Class Mass Normalization heuristic be applied? (default: FALSE)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>logical; Should the features be normalized? (default: FALSE)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x_center</code></td>
+<td>
+<p>logical;  Should the features be centered?</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Zhu, X., Ghahramani, Z. &amp; Lafferty, J., 2003. Semi-supervised learning using gaussian fields and harmonic functions. In Proceedings of the 20th International Conference on Machine Learning. pp. 912-919.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other RSSL classifiers: 
+<code>EMLeastSquaresClassifier</code>,
+<code>EMLinearDiscriminantClassifier</code>,
+<code>ICLeastSquaresClassifier</code>,
+<code>ICLinearDiscriminantClassifier</code>,
+<code>KernelLeastSquaresClassifier</code>,
+<code>LaplacianKernelLeastSquaresClassifier()</code>,
+<code>LaplacianSVM</code>,
+<code>LeastSquaresClassifier</code>,
+<code>LinearDiscriminantClassifier</code>,
+<code>LinearSVM</code>,
+<code>LinearTSVM()</code>,
+<code>LogisticLossClassifier</code>,
+<code>LogisticRegression</code>,
+<code>MCLinearDiscriminantClassifier</code>,
+<code>MCNearestMeanClassifier</code>,
+<code>MCPLDA</code>,
+<code>MajorityClassClassifier</code>,
+<code>NearestMeanClassifier</code>,
+<code>QuadraticDiscriminantClassifier</code>,
+<code>S4VM</code>,
+<code>SVM</code>,
+<code>SelfLearning</code>,
+<code>TSVM</code>,
+<code>USMLeastSquaresClassifier</code>,
+<code>WellSVM</code>,
+<code>svmlin()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(RSSL)
+library(ggplot2)
+library(dplyr)
+
+set.seed(1)
+df_circles &lt;- generateTwoCircles(400,noise=0.1) %&gt;% 
+  add_missinglabels_mar(Class~.,0.99)
+
+# Visualize the problem
+df_circles %&gt;% 
+  ggplot(aes(x=X1,y=X2,color=Class)) +
+  geom_point() + 
+  coord_equal()
+
+# Visualize the solution
+class_grf &lt;- GRFClassifier(Class~.,df_circles,
+                           adjacency="heat",
+                           adjacency_sigma = 0.1)
+df_circles %&gt;%
+  filter(is.na(Class)) %&gt;% 
+  mutate(Responsibility=responsibilities(class_grf)[,1]) %&gt;% 
+  ggplot(aes(x=X1,y=X2,color=Responsibility)) +
+  geom_point() + 
+  coord_equal()
+
+# Generate problem
+df_para &lt;- generateParallelPlanes()
+df_para$Class &lt;- NA
+df_para$Class[1] &lt;- "a"
+df_para$Class[101] &lt;- "b"
+df_para$Class[201] &lt;- "c"
+df_para$Class &lt;- factor(df_para$Class)
+
+# Visualize problem
+df_para %&gt;% 
+  ggplot(aes(x=x,y=y,color=Class)) +
+  geom_point() + 
+  coord_equal()
+
+# Estimate GRF classifier with knn adjacency matrix (default)
+class_grf &lt;- GRFClassifier(Class~.,df_para)
+
+df_para %&gt;%
+  filter(is.na(Class)) %&gt;% 
+  mutate(Assignment=factor(apply(responsibilities(class_grf),1,which.max))) %&gt;% 
+  ggplot(aes(x=x,y=y,color=Assignment)) +
+  geom_point()
+</code></pre>
+
+
+</div>

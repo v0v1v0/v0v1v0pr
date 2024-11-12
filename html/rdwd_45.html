@@ -1,0 +1,138 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>readDWD.stand</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>read subdaily/standard_format dwd data</h2>
+
+<h3>Description</h3>
+
+<p>read subdaily/standard_format dwd data.
+Intended to be called via <code>readDWD()</code>.<br>
+All other observational data at <code>dwdbase</code> can be read
+with <code>readDWD.data()</code>, except for the multi_annual and
+subdaily/standard_format data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">readDWD.stand(
+  file,
+  fast = TRUE,
+  fileEncoding = "latin1",
+  formIndex = formatIndex,
+  quiet = rdwdquiet(),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>file</code></td>
+<td>
+<p>Name of file on harddrive, like e.g.
+DWDdata/subdaily_standard_format_kl_10381_00_akt.txt or
+DWDdata/subdaily_standard_format_kl_10381_bis_1999.txt.gz</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fast</code></td>
+<td>
+<p>Logical: use <code>readr::read_fwf()</code> instead of <code>read.fwf()</code>?
+Takes 0.1 instead of 20 seconds but requires package to be installed.
+if fast=TRUE, <code>fileEncoding</code> is ignored.
+DEFAULT: TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fileEncoding</code></td>
+<td>
+<p><code>read.table()</code> file encoding.
+DEFAULT: "latin1" (potentially needed on Linux,
+optional but not hurting on windows)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formIndex</code></td>
+<td>
+<p>Single object: Index used to select column widts and NA values.
+To use a current / custom index, see the source code of
+<code>updateIndexes()</code> at
+<a href="https://github.com/brry/rdwd/blob/master/R/updateIndexes.R">https://github.com/brry/rdwd/blob/master/R/updateIndexes.R</a>.
+DEFAULT: <code>formatIndex</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quiet</code></td>
+<td>
+<p>Ignored.
+DEFAULT: FALSE through <code>rdwdquiet()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments passed to <code>read.fwf()</code> or <code>readr::read_fwf()</code></p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>data.frame with column names as per <code>formatIndex</code>.
+"Q"-columns have "_parameter" appended to their name. A "Date" column has been added.
+NA-indicators have been processed into NAs.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Berry Boessenkool, <a href="mailto:berry-b@gmx.de">berry-b@gmx.de</a>, Oct 2019
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>readDWD()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run:  # Excluded from CRAN checks, but run in localtests
+
+link &lt;- selectDWD(res="subdaily", var="standard_format", per="r")
+link &lt;- link[grepl("10381", link, fixed=TRUE)]
+# Not ID, according to meta data, hence no longer in column id (2023-04).
+file &lt;- dataDWD(link, dir=locdir(), read=FALSE)
+sf &lt;- readDWD(file)
+
+sf2 &lt;- readDWD(file, fast=FALSE) # 20 secs!
+stopifnot(all.equal(sf, sf2))
+
+plot(sf$Date, sf$SHK, type="l")
+
+# Plot all columns:
+if(FALSE){ # not run in any automated testing
+tmp &lt;- tempfile(fileext=".pdf")
+char2fact &lt;- function(x)
+ {
+ if(all(is.na(x))) return(rep(-9, len=length(x)))
+ if(!is.numeric(x)) as.factor(x) else x
+ }
+pdf(tmp, width=9)
+par(mfrow=c(2,1),mar=c(2,3,2,0.1), mgp=c(3,0.7,0), las=1)
+for(i in 3:ncol(sf)-1) plot(sf$Date, char2fact(sf[,i]), type="l", main=colnames(sf)[i], ylab="")
+dev.off()
+berryFunctions::openFile(tmp)
+}
+
+## End(Not run)
+</code></pre>
+
+
+</div>

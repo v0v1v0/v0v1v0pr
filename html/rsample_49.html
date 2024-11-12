@@ -1,0 +1,163 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>int_pctl</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Bootstrap confidence intervals</h2>
+
+<h3>Description</h3>
+
+<p>Calculate bootstrap confidence intervals using various methods.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">int_pctl(.data, ...)
+
+## S3 method for class 'bootstraps'
+int_pctl(.data, statistics, alpha = 0.05, ...)
+
+int_t(.data, ...)
+
+## S3 method for class 'bootstraps'
+int_t(.data, statistics, alpha = 0.05, ...)
+
+int_bca(.data, ...)
+
+## S3 method for class 'bootstraps'
+int_bca(.data, statistics, alpha = 0.05, .fn, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>.data</code></td>
+<td>
+<p>A data frame containing the bootstrap resamples created using
+<code>bootstraps()</code>. For t- and BCa-intervals, the <code>apparent</code> argument
+should be set to <code>TRUE</code>. Even if the <code>apparent</code> argument is set to
+<code>TRUE</code> for the percentile method, the apparent data is never used in calculating
+the percentile confidence interval.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Arguments to pass to <code>.fn</code> (<code>int_bca()</code> only).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>statistics</code></td>
+<td>
+<p>An unquoted column name or <code>dplyr</code> selector that identifies
+a single column in the data set containing the individual bootstrap
+estimates. This must be a list column of tidy tibbles (with columns
+<code>term</code> and <code>estimate</code>). For t-intervals, a
+standard tidy column (usually called <code>std.err</code>) is required.
+See the examples below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>Level of significance.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.fn</code></td>
+<td>
+<p>A function to calculate statistic of interest. The
+function should take an <code>rsplit</code> as the first argument and the <code>...</code> are
+required.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Percentile intervals are the standard method of
+obtaining confidence intervals but require thousands of
+resamples to be accurate. T-intervals may need fewer
+resamples but require a corresponding variance estimate.
+Bias-corrected and accelerated intervals require the original function
+that was used to create the statistics of interest and are
+computationally taxing.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Each function returns a tibble with columns <code>.lower</code>,
+<code>.estimate</code>, <code>.upper</code>, <code>.alpha</code>, <code>.method</code>, and <code>term</code>.
+<code>.method</code> is the type of interval (eg. "percentile",
+"student-t", or "BCa"). <code>term</code> is the name of the estimate. Note
+the <code>.estimate</code> returned from <code>int_pctl()</code>
+is the mean of the estimates from the bootstrap resamples
+and not the estimate from the apparent model.
+</p>
+
+
+<h3>References</h3>
+
+<p><a href="https://rsample.tidymodels.org/articles/Applications/Intervals.html">https://rsample.tidymodels.org/articles/Applications/Intervals.html</a>
+</p>
+<p>Davison, A., &amp; Hinkley, D. (1997). <em>Bootstrap Methods and their
+Application</em>. Cambridge: Cambridge University Press.
+doi:10.1017/CBO9780511802843
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>reg_intervals()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+library(broom)
+library(dplyr)
+library(purrr)
+library(tibble)
+
+lm_est &lt;- function(split, ...) {
+  lm(mpg ~ disp + hp, data = analysis(split)) %&gt;%
+    tidy()
+}
+
+set.seed(52156)
+car_rs &lt;-
+  bootstraps(mtcars, 500, apparent = TRUE) %&gt;%
+  mutate(results = map(splits, lm_est))
+
+int_pctl(car_rs, results)
+int_t(car_rs, results)
+int_bca(car_rs, results, .fn = lm_est)
+
+# putting results into a tidy format
+rank_corr &lt;- function(split) {
+  dat &lt;- analysis(split)
+  tibble(
+    term = "corr",
+    estimate = cor(dat$sqft, dat$price, method = "spearman"),
+    # don't know the analytical std.err so no t-intervals
+    std.err = NA_real_
+  )
+}
+
+set.seed(69325)
+data(Sacramento, package = "modeldata")
+bootstraps(Sacramento, 1000, apparent = TRUE) %&gt;%
+  mutate(correlations = map(splits, rank_corr)) %&gt;%
+  int_pctl(correlations)
+
+
+</code></pre>
+
+
+</div>

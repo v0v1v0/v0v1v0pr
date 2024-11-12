@@ -1,0 +1,227 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>sf_as_ee</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Convert an sf object to an EE object</h2>
+
+<h3>Description</h3>
+
+<p>Load an sf object to Earth Engine.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">sf_as_ee(
+  x,
+  via = "getInfo",
+  assetId = NULL,
+  bucket = NULL,
+  predefinedAcl = "bucketLevel",
+  command_line_tool_path = NULL,
+  overwrite = TRUE,
+  monitoring = TRUE,
+  proj = "EPSG:4326",
+  evenOdd = TRUE,
+  geodesic = NULL,
+  quiet = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>object of class sf, sfc or sfg.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>via</code></td>
+<td>
+<p>Character. Upload method for sf objects. Three methods are
+implemented: 'getInfo', 'getInfo_to_asset' and 'gcs_to_asset'. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>assetId</code></td>
+<td>
+<p>Character. Destination asset ID for the uploaded file. Ignore
+if <code>via</code> argument is "getInfo".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bucket</code></td>
+<td>
+<p>Character. Name of the bucket (GCS) to save intermediate files
+(ignore if <code>via</code> is not defined as "gcs_to_asset").</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predefinedAcl</code></td>
+<td>
+<p>Specify user access to object. Passed to
+<code>googleCloudStorageR::gcs_upload</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>command_line_tool_path</code></td>
+<td>
+<p>Character. Path to the Earth Engine command line
+tool (CLT). If NULL, rgee assumes that CLT is set in the system PATH.
+(ignore if <code>via</code> is not defined as "gcs_to_asset").</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite</code></td>
+<td>
+<p>A boolean argument that indicates indicating
+whether "filename" should be overwritten. Ignore if <code>via</code> argument
+is "getInfo". By default TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>monitoring</code></td>
+<td>
+<p>Logical. Ignore if via is not set as
+<code>getInfo_to_asset</code> or <code>gcs_to_asset</code>. If TRUE the exportation task
+will be monitored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>proj</code></td>
+<td>
+<p>Integer or character. Coordinate Reference System (CRS) for the
+EE object, defaults to "EPSG:4326" (x=longitude, y=latitude).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>evenOdd</code></td>
+<td>
+<p>Logical. Ignored if <code>x</code> is not a Polygon. If TRUE,
+polygon interiors will be determined by the even/odd rule, where a point
+is inside if it crosses an odd number of edges to reach a point at infinity.
+Otherwise polygons use the left-inside rule, where interiors are on the
+left side of the shell's edges when walking the vertices in the given order.
+If unspecified, defaults to TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>geodesic</code></td>
+<td>
+<p>Logical. Ignored if <code>x</code> is not a Polygon or LineString.
+Whether line segments should be interpreted as spherical geodesics. If
+FALSE, indicates that line segments should be interpreted as planar lines
+in the specified CRS. If absent, defaults to TRUE if the CRS is geographic
+(including the default EPSG:4326), or to FALSE if the CRS is projected.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quiet</code></td>
+<td>
+<p>Logical. Suppress info message.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p><code>ee_utils_create_manifest_table</code> arguments might be included.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>sf_as_ee</code> supports the upload of <code>sf</code> objects by three different
+options: "getInfo" (default), "getInfo_to_asset", and "gcs_to_asset". <code>getInfo</code>
+transforms sf objects (sfg, sfc, or sf) to GeoJSON (using <code>geojsonio::geojson_json</code>)
+and then encrusted them in an HTTP request using the server-side objects that are
+implemented in the Earth Engine API (i.e. ee$Geometry$...). If the sf object is too
+large (~ &gt;1Mb) is likely to cause bottlenecks since it is a temporary
+file that is not saved in your EE Assets (server-side). The second option implemented
+is 'getInfo_to_asset'. It is similar to the previous one, with the difference
+that after create the server-side object will save it in your Earth Engine
+Assets. For dealing with very large spatial objects is preferable to use the
+third option 'gcs_to_asset'. This option firstly saves the sf object as a *.shp
+file in the /temp directory. Secondly, using the function <code>local_to_gcs</code>
+will move the shapefile from local to Google Cloud Storage. Finally, using
+the function <code>gcs_to_ee_table</code> the ESRI shapefile will be loaded
+to their EE Assets. See <a href="https://developers.google.com/earth-engine/guides/table_upload/">Importing
+table data</a> documentation for more details.
+</p>
+
+
+<h3>Value</h3>
+
+<p>When <code>via</code> is "getInfo" and <code>x</code> is either an sf or sfc object
+with multiple geometries will return an <code>ee$FeatureCollection</code>. For
+single sfc and sfg objects will return an <code>ee$Geometry$...</code>.
+</p>
+<p>If <code>via</code> is either "getInfo_to_asset" or "gcs_to_asset" always will
+return an <code>ee$FeatureCollection</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+library(rgee)
+library(sf)
+ee_Initialize()
+
+# 1. Handling geometry parameters
+# Simple
+ee_x &lt;- st_read(system.file("shape/nc.shp", package = "sf")) %&gt;%
+  sf_as_ee()
+
+Map$centerObject(eeObject = ee_x)
+Map$addLayer(ee_x)
+
+# Create a right-inside polygon.
+toy_poly &lt;- matrix(data = c(-35,-10,-35,10,35,10,35,-10,-35,-10),
+                   ncol = 2,
+                   byrow = TRUE) %&gt;%
+  list() %&gt;%
+  st_polygon()
+
+holePoly &lt;- sf_as_ee(x = toy_poly, evenOdd = FALSE)
+
+# Create an even-odd version of the polygon.
+evenOddPoly &lt;- sf_as_ee(toy_poly, evenOdd = TRUE)
+
+# Create a point to test the insideness of the polygon.
+pt &lt;- ee$Geometry$Point(c(1.5, 1.5))
+
+# Check insideness with a contains operator.
+print(holePoly$contains(pt)$getInfo() %&gt;% ee_utils_py_to_r())
+print(evenOddPoly$contains(pt)$getInfo() %&gt;% ee_utils_py_to_r())
+
+# 2. Upload small geometries to EE asset
+assetId &lt;- sprintf("%s/%s", ee_get_assethome(), 'toy_poly')
+eex &lt;- sf_as_ee(
+ x = toy_poly,
+ overwrite = TRUE,
+ assetId = assetId,
+ via = "getInfo_to_asset")
+# 3. Upload large geometries to EE asset
+ee_Initialize(gcs = TRUE)
+assetId &lt;- sprintf("%s/%s", ee_get_assethome(), 'toy_poly_gcs')
+eex &lt;- sf_as_ee(
+  x = toy_poly,
+  overwrite = TRUE,
+  assetId = assetId,
+  bucket = 'rgee_dev',
+  monitoring = FALSE,
+  via = 'gcs_to_asset'
+)
+ee_monitoring(max_attempts = Inf)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

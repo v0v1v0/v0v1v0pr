@@ -1,0 +1,142 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>FastTau</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Tau-Regression using the Fast-tau-Algorithm
+</h2>
+
+<h3>Description</h3>
+
+<p>Performs tau-Regression using the Fast-tau-Algorithm.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">FastTau(x, y, taucontrol = list(N = 500, kk = 2, tt = 5, rr = 2, approximate = 0),
+ beta_gamma)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+
+<p>numeric <code class="reqn">(n\times p)</code>-matrix: Designmatrix.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+
+<p>numeric vector: <code class="reqn">n</code> observations.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>taucontrol</code></td>
+<td>
+
+<p>list of four integer and one logical value: Control parameters (see Details).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta_gamma</code></td>
+<td>
+
+<p>numeric vector: Specifies one parameter candidate of length <code class="reqn">p</code> (see Details).
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The Fast-tau-Algorithm to efficiently perform tau-Regression was published by Salibian-Barrera, Willems and Zamar (2008).
+It bases on starting with a set of <code>N</code> parameter candidates,
+locally optimizing them using <code>kk</code> iterations, 
+then optimizing the <code>tt</code> best candidates to convergence and finally choosing the best parameter candidate. Since calculation of the objective value is computationally expensive, it is possible to approximate it with <code>rr</code> iteration steps when choosing <code>approximate=TRUE</code>. For more details see Salibian-Barrera, Willems and Zamar (2008).
+</p>
+<p>The R-function <code>FastTau</code> used in <code>RobPer</code> is a slightly changed version of the R-code published in Salibian-Barrera, Willems and Zamar (2008). It was changed in order to work more efficiently, especially when fitting step functions, and to specify one parameter candidate in advance. For details see Thieler, Fried and Rathjens (2016).
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+<p>numeric vector: Fitted parameter vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>numeric: Value of the objective function</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Matias Salibian-Barrera and Gert Willems, modified by Anita M. Thieler
+</p>
+
+
+<h3>References</h3>
+
+<p>Salibian-Barrera, M., Willems, G. and Zamar, R. (2008): The Fast-tau Estimator for Regression. Journal of Computational and Graphical Statistics, 17 (3), 659-682
+</p>
+<p>Thieler, A. M., Fried, R. and Rathjens, J. (2016): RobPer: An R Package to Calculate Periodograms for Light Curves Based on Robust Regression. Journal of Statistical Software, 69 (9), 1-36, &lt;doi:10.18637/jss.v069.i09&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Applied in <code>RobPer</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">set.seed(22)
+# Generate a disturbed light curve
+lightcurve &lt;- tsgen(ttype="unif",ytype="sine" , pf=7, redpart=0.1, interval=TRUE,
+    npoints=100, ncycles=10, ps=7, SNR=4, alpha=0)
+tt &lt;- lightcurve[,1]
+y  &lt;- lightcurve[,2]
+s  &lt;- rep(1,100)  # unweighted regression
+
+plot(tt, y, type="l", main="Fitting a sine to a disturbed lightcurve")
+
+# Fit the true model (a sine of period 7)... designmatrix:
+X &lt;- Xgen(tt, n=100, s, pp=7, design="sine")
+# Robust tau-fit:
+beta_FastTau &lt;- FastTau(X, y)$beta
+# Robust S-fit:
+beta_FastS &lt;- FastS(X, y)$beta
+# Least squares fit:
+beta_lm &lt;- lm(y~0+X)$coeff
+
+# Plot:
+sin7_fun &lt;- function(t, beta) beta[1]+ beta[2]*sin(t*2*pi/7)+ beta[3]*cos(t*2*pi/7)
+sin_FastTau &lt;- function(t) sin7_fun(t, beta_FastTau)
+sin_FastS &lt;- function(t) sin7_fun(t, beta_FastS)
+sin_lm &lt;- function(t) sin7_fun(t, beta_lm)
+curve(sin_FastTau, col="green", add=TRUE)
+curve(sin_FastS, col="blue", add=TRUE, lty=2)
+curve(sin_lm, col="red", add=TRUE)
+
+legend("topleft", fill=c("black", "red", "green", "blue"),
+    legend=c("Light Curve (disturbed)", "Least Squares Fit", "FastTau Fit", "FastS Fit"))
+</code></pre>
+
+
+</div>

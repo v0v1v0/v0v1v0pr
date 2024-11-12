@@ -1,0 +1,155 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fhirBulkClient</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>fhirBulkClient</h2>
+
+<h3>Description</h3>
+
+<p>Bulk data client in R for FHIR STU 3.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+bulkclient &lt;- fhirBulkClient$new(endpoint, tokenURL = NULL, token = NULL)
+
+bulkclient$patientExport(criteria = NULL)
+bulkclient$groupExport(groupId, criteria = NULL)
+bulkclient$wholeSystemExport(criteria = NULL)
+bulkclient$getBulkStatus()
+bulkclient$downloadBulk(requestNumber, returnType = "parsed" ,deleteFromQueue = TRUE)
+bulkclient$deleteBulkRequest(requestNumber)
+bulkclient$retrieveToken(jwt, scopes, tokenURL = NULL)
+bulkclient$setToken(token)
+
+print(bulkclient)
+</pre>
+
+
+<h3>Arguments</h3>
+
+
+<dl>
+<dt>bulkclient</dt>
+<dd>
+<p>A <code>fhirBulkClient</code> object.</p>
+</dd>
+<dt>endpoint</dt>
+<dd>
+<p>The URL of the server to connect to.</p>
+</dd>
+<dt>tokenURL</dt>
+<dd>
+<p>Authorization server’s endpoint.</p>
+</dd>
+<dt>token</dt>
+<dd>
+<p>Acces token.</p>
+</dd>
+<dt>criteria</dt>
+<dd>
+<p>The search parameters to filter the Resources on. Each given string is a combined key/value pair (separated by '=').</p>
+</dd>
+<dt>groupId</dt>
+<dd>
+<p>Id of the Group resource.</p>
+</dd>
+<dt>requestNumber</dt>
+<dd>
+<p>Number of the request in the queue.</p>
+</dd>
+<dt>returnType</dt>
+<dd>
+<p>Specify the return type. This can be "parsed" or "ndjson".</p>
+</dd>
+<dt>deleteFromQueue</dt>
+<dd>
+<p>If the request needs to be deleted from the queue after it's been downloaded.</p>
+</dd>
+<dt>jwt</dt>
+<dd>
+<p>JSON Web Token signed with the app's private key (RSA SHA-256).</p>
+</dd>
+<dt>scopes</dt>
+<dd>
+<p>Desired scope(s).</p>
+</dd>
+</dl>
+<h3>Details</h3>
+
+<p><code>$new()</code> Creates a new fhirBulkClient using a given endpoint.
+If the endpoint does not end with a slash (/), it will be added.
+</p>
+<p><code>$patientExport()</code> Request all data on all patients. Possible to filter the results with the _outputFormat, _since and _type parameters. The request will be added to the queue.
+</p>
+<p><code>$groupExport()</code> Request all data of a patientgroup. Possible to filter the results with the _outputFormat, _since and _type parameters. The request will be added to the queue.
+</p>
+<p><code>$wholeSystemExport()</code> Request all data. Possible to filter the results with the _outputFormat, _since and _type parameters. The request will be added to the queue.
+</p>
+<p><code>$getBulkStatus()</code> Update and return the queue to see the progress of your requests.
+</p>
+<p><code>$downloadBulk()</code> Download a request from the queue.
+</p>
+<p><code>$deleteBulkRequest()</code> Cancel a request from the queue.
+</p>
+<p><code>$retrieveToken()</code> Retrieve a token from the authentication server.
+</p>
+<p><code>$setToken</code> Set a token.
+</p>
+<p><code>print(p)</code> or <code>p$print()</code> Shows which endpoint is configured.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# Read your private key
+privatekey &lt;- openssl::read_key("PrivateKey.pem")
+
+# Create your claim
+claim &lt;- jose::jwt_claim(iss = "ServiceURL",
+                         sub = "ClientID",
+                         aud = "TokenURL",
+                         
+			                    # expiration date as epoch (5 minutes)
+                         exp = as.integer(as.POSIXct( Sys.time() + 300)), 
+                         
+   			                # 'random' number
+                         jti = charToRaw(as.character(runif(1, 0.5, 100000000000)))) 
+
+# Sign your claim with your private key
+jwt &lt;- jose::jwt_encode_sig(claim, privatekey)
+
+# Define your scope(s)
+scopes &lt;- c("system/*.read", "system/CommunicationRequest.write")
+
+# Create a new fhirBulkClient
+bulkclient &lt;- fhirBulkClient$new("FHIRBulkServerURL", tokenURL = "TokenURL")
+
+# Retrieve your token
+token &lt;- bulkclient$retrieveToken(jwt, scopes)
+
+# Set your token
+bulkclient$setToken(token$access_token)
+
+# Request a download for Patient Cohort 3
+bulkclient$groupExport(3)
+
+# Request the progress of the requests
+bulkclient$getBulkStatus()
+
+# When the downloads a available, download the bulkdata
+patient_cohort_3 &lt;- bulkclient$downloadBulk(1)
+
+View(patient_cohort_3)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

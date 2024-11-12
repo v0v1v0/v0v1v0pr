@@ -1,0 +1,364 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rgeode</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>GEOmetric Density Estimation.</h2>
+
+<h3>Description</h3>
+
+<p>It selects the principal directions of the data and
+performs inference. Moreover GEODE is also able to handle missing
+data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rgeode(Y, d = 6, burn = 1000, its = 2000, tol = 0.01, atau = 1/20,
+  asigma = 1/2, bsigma = 1/2, starttime = NULL, stoptime = NULL,
+  fast = TRUE, c0 = -1, c1 = -0.005)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>array_like <br>
+a real input matrix (or data frame), with dimensions
+<code class="reqn">(n, D)</code>. It is the real matrix of data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d</code></td>
+<td>
+<p>int, optional <br>
+it is the conservative upper bound for the dimension
+D. We are confident that the real dimension is smaller
+then it.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>burn</code></td>
+<td>
+<p>int, optional <br>
+number of burn-in to perform in our Gibbs sampler. It
+represents also the stopping time that stop the choice
+of the principal axes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>its</code></td>
+<td>
+<p>int, optional <br>
+number of iterations that must be performed after
+the burn-in.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>double, optional <br>
+threshold for adaptively removing redundant
+dimensions. It is used compared with the ratio:
+<code class="reqn">\frac{\alpha_j^2(t)}{\max \alpha_i^2(t)}</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>atau</code></td>
+<td>
+<p>double, optional <br>
+The parameter <code class="reqn">a_\tau</code> of the truncated
+Exponential (the prior for <code class="reqn">\tau_j</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>asigma</code></td>
+<td>
+<p>double, optional <br>
+The shape parameter <code class="reqn">a_\sigma</code> of the
+truncated Gamma (the prior for <code class="reqn">\sigma^2</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bsigma</code></td>
+<td>
+<p>double, optional <br>
+The rate parameter <code class="reqn">b_\sigma</code> of the
+truncated Gamma (the prior for <code class="reqn">\sigma^2</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>starttime</code></td>
+<td>
+<p>int, optional <br>
+starting time for adaptive pruning. It must be less
+then the number of burn-in.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stoptime</code></td>
+<td>
+<p>int, optional <br>
+stop time for adaptive pruning. It must be less
+then the number of burn-in.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fast</code></td>
+<td>
+<p>bool, optional <br>
+If <code class="reqn">TRUE</code> it is run using fast d-rank SVD.
+Otherwise it uses the classical SVD.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>c0</code></td>
+<td>
+<p>double, optional <br>
+Additive constant for the exponent of the pruning step.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>c1</code></td>
+<td>
+<p>double, optional <br>
+Multiplicative constant for the exponent of the pruning step.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>GEOmetric Density Estimation (rgeode) is a fast algorithm performing
+inference on normally distributed data. It is essentially
+divided in two principal steps:
+</p>
+
+<ul>
+<li>
+<p>  Selection of the principal axes of the data.
+</p>
+</li>
+<li>
+<p>  Adaptive Gibbs sampler with the creation of a set of samples from
+the full conditional posteriors of the parameters of interest,
+which enable us to perform inference.
+</p>
+</li>
+</ul>
+<p>It takes in inputs several quantities. A rectangular
+<code class="reqn">(N,D)</code> matrix <code class="reqn">Y</code>, on which we will run a Fast rank
+<code class="reqn">d</code> SVD. The conservative upper bound of the true dimension
+of our data <code class="reqn">d</code>. A set of tuning parameters. We remark that
+the choice of the conservative upper bound <code class="reqn">d</code> must be such
+that <code class="reqn">d&gt;p</code>, with <code class="reqn">p</code> real dimension, and <code class="reqn">d &lt;&lt; D</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>rgeode</code> returns a list containing the following
+components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>InD</code></td>
+<td>
+<p>  array_like <br>
+The chose principal axes.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>u</code></td>
+<td>
+<p>       matrix <br>
+Containing the sample from the full conditional
+posterior of <code class="reqn">u_j</code>s. We store each
+iteration on the columns.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tau</code></td>
+<td>
+<p>     matrix <br>
+Containing the sample from the full conditional
+posterior of <code class="reqn">tau_j</code>s.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigmaS</code></td>
+<td>
+<p>  array_like <br>
+Containing the sample from the full conditional
+posterior of <code class="reqn">sigma</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>W</code></td>
+<td>
+<p>       matrix <br>
+Containing the principal singular vectors.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Miss</code></td>
+<td>
+<p>    list <br>
+Containing all the informations about missing
+data. If there are not missing data this output
+is not provide.
+</p>
+
+<ul>
+<li>
+<p>id_m array <br>
+It contains the set of rows with missing data.
+</p>
+</li>
+<li>
+<p>pos_m list <br>
+It contains the set of missing data positions for each
+row with missing values.
+</p>
+</li>
+<li>
+<p>yms list <br>
+The list contained the pseudo-observation substituting our
+missing data. Each element of the list represents the simulated
+data for that time.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>The part related to the missing data is filled only
+in the case in which we have missing data.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>L. Rimella, <a href="mailto:lorenzo.rimella@hotmail.it">lorenzo.rimella@hotmail.it</a>
+</p>
+
+
+<h3>References</h3>
+
+
+<ul><li>
+<p>    [1] Y. Wang, A. Canale, D. Dunson.
+"Scalable Geometric Density Estimation" (2016).<br></p>
+</li></ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(MASS)
+library(RGeode)
+
+####################################################################
+# WITHOUT MISSING DATA
+####################################################################
+# Define the dataset
+D= 200
+n= 500
+d= 10
+d_true= 3
+
+set.seed(321)
+
+mu_true= runif(d_true, -3, 10)
+
+Sigma_true= matrix(0,d_true,d_true)
+diag(Sigma_true)= c(runif(d_true, 10, 100))
+
+W_true = svd(matrix(rnorm(D*d_true, 0, 1), d_true, D))$v
+
+sigma_true = abs(runif(1,0,1))
+
+mu= W_true%*%mu_true
+C= W_true %*% Sigma_true %*% t(W_true)+ sigma_true* diag(D)
+
+y= mvrnorm(n, mu, C)
+
+################################
+# GEODE: Without missing data
+################################
+
+start.time &lt;- Sys.time() 
+GEODE= rgeode(Y= y, d)
+Sys.time()- start.time
+
+# SIGMAS
+#plot(seq(110,3000,by=1),GEODE$sigmaS[110:3000],ty='l',col=2,
+#     xlab= 'Iteration', ylab= 'sigma^2', main= 'Simulation of sigma^2')
+#abline(v=800,lwd= 2, col= 'blue')
+#legend('bottomright',c('Posterior of sigma^2', 'Stopping time'),
+#       lwd=c(1,2),col=c(2,4),cex=0.55, border='black', box.lwd=3)
+       
+       
+####################################################################
+# WITH MISSING DATA
+####################################################################
+
+###########################
+#Insert NaN
+n_m = 5 #number of data vectors containing missing features
+d_m = 1  #number of missing features
+
+data_miss= sample(seq(1,n),n_m)
+
+features= sample(seq(1,D), d_m)
+for(i in 2:n_m)
+{
+  features= rbind(features, sample(seq(1,D), d_m))
+}
+
+for(i in 1:length(data_miss))
+{
+  
+  if(i==length(data_miss))
+  {
+    y[data_miss[i],features[i,][-1]]= NaN
+  }
+  else
+  {
+    y[data_miss[i],features[i,]]= NaN
+  }
+  
+}
+
+################################
+# GEODE: With missing data
+################################
+set.seed(321)
+start.time &lt;- Sys.time() 
+GEODE= rgeode(Y= y, d)
+Sys.time()- start.time
+
+# SIGMAS
+#plot(seq(110,3000,by=1),GEODE$sigmaS[110:3000],ty='l',col=2,
+#     xlab= 'Iteration', ylab= 'sigma^2', main= 'Simulation of sigma^2')
+#abline(v=800,lwd= 2, col= 'blue')
+#legend('bottomright',c('Posterior of sigma^2', 'Stopping time'),
+#       lwd=c(1,2),col=c(2,4),cex=0.55, border='black', box.lwd=3)
+
+
+
+####################################################################
+####################################################################
+</code></pre>
+
+
+</div>

@@ -1,0 +1,238 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fineTuning,knnFineTune</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Grid Search Plus More</h2>
+
+<h3>Description</h3>
+
+<p>Adds various extra features to grid search for specified tuning 
+parameter/hyperparameter combinations:  There is a plot() function, using
+parallel coordinates graphs to show trends among the different
+combinations; and Bonferroni confidence intervals are computed to avoid
+p-hacking.  An experimental smoothing facility is also included.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fineTuning(dataset,pars,regCall,nCombs=NULL,specCombs=NULL,nTst=500,
+   nXval=1,up=TRUE,k=NULL,dispOrderSmoothed=FALSE,
+   showProgress=TRUE,...)
+## S3 method for class 'tuner'
+plot(x,...)
+knnFineTune(data,yName,k,expandVars,ws,classif=FALSE,seed=9999)
+fineTuningPar(cls,dataset,pars,regCall,nCombs=NULL,specCombs=NULL,
+   nTst=500,nXval=1,up=TRUE,k=NULL,dispOrderSmoothed=FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Arguments to be passed on by <code>fineTuning</code> or
+<code>plot.tuner</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Output object from <code>fineTuning</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cls</code></td>
+<td>
+<p>A <code>parallel</code> cluster.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dataset</code></td>
+<td>
+<p>Data frame etc. containing the data to be analyzed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>The data to be analyzed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yName</code></td>
+<td>
+<p>Quoted name of "Y" in the column names of <code>data</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>expandVars</code></td>
+<td>
+<p>Indices of columns in <code>data</code> to be weighted in
+distance calculations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ws</code></td>
+<td>
+<p>Weights to be used for <code>expandVars</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>classif</code></td>
+<td>
+<p>Set to TRUE for classification problems.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>Seed for random number generation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pars</code></td>
+<td>
+<p>R list, showing the desired tuning parameter values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>regCall</code></td>
+<td>
+<p>Function to be called at each parameter combination,
+performing the model fit etc.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nCombs</code></td>
+<td>
+<p>Number of parameter combinations to run.  If Null, all
+will be run</p>
+</td>
+</tr>
+</table>
+<p>.
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>nTst</code></td>
+<td>
+<p>Number of data points to be in the test set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nXval</code></td>
+<td>
+<p>Number of folds to be run for a given data partition and
+parameter combination.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>Nearest-neighbor smoothing parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>up</code></td>
+<td>
+<p>If TRUE, display results in ascending order of performance
+value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dispOrderSmoothed</code></td>
+<td>
+<p>Display in order of smoothed results.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>showProgress</code></td>
+<td>
+<p>If TRUE, print each output line as it becomes ready.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>specCombs</code></td>
+<td>
+<p>A data frame in which the user specifies 
+#      hyperparameter parameter combinations to evaluate.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The user specifies the values for each tuning parameter in 
+<code>pars</code>.  This leads to a number of possible combinations of the
+parameters.  In many cases, there are more combinations than the user
+wishes to try, so <code>nCombs</code> of them will be chosen at random.
+</p>
+<p>For each combination, the function will run the analysis specified by
+the user in <code>regCall</code>.  The latter must have the call form
+</p>
+<p><code>ftnName(dtrn,dtst,cmbi</code>
+</p>
+<p>Again, note that it is <code>fineTuning</code> that calls this function.  It
+will provide the training and test sets <code>dtrn</code> and <code>dtst</code>, as
+well as <code>cmbi</code> ("combination i"), the particular parameter
+combination to be run at this moment.
+</p>
+<p>Each chosen combination is run in <code>nXval</code> folds.  All specified
+combinations are run fully, as opposed to a directional "hill descent"
+search that hopes it might eliminate poor combinations early in the process.
+</p>
+<p>The function <code>knnFineTune</code> is a wrapper for <code>fineTuning</code> for
+k-NN problems.
+</p>
+<p>The function <code>plot.tuner</code> draws a parallel coordinates plot to
+visualize the grid. The argument <code>x</code> is the output of
+<code>fineTuning</code>.  Arguments to specify in the ellipsis are:
+<code>col</code> is the column to be plotted;
+<code>disp</code> is the number to display, with <code>0</code>, <code>-m</code> and
+<code>+m</code> meaning cases with the <code>m</code> smallest 'smoothed' values, all
+cases and the <code>m</code> largest values of 'smoothed', respectively;
+<code>jit</code> avoids plotting coincident lines by adding jitter in the
+amount <code>jit * range(x) * runif(n,-0.5,0.5)</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Object of class **”tuner'**.  Contains the grid results, including
+upper bounds of approximate one-sided 95
+univariate and Bonferroni-Dunn (adjusted for the
+number of parameter combinations).
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Norm Matloff
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# mlb data set, predict weight using k-NN, try various values of k
+
+tc &lt;- function(dtrn,dtst,cmbi,...)
+{
+   knnout &lt;- kNN(dtrn[,-3],dtrn[,3],dtst[,-3],as.integer(cmbi[1]))
+   preds &lt;- knnout$regests
+   mean(abs(preds - dtst[,3]))
+}
+
+data(mlb)
+mlb &lt;- mlb[,3:6]
+mlb.d &lt;- factorsToDummies(mlb)
+fineTuning(mlb.d,list(k=c(5,25)),tc,nTst=100,nXval=2)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,171 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>twoLocusPlot</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Two-locus coefficient plot</h2>
+
+<h3>Description</h3>
+
+<p>Plot two-locus kinship or IBD coefficients as function of the recombination
+rate.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">twoLocusPlot(
+  peds,
+  coeff = "k11",
+  rseq = seq(0, 0.5, length = 11),
+  xlab = "Recombination rate",
+  ylab = NA,
+  col = seq_along(peds),
+  lty = 1,
+  lwd = 1,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>peds</code></td>
+<td>
+<p>A list of lists. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coeff</code></td>
+<td>
+<p>A string identifying which coefficient to compute. See Details
+for legal values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rseq</code></td>
+<td>
+<p>A numeric vector of recombination rates. By default <code>seq(from = 0, by = 0.5, length = 11)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xlab, ylab</code></td>
+<td>
+<p>Axis labels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>col, lty, lwd</code></td>
+<td>
+<p>Plotting parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further parameters passed on to <code>matplot()</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Each entry of <code>peds</code> must be a list with the following (named) entries:
+</p>
+
+<ul>
+<li>
+<p> ped: A ped object
+</p>
+</li>
+<li>
+<p> ids: A pair of labels identifying two members of <code>ped</code>
+</p>
+</li>
+</ul>
+<p>The <code>coeff</code> parameter must be either a character naming the coefficient to
+compute, or a function. If a character, it must be one of the following
+names: "inb", "kinship", "phi", "phi11", "k00", "k01", "k02", "k10", "k11", "k12",
+"k20", "k21" or "k22".
+</p>
+<p>If <code>coeff</code> is a function, it must take three arguments named <code>ped</code>, <code>ids</code> and
+<code>rho</code>, and produce a single number for each set of input data. See Examples.
+</p>
+<p>The first three are synonymous and indicate the two-locus kinship
+coefficient. The remaining choices are two-locus IBD coefficients. (See
+<code>twoLocusIBD()</code>.)
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+###############################
+# Classic example of three relationships with equal one-locus coeffs
+peds = list(
+    GrandParent = list(ped = linearPed(2),   ids = c(1, 5)),
+    HalfSib     = list(ped = halfSibPed(),   ids = c(4, 5)),
+    Uncle       = list(ped = avuncularPed(), ids = c(3, 6)))
+
+twoLocusPlot(peds, coeff = "kinship")
+twoLocusPlot(peds, coeff = "k11")
+
+###############################
+
+peds = list(
+    PO = list(ped = nuclearPed(1), ids = c(1,3)),
+    S  = list(ped = nuclearPed(2), ids = c(3,4)))
+
+twoLocusPlot(peds, coeff = "kinship")
+twoLocusPlot(peds, coeff = "k11")
+
+###############################
+
+ped1 = addChildren(halfSibPed(sex2 = 2), 4, 5, nch = 2)
+ped2 = addChildren(linearPed(2, sex = 1:2), 1, 5, nch = 2)
+ped3 = addChildren(avuncularPed("uncle", "niece"), 3, 6, nch = 2)
+
+peds = list(
+   `H-sibs` = list(ped = ped1, ids = leaves(ped1)),
+   `G-sibs` = list(ped = ped2, ids = leaves(ped2)),
+   `U-sibs` = list(ped = ped3, ids = leaves(ped3))
+)
+# plotPedList(peds)
+twoLocusPlot(peds, coeff = "kinship")
+
+################################
+
+### Reproducing Fig 2 of Bishop &amp; Williamson (1990)
+### This example illustrates `coeff` as a function.
+
+# The coefficient d11(rho) is the conditional probability of IBD = 1
+# in the first locus, given IBD = 1 in the second.
+
+G = linearPed(2)
+H = halfSibPed()
+U = avuncularPed()
+FC = cousinPed(1)
+FC1R = cousinPed(1, removal = 1)
+SC = cousinPed(2)
+
+peds = list(
+    GrandParent = list(ped = G,    ids = c(1, 5)),
+    HalfSib     = list(ped = H,    ids = leaves(H)),
+    Uncle       = list(ped = U,    ids = leaves(U)),
+    FirstCous   = list(ped = FC,   ids = leaves(FC)),
+    FirstCous1R = list(ped = FC1R, ids = leaves(FC1R)),
+    SecondCous  = list(ped = SC,   ids = leaves(SC)))
+
+
+d11 = function(ped, ids, rho) {
+  twoLocusIBD(ped, ids, rho, coefs = "k11")/kappaIBD(ped, ids)[2]
+}
+
+twoLocusPlot(peds, coeff = d11)
+
+</code></pre>
+
+
+</div>

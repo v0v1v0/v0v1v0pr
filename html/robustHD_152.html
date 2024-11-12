@@ -1,0 +1,138 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>weights.sparseLTS</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Extract outlier weights from sparse LTS regression models</h2>
+
+<h3>Description</h3>
+
+<p>Extract binary weights that indicate outliers from sparse least trimmed
+squares regression models.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'sparseLTS'
+weights(
+  object,
+  type = "robustness",
+  s = NA,
+  fit = c("reweighted", "raw", "both"),
+  drop = !is.null(s),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>the model fit from which to extract outlier weights.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>the type of weights to be returned.  Currently only robustness
+weights are implemented (<code>"robustness"</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s</code></td>
+<td>
+<p>an integer vector giving the indices of the models for which to
+extract outlier weights.  If <code>fit</code> is <code>"both"</code>, this can be a list
+with two components, with the first component giving the indices of the
+reweighted fits and the second the indices of the raw fits.  The default is
+to use the optimal model for each of the requested estimators.  Note that
+the optimal models may not correspond to the same value of the penalty
+parameter for the reweighted and the raw estimator.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>a character string specifying for which estimator to extract
+outlier weights.  Possible values are <code>"reweighted"</code> (the default) for
+weights indicating outliers from the reweighted fit, <code>"raw"</code> for
+weights indicating outliers from the raw fit, or <code>"both"</code> for the
+outlier weights from both estimators.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drop</code></td>
+<td>
+<p>a logical indicating whether to reduce the dimension to a
+vector in case of only one model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>currently ignored.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A numeric vector or matrix containing the requested outlier weights.
+</p>
+
+
+<h3>Note</h3>
+
+<p>The weights are <code class="reqn">1</code> for observations with reasonably small
+residuals and <code class="reqn">0</code> for observations with large residuals.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Andreas Alfons
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>sparseLTS</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## generate data
+# example is not high-dimensional to keep computation time low
+library("mvtnorm")
+set.seed(1234)  # for reproducibility
+n &lt;- 100  # number of observations
+p &lt;- 25   # number of variables
+beta &lt;- rep.int(c(1, 0), c(5, p-5))  # coefficients
+sigma &lt;- 0.5      # controls signal-to-noise ratio
+epsilon &lt;- 0.1    # contamination level
+Sigma &lt;- 0.5^t(sapply(1:p, function(i, j) abs(i-j), 1:p))
+x &lt;- rmvnorm(n, sigma=Sigma)    # predictor matrix
+e &lt;- rnorm(n)                   # error terms
+i &lt;- 1:ceiling(epsilon*n)       # observations to be contaminated
+e[i] &lt;- e[i] + 5                # vertical outliers
+y &lt;- c(x %*% beta + sigma * e)  # response
+x[i,] &lt;- x[i,] + 5              # bad leverage points
+
+## sparse LTS over a grid of values for lambda
+# fit model
+frac &lt;- seq(0.2, 0.05, by = -0.05)
+fitGrid &lt;- sparseLTS(x, y, lambda = frac, mode = "fraction")
+# extract outlier weights
+weights(fitGrid)
+head(weights(fitGrid, fit = "both"))
+head(weights(fitGrid, s = NULL))
+head(weights(fitGrid, fit = "both", s = NULL))
+</code></pre>
+
+
+</div>

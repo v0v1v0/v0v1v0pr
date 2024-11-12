@@ -1,0 +1,180 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ZabbixAPI</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>R module for working with the 'Zabbix API'</h2>
+
+<h3>Description</h3>
+
+<p><code>ZabbixAPI</code> function enables easy and direct communication with <code>Zabbix API</code> from <span class="pkg">R</span>.
+Each request to the <code>Zabbix API</code> requires passing <code>auth</code> authentication token. 
+Generation of the authentication token is explained <a href="https://www.zabbix.com/documentation/3.0/manual/api/reference/user/login">here</a> or
+can be seen in Examples section.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ZabbixAPI(server = "http://localhost/zabbix", body = list(),
+  user.agent = "RZabbix", content.type = "application/json-rpc",
+  encode = "json", ..., only.content = TRUE, fromJSON = TRUE,
+  content.only.result = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>server</code></td>
+<td>
+<p>A character with base URI for zabbix web interface (omitting /api_jsonrpc.php).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>body</code></td>
+<td>
+<p>A named list specifying <code>method</code>, user <code>auth</code> token and additional <code>params</code> (passed in <code>jsonlite::unbox(data.frame())</code>) to be used during request.
+It can also be passed as <code>JSON</code> through <code>character</code> with <code>fromJSON('json_string')</code> - see Examples. 
+Available methods are described in <a href="https://www.zabbix.com/documentation/3.0/manual/api">Zabbix Documentation</a>. One does not have to pass <code>id</code> and <code>jsonrpc</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>user.agent, content.type</code></td>
+<td>
+<p>Character arguments passed to POST through user_agent and content_type.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>encode</code></td>
+<td>
+<p>The same as <code>encode</code> in POST.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments passed to POST.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>only.content, fromJSON, content.only.result</code></td>
+<td>
+
+<ul>
+<li> <p><code>only.content</code> Should return results only for <code>content</code> part of the response.
+</p>
+</li>
+<li> <p><code>fromJSON</code> Should apply fromJSON conversion for <code>content</code> when <code>only.content = TRUE</code>.
+</p>
+</li>
+<li> <p><code>content.only.result</code> Should return only <code>result</code> part of <code>fromJSON(rawToChar(response$content))</code> when <code>only.content = TRUE, fromJSON = TRUE</code>.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Communication wih the <code>Zabbix API</code> is described at <a href="https://www.zabbix.com/documentation/3.0/manual/api/reference">Zabbix API Manual Reference</a> and
+relies on specifying methods of call and additional parameters in the <a href="http://www.jsonrpc.org/specification">JSON-RPC</a> format. An example of such specification
+can be found in the <a href="https://www.zabbix.com/documentation/3.0/manual/api/reference/user/login#examples">example of authenticating a user</a> but in <span class="pkg">RZabbix</span> this
+should be specified in parameter <code>body</code> where parameters are passed in the named list, where additional <code>params</code> should be passed in <code>jsonlite::unbox(data.frame())</code>.
+See examples.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Bug reports and feature requests can be sent to <a href="https://github.com/MarcinKosinski/RZabbix/issues">https://github.com/MarcinKosinski/RZabbix/issues</a>
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Marcin Kosinski, <a href="mailto:m.p.kosinski@gmail.com">m.p.kosinski@gmail.com</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# user authentication
+#####################
+ZabbixAPI('http://localhost/zabbix',
+          body = list(method = "user.login",
+                      params = jsonlite::unbox(
+	                      data.frame(user = "Admin",
+	                                 password = "zabbix")))) -&gt; auth
+
+# request to get histoy of an item of 'item_id' number
+######################################################
+ZabbixAPI('http://localhost/zabbix',
+          body = list(method = "history.get",
+                      params = jsonlite::unbox(
+                       data.frame(output = "extend",
+                                  itemids = "item_id",
+                                  history = 0,
+                                  sortfield = "clock",
+                                  sortorder = "DESC",
+                                  limit = 10)
+                     ),
+                     auth = auth))
+
+# API info
+##########
+ZabbixAPI('http://localhost/zabbix',
+          body = list(method = "apiinfo.version"))
+
+# fromJSON example for get event data fo object with 'object_id' number
+#######################################################################
+library(jsonlite)
+paste0('{
+    "method": "event.get",
+    "params": {
+        "output": "extend",
+        "select_acknowledges": "extend",
+        "objectids": "object_id",
+        "sortfield": ["clock", "eventid"],
+        "sortorder": "DESC"
+    },
+    "auth": "', auth, '"
+}') -&gt; json_rpc
+
+ZabbixAPI('http://localhost/zabbix',
+          body = fromJSON(json_rpc)) -&gt; event.info
+# colnames - https://www.zabbix.com/documentation/3.0/manual/api/reference/event/object           
+          
+event.info  %&gt;%
+  select(value, clock) %&gt;%
+  mutate(clock = 
+            as.POSIXct(as.numeric(clock),
+                       tz = "GMT",
+                       origin = "1970-01-01")) -&gt; clock2viz
+
+list2bind &lt;- list()
+for(i in 1:(nrow(clock2viz)-1)) {
+  data.frame(
+    times = 
+      seq(from = clock2viz$clock[i+1],
+        to = clock2viz$clock[i],
+        by = "min") %&gt;%
+      head(-1),
+    status = clock2viz$value[i+1],
+    stringsAsFactors = FALSE) -&gt;
+  list2bind[[i]]
+}
+
+library(ggplot2)
+do.call(bind_rows, list2bind) %&gt;% 
+  ggplot(aes(x=times, y = status)) + 
+  geom_point(size = 0.1) 
+
+## End(Not run)
+</code></pre>
+
+
+</div>

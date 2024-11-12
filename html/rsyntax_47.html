@@ -1,0 +1,117 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>tquery</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create a query for dependency based parse trees in a data.table (CoNLL-U or similar format).</h2>
+
+<h3>Description</h3>
+
+<p>To find nodes you can use named arguments, where the names are column names (in the data.table on which the
+queries will be used) and the values are vectors with look-up values. 
+</p>
+<p>Children or parents of nodes can be queried by passing the children or parents function as (named or unnamed) arguments.
+These functions use the same query format as the tquery function, and children and parents can be nested recursively to find children of children etc. 
+</p>
+<p>The custom_fill() function (also see fill argument) can be nested to customize which children of a 'labeled' node need to be matched. It can only be nested in a query if the label argument is not NULL,
+and by default will include all children of the node that have not been assigned to another node. If two nodes have a shared child, the child will be
+assigned to the closest node. 
+</p>
+<p>Please look at the examples below for a recommended syntactic style for using the find_nodes function and these nested functions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">tquery(..., g_id = NULL, label = NA, fill = TRUE, block = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Accepts two types of arguments: name-value pairs for finding nodes (i.e. rows), and functions to look for parents/children of these nodes.
+</p>
+<p>The name in the name-value pairs need to match a column in the data.table, and the value needs to be a vector of the same data type as the column.
+By default, search uses case sensitive matching, with the option of using common wildcards (* for any number of characters, and ? for a single character).
+Alternatively, flags can be used to to change this behavior to 'fixed' (__F), 'igoring case' (__I) or 'regex' (__R). See details for more information. 
+</p>
+<p>If multiple name-value pairs are given, they are considered as AND statements, but see details for syntax on using OR statements, and combinations.
+</p>
+<p>To look for parents and children of the nodes that are found, you can use the parents and children functions as (named or unnamed) arguments. 
+These functions have the same query arguments as tquery, but with some additional arguments.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g_id</code></td>
+<td>
+<p>Find nodes by global id, which is the combination of the doc_id, sentence and token_id. Passed as a data.frame or data.table with 3 columns: (1) doc_id, (2) sentence and (3) token_id.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>label</code></td>
+<td>
+<p>A character vector, specifying the column name under which the selected tokens are returned. 
+If NA, the column is not returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fill</code></td>
+<td>
+<p>Logical. If TRUE (default), the default custom_fill() will be used. To more specifically control fill, you can nest the custom_fill 
+function (a special version of the children function).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>block</code></td>
+<td>
+<p>Logical. If TRUE, the node will be blocked from being assigned (labeled). This is mainly useful if you have a node that you do not want to be assigned by fill,
+but also don't want to 'label' it. Essentially, block is shorthand for using label and then removing the node afterwards. If block is TRUE, label has to be NA.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Multiple values in a name-value pair operate as OR conditions.
+For example, tquery(relation = c('nsubj','dobj')) means that the relation column should have the value 'nsubj' OR 'dobj'. 
+</p>
+<p>If multiple named arguments are given they operate as AND conditions. 
+For example, tquery(relation = 'nsubj', pos = 'PROPN') means that the relation should be 'nsubj' AND the pos should be 'PROPN'.
+</p>
+<p>This easily combines for the most common use case, which is to select on multiple conditions (relation AND pos), but allowing different (similar) values ('PROPN' OR 'NOUN').
+For example: tquery(relation = 'nsubj', pos = c('PROPN','NOUN')) means that the node should have the 'nsubj' relation, but pos can be either 'PROPN' or 'NOUN'.
+</p>
+<p>For more specific behavior, the AND(), OR() and NOT() functions can be used for boolean style conditions.
+</p>
+<p>There are several flags that can be used to change search condition. To specify flags, add a double underscore and the flag character to the name in the name value pairs (...).
+By adding the suffix __R, query terms are considered to be regular expressions, and the suffix __I uses case insensitive search (for normal or regex search).
+If the suffix __F is used, only exact matches are valid (case sensitive, and no wildcards).
+Multiple flags can be combined, such as lemma__RI, or lemma_IR  (order of flags is irrelevant)
+</p>
+
+
+<h3>Value</h3>
+
+<p>A tQuery object, that can be used with the apply_queries function.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## it is convenient to first prepare vectors with relevant words/pos-tags/relations
+.SAY_VERBS = c("tell", "show","say", "speak") ## etc.
+.QUOTE_RELS=  c("ccomp", "dep", "parataxis", "dobj", "nsubjpass", "advcl")
+.SUBJECT_RELS = c('su', 'nsubj', 'agent', 'nmod:agent') 
+
+quotes_direct = tquery(lemma = .SAY_VERBS,
+                         children(label = 'source', p_rel = .SUBJECT_RELS),
+                         children(label = 'quote', p_rel = .QUOTE_RELS))
+quotes_direct 
+</code></pre>
+
+
+</div>

@@ -1,0 +1,142 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>cov_hall</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Covariance estimation after Hall et al. (2008)</h2>
+
+<h3>Description</h3>
+
+<p>Internal function for the estimation of the covariance matrix of the latent
+process using the approach of Hall et al. (2008). Used in the
+two-step GFPCA approach implemented in <code>gfpca_twoStep</code>. <br><br>
+This function is an adaptation of the implementation of Jan
+Gertheiss and Ana-Maria Staicu for Gertheiss et al. (2017), with focus on
+higher (RAM) efficiency for large data settings.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">cov_hall(
+  Y,
+  index_evalGrid,
+  Kt = 25,
+  Kc = 10,
+  family = "gaussian",
+  diag_epsilon = 0.01,
+  make_pd = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>Dataframe. Should have values id, value, index.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>index_evalGrid</code></td>
+<td>
+<p>Grid for the evaluation of the covariance structure.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Kt</code></td>
+<td>
+<p>Number of P-spline basis functions for the estimation of the
+marginal mean. Defaults to 25.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Kc</code></td>
+<td>
+<p>Number of marginal P-spline basis functions for smoothing the
+covariance surface. Defaults to 10.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>One of <code>c("gaussian","binomial","gamma","poisson")</code>.
+Poisson data are rounded before performing
+the GFPCA to ensure integer data, see Details section below.
+Defaults to <code>"gaussian"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>diag_epsilon</code></td>
+<td>
+<p>Small constant to which diagonal elements of the
+covariance matrix are set if they are smaller. Defaults to 0.01.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>make_pd</code></td>
+<td>
+<p>Indicator if positive (semi-)definiteness of the returned
+latent covariance should be ensured via <code>Matrix::near_PD()</code>. Defaults to
+TRUE.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The implementation deviates from the algorithm described in Hall (2008) in
+one crucial step – we compute the crossproducts of <em>centered</em>
+observations and smooth the surface of these crossproducts directly instead
+of computing and smoothing the surface of crossproducts of uncentered
+observations and subsequently subtracting the (crossproducts of the) mean
+function. The former seems to yield smoother eigenfunctions and 
+fewer non-positive-definite covariance estimates.
+</p>
+<p>If the data <code>Y</code> or the crossproduct matrix contain more than
+<code>100,000</code> rows or elements, the estimation of the marginal mean or
+the smoothing step of the covariance matrix are performed by
+using the discretization-based estimation algorithm in <code>bam</code>
+rather than the <code>gam</code> estimation algorithm.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Covariance matrix with dimension <code>time_evalGrid x time_evalGrid</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Alexander Bauer <a href="mailto:alexander.bauer@stat.uni-muenchen.de">alexander.bauer@stat.uni-muenchen.de</a> and 
+Fabian Scheipl, based on work of Jan Gertheiss and Ana-Maria Staicu
+</p>
+
+
+<h3>References</h3>
+
+<p>Hall, P., Müller, H. G., &amp; Yao, F. (2008). Modelling sparse
+generalized longitudinal observations with latent Gaussian processes.
+<em>Journal of the Royal Statistical Society: Series B (Statistical Methodology)</em>,
+70(4), 703–723.
+</p>
+<p>Gertheiss, J., Goldsmith, J., &amp; Staicu, A. M. (2017). A note on
+modeling sparse exponential-family functional response curves.
+<em>Computational statistics &amp; data analysis</em>, 105, 46–52.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(growth_incomplete)
+
+index_grid = c(1.25, seq(from = 2, to = 18, by = 1))
+cov_matrix = registr:::cov_hall(growth_incomplete, index_evalGrid = index_grid)
+
+</code></pre>
+
+
+</div>

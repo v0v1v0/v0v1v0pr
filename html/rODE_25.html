@@ -1,0 +1,304 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Euler-class</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Euler ODE solver class</h2>
+
+<h3>Description</h3>
+
+<p>Euler ODE solver class
+</p>
+<p>Euler generic
+</p>
+<p>Euler constructor when 'ODE' passed
+</p>
+<p>Euler constructor 'missing' is passed
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">Euler(ode, ...)
+
+## S4 method for signature 'Euler'
+init(object, stepSize, ...)
+
+## S4 method for signature 'Euler'
+step(object, ...)
+
+## S4 method for signature 'Euler'
+setStepSize(object, stepSize, ...)
+
+## S4 method for signature 'Euler'
+getStepSize(object, ...)
+
+## S4 method for signature 'ODE'
+Euler(ode, ...)
+
+## S4 method for signature 'missing'
+Euler(ode, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>ode</code></td>
+<td>
+<p>an ODE object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional parameters</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>an internal object of the class</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stepSize</code></td>
+<td>
+<p>the size of the step</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R"># +++++++++++++++++++++++++++++++++++++++++++++++ application: RigidBodyNXFApp.R
+# example of a nonstiff system is the system of equations describing
+# the motion of a rigid body without external forces.
+
+importFromExamples("RigidBody.R")
+
+# run the application
+RigidBodyNXFApp &lt;- function(verbose = FALSE) {
+    # load the R class that sets up the solver for this application
+    y1 &lt;- 0   # initial y1 value
+    y2 &lt;- 1    # initial y2 value
+    y3 &lt;- 1    # initial y3 value
+    dt        &lt;- 0.01 # delta time for step
+
+    body   &lt;- RigidBodyNXF(y1, y2, y3)
+    solver &lt;- Euler(body)
+    solver &lt;- setStepSize(solver, dt)
+    rowVector &lt;- vector("list")
+    i &lt;- 1
+    # stop loop when the body hits the ground
+    while (getState(body)[4] &lt;= 12) {
+        rowVector[[i]] &lt;- list(t  = getState(body)[4],
+                               y1 = getState(body)[1],
+                               y2 = getState(body)[2],
+                               y3 = getState(body)[3])
+        solver &lt;- step(solver)
+        body   &lt;- getODE(solver)
+        i &lt;- i + 1
+    }
+    DT &lt;- data.table::rbindlist(rowVector)
+    return(DT)
+}
+
+# get the data table from the app
+solution &lt;- RigidBodyNXFApp()
+plot(solution)
+
+# +++++++++++++++++++++++++++++++++++++++++++++++  example: FallingParticleApp.R
+# Application that simulates the free fall of a ball using Euler ODE solver
+
+importFromExamples("FallingParticleODE.R")      # source the class
+
+FallingParticleODEApp &lt;- function(verbose = FALSE) {
+    # initial values
+    initial_y &lt;- 10
+    initial_v &lt;- 0
+    dt &lt;- 0.01
+    ball   &lt;- FallingParticleODE(initial_y, initial_v)
+    solver &lt;- Euler(ball)                        # set the ODE solver
+    solver &lt;- setStepSize(solver, dt)            # set the step
+    rowVector &lt;- vector("list")
+    i &lt;- 1
+    # stop loop when the ball hits the ground, state[1] is the vertical position
+    while (getState(ball)[1] &gt; 0) {
+        rowVector[[i]] &lt;- list(t  = getState(ball)[3],
+                               y  = getState(ball)[1],
+                               vy = getState(ball)[2])
+        solver &lt;- step(solver)                   # move one step at a time
+        ball   &lt;- getODE(solver)                       # update the ball state
+        i &lt;- i + 1
+    }
+    DT &lt;- data.table::rbindlist(rowVector)
+    return(DT)
+}
+# show solution
+solution &lt;- FallingParticleODEApp()
+plot(solution)
+# KeplerVerlet.R
+
+
+
+setClass("Kepler", slots = c(
+    GM = "numeric",
+    odeSolver = "Euler",
+    counter = "numeric"
+    ),
+    contains = c("ODE")
+)
+
+setMethod("initialize", "Kepler", function(.Object, ...) {
+    .Object@GM &lt;- 4 * pi * pi                # gravitation constant times combined mass
+    .Object@state &lt;- vector("numeric", 5)  # x, vx, y, vy, t
+    .Object@odeSolver &lt;- Euler(.Object)
+    .Object@counter &lt;- 0
+    return(.Object)
+})
+
+setMethod("doStep", "Kepler", function(object, ...) {
+    # cat("state@doStep=", object@state, "\n")
+    object@odeSolver &lt;- step(object@odeSolver)
+
+    object@state &lt;- object@odeSolver@ode@state
+
+    # object@rate &lt;- object@odeSolver@ode@rate
+    # cat("\t", object@odeSolver@ode@state)
+    object
+})
+
+setMethod("getTime", "Kepler", function(object, ...) {
+    return(object@state[5])
+})
+
+setMethod("getEnergy", "Kepler", function(object, ...) {
+    ke &lt;- 0.5 * (object@state[2] * object@state[2] +
+                     object@state[4] * object@state[4])
+    pe &lt;- -object@GM / sqrt(object@state[1] * object@state[1] +
+                                object@state[3] * object@state[3])
+    return(pe+ke)
+})
+
+setMethod("init", "Kepler", function(object, initState, ...) {
+    object@state &lt;- initState
+    object@odeSolver &lt;- init(object@odeSolver, getStepSize(object@odeSolver))
+    object@counter &lt;- 0
+    object
+})
+
+setReplaceMethod("init", "Kepler", function(object, ..., value) {
+    object@state &lt;- value
+    object@odeSolver &lt;- init(object@odeSolver, getStepSize(object@odeSolver))
+    object@counter &lt;- 0
+    object
+})
+
+
+setMethod("getRate", "Kepler", function(object, state, ...) {
+    # Computes the rate using the given state.
+    r2 &lt;- state[1] * state[1] + state[3] * state[3]  # distance squared
+    r3 &lt;- r2 * sqrt(r2)   # distance cubed
+    object@rate[1] &lt;- state[2]
+    object@rate[2] &lt;- (- object@GM * state[1]) / r3
+    object@rate[3] &lt;- state[4]
+    object@rate[4] &lt;- (- object@GM * state[3]) / r3
+    object@rate[5] &lt;- 1   # time derivative
+
+    # object@state &lt;- object@odeSolver@ode@state &lt;- state
+    # object@state &lt;- state
+    object@counter &lt;- object@counter + 1
+    object@rate
+
+})
+
+setMethod("getState", "Kepler", function(object, ...) {
+    # Gets the state variables.
+    return(object@state)
+})
+
+# constructor
+Kepler &lt;- function() {
+    kepler &lt;- new("Kepler")
+    return(kepler)
+}
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++  example: PlanetApp.R
+# Simulation of Earth orbiting around the SUn using the Euler ODE solver
+
+importFromExamples("Planet.R")      # source the class
+
+PlanetApp &lt;- function(verbose = FALSE) {
+    # x =  1, AU or Astronomical Units. Length of semimajor axis or the orbit
+    # of the Earth around the Sun.
+    x &lt;- 1; vx &lt;- 0; y &lt;- 0; vy &lt;- 6.28; t &lt;- 0
+    state &lt;- c(x, vx, y, vy, t)
+    dt &lt;-  0.01
+    planet &lt;- Planet()
+    planet@odeSolver &lt;- setStepSize(planet@odeSolver, dt)
+    planet &lt;- init(planet, initState = state)
+    rowvec &lt;- vector("list")
+    i &lt;- 1
+    # run infinite loop. stop with ESCAPE.
+    while (getState(planet)[5] &lt;= 90) {     # Earth orbit is 365 days around the sun
+        rowvec[[i]] &lt;- list(t  = getState(planet)[5],     # just doing 3 months
+                            x  = getState(planet)[1],     # to speed up for CRAN
+                            vx = getState(planet)[2],
+                            y  = getState(planet)[3],
+                            vy = getState(planet)[4])
+        for (j in 1:5) {                 # advances time
+            planet &lt;- doStep(planet)
+        }
+        i &lt;- i + 1
+    }
+    DT &lt;- data.table::rbindlist(rowvec)
+    return(DT)
+}
+# run the application
+solution &lt;- PlanetApp()
+select_rows &lt;- seq(1, nrow(solution), 10)      # do not overplot
+solution &lt;- solution[select_rows,]
+plot(solution)
+
+# +++++++++++++++++++++++++++++++++++++++++++++++ application: RigidBodyNXFApp.R
+# example of a nonstiff system is the system of equations describing
+# the motion of a rigid body without external forces.
+
+importFromExamples("RigidBody.R")
+
+# run the application
+RigidBodyNXFApp &lt;- function(verbose = FALSE) {
+    # load the R class that sets up the solver for this application
+    y1 &lt;- 0   # initial y1 value
+    y2 &lt;- 1    # initial y2 value
+    y3 &lt;- 1    # initial y3 value
+    dt        &lt;- 0.01 # delta time for step
+
+    body   &lt;- RigidBodyNXF(y1, y2, y3)
+    solver &lt;- Euler(body)
+    solver &lt;- setStepSize(solver, dt)
+    rowVector &lt;- vector("list")
+    i &lt;- 1
+    # stop loop when the body hits the ground
+    while (getState(body)[4] &lt;= 12) {
+        rowVector[[i]] &lt;- list(t  = getState(body)[4],
+                               y1 = getState(body)[1],
+                               y2 = getState(body)[2],
+                               y3 = getState(body)[3])
+        solver &lt;- step(solver)
+        body   &lt;- getODE(solver)
+        i &lt;- i + 1
+    }
+    DT &lt;- data.table::rbindlist(rowVector)
+    return(DT)
+}
+
+# get the data table from the app
+solution &lt;- RigidBodyNXFApp()
+plot(solution)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,158 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>redist.plot.distr_qtys</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Plot quantities by district</h2>
+
+<h3>Description</h3>
+
+<p>Plots a boxplot of a quantity of interest across districts, with districts
+optionally sorted by this quantity. Adds reference points for each reference
+plan, if applicable.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">redist.plot.distr_qtys(
+  plans,
+  qty,
+  sort = "asc",
+  geom = "jitter",
+  color_thresh = NULL,
+  size = 0.1,
+  ref_geom,
+  ref_label,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>plans</code></td>
+<td>
+<p>the <code>redist_plans</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>qty</code></td>
+<td>
+<p><code>&lt;data-masking&gt;</code> the
+quantity of interest.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sort</code></td>
+<td>
+<p>set to <code>"asc"</code> to sort districts in ascending order of
+<code>qty</code> (the default), <code>"desc"</code> for descending order, or
+<code>FALSE</code> or <code>"none"</code> for no sorting.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>geom</code></td>
+<td>
+<p>the <code>ggplot2</code> geom to use in plotting the simulated districts: either
+<code>"jitter"</code> or <code>"boxplot"</code>. Can also take in a function, so long as the
+function accepts <code>...</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>color_thresh</code></td>
+<td>
+<p>if a number, the threshold to use in coloring the points.
+Plans with quantities of interest above the threshold will be colored
+differently than plans below the threshold.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>size</code></td>
+<td>
+<p>The dot size for <code>geom="jitter"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ref_geom</code></td>
+<td>
+<p>The reference plan geometry type. <code>"line"</code> or <code>"point"</code>
+can be passed for reasonable defaults. Can also take in a function, so long as the
+function accepts <code>...</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ref_label</code></td>
+<td>
+<p>A human-readable name for the reference plan. By default
+the name in the <code>plan</code> column is used. This can also take in a function which returns
+a call to <code>ggplot2::labs()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>passed on to <code>geom_boxplot</code></p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A ggplot
+</p>
+
+
+<h3>Using <code>ggdist</code>
+</h3>
+
+<p>For custom functions in <code>geom</code>, we can also create more complicated things like rainclouds
+using the <code>ggdist</code> package. For example:
+</p>
+<div class="sourceCode r"><pre>raincloud &lt;- function(...) {
+list(
+    ggdist::stat_slab(aes(thickness = ggplot2::after_stat(pdf*n)), scale = 0.7),
+   ggdist::stat_dotsinterval(side = "bottom", scale = 0.7,
+                             slab_size = NA, quantiles = 200)
+)
+}
+</pre></div>
+<p>These functions can be then passed to <code>geom</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(dplyr)
+data(iowa)
+
+iowa &lt;- redist_map(iowa, existing_plan = cd_2010, pop_tol = 0.05, total_pop = pop)
+plans &lt;- redist_smc(iowa, nsims = 100, silent = TRUE)
+plans &lt;- plans %&gt;% mutate(pct_dem = group_frac(iowa, dem_08, tot_08))
+redist.plot.distr_qtys(plans, pct_dem)
+
+# It also takes custom functions:
+redist.plot.distr_qtys(plans, pct_dem, geom = ggplot2::geom_violin)
+
+# With the raincloud example, if you have `ggdist`, you can run:
+# redist.plot.distr_qtys(plans, pct_dem, geom = raincloud)
+
+# The reference geom can also be changed via `reg_geom`
+r_geom &lt;- function(...) ggplot2::geom_segment(ggplot2::aes(as.integer(.data$.distr_no) - 0.5,
+                          xend = as.integer(.data$.distr_no) + 0.5,
+                          yend = pct_dem,
+                          color = .data$draw),
+                      linewidth = 1.2, ...)
+
+
+
+# Finally, the `ref_label` argument can also be swapped for a function, like so:
+redist.plot.distr_qtys(plans, pct_dem, geom = ggplot2::geom_violin, ref_geom = r_geom,
+    ref_label = function() ggplot2::labs(color = 'Ref.'))
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,175 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>exportDF</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Export a Data Frame as HTML/TEX Code</h2>
+
+<h3>Description</h3>
+
+<p>Generates code to include tabular data in a tex document or web site.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">exportDF(
+  x,
+  tex = FALSE,
+  colnames = NULL,
+  width = NULL,
+  align = NULL,
+  funHead = NULL,
+  funCell = NULL,
+  lines = TRUE,
+  indent = 2
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>The data frame being exported.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tex</code></td>
+<td>
+<p>Logical. Allows to switch between generation of TEX code and HTML.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>colnames</code></td>
+<td>
+<p>Displayed column names. If <code>NULL</code>, the original names
+of <code>x</code> are used. Otherwise it must be a named vector with element
+names corresponding to column names in <code>x</code>. It is OK to supply
+alternative names for selected columns only.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>width</code></td>
+<td>
+<p>Either <code>NULL</code> (all columns get equal width) or a named
+vector with element names corresponding to column names in <code>x</code>. If
+<code>tex == TRUE</code>, values (between 0 and 1) are needed for columns with
+align code 'p' only. They are interpreted as a multiplier for '\textwidth'.
+If <code>tex == FALSE</code>, values (between 0 and 100) should be
+supplied for all columns of <code>x</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>align</code></td>
+<td>
+<p>Either <code>NULL</code> (to use automatic alignment) or a named
+vector with element names corresponding to column names in <code>x</code>.
+If <code>tex == FALSE</code> valid alignment codes are 'left', 'right', 'center'.
+If <code>tex == TRUE</code> valid alignment codes are 'l', 'r', 'c', and 'p'. For
+columns with code 'p' a corresponding value of <code>width</code> should be set.
+It is OK to supply alignment codes for selected columns only.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>funHead</code></td>
+<td>
+<p>Either <code>NULL</code> or a list of functions whose names
+correspond to column names of <code>x</code>. The functions should have a single
+formal argument; the respective column names of <code>x</code> are used as the
+actual arguments. It is OK to supply functions for selected columns only
+(an empty function is applied to the remaining columns). See below for some
+typical examples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>funCell</code></td>
+<td>
+<p>Like <code>funHead</code> but these functions are applied to the
+cells in columns rather that to the column names.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lines</code></td>
+<td>
+<p>Logical. Switches table borders on/off.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>indent</code></td>
+<td>
+<p>Integer. Number of blanks used to indent the generated code.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A character string (usually needs to be exported to a file).
+</p>
+
+
+<h3>Note</h3>
+
+<p>The functions <code>funHead</code> and <code>funCell</code> are useful to apply
+formatting or character replacement. For example, one could use
+</p>
+<p><code>function(x) {paste0("\\bold{",toupper(x),"}")}</code>
+</p>
+<p>to generate bold, uppercase column names in a TEX table.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>David Kneis <a href="mailto:david.kneis@tu-dresden.de">david.kneis@tu-dresden.de</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p>The <code>xtable</code> packages provides similar functionality with
+more sophisticated options. Consider the 'pandoc' software do convert
+documents from one markup language to another one. Finally, consider the
+latex package 'datatools' for direct inclusion of delimited text files
+(e.g. produced by <code>write.table</code>) in tex documents.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Create example table
+df &lt;- data.frame(stringsAsFactors=FALSE, name= c("growth", "dead"),
+  unit= c("1/d","1/d"), expression= c("r * N * (1 - N/K)"," d * N"))
+
+# Export as TEX: header in bold, 1st colum in italics, last column as math
+tex &lt;- exportDF(df, tex=TRUE,
+  colnames=c(expression="process rate expression"),
+  width=c(expression=0.5),
+  align=c(expression="p"),
+  funHead=setNames(replicate(ncol(df),
+    function(x){paste0("\\textbf{",x,"}")}),names(df)),
+  funCell=c(name=function(x){paste0("\\textit{",x,"}")},
+    expression=function(x){paste0("$",x,"$")})
+)
+cat(tex,"\n")
+
+# Export as HTML: non-standard colors are used for all columns
+tf &lt;- tempfile(fileext=".html")
+write(x= exportDF(df, tex=FALSE,
+  funHead=setNames(replicate(ncol(df),
+    function(x){paste0("&lt;font color='red'&gt;",x,"&lt;/font&gt;")}),names(df)),
+  funCell=setNames(replicate(ncol(df),
+    function(x){paste0("&lt;font color='blue'&gt;",x,"&lt;/font&gt;")}),names(df))
+), file=tf)
+## Not run: 
+  browseURL(tf)
+  file.remove(tf)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

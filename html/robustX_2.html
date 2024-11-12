@@ -1,0 +1,265 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>BACON</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>BACON for Regression or Multivariate Covariance Estimation</h2>
+
+<h3>Description</h3>
+
+<p>BACON, short for ‘<b>B</b>locked <b>A</b>daptive
+<b>C</b>omputationally-Efficient <b>O</b>utlier <b>N</b>ominators’,
+is a somewhat robust algorithm (set), with an implementation for
+regression or multivariate covariance estimation.
+</p>
+<p><code>BACON()</code> applies the multivariate (covariance estimation)
+algorithm, using <code>mvBACON(x)</code> in any case, and when
+<code>y</code> is not <code>NULL</code> adds a regression iteration phase,
+using the auxiliary <code>.lmBACON()</code> function.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">BACON(x, y = NULL, intercept = TRUE,
+      m = min(collect * p, n * 0.5),
+      init.sel = c("Mahalanobis", "dUniMedian", "random", "manual", "V2"),
+      man.sel, init.fraction = 0, collect = 4,
+      alpha = 0.05, alphaLM = alpha, maxsteps = 100, verbose = TRUE)
+
+## *Auxiliary* function:
+.lmBACON(x, y, intercept = TRUE,
+         init.dis, init.fraction = 0, collect = 4,
+         alpha = 0.05, maxsteps = 100, verbose = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a multivariate matrix of dimension [n x p]
+considered as containing no missing values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>the response (n vector) in the case of regression, or
+<code>NULL</code> for the multivariate case, where just
+<code>mvBACON()</code> is returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intercept</code></td>
+<td>
+<p>logical indicating if an intercept has to be used
+for the regression.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m</code></td>
+<td>
+<p>integer in <code>1:n</code> specifying the size of the initial basic
+subset; used only when <code>init.sel</code> is not <code>"manual"</code>; see
+<code>mvBACON</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init.sel</code></td>
+<td>
+<p>character string, specifying the initial selection
+mode; see <code>mvBACON</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>man.sel</code></td>
+<td>
+<p>only when <code>init.sel == "manual"</code>, the indices of
+observations determining the initial basic subset (and <code>m &lt;-
+      length(man.sel)</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init.dis</code></td>
+<td>
+<p>the distances of the x matrix used for the initial
+subset determined by <code>mvBACON</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init.fraction</code></td>
+<td>
+<p>if this parameter is &gt; 0 then the tedious steps
+of selecting the initial subset are skipped and an initial subset of
+size n * init.fraction is chosen (with smallest dis)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>collect</code></td>
+<td>
+<p>numeric factor chosen by the user to define the size of
+the initial subset (p * collect)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>number in <code class="reqn">(0, 1)</code> determining the cutoff value for the
+Mahalanobis distances (multivariate outlier nomination in
+<code>mvBACON()</code>), or the discrepancies for regression, see <code>alphaLM</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alphaLM</code></td>
+<td>
+<p>number in <code class="reqn">(0, 1)</code> where a <code>1-alphaM</code> t-quantile
+is the cutoff for the discrepancies (for regression, <code>.lmBACON()</code>); see details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxsteps</code></td>
+<td>
+<p>the maximal number of iteration steps
+(to prevent infinite loops)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical indicating if messages are printed which trace
+progress of the algorithm.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Notably about the initial selection mode, <code>init.sel</code>, see its
+description in the <code>mvBACON</code> arguments list.
+</p>
+<p>The choice of <code>alpha</code> and <code>alphaLM</code>:
+</p>
+
+<ul>
+<li>
+<p> Multivariate outlier nomination: see the Details section of
+<code>mvBACON</code>.
+</p>
+</li>
+<li>
+<p> Regression: Let <code class="reqn">t_r(\alpha)</code> denote the <code class="reqn">1-\alpha</code> quantile of the
+Student <code class="reqn">t</code>-distribution with <code class="reqn">r</code> degrees of freedom,
+where <code class="reqn">r</code> is the number of elements in the current subset;
+e.g., <code class="reqn">t_r(0.05)</code> is the 0.95 quantile.  Following Billor et
+al. (2000), the cutoff value for the discrepancies is defined
+as <code class="reqn">t_r(\alpha/(2r + 2))</code>, and
+they use <code class="reqn">\alpha=0.05</code>.   Note that this is argument
+<code>alphaLM</code> (defualting to <code>alpha</code>) for <code>BACON()</code>.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p><code>BACON(x,y,..)</code> (for regression) returns a <code>list</code> with
+components
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>subset</code></td>
+<td>
+<p>the observation indices (in <code>1:n</code>) denoting a
+subset of “good” supposedly outlier-free observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tis</code></td>
+<td>
+<p>the <code class="reqn">t_i(y_m, X_m)</code> of eq (6) in the
+reference; the clean “basic subset” in the algorithm is defined
+the observations <code class="reqn">i</code> with the smallest <code class="reqn">|t_i|</code>, and the
+<code class="reqn">t_i</code> can be regarded as scaled predicted errors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mv.dis</code></td>
+<td>
+<p>the (final) discrepancies or distances of
+<code>mvBACON()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mv.subset</code></td>
+<td>
+<p>the “good” subset from <code>mvBACON()</code>,
+used to start the regression iterations.</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>“BACON” was also chosen in honor of Francis Bacon:
+</p>
+<p><em>Whoever knows the ways of Nature will more easily notice her deviations;
+and, on the other hand, whoever knows her deviations will more accurately
+describe her ways.</em>
+<br> Francis Bacon (1620), Novum Organum II 29.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Ueli Oetliker, Swiss Federal Statistical Office, for S-plus 5.1;
+25.05.2001; modified six times till 17.6.2001.
+</p>
+<p>Port to <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>, testing etc, by Martin Maechler.
+Daniel Weeks (at pitt.edu) proposed a fix to a long standing buglet in
+<code>GiveTis()</code> computing the <code class="reqn">t_i</code>, which was further improved
+Maechler, for <a href="https://CRAN.R-project.org/package=robustX"><span class="pkg">robustX</span></a> version 1.2-3 (Feb. 2019).
+</p>
+<p>Correction of <code>alpha</code> default, from 0.95 to 0.05, by Tobias Schoch,
+see <code>mvBACON</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Billor, N., Hadi, A. S., and Velleman , P. F. (2000).
+BACON: Blocked Adaptive Computationally-Efficient Outlier Nominators;
+<em>Computational Statistics and Data Analysis</em> <b>34</b>, 279–298.
+<a href="https://doi.org/10.1016/S0167-9473%2899%2900101-2">doi:10.1016/S0167-9473(99)00101-2</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>mvBACON</code>, the multivariate version of the BACON
+algorithm.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(starsCYG, package = "robustbase")
+## Plot simple data and fitted lines
+plot(starsCYG)
+lmST &lt;- lm(log.light ~ log.Te, data = starsCYG)
+abline(lmST, col = "gray") # least squares line
+str(B.ST &lt;- with(starsCYG,  BACON(x = log.Te, y = log.light)))
+## 'subset': A good set of of points (to determine regression):
+colB &lt;- adjustcolor(2, 1/2)
+points(log.light ~ log.Te, data = starsCYG, subset = B.ST$subset,
+       pch = 19, cex = 1.5, col = colB)
+## A BACON-derived line:
+lmB &lt;- lm(log.light ~ log.Te, data = starsCYG, subset = B.ST$subset)
+abline(lmB, col = colB, lwd = 2)
+
+require(robustbase)
+(RlmST &lt;- lmrob(log.light ~ log.Te, data = starsCYG))
+abline(RlmST, col = "blue")
+</code></pre>
+
+
+</div>

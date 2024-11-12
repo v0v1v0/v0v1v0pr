@@ -1,0 +1,149 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rbm.haplos.thresholds</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Simulation of genetic data based on haplotypes and a libaility model
+</h2>
+
+<h3>Description</h3>
+
+<p>Simulates genetic data with respect to allele frequency spectrum and linkage disequilibrium pattern observed on given haplotype data under a libaility model
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">  rbm.haplos.thresholds(haplos, weights = c("SKAT", "constant"), 
+                        max.maf.causal = 0.01, p.causal = 0.5, p.protect = 0, 
+                        h2, prev, normal.approx = TRUE, size, 
+                        replicates, rep.by.causal, verbose = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>haplos</code></td>
+<td>
+<p> A matrix of haplotypes with one row per haplotype and one column per variant</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p> How to weight rare variants (if "constant", all variants have the same weight, if "SKAT", the rarest variants have the highest weights as in the SKAT paper: weights = -0.4*log10(MAF) )</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.maf.causal</code></td>
+<td>
+<p> The maf threshold to consider a rare variant  (set at 0.01 by default), variants with a MAF upper this threshold will have a weight of 0</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p.causal</code></td>
+<td>
+<p> The proportion of causal variants</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p.protect</code></td>
+<td>
+<p> The proportion of protective variants among causal variants</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>h2</code></td>
+<td>
+<p> The variance explained by the gene</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prev</code></td>
+<td>
+<p> A vector with the prevalence in each group of individuals</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>normal.approx</code></td>
+<td>
+<p> TRUE/FALSE: whether to use the normal approximation to compute thresholds. Set at TRUE by default</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>size</code></td>
+<td>
+<p> The sizes of each group of individuals</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>replicates</code></td>
+<td>
+<p> The number of simulations to perform</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rep.by.causal</code></td>
+<td>
+<p> The number of time causal variants will be sampled</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p> Whether to display information about the function actions </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>nb.causal</code>, <code>p.protect</code>, <code>h2</code> and <code>prev</code> should be vectors of length corresponding to the number of groups to simulate. If they are of size 1, values will be duplicated. 
+</p>
+<p>All monomorphic variants and variants with a MAF higher than <code>max.maf.causal</code> will have a weight of 0. Causal variants are sampled among variants having weights greater than 0. Causal variants in each group of individuals are indicated in <code>x@ped$Causal</code>.  
+</p>
+<p>A liability model is built on haplotypes' burden computed on sampled causal variants using each variant's <code>weights</code>, and adjusted on the desired <code>h2</code>. Thresholds from this liability are then chosen to respect the given <code>prev</code> (from a standard normal distribution if <code>normal.approx=TRUE</code>, or using a distribution from 1e6 sampled burdens if <code>normal.approx=FALSE</code>). Please be carreful when using the normal approximation with high <code>h2</code> values or low <code>prev</code> values. 
+Haplotypes' probabilities in each group of individuals are then computed and two haplotypes are then sampled for each individual based on these probabilities.  
+</p>
+<p>To simulate a group of controls, <code>prev</code> needs to be set at 1, regardless of the other arguments.  
+</p>
+<p>N <code>replicates</code> will be performed, and to gain in computation time, the same causal variants can be used for multiple replicates as different haplotypes will be sampled for each individual. <code>rep.by.causal</code> indicates the number of replicates to perform for each set of causal variants.
+To ensure a variability in the simulations, we yet recommend to resample causal variants a few times when many replicates are to be performed. 
+For example, if 1000 replicates are to be performed, we recommend to resample causal variants 20 times.  
+</p>
+<p>The phenotype will be stored in <code>@ped$pheno</code>, and the simulation number is <code>@snps$genomic.region</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p> A bed matrix with simulated genotypes</p>
+</td>
+</tr></table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+  #Load LCT dataset for haplotype matrix
+  data(LCT.haplotypes)
+  #LCT gene in the EUR population
+  LCT.gene.hap &lt;- LCT.hap[which(LCT.sample$super.population=="EUR"), 
+                          which(LCT.snps$pos&gt;=136545410 &amp; LCT.snps$pos&lt;=136594750)]
+
+  #Simulation of 100 controls, and two groups of 50 cases with 30% causal variants
+  #and with the second group having half h2 and twice the prevalence
+  #compared to the first one
+  #5 replicates are performed and causal variants are sampled once
+  x &lt;- rbm.haplos.thresholds(haplos=LCT.gene.hap, max.maf.causal = 0.01, p.causal=0.3,
+                             p.protect=0, h2=c(0.01, 0.01, 0.02), prev=c(1, 0.01, 0.005),
+                             size=c(100, 50, 50), replicates = 5, rep.by.causal = 5)
+
+</code></pre>
+
+
+</div>

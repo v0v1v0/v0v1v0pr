@@ -1,0 +1,198 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>response</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Specify a response variable in terms of predictors</h2>
+
+<h3>Description</h3>
+
+<p>Response variables are related to predictors (and other response variables)
+through a link function and response distribution. First the expression
+provided is evaluated using the predictors, to give this response variable's
+value on the link scale; then the inverse link function and response
+distribution are used to get the response value. See Details for more
+information.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">response(expr, family = gaussian(), error_scale = NULL, size = 1L)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>expr</code></td>
+<td>
+<p>An expression, in terms of other predictor or response variables,
+giving this predictor's value on the link scale.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>The family of this response variable, e.g. <code>gaussian()</code> for an
+ordinary Gaussian linear relationship.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>error_scale</code></td>
+<td>
+<p>Scale factor for errors. Used only for linear families,
+such as <code>gaussian()</code> and <code>ols_with_error()</code>. Errors drawn while simulating
+the response variable will be multiplied by this scale factor. The scale
+factor can be a scalar value (such as a fixed standard deviation), or an
+expression in terms of the predictors, which will be evaluated when
+simulating response data. For generalized linear models, leave as <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>size</code></td>
+<td>
+<p>When the <code>family</code> is <code>binomial()</code>, this is the number of trials
+for each observation. Defaults to 1, as in logistic regression. May be
+specified either as a vector of the same length as the number of
+observations or as a scalar. May be written terms of other predictor or
+response variables. For other families, <code>size</code> is ignored.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Response variables are drawn based on a typical generalized linear model
+setup. Let <code class="reqn">Y</code> represent the response variable and <code class="reqn">X</code> represent the
+predictor variables. We specify that
+</p>
+<p style="text-align: center;"><code class="reqn">Y \mid X \sim \text{SomeDistribution},</code>
+</p>
+
+<p>where
+</p>
+<p style="text-align: center;"><code class="reqn">\mathbb{E}[Y \mid X = x] = g^{-1}(\mu(x)).</code>
+</p>
+
+<p>Here <code class="reqn">\mu(X)</code> is the expression <code>expr</code>, and both the distribution and
+link function <code class="reqn">g</code> are specified by the <code>family</code> provided. For instance,
+if the <code>family</code> is <code>gaussian()</code>, the distribution is Normal and the link is
+the identity function; if the <code>family</code> is <code>binomial()</code>, the distribution is
+binomial and the link is (by default) the logistic link.
+</p>
+
+
+<h4>Response families</h4>
+
+<p>The following response families are supported.
+</p>
+
+<dl>
+<dt><code>gaussian()</code></dt>
+<dd>
+<p>The default family is <code>gaussian()</code> with the identity link function,
+specifying the relationship
+</p>
+<p style="text-align: center;"><code class="reqn">Y \mid X \sim \text{Normal}(\mu(X), \sigma^2),</code>
+</p>
+
+<p>where <code class="reqn">\sigma^2</code> is given by <code>error_scale</code>.
+</p>
+</dd>
+<dt><code>ols_with_error()</code></dt>
+<dd>
+<p>Allows specification of custom non-Normal error
+distributions, specifying the relationship
+</p>
+<p style="text-align: center;"><code class="reqn">Y = \mu(X) + e,</code>
+</p>
+
+<p>where <code class="reqn">e</code> is drawn from an arbitrary distribution, specified by the
+<code>error</code> argument to <code>ols_with_error()</code>.
+</p>
+</dd>
+<dt><code>binomial()</code></dt>
+<dd>
+<p>Binomial responses include binary responses (as in logistic
+regression) and responses giving a total number of successes out of a number
+of trials. The response has distribution
+</p>
+<p style="text-align: center;"><code class="reqn">Y \mid X \sim \text{Binomial}(N, g^{-1}(\mu(X))),</code>
+</p>
+
+<p>where <code class="reqn">N</code> is set by the <code>size</code> argument and <code class="reqn">g</code> is the link function.
+The default link is the logistic link, and others can be chosen with the
+<code>link</code> argument to <code>binomial()</code>. The default <code class="reqn">N</code> is 1, representing a
+binary outcome.
+</p>
+</dd>
+<dt><code>poisson()</code></dt>
+<dd>
+<p>Poisson-distributed responses with distribution
+</p>
+<p style="text-align: center;"><code class="reqn">Y \mid X \sim \text{Poisson}(g^{-1}(\mu(X))),</code>
+</p>
+
+<p>where <code class="reqn">g</code> is the link function. The default link is the log link, and
+others can be chosen with the <code>link</code> argument to <code>poisson()</code>.
+</p>
+</dd>
+<dt><code>custom_family()</code></dt>
+<dd>
+<p>Responses drawn from an arbitrary distribution with
+arbitrary link function, i.e.
+</p>
+<p style="text-align: center;"><code class="reqn">Y \mid X \sim \text{SomeDistribution}(g^{-1}(\mu(X))),</code>
+</p>
+
+<p>where both <code class="reqn">g</code> and SomeDistribution are specified by arguments to
+<code>custom_family()</code>.
+</p>
+</dd>
+</dl>
+<h4>Evaluation and scoping</h4>
+
+<p>The <code>expr</code>, <code>error_scale</code>, and <code>size</code> arguments are evaluated only when
+simulating data for this response variable. They are evaluated in an
+environment with access to the predictor variables and the preceding response
+variables, which they can refer to by name. Additionally, these arguments can
+refer to variables in scope when the enclosing <code>population()</code> was defined.
+See the Examples below.
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>A <code>response_dist</code> object, to be used in <code>population()</code> to specify a
+population distribution
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>predictor()</code> and <code>population()</code> to define populations;
+<code>ols_with_error()</code> and <code>custom_family()</code> for custom response distributions
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Defining a binomial response. The expressions can refer to other predictors
+# and to the environment where the `population()` is defined:
+slope1 &lt;- 2.5
+slope2 &lt;- -3
+intercept &lt;- -4.6
+size &lt;- 10
+population(
+  x1 = predictor(rnorm),
+  x2 = predictor(rnorm),
+  y = response(intercept + slope1 * x1 + slope2 * x2,
+               family = binomial(), size = size)
+)
+</code></pre>
+
+
+</div>

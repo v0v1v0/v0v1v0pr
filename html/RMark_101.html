@@ -1,0 +1,189 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>run.mark.model</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Runs analysis with MARK model using MARK.EXE</h2>
+
+<h3>Description</h3>
+
+<p>Passes input file from model (<code>model$input</code>) to MARK, runs MARK, gets
+<code>output</code> and extracts relevant values into <code>results</code> which is
+appended to the <code>mark</code> model object.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">run.mark.model(
+  model,
+  invisible = FALSE,
+  adjust = TRUE,
+  filename = NULL,
+  prefix = "mark",
+  realvcv = FALSE,
+  delete = FALSE,
+  external = FALSE,
+  threads = -1,
+  ignore.stderr = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>MARK model created by <code>make.mark.model</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>invisible</code></td>
+<td>
+<p>if TRUE, exectution of MARK.EXE is hidden from view</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adjust</code></td>
+<td>
+<p>if TRUE, adjusts number of parameters (npar) to number of
+columns in design matrix, modifies AIC and records both</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>filename</code></td>
+<td>
+<p>base filename for files created by MARK.EXE. Files are named
+filename.*.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prefix</code></td>
+<td>
+<p>base filename prefix for files created by MARK.EXE; the files
+are named prefixnnn.*</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>realvcv</code></td>
+<td>
+<p>if TRUE the vcv matrix of the real parameters is extracted
+and stored in the model results</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>delete</code></td>
+<td>
+<p>if TRUE the output files are deleted after the results are
+extracted</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>external</code></td>
+<td>
+<p>if TRUE the mark object is saved externally rather than in
+the workspace; the filename is kept in its place</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threads</code></td>
+<td>
+<p>number of cpus to use with mark.exe if positive or number of cpus to remain idle if negative</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ignore.stderr</code></td>
+<td>
+<p>If set TRUE, messages from mark.exe are suppressed; they are automatically suppressed with Rterm</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This is a rather simple function that initiates the analysis with MARK and
+extracts the output. An analysis was split into two functions
+<code>make.mark.model</code> and <code>run.mark.model</code> to allow a set of
+models to be created and then run individually or collectively with
+<code>run.models</code>.  By default, the execution of MARK.EXE will appear
+in a separate window in which the progress can be monitored. The window can
+be suppressed by setting the argument <code>invisible=TRUE</code>. The function
+returns a <code>mark</code> object and it should be assigned to the same object to
+replace the original model (e.g., <code>mymodel=run.mark.model(mymodel)</code>).
+The element <code>output</code> is the base filename that links the objects to the
+output files stored in the same directory as the R workspace.  To removed
+unneeded output files after deleting mark objects in the workspace, see
+<code>cleanup</code>. <code>results</code> is a list of specific output values
+that are extracted from the output. In extracting the results, the number of
+parameters can be adjusted (<code>adjust=TRUE</code>) to match the number of
+columns in the design matrix, which assumes that it is full rank and that
+all of the parameters are estimable and not confounded.  This can be useful
+if that assumption is true, because on occasion MARK.EXE will report an
+incorrect number of parameters in some cases in which the parameters are at
+boundaries (e.g., 0 or 1 for probabilities).  If the true parameter count is
+neither that reported by MARK.EXE nor the number of columns in the design
+matrix, then it can be adjusted using <code>adjust.parameter.count</code>.
+</p>
+<p>If <code>filename</code> is assigned a value it is used to specify files with
+those names. This is most useful to capture output from a model that has
+already been run.  If it finds the files with those names already exists, it
+will ask if the results should be extracted from the files rather than
+re-running the models.
+</p>
+
+
+<h3>Value</h3>
+
+<p>model: MARK model object with the base filename stored in
+<code>output</code> and the extracted <code>results</code> from the output file appended
+onto list; see <code>mark</code> for a detailed description of a
+<code>mark</code> object.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Jeff Laake
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>make.mark.model</code>, <code>run.models</code>,
+<code>extract.mark.output</code>, <code>adjust.parameter.count</code>,
+<code>mark</code>, <code>cleanup</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# This example is excluded from testing to reduce package check time
+test=function()
+{
+  data(dipper)
+  for(sex in unique(dipper$sex))
+  {
+	  x=dipper[dipper$sex==sex,]
+	  x.proc=process.data(x,model="CJS")
+	  x.ddl=make.design.data(x.proc)
+	  Phi.dot=list(formula=~1)
+	  Phi.time=list(formula=~time)
+	  p.dot=list(formula=~1)
+	  p.time=list(formula=~time)
+	  cml=create.model.list("CJS")
+	  x.results=mark.wrapper(cml,data=x.proc,ddl=x.ddl,prefix=sex,delete=TRUE)
+	  assign(paste(sex,"results",sep="."),x.results)
+  }
+  rm(Male.results,Female.results,x.results)
+}
+test()
+cleanup(ask=FALSE,prefix="Male")
+cleanup(ask=FALSE,prefix="Female")
+
+</code></pre>
+
+
+</div>

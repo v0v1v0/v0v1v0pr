@@ -1,0 +1,164 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>raw-to-sexp</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Convert raw vectors to R vectors</h2>
+
+<h3>Description</h3>
+
+<p>Convert raw vectors to R vectors
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">raw_to_uint8(x)
+
+raw_to_uint16(x)
+
+raw_to_uint32(x)
+
+raw_to_int8(x)
+
+raw_to_int16(x)
+
+raw_to_int32(x)
+
+raw_to_int64(x)
+
+raw_to_float(x)
+
+raw_to_string(x)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>raw vector of bytes</p>
+</td>
+</tr></table>
+<h3>Details</h3>
+
+<p>For numeric conversions, the function names are straightforward.
+For example,
+<code>raw_to_uintN</code> converts raw vectors to unsigned integers, and
+<code>raw_to_intN</code> converts raw vectors to signed integers. The number
+<code>'N'</code> stands for the number of bits used to store the integer.
+For example <code>raw_to_uint8</code> uses 8 bits (1 byte) to store an integer,
+hence the value range is <code>0-255</code>.
+</p>
+<p>The input data length must be multiple of the element size represented by
+the underlying data. For example <code>uint16</code> integer uses 16 bites, and
+one raw number uses 8 bits, hence two raw vectors can form one unsigned
+integer-16. That is, <code>raw_to_uint16</code> requires the length of input
+to be multiple of two. An easy calculation is: the length of <code>x</code> times
+8, must be divided by <code>'N'</code> (see last paragraph for definition).
+</p>
+<p>The returned data uses the closest available R native data type that can
+fully represent the data. For example, R does not have single <code>float</code>
+type, hence <code>raw_to_float</code> returns <code>double</code> type, which can
+represent all possible values in <code>float</code>. For <code>raw_to_uint32</code>,
+the potential value range is <code>0 - (2^32-1)</code>. This exceeds the limit of
+R integer type <code>(-2^31) - (2^31-1)</code>. Therefore, the returned values
+will be real (double float) data type.
+</p>
+<p>There is no native data type that can store integer-64 data in R, package
+<code>bit64</code> provides <code>integer64</code> type, which will be used by
+<code>raw_to_int64</code>. Currently there is no solution to convert raw to
+unsigned integer-64 type.
+</p>
+<p><code>raw_to_string</code> converts raw to character string. This function respects
+<code>null</code> character, hence is slightly different than the native
+<code>rawToChar</code>, which translates raw byte-by-byte. If each
+raw byte represents a valid character, then the above two functions returns
+the same result. However, when the characters represented by raw bytes are
+invalid, <code>raw_to_string</code> will stop parsing and returns only the valid
+characters, while <code>rawToChar</code> will still try to parse, and
+most likely to result in errors.
+Please see Examples for comparisons.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Numeric vectors, except for <code>raw_to_string</code>, which returns
+a string.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# 0x00, 0x7f, 0x80, 0xFF
+x &lt;- as.raw(c(0, 127, 128, 255))
+
+raw_to_uint8(x)
+
+# The first bit becomes the integer sign
+# 128 -&gt; -128, 255 -&gt; -1
+raw_to_int8(x)
+
+## Comments based on little endian system
+
+# 0x7f00 (32512), 0xFF80 (65408 unsigned, or -128 signed)
+raw_to_uint16(x)
+raw_to_int16(x)
+
+# 0xFF807F00 (4286611200 unsigned, -8356096 signed)
+raw_to_uint32(x)
+raw_to_int32(x)
+
+# ---------------------------- String ---------------------------
+
+# ASCII case: all valid
+x &lt;- charToRaw("This is an ASCII string")
+
+raw_to_string(x)
+rawToChar(x)
+
+x &lt;- c(charToRaw("This is the end."),
+       as.raw(0),
+       charToRaw("*** is invalid"))
+
+# rawToChar will raise error
+raw_to_string(x)
+
+# ---------------------------- Integer64 ------------------------
+# Runs on little endian system
+x &lt;- as.raw(c(0x80, 0x00, 0x7f, 0x80, 0xFF, 0x50, 0x7f, 0x00))
+
+# Calculate bitstring, which concaternates the followings
+# 10000000 (0x80), 00000000 (0x00), 01111111 (0x7f), 10000000 (0x80),
+# 11111111 (0xFF), 01010000 (0x50), 01111111 (0x7f), 00000000 (0x00)
+
+if(.Platform$endian == "little") {
+  bitstring &lt;- paste0(
+    "00000000011111110101000011111111",
+    "10000000011111110000000010000000"
+  )
+} else {
+  bitstring &lt;- paste0(
+    "00000001000000001111111000000001",
+    "11111111000010101111111000000000"
+  )
+}
+
+# This is expected value
+bit64::as.integer64(structure(
+  bitstring,
+  class = "bitstring"
+))
+
+# This is actual value
+raw_to_int64(x)
+
+
+</code></pre>
+
+
+</div>

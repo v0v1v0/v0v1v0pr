@@ -1,0 +1,319 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rq.group.pen</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fits quantile regression models using a group penalized objective function.</h2>
+
+<h3>Description</h3>
+
+<p>Let the predictors be divided into G groups with G corresponding vectors of coefficients, <code class="reqn">\beta_1,\ldots,\beta_G</code>. 
+Let <code class="reqn">\rho_\tau(a) = a[\tau-I(a&lt;0)]</code>. Fits quantile regression models for Q quantiles by minimizing the penalized objective function of
+</p>
+<p style="text-align: center;"><code class="reqn">\sum_{q=1}^Q \frac{1}{n} \sum_{i=1}^n m_i \rho_\tau(y_i-x_i^\top\beta^q) + \sum_{q=1}^Q  \sum_{g=1}^G P(||\beta^q_g||_k,w_q*v_j*\lambda,a).</code>
+</p>
+
+<p>Where <code class="reqn">w_q</code> and <code class="reqn">v_j</code> are designated by penalty.factor and tau.penalty.factor respectively and <code class="reqn">m_i</code> can be set by weights. The value of <code class="reqn">k</code> is chosen by <code>norm</code>.
+Value of P() depends on the penalty. Briefly, but see references or vignette for more details,
+</p>
+
+<dl>
+<dt>Group LASSO (gLASSO)</dt>
+<dd>
+<p><code class="reqn">P(||\beta||_k,\lambda,a)=\lambda||\beta||_k</code></p>
+</dd>
+<dt>Group SCAD</dt>
+<dd>
+<p><code class="reqn">P(||\beta||_k,\lambda,a)=SCAD(||\beta||_k,\lambda,a)</code></p>
+</dd>
+<dt>Group MCP</dt>
+<dd>
+<p><code class="reqn">P(||\beta||_k,\lambda,a)=MCP(||\beta||_k,\lambda,a)</code></p>
+</dd>
+<dt>Group Adaptive LASSO</dt>
+<dd>
+<p><code class="reqn">P(||\beta||_k,\lambda,a)=\frac{\lambda ||\beta||_k}{|\beta_0|^a}</code></p>
+</dd>
+</dl>
+<p>Note if <code class="reqn">k=1</code> and the group lasso penalty is used then this is identical to the regular lasso and thus function will stop and
+suggest that you use rq.pen() instead. For Adaptive LASSO the values of <code class="reqn">\beta_0</code> come from a Ridge solution with the same value of <code class="reqn">\lambda</code>.
+If the Huber algorithm is used than <code class="reqn">\rho_\tau(y_i-x_i^\top\beta)</code> is replaced by a Huber-type approximation. Specifically, it is replaced by <code class="reqn">h^\tau_\gamma(y_i-x_i^\top\beta)/2</code> where 
+</p>
+<p style="text-align: center;"><code class="reqn">h^\tau_\gamma(a) = a^2/(2\gamma)I(|a| \leq \gamma) + (|a|-\gamma/2)I(|a|&gt;\gamma)+(2\tau-1)a.</code>
+</p>
+
+<p>Where if <code class="reqn">\tau=.5</code>, we get the usual Huber loss function.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rq.group.pen(
+  x,
+  y,
+  tau = 0.5,
+  groups = 1:ncol(x),
+  penalty = c("gLASSO", "gAdLASSO", "gSCAD", "gMCP"),
+  lambda = NULL,
+  nlambda = 100,
+  eps = ifelse(nrow(x) &lt; ncol(x), 0.05, 0.01),
+  alg = c("huber", "br"),
+  a = NULL,
+  norm = 2,
+  group.pen.factor = NULL,
+  tau.penalty.factor = rep(1, length(tau)),
+  scalex = TRUE,
+  coef.cutoff = 1e-08,
+  max.iter = 500,
+  converge.eps = 1e-04,
+  gamma = IQR(y)/10,
+  lambda.discard = TRUE,
+  weights = NULL,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Matrix of predictors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Vector of responses.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tau</code></td>
+<td>
+<p>Vector of quantiles.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>groups</code></td>
+<td>
+<p>Vector of group assignments for predictors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>penalty</code></td>
+<td>
+<p>Penalty used, choices are group lasso ("gLASSO"), group adaptive lasso ("gAdLASSO"), group SCAD ("gSCAD") and group MCP ("gMCP")</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>Vector of lambda tuning parameters. Will be autmoatically generated if it is not set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nlambda</code></td>
+<td>
+<p>The number of lambda tuning parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eps</code></td>
+<td>
+<p>The value to be multiplied by the largest lambda value to determine the smallest lambda value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alg</code></td>
+<td>
+<p>Algorithm used. Choices are Huber approximation ("huber") or linear programming ("lp").</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>a</code></td>
+<td>
+<p>The additional tuning parameter for adaptive lasso, SCAD and MCP.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>norm</code></td>
+<td>
+<p>Whether a L1 or L2 norm is used for the grouped coefficients.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group.pen.factor</code></td>
+<td>
+<p>Penalty factor for each group. Default is 1 for all groups if norm=1 and square root of group size if norm=2.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tau.penalty.factor</code></td>
+<td>
+<p>Penalty factor for each quantile.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scalex</code></td>
+<td>
+<p>Whether X should be centered and scaled so that the columns have mean zero and standard deviation of one. If set to TRUE, the coefficients will be returned to the original scale of the data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coef.cutoff</code></td>
+<td>
+<p>Coefficient cutoff where any value below this number is set to zero. Useful for the lp algorithm, which are prone to finding almost, but not quite, sparse solutions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.iter</code></td>
+<td>
+<p>The maximum number of iterations for the algorithm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>converge.eps</code></td>
+<td>
+<p>The convergence criteria for the algorithms.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gamma</code></td>
+<td>
+<p>The tuning parameter for the Huber loss.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda.discard</code></td>
+<td>
+<p>Whether lambdas should be discarded if for small values of lambda there is very little change in the solutions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>Weights used in the quanitle loss objective function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional parameters</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An rq.pen.seq object. 
+</p>
+
+<dl>
+<dt>models</dt>
+<dd>
+<p>A list of each model fit for each tau and a combination.</p>
+</dd>
+<dt>n</dt>
+<dd>
+<p>Sample size.</p>
+</dd>
+<dt>p</dt>
+<dd>
+<p>Number of predictors.</p>
+</dd>
+<dt>alg</dt>
+<dd>
+<p>Algorithm used.</p>
+</dd>
+<dt>tau</dt>
+<dd>
+<p>Quantiles modeled.</p>
+</dd>
+<dt>penalty</dt>
+<dd>
+<p>Penalty used.</p>
+</dd>
+<dt>a</dt>
+<dd>
+<p>Tuning parameters a used.</p>
+</dd>
+<dt>lambda</dt>
+<dd>
+<p>Lambda values used for all models. If a model has fewer coefficients than lambda, say k. Then it used the first k values of lambda. Setting lambda.discard to TRUE will gurantee all values use the same lambdas, but may increase computational time noticeably and for little gain.</p>
+</dd>
+<dt>modelsInfo</dt>
+<dd>
+<p>Information about the quantile and a value for each model.</p>
+</dd>
+<dt>call</dt>
+<dd>
+<p>Original call.</p>
+</dd>
+</dl>
+<p>Each model in the models list has the following values. 
+</p>
+
+<dl>
+<dt>coefficients</dt>
+<dd>
+<p>Coefficients for each value of lambda.</p>
+</dd>
+<dt>rho</dt>
+<dd>
+<p>The unpenalized objective function for each value of lambda.</p>
+</dd>
+<dt>PenRho</dt>
+<dd>
+<p>The penalized objective function for each value of lambda.</p>
+</dd>
+<dt>nzero</dt>
+<dd>
+<p>The number of nonzero coefficients for each value of lambda.</p>
+</dd>
+<dt>tau</dt>
+<dd>
+<p>Quantile of the model.</p>
+</dd>
+<dt>a</dt>
+<dd>
+<p>Value of a for the penalized loss function.</p>
+</dd>
+</dl>
+<h3>Author(s)</h3>
+
+<p>Ben Sherwood, <a href="mailto:ben.sherwood@ku.edu">ben.sherwood@ku.edu</a>, Shaobo Li <a href="mailto:shaobo.li@ku.edu">shaobo.li@ku.edu</a> and Adam Maidman
+</p>
+
+
+<h3>References</h3>
+
+<p>Peng B, Wang L (2015).
+“An iterative coordinate descent algorithm for high-dimensional nonconvex penalized quantile regression.”
+<em>J. Comput. Graph. Statist.</em>, <b>24</b>(3), 676-694.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run:  
+set.seed(1)
+x &lt;- matrix(rnorm(200*8,sd=1),ncol=8)
+y &lt;- 1 + x[,1] + 3*x[,3] - x[,8] + rt(200,3)
+g &lt;- c(1,1,1,2,2,2,3,3)
+tvals &lt;- c(.25,.75)
+r1 &lt;- rq.group.pen(x,y,groups=g)
+r5 &lt;- rq.group.pen(x,y,groups=g,tau=tvals)
+#Linear programming approach with group SCAD penalty and L1-norm
+m2 &lt;- rq.group.pen(x,y,groups=g,alg="br",penalty="gSCAD",norm=1,a=seq(3,4))
+# No penalty for the first group
+m3 &lt;- rq.group.pen(x,y,groups=g,group.pen.factor=c(0,rep(1,2)))
+# Smaller penalty for the median
+m4 &lt;- rq.group.pen(x,y,groups=g,tau=c(.25,.5,.75),tau.penalty.factor=c(1,.25,1))
+
+## End(Not run)
+</code></pre>
+
+
+</div>

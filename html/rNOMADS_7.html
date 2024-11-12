@@ -1,0 +1,196 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>GetClosestForecasts</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Get the forecast time closest to a given date for a given model
+</h2>
+
+<h3>Description</h3>
+
+<p>This function returns which forecast precedes the date and which forecast follows the date for a given model product.
+Thus a user can average the two forecasts together to provide a precise forecast for a given date.
+It is optimized for grib file retrieval.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">GetClosestForecasts(abbrev, forecast.date, model.date = "latest",
+   depth = NULL, verbose = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>abbrev</code></td>
+<td>
+
+<p>The requested model product
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>forecast.date</code></td>
+<td>
+
+<p>What date you want a forecast for, as a date/time object.
+It must be in the UTC time zone.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model.date</code></td>
+<td>
+
+<p>Which model run to use, in YYYYMMDDHH, where HH is 00, 06, 12, 18. 
+Defaults to <code>"latest"</code>, which gets the most recent model uploaded to the server.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>depth</code></td>
+<td>
+
+<p>How many model instances to return.
+This avoids having to download the entire model list (sometimes several hundred) if only the first few instances are required.
+Defaults to <code>NULL</code>, which returns everything.
+This input only makes sense when <code>model.date != "latest"</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+
+<p>Gives a detailed account of progress.
+Defaults to <code>TRUE</code>.
+</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>forecasts$model.url</code></td>
+<td>
+<p>URL to send to <code>GribGrab</code> for downloading data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>forecasts$model.run.date</code></td>
+<td>
+<p>When the model was run.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>forecasts$back.forecast</code></td>
+<td>
+<p>Nearest forecast behind requested date.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>forecasts$fore.forecast</code></td>
+<td>
+<p>Nearest forecast after requested date.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>forecasts$back.hr</code></td>
+<td>
+<p>How many hours the back forecast is behind the requested date.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>forecasts$fore.hr</code></td>
+<td>
+<p>How many hours the fore forecast is in front of the requested date.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Daniel C. Bowman <a href="mailto:danny.c.bowman@gmail.com">danny.c.bowman@gmail.com</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>BuildProfile</code>, <code>GribGrab</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+#Get the exact temperature profile of Chapel Hill, NC
+#by performing a weighted average of GFS model forecasts.
+
+#Figure out which forecasts to use
+forecast.date &lt;- as.POSIXlt(Sys.time(), tz = "UTC")
+abbrev &lt;- "gfs_0p50"
+
+## Not run: 
+forecasts &lt;- GetClosestForecasts(abbrev = abbrev, forecast.date)
+
+## End(Not run)
+
+#Get levels
+pressure &lt;- c(1, 2, 3, 5, 7,
+10, 20, 30, 50, 70,
+seq(100, 1000, by = 25))
+levels &lt;- paste(pressure, " mb", sep = "")
+
+#Variables - temperature and height only
+variables &lt;- c("TMP", "HGT")
+
+#Location
+lon &lt;- c(-79.052083)
+lat &lt;- c(35.907492)
+model.domain &lt;- c(lon - 1, lon + 1, lat + 1, lat - 1)
+
+## Not run: 
+#Get the data for each
+grb.info &lt;- GribGrab(forecasts$model.url, 
+   c(forecasts$fore.forecast, forecasts$back.forecast), levels, variables, 
+   model.domain = model.domain)
+
+fore.data &lt;- ReadGrib(grb.info[[1]]$file.name, levels, variables) 
+back.data &lt;- ReadGrib(grb.info[[2]]$file.name, levels, variables)
+
+back.profile &lt;- BuildProfile(back.data, lon, lat,
+   spatial.average = TRUE, points = 8)
+
+fore.profile &lt;- BuildProfile(fore.data, lon, lat,
+   spatial.average = TRUE, points = 8)
+
+temps &lt;- cbind(back.profile[[1]]$profile.data[, which(back.profile[[1]]$variables == "TMP"),],
+    fore.profile[[1]]$profile.data[, which(fore.profile[[1]]$variables == "TMP"),])
+ 
+heights &lt;-  cbind(back.profile[[1]]$profile.data[, which(back.profile[[1]]$variables == "HGT"),],
+    fore.profile[[1]]$profile.data[, which(fore.profile[[1]]$variables == "HGT"),])
+
+
+time.gap &lt;- forecasts$fore.hr - forecasts$back.hr
+exact.temp &lt;- (temps[,1] * abs(forecasts$fore.hr) + temps[,2] * abs(forecasts$back.hr))/time.gap
+exact.hgt &lt;- (heights[,1] * abs(forecasts$fore.hr) + heights[,2] * abs(forecasts$back.hr))/time.gap
+
+#Plot results
+plot(c(min(temps), max(temps)), c(min(heights), max(heights)), type = "n",
+    xlab = "Temperature (C)", ylab = "Height (m)")
+points(temps[,1], heights[,1], pch = 1, col = 1)
+points(temps[,2], heights[,2], pch = 2, col = 2)
+points(exact.temp, exact.hgt, col = 3, lty = 2, pch = 3)
+legend("topleft", pch = c(1, 2, 3), col = c(1, 2, 3),
+   legend = c(forecasts$back.forecast, forecasts$fore.forecast, as.character(Sys.time())))
+
+## End(Not run)
+</code></pre>
+
+
+</div>

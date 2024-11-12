@@ -1,0 +1,347 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>restovec</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create a response Object</h2>
+
+<h3>Description</h3>
+
+<p><code>restovec</code> can produce an object of class, <code>response</code>, from
+a vector of (1) independent univariate responses or (2) a single time
+series.
+</p>
+<p>It can produce such an object from repeated measurements in the form
+of (1) a list of vectors of event histories, (2) a list of two or more
+column matrices with times, response values, and and other information
+or (3) a matrix or dataframe of response values. The first two are for
+unbalanced data and the third for balanced data.
+</p>
+<p>Multivariate responses can be supplied as (1) a three-dimensional
+array of balanced repeated measurements, (2) lists of matrices for
+unbalanced repeated measurements, or (3) a matrix with either (a)
+several time series or (b) single observations per individual on
+several variables.
+</p>
+<p>In formula and functions, the key words, <code>times</code> can be used to
+refer to the response times from the data object as a covariate,
+<code>individuals</code> to the index for individuals as a factor covariate,
+and <code>nesting</code> the index for nesting as a factor covariate. The
+latter two only work for W&amp;R notation.
+</p>
+<p>NAs can be detected with <code>lvna</code> or removed with
+<code>rmna</code> (where necessary, in coordination with the
+appropriate covariates) to create a <code>repeated</code> object.
+</p>
+<p><code>response</code> objects can be printed and plotted. Methods are
+available for extracting the response, the numbers of observations per
+individual, the times, the weights, the units of measurement/Jacobian,
+and the nesting variable: <code>response</code>,
+<code>nobs</code>, <code>times</code>,
+<code>weights</code>, <code>delta</code>, and
+<code>nesting</code>.
+</p>
+<p>The response and or the times may be transformed using
+<code>transform(z, newy=fcn1(y), times=fcn2(times))</code> where
+<code>fcn1</code> and <code>fcn2</code> are transformations and <code>y</code> is the
+name of a response variable. When the response is
+transformed, the Jacobian is automatically calculated. Note that, if
+the unit of precision/Jacobian (<code>delta</code>) is available in
+the <code>response</code> object, this is automatically included in the
+calculation of the likelihood function in all library model functions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">restovec(response=NULL, times=NULL, nest=NULL, coordinates=NULL,
+	censor=NULL, totals=NULL, weights=NULL, delta=NULL,
+	type=NULL, names=NULL, units=NULL, oldresponse=NULL,
+	description=NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>response</code></td>
+<td>
+<p>For (1) independent univariate responses with one
+observation per individual or (2) a single time series, one vector may
+be supplied (in the latter case, the times must be given even if
+equally spaced).
+</p>
+<p>Univariate repeated measurements responses can be given (1) if
+balanced, as a matrix or dataframe of response values with dimensions:
+number of individuals by number of responses/individual, (2) a list of
+vectors of event histories, or (3) a list of one or more column
+matrices, for each individual, with response values in the first
+column and times in the second (if there are no times, set
+<code>times</code> to FALSE), possibly followed by columns with nesting
+categories, binomial totals, censoring indicators, and/or units of
+measurement.
+</p>
+<p>Multivariate responses can be supplied as (1) a three-dimensional
+array of balanced repeated measurements with dimensions: number of
+individuals by number of responses/individual by number of variables,
+(2) a list of matrices for unbalanced repeated measurements each with
+dimensions: number of responses on that individual by number of
+variables, plus a column for times if available (otherwise set
+<code>times</code> to FALSE), or (3) a matrix with either (a) several time
+series, having dimensions: length of time series by by number of times
+series, or (b) single observations per individual on several variables
+with dimensions: number of individuals by number of variables. In all
+but case (1), <code>type</code> must be a character vector with length equal
+to the number of responses. In case (2), where applicable, <code>censor</code>,
+<code>totals</code>, and <code>delta</code> must be supplied as lists of matrices
+of the same size as for <code>response</code>, and <code>nest</code> and
+<code>weights</code> as lists of vectors of lengths equal to the number of
+observations on each individual.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>times</code></td>
+<td>
+<p>When <code>response</code> is a matrix or multivariate array,
+these can be (1) a vector when the times are the same for all
+individuals, possibly unequally-spaced, or (2) a matrix with
+dimensions: number of individuals by number of responses/individual.
+Not necessary if times are equally spaced, except if a vector
+containing a single time series is supplied (if not given in this
+case, it takes the responses to be independent, not a time
+series). For clustered data with no time ordering, set to FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nest</code></td>
+<td>
+<p>This is the second level of nesting, with the individual
+being the first level. Values for an individual must be consecutive
+increasing integers with all responses in the same cluster grouped
+together. For example, with three clusters of four observations each,
+the code would be 1,1,1,1,2,2,2,2,3,3,3,3.
+</p>
+<p>When <code>response</code> is a matrix or multivariate array, this can be a
+vector of length equal to the number of responses/individual
+indicating which responses belong to which nesting category.
+</p>
+<p>If <code>response</code> is a multivariate list, this must also be a list.
+</p>
+<p>When <code>response</code> is a univariate list of unbalanced repeated
+measurements, the nesting indicator may instead be included in that
+list but must respect the same ordering as described above.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coordinates</code></td>
+<td>
+<p>When <code>response</code> is a vector, a two-column
+matrix giving the coordinates for spatial data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>censor</code></td>
+<td>
+<p>When <code>response</code> is a matrix, this can be (1) a vector
+of the same length as the number of individuals, containing a binary
+indicator, with a one indicating that the last time period in the
+series terminated with an event and zero that it was censored, or
+(2) a matrix of the same size as <code>response</code>.
+</p>
+<p>When <code>response</code> is a multivariate array, this can be (1) a matrix
+with dimensions: number of individuals by number of responses, or (2)
+an array of the same size as <code>response</code>. In the first case, for
+each column corresponding to a duration response, it should contain a
+binary indicator, with a one indicating that the last time period in
+the series terminated with an event and zero that it was censored, and
+NAs in columns not containing durations. In the second case, layers
+not corresponding to duration responses should contain NAs.
+</p>
+<p>If <code>response</code> is a multivariate list, this must also be a list.
+</p>
+<p>For event history data, even with no censoring, an appropriate vector
+of ones must be supplied.
+</p>
+<p>When <code>response</code> is a univariate list of unbalanced repeated
+measurements, the censoring indicator may instead be included in that
+list.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>totals</code></td>
+<td>
+<p>If the response is a matrix of binomial counts, this can
+be (1) a corresponding vector (one total per individual) or (2) a
+matrix of totals.
+</p>
+<p>When <code>response</code> is a multivariate array, this can be (1) a matrix
+with dimensions: number of individuals by number of responses if all
+binomial responses for an individual have the same total, or (2) an
+array of the same size as <code>response</code>. In the first case, for each
+column corresponding to a binomial response, it should contain the
+corresponding totals, with NAs in columns not containing binomial. In
+the second case, layers not corresponding to binomial responses should
+contain NAs.
+</p>
+<p>If <code>response</code> is a multivariate list, this must also be a list.
+</p>
+<p>When <code>response</code> is a univariate list of unbalanced repeated
+measurements, the totals may instead be included in that list.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>A vector, matrix, array, or list of vectors of
+frequencies or weights, with one value per <code>response</code>. In other
+words, a multivariate response has only one corresponding weight value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>delta</code></td>
+<td>
+<p>For continuous measurements, the unit of precision (if
+not equal to unity) for each response: a scalar, vector, matrix,
+array, or list of the same dimensions as <code>response</code>. For example,
+if responses have two decimal places (<code>12.34</code>), <code>delta=0.01</code>.
+If the response has been transformed, this should be multiplied by the
+numerical values of the Jacobian. When the <code>transform</code> method is
+applied to the <code>response</code> object, this is automatically updated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>The type(s) of observations: nominal, ordinal, discrete,
+duration, continuous, or unknown. If not specified otherwise, those
+responses with <code>delta</code> and no <code>censor</code> are assumed to be
+<code>continuous</code>, those with <code>censor</code> indicator are assumed to
+be <code>duration</code>, those with <code>totals</code> are assumed to be
+<code>nominal</code>, and all others <code>unknown</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>names</code></td>
+<td>
+<p>Optional name(s) of the response variable(s).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>units</code></td>
+<td>
+<p>Optional character vector giving units of measurement of
+response(s).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>oldresponse</code></td>
+<td>
+<p>An existing <code>response</code> object to which the new
+data are to be added.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>description</code></td>
+<td>
+<p>An optional named list of character vectors with
+names of some or all response variables containing their descriptions.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Returns an object of class, <code>response</code>, containing a vector with the
+responses (<code>z$y</code>), a corresponding vector of times (<code>z$times</code>) if
+applicable, a vector giving the number of observations per individual
+(<code>z$nobs</code>, set to a scalar 1 if observations are independent),
+type  (<code>z$delta</code>), and possibly binomial totals (<code>z$n</code>),
+nesting (clustering, <code>z$nest</code>), censoring (<code>z$censor</code>),
+weights (<code>z$wt</code>),  unit of precision/Jacobian (<code>z$delta</code>),
+units of measurement (<code>z$units</code>), and description
+(<code>z$description</code>) information.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>J.K. Lindsey</p>
+
+
+<h3>See Also</h3>
+
+<p><code>DataMethods</code>, <code>covind</code>,
+<code>delta</code>, <code>description</code>,
+<code>lvna</code>, <code>names</code>,
+<code>nesting</code>, <code>nobs</code>,
+<code>read.list</code>, <code>read.surv</code>,
+<code>response</code>, <code>resptype</code>,
+<code>rmna</code>, <code>tcctomat</code>,
+<code>times</code>, <code>transform</code>,
+<code>tvctomat</code>, <code>units</code>,
+<code>weights</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#
+#continuous response
+y &lt;- matrix(rnorm(20),ncol=5)
+# times assumed to be 1:5
+restovec(y, units="m")
+#unequally-spaced times
+tt &lt;- c(1,3,6,10,15)
+print(resp &lt;- restovec(y, times=tt, units="m",
+	description=list(y="Response measured in metres")))
+response(resp)
+response(resp, nind=2:3)
+response(transform(resp, y=1/y))
+transform(resp, y=1/y, units="1/m")
+units(resp)
+description(resp)
+times(resp)
+times(transform(resp, times=times-6))
+nobs(resp)
+weights(resp)
+nesting(resp)
+# because individuals are the only nesting, this is the same as
+covind(resp)
+#
+# binomial response
+y &lt;- matrix(rpois(20,5),ncol=5)
+# responses summarized as relative frequencies
+print(respb &lt;- restovec(y, totals=y+matrix(rpois(20,5),ncol=5), times=tt))
+response(respb)
+#
+# censored data
+y &lt;- matrix(rweibull(20,2,5),ncol=5)
+print(respc &lt;- restovec(y, censor=matrix(rbinom(20,1,0.9),ncol=5), times=tt))
+# if there is no censoring, censor indicator is not printed
+response(respc)
+# nesting clustered within individuals
+nest &lt;- c(1,1,2,2,2)
+print(respn &lt;- restovec(y, censor=matrix(rbinom(20,1,0.9),ncol=5),
+	times=tt,nest=nest))
+response(respn)
+times(respn)
+nesting(respn)
+#
+# multivariate response
+restovec(y, censor=matrix(rbinom(20,1,0.9),ncol=5),
+	units=c("m","days","l","cm","mon"),
+	type=c("continuous","duration","continuous","continuous","duration"),
+	description=list(y1="First continuous variable",
+		y2="First duration variable",y3="Second continuous variable",
+		y4="Third continuous variable",y5="Second duration variable"))
+restovec(y, censor=matrix(rbinom(20,1,0.9),ncol=5), 
+	names=c("a","b","c","d","e"), units=c("m","days","l","cm","mon"),
+	type=c("continuous","duration","continuous","continuous","duration"),
+	description=list(a="First continuous variable",
+		b="First duration variable",c="Second continuous variable",
+		d="Third continuous variable",e="Second duration variable"))
+</code></pre>
+
+
+</div>

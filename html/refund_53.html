@@ -1,0 +1,456 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>lpeer</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Longitudinal Functional Models with Structured Penalties</h2>
+
+<h3>Description</h3>
+
+<p>Implements longitudinal functional model with structured penalties (Kundu
+et al., 2012) with scalar outcome, single functional predictor, one or more
+scalar covariates and subject-specific random intercepts through mixed
+model equivalence.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">lpeer(
+  Y,
+  subj,
+  t,
+  funcs,
+  argvals = NULL,
+  covariates = NULL,
+  comm.pen = TRUE,
+  pentype = "Ridge",
+  L.user = NULL,
+  f_t = NULL,
+  Q = NULL,
+  phia = 10^3,
+  se = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>vector of all outcomes over all visits or timepoints</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subj</code></td>
+<td>
+<p>vector containing the subject number for each observation</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>t</code></td>
+<td>
+<p>vector containing the time information when the observation are
+taken</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>funcs</code></td>
+<td>
+<p>matrix containing observed functional predictors as rows. Rows
+with <code>NA</code> and <code>Inf</code> values will be deleted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>argvals</code></td>
+<td>
+<p>matrix (or vector) of indices of evaluations of <code class="reqn">X_i(t)</code>; i.e. a matrix with
+<em>i</em>th row <code class="reqn">(t_{i1},.,t_{iJ})</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covariates</code></td>
+<td>
+<p>matrix of scalar covariates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>comm.pen</code></td>
+<td>
+<p>logical value indicating whether common penalty for all the
+components of regression function. Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pentype</code></td>
+<td>
+<p>type of penalty: either decomposition based penalty
+(<code>'DECOMP'</code>) or ridge (<code>'RIDGE'</code>) or second-order difference
+penalty (<code>'D2'</code>) or any user defined penalty (<code>'USER'</code>). For
+decomposition based penalty user need to specify Q matrix in <code>Q</code>
+argument (see details). For user defined penalty user need to specify L
+matrix in <code>L</code> argument (see details). For Ridge and second-order
+difference penalty, specification for arguments <code>L</code> and <code>Q</code> will
+be ignored. Default is <code>'RIDGE'</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>L.user</code></td>
+<td>
+<p>penalty matrix. Need to be specified with
+<code>pentype='USER'</code>. When <code>comm.pen=TRUE</code>, Number of columns need to
+be equal with number of columns of matrix specified to <code>funcs</code>. When
+<code>comm.pen=FALSE</code>, Number of columns need to be equal with the number
+of columns of matrix specified to <code>funcs</code> times the number of
+components of regression function. Each row represents a constraint on
+functional predictor. This argument will be ignored when value of
+<code>pentype</code> is other than <code>'USER'</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>f_t</code></td>
+<td>
+<p>vector or matrix with number of rows equal to number of total
+observations and number of columns equal to d (see details). If matrix then
+each column pertains to single function of time and the value in the column
+represents the realization corresponding to time vector t. The column with
+intercept or multiple of intercept will be dropped. A <code>NULL</code> value
+refers to time-invariant regression function. Default value is <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Q</code></td>
+<td>
+<p>Q matrix to derive decomposition based penalty. Need to be
+specified with <code>pentype='DECOMP'</code>. When <code>comm.pen=TRUE</code>, number
+of columns must equal number of columns of matrix specified to
+<code>funcs</code>. When <code>comm.pen=FALSE</code>, Number of columns need to be
+equal with the number of columns of matrix specified to <code>funcs</code> times
+the number of components of regression function. Each row represents a
+basis function where functional predictor is expected lie according to
+prior belief. This argument will be ignored when value of <code>pentype</code> is
+other than <code>'DECOMP'</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phia</code></td>
+<td>
+<p>scalar value of a in decomposition based penalty. Needs to be
+specified with <code>pentype='DECOMP'</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>se</code></td>
+<td>
+<p>logical; calculate standard error when <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments passed to <code>lme</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>If there are any missing or infinite values in <code>Y</code>, <code>subj</code>,
+<code>t</code>, <code>covariates</code>, <code>funcs</code> and <code>f_t</code>, the corresponding
+row (or observation) will be dropped, and infinite values are not allowed
+for these arguments. Neither <code>Q</code> nor <code>L</code> may contain missing or
+infinite values.  <code>lpeer()</code> fits the following model:
+</p>
+<p><code class="reqn">y_{i(t)}=X_{i(t)}^T \beta+\int {W_{i(t)}(s)\gamma(t,s) ds}
++Z_{i(t)}u_i + \epsilon_{i(t)}</code>
+</p>
+<p>where <code class="reqn">\epsilon_{i(t)} ~ N(0,\sigma ^2)</code> and <code class="reqn">u_i ~ N(0,
+\sigma_u^2)</code>.  For all the observations, predictor function
+<code class="reqn">W_{i(t)}(s)</code> is evaluated at K sampling points. Here, regression
+function <code class="reqn">\gamma (t,s)</code> is represented in terms of (d+1) component
+functions <code class="reqn">\gamma_0(s)</code>,..., <code class="reqn">\gamma_d(s)</code> as follows
+</p>
+<p><code class="reqn">\gamma (t,s)= \gamma_0(s)+f_1(t) \gamma_1(s) + f_d(t) \gamma_d(s)</code>
+</p>
+<p>Values of <code class="reqn">y_{i(t)} , X_{i(t)}</code> and <code class="reqn">W_{i(t)}(s)</code> are passed
+through argument <code>Y</code>, <code>covariates</code> and <code>funcs</code>,
+respectively. Number of elements or rows in <code>Y</code>, <code>t</code>,
+<code>subj</code>, <code>covariates</code> (if not <code>NULL</code>) and <code>funcs</code> need
+to be equal.
+</p>
+<p>Values of <code class="reqn">f_1(t),...,f_d(t)</code> are passed through f_t argument. The
+matrix passed through <code>f_t</code> argument should have d columns where each
+column represents one and only one of <code class="reqn">f_1(t),..., f_d(t)</code>.
+</p>
+<p>The estimate of (d+1) component functions <code class="reqn">\gamma_0(s)</code>,...,
+<code class="reqn">\gamma_d(s)</code> is obtained as penalized estimated. The following 3 types
+of penalties can be used for a component function:
+</p>
+<p>i.  Ridge: <code class="reqn">I_K</code>
+</p>
+<p>ii.  Second-order difference: [<code class="reqn">d_{i,j}</code>] with <code class="reqn">d_{i,i} = d_{i,i+2}
+= 1, d_{i,i+1} = -2</code>, otherwise <code class="reqn">d_{i,j} =0</code>
+</p>
+<p>iii. Decomposition based penalty: <code class="reqn">bP_Q+a(I-P_Q)</code> where <code class="reqn">P_Q= Q^T
+(QQ^T)^{-1}Q</code>
+</p>
+<p>For Decomposition based penalty the user must specify <code>pentype=
+'DECOMP'</code> and the associated Q matrix must be passed through the <code>Q</code>
+argument. Alternatively, one can directly specify the penalty matrix by
+setting <code>pentype= 'USER'</code> and using the <code>L</code> argument to supply
+the associated L matrix.
+</p>
+<p>If Q (or L) matrix is similar for all the component functions then argument
+<code>comm.pen</code> should have value <code>TRUE</code> and in that case specified
+matrix to argument <code>Q</code> (or <code>L</code>) should have K columns. When Q (or
+L) matrix is different for all the component functions then argument
+<code>comm.pen</code> should have value <code>FALSE</code> and in that case specified
+matrix to argument <code>Q</code> (or <code>L</code>) should have K(d+1) columns. Here
+first K columns pertains to first component function, second K columns
+pertains to second component functions, and so on.
+</p>
+<p>Default penalty is Ridge penalty for all the component functions and user
+needs to specify <code>'RIDGE'</code>. For second-order difference penalty, user
+needs to specify <code>'D2'</code>. When pentype is <code>'RIDGE'</code> or <code>'D2'</code>
+the value of <code>comm.pen</code> is always <code>TRUE</code> and
+<code>comm.pen=FALSE</code> will be ignored.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list containing: </p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>result of the call to <code>lme</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fitted.vals</code></td>
+<td>
+<p>predicted outcomes</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>BetaHat</code></td>
+<td>
+<p>parameter estimates
+for scalar covariates including intercept</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>se.Beta</code></td>
+<td>
+<p>standard error of
+parameter estimates for scalar covariates including intercept</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Beta</code></td>
+<td>
+<p>parameter estimates with standard error for scalar covariates
+including intercept</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>GammaHat</code></td>
+<td>
+<p>estimates of components of regression
+functions. Each column represents one component function. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Se.Gamma</code></td>
+<td>
+<p>standard error associated with <code>GammaHat</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>AIC</code></td>
+<td>
+<p>AIC value of fit (smaller is better) </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>BIC</code></td>
+<td>
+<p>BIC value of
+fit (smaller is better) </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>logLik</code></td>
+<td>
+<p>(restricted) log-likelihood at
+convergence</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>list of estimated smoothing parameters
+associated with each component function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>V</code></td>
+<td>
+<p>conditional variance of Y
+treating only random intercept as random one. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>V1</code></td>
+<td>
+<p>unconditional
+variance of Y </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>N</code></td>
+<td>
+<p>number of subjects</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K</code></td>
+<td>
+<p>number of Sampling
+points in functional predictor</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>TotalObs</code></td>
+<td>
+<p>total number of
+observations over all subjects</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Sigma.u</code></td>
+<td>
+<p>estimated sd of random
+intercept. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma</code></td>
+<td>
+<p>estimated within-group error standard deviation.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Madan Gopal Kundu <a href="mailto:mgkundu@iupui.edu">mgkundu@iupui.edu</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>Kundu, M. G., Harezlak, J., and Randolph, T. W. (2012).
+Longitudinal functional models with structured penalties (arXiv:1211.4763
+[stat.AP]).
+</p>
+<p>Randolph, T. W., Harezlak, J, and Feng, Z. (2012). Structured penalties for
+functional linear models - partially empirical eigenvectors for regression.
+<em>Electronic Journal of Statistics</em>, 6, 323–353.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>peer</code>, <code>plot.lpeer</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Not run: 
+#------------------------------------------------------------------------
+# Example 1: Estimation with Ridge penalty
+#------------------------------------------------------------------------
+
+##Load Data
+data(DTI)
+
+## Extract values for arguments for lpeer() from given data
+cca = DTI$cca[which(DTI$case == 1),]
+DTI = DTI[which(DTI$case == 1),]
+
+##1.1 Fit the model with single component function
+##    gamma(t,s)=gamm0(s)
+t&lt;- DTI$visit
+fit.cca.lpeer1 = lpeer(Y=DTI$pasat, t=t, subj=DTI$ID, funcs = cca)
+plot(fit.cca.lpeer1)
+
+##1.2 Fit the model with two component function
+##    gamma(t,s)=gamm0(s) + t*gamma1(s)
+fit.cca.lpeer2 = lpeer(Y=DTI$pasat, t=t, subj=DTI$ID, funcs = cca,
+                      f_t=t, se=TRUE)
+plot(fit.cca.lpeer2)
+
+#------------------------------------------------------------------------
+# Example 2: Estimation with structured penalty (need structural
+#            information about regression function or predictor function)
+#------------------------------------------------------------------------
+
+##Load Data
+data(PEER.Sim)
+
+## Extract values for arguments for lpeer() from given data
+K&lt;- 100
+W&lt;- PEER.Sim[,c(3:(K+2))]
+Y&lt;- PEER.Sim[,K+3]
+t&lt;- PEER.Sim[,2]
+id&lt;- PEER.Sim[,1]
+
+##Load Q matrix containing structural information
+data(Q)
+
+##2.1 Fit the model with two component function
+##    gamma(t,s)=gamm0(s) + t*gamma1(s)
+Fit1&lt;- lpeer(Y=Y, subj=id, t=t, covariates=cbind(t), funcs=W,
+	    pentype='DECOMP', f_t=cbind(1,t), Q=Q, se=TRUE)
+
+Fit1$Beta
+plot(Fit1)
+
+##2.2 Fit the model with three component function
+##    gamma(t,s)=gamm0(s) + t*gamma1(s) + t^2*gamma1(s)
+Fit2&lt;- lpeer(Y=Y, subj=id, t=t, covariates=cbind(t), funcs=W,
+		     pentype='DECOMP', f_t=cbind(1,t, t^2), Q=Q, se=TRUE)
+
+Fit2$Beta
+plot(Fit2)
+
+##2.3 Fit the model with two component function with different penalties
+##    gamma(t,s)=gamm0(s) + t*gamma1(s)
+Q1&lt;- cbind(Q, Q)
+Fit3&lt;- lpeer(Y=Y, subj=id, t=t, covariates=cbind(t), comm.pen=FALSE, funcs=W,
+		     pentype='DECOMP', f_t=cbind(1,t), Q=Q1, se=TRUE)
+
+##2.4 Fit the model with two component function with user defined penalties
+##    gamma(t,s)=gamm0(s) + t*gamma1(s)
+phia&lt;- 10^3
+P_Q &lt;- t(Q)%*%solve(Q%*%t(Q))%*% Q
+L&lt;- phia*(diag(K)- P_Q) + 1*P_Q
+Fit4&lt;- lpeer(Y=Y, subj=id, t=t, covariates=cbind(t), funcs=W,
+		     pentype='USER', f_t=cbind(1,t), L=L, se=TRUE)
+
+L1&lt;- adiag(L, L)
+Fit5&lt;- lpeer(Y=Y, subj=id, t=t, covariates=cbind(t), comm.pen=FALSE, funcs=W,
+		     pentype='USER', f_t=cbind(1,t), L=L1, se=TRUE)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

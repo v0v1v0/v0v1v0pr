@@ -1,0 +1,421 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ROSE.eval</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Evaluation of learner accuracy by ROSE 
+</h2>
+
+<h3>Description</h3>
+
+<p>Given a classifier and a set of data, this function exploits ROSE 
+generation of synthetic samples to provide holdout, bootstrap or leave-K-out 
+cross-validation estimates of a specified accuracy measure.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ROSE.eval(formula, data, learner, acc.measure="auc", extr.pred=NULL, 
+          method.assess="holdout", K=1, B=100, control.rose=list(),
+          control.learner=list(), control.predict=list(), 
+          control.accuracy=list(), trace=FALSE, 
+          subset=options("subset")$subset, 
+          na.action=options("na.action")$na.action, seed)</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+ 
+<p>An object of class <code>formula</code> (or one that can be coerced to that class). 
+The specification of the formula must be suited for the selected classifier. 
+See <code>ROSE</code> and the “Note” below for information about interaction 
+among predictors or their transformations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+ 
+<p>An optional data frame, list or environment (or object
+coercible to a data frame by <code>as.data.frame</code>) in which 
+to preferentially interpret “formula”. 
+If not specified, the variables are taken from “environment(formula)”.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>learner</code></td>
+<td>
+
+<p>Either a built-in <span class="pkg">R</span> or an user defined function that fits a classifier and that returns a vector of predicted values. See “Details” below.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>acc.measure</code></td>
+<td>
+
+<p>One among <code>c("auc", "precision", "recall", "F")</code>, it defines the 
+accuracy measure to be estimated. Function <code>roc.curve</code> is internally called 
+when <code>auc="auc"</code> while the other options entail an internal call of function <br><code>accuracy.meas</code>. Default value is <code>"auc"</code>.  
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extr.pred</code></td>
+<td>
+
+<p>An optional function that extracts from the output of a <code>predict</code>
+function the vector of predicted values. 
+If not specified, the value returned by “predict” is used. See Examples below.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method.assess</code></td>
+<td>
+
+<p>One among <code>c("holdout", "LKOCV", "BOOT")</code>, it is the method used 
+for model assessment. When <code>"holdout"</code> is chosen, the learner is fitted
+on one ROSE sample and tested on the data provided in <code>formula</code>. 
+<code>"LKOCV"</code> stands for “leave-K-out cross validation": the original data set is divided into <code class="reqn">Q</code> subsets of <code>K</code> observations; at  each round, the specified learner is estimated on a ROSE sample built on the provided data but one of these groups and then a prediction on the excluded set of observations is made. At the end of the process, the <code class="reqn">Q</code> distinct predictions are deployed to compute the
+selected accuracy measure. <code>"BOOT"</code> estimates the accuracy measure by fitting a
+learner on <code>B</code> ROSE samples and testing each of them on the provided data.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K</code></td>
+<td>
+
+<p>An integer value indicating the size of the subsets created when 
+<br><code>method.assess="LKOCV"</code>. If <code>K</code> is not 
+a multiple of the sample size <code class="reqn">n</code>, then <code class="reqn">Q-1</code> sets of size <code>K</code> are created and the remaining <code class="reqn">n-(Q-1)K</code> observations are 
+used to form the last subset. Default value is 1, i.e. leave-1-out cross validation is performed.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B</code></td>
+<td>
+
+<p>The number of bootstrap replications to set when <code>method.assess="BOOT"</code>. 
+Ignored otherwise. Default value is 100.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control.learner</code></td>
+<td>
+
+<p>Further arguments to be passed to <code>learner</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control.rose</code></td>
+<td>
+
+<p>Optional arguments to be passed to <code>ROSE</code>. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control.predict</code></td>
+<td>
+
+<p>Further arguments to be passed to <code>predict</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control.accuracy</code></td>
+<td>
+
+<p>Optional arguments to be passed to either <code>roc.curve</code> or <code>accuracy.meas</code>
+depending on the selected accuracy measure.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trace</code></td>
+<td>
+
+<p>logical, if <code>TRUE</code> traces information on the progress of model 
+assessment (number of bootstrap or cross validation iterations performed). 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subset</code></td>
+<td>
+
+<p>An optional vector specifying a subset of observations to be used in the sampling and learning process.
+The default is set by the <code>subset</code> setting of <code>options</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na.action</code></td>
+<td>
+
+<p>A function which indicates what should happen when the data contain 'NA's.  
+The default is set by the <code>na.action</code> setting of <code>options</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+
+<p>A single value, interpreted as an integer, recommended to specify seeds and keep trace of the generated ROSE 
+sample/es.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function estimates a measure of accuracy of a classifier specified by the user
+by using either holdout, cross-validation, or bootstrap estimators.
+Operationally, the classifier is trained over synthetic data generated by ROSE and
+then evaluated on the original data. 
+</p>
+<p>Whatever accuracy measure and estimator are chosen, the <em>true</em> accuracy depends 
+on the probability distribution underlying the training data. This is clearly affected by the imbalance 
+and its estimation is then regulated by argument <code>control.rose</code>. 
+A default setting of the arguments (that is, <code>p=0.5</code>) entails the estimation of the learner accuracy 
+conditional to a balanced training set. In order to estimate the accuracy of a learner fitted on unbalanced data, 
+the user may set argument <code>p</code> of <code>control.rose</code> to the proportion of
+positive examples in the observed sample. See Example 2 below and, for further details, Menardi and Torelli (2014).
+</p>
+<p>To the aim of a grater flexibility, <code>ROSE.eval</code> is not linked to the use of a specific learner and works virtually with any classifier. 
+The actual implementation supports the following two type of <code>learner</code>.
+</p>
+<p>In the first case, <code>learner</code> has a 'standard' behavior in the sense that it is a function having <code>formula</code> as a mandatory argument and retrieves an object whose class is associated to a <code>predict</code> method.
+The user that is willing to define her/his own <code>learner</code> must follow the implicit convention that when a classed object is created, then the function name and the class should match (such as <code>lm</code>, <code>glm</code>, <code>rpart</code>, <code>tree</code>, <code>nnet</code>, <code>lda</code>, etc). Furthermore, since <code>predict</code> returns are very heterogeneous, the user is allowed to define some function <code>extr.pred</code> which extracts from the output of <code>predict</code> the desired vector of predicted values.
+</p>
+<p>In the second case, <code>learner</code> is a wrapper that allows to embed functions that do not meet the aforementioned requirements. The wrapper must have the following mandatory arguments: <code>data</code> and <code>newdata</code>, and must return a vector of predicted values. Optional arguments can be passed as well into the wrapper including the <code>...</code> and by specifiyng them through <code>control.learner</code>.
+When argument <code>data</code> in <code>ROSE.eval</code> is not missing, <code>data</code> in <code>learner</code> receives a data frame structured 
+as the one in input, otherwise it is constructed according to the template provided by <code>formula</code>.
+The same rule applies for argument <code>newdata</code> with the exception that the class label variable is dropped. See “Examples” below.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The value is an object of class <code>ROSE.eval</code> which has components
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>Call</code></td>
+<td>
+<p>The matched call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>The selected method for model assessment.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>measure</code></td>
+<td>
+<p>The selected measure to evaluate accuracy.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>acc </code></td>
+<td>
+<p>The vector of the estimated measure of accuracy. It has length <code class="reqn">1</code> if <br><code>method.assess="holdout"</code>, 
+or <code>method.assess="LKOCV"</code> and length <code>B</code> if <code>method.assess="BOOT"</code>, corresponding to the bootstrap distribution of the accuracy
+estimator.</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>The function allows the user to include in the formula transformations of predictors or 
+interactions among them. ROSE samples are generated on the original data and transformations 
+or interactions are ignored. These are then retrieved in fitting the classifier, provided that 
+the selected learner function can handle them. See also “Warning” in <code>ROSE</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Lunardon, N., Menardi, G., and Torelli, N. (2014). ROSE: a Package for Binary Imbalanced Learning. <em>R Jorunal</em>, 6:82–92.
+</p>
+<p>Menardi, G. and Torelli, N. (2014). Training and assessing classification rules with imbalanced data. <em>Data Mining and Knowledge Discovery</em>, 28:92–122.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>ROSE</code>, <code>roc.curve</code>, <code>accuracy.meas</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# 2-dimensional data
+# loading data
+data(hacide)
+
+# in the following examples 
+# use of a small subset of observations only --&gt; argument subset
+
+dat &lt;- hacide.train
+
+table(dat$cls)
+
+##Example 1
+# classification with logit model
+# arguments to glm are passed through control.learner
+# leave-one-out cross-validation estimate of auc of classifier
+# trained on balanced data
+ROSE.eval(cls~., data=dat, glm, subset=c(1:50, 981:1000), 
+          method.assess="LKOCV", K=5,
+          control.learner=list(family=binomial), seed=1)
+
+## Not run: 
+##Example 2
+# classification with decision tree 
+# require package rpart
+library(rpart)
+
+# function is needed to extract predicted probability of cls 1 
+f.pred.rpart &lt;- function(x) x[,2]
+
+# holdout estimate of auc of two classifiers
+
+# first classifier trained on ROSE unbalanced sample
+# proportion of rare events in original data
+p &lt;- (table(dat$cls)/sum(table(dat$cls)))[2]
+ROSE.eval(cls~., data=dat, rpart, subset=c(1:50, 981:1000),
+          control.rose=list(p = p), extr.pred=f.pred.rpart, seed=1)
+
+# second classifier trained on ROSE balanced sample
+# optional arguments to plot the roc.curve are passed through 
+# control.accuracy 
+ROSE.eval(cls~., data=dat, rpart, subset=c(1:50, 981:1000), 
+          control.rose=list(p = 0.5), control.accuracy = list(add.roc = TRUE, 
+          col = 2), extr.pred=f.pred.rpart, seed=1)
+
+##Example 3
+# classification with linear discriminant analysis
+library(MASS)
+
+# function is needed to extract the predicted values from predict.lda
+f.pred.lda &lt;- function(z) z$posterior[,2]
+
+# bootstrap estimate of precision of learner trained on balanced data
+prec.distr &lt;- ROSE.eval(cls~., data=dat, lda, subset=c(1:50, 981:1000), 
+                        extr.pred=f.pred.lda, acc.measure="precision",
+                        method.assess="BOOT", B=100, trace=TRUE)
+
+summary(prec.distr)
+
+##Example 4
+# compare auc of classification with neural network
+# with auc of classification with tree 
+# require package nnet
+# require package tree
+
+library(nnet)
+library(tree)
+
+# optional arguments to nnet are passed through control.learner 
+ROSE.eval(cls~., data=dat, nnet, subset=c(1:50, 981:1000), 
+          method.assess="holdout", control.learn=list(size=1), seed=1)
+
+# optional arguments to plot the roc.curve are passed through 
+# control.accuracy
+# a function is needed to extract predicted probability of class 1 
+f.pred.rpart &lt;- function(x) x[,2] 
+f.pred.tree  &lt;- function(x) x[,2] 
+ROSE.eval(cls~., data=dat, tree, subset=c(1:50, 981:1000), 
+          method.assess="holdout", extr.pred=f.pred.tree, 
+          control.acc=list(add=TRUE, col=2), seed=1)
+
+##Example 5
+# An user defined learner with a standard behavior
+# Consider a dummy example for illustrative purposes only
+# Note that function name and the name of the class returned match
+DummyStump &lt;- function(formula, ...)
+{
+   mc &lt;- match.call()
+   m &lt;- match(c("formula", "data", "na.action", "subset"), names(mc), 0L)
+   mf &lt;- mc[c(1L, m)]
+   mf[[1L]] &lt;- as.name("model.frame")
+   mf &lt;- eval(mf, parent.frame())  
+   data.st &lt;- data.frame(mf)
+   out &lt;- list(colname=colnames(data.st)[2], threshold=1)
+   class(out) &lt;- "DummyStump"
+   out
+}
+
+# Associate to DummyStump a predict method
+# Usual S3 definition: predic.classname
+predict.DummyStump &lt;- function(object, newdata)
+{
+   out &lt;- newdata[,object$colname]&gt;object$threshold
+   out
+}
+
+ROSE.eval(formula=cls~., data=dat, learner=DummyStump, 
+          subset=c(1:50, 981:1000), method.assess="holdout", seed=3)
+
+
+##Example 6
+# The use of the wrapper for a function with non standard behaviour
+# Consider knn in package class
+# require package class
+
+library(class)
+
+# the wrapper require two mandatory arguments: data, newdata.
+# optional arguments can be passed by including the object '...'
+# note that we are going to specify data=data in ROSE.eval
+# therefore data in knn.wrap will receive a data set structured
+# as dat as well as newdata but with the class label variable dropped
+# note that inside the wrapper we dispense to knn 
+# the needed quantities accordingly
+
+knn.wrap &lt;- function(data, newdata, ...)
+{
+   knn(train=data[,-1], test=newdata, cl=data[,1], ...)
+}
+
+# optional arguments to knn.wrap may be specified in control.learner
+ROSE.eval(formula=cls~., data=dat, learner=knn.wrap,
+          subset=c(1:50, 981:1000), method.assess="holdout", 
+          control.learner=list(k=2, prob=T), seed=1)
+
+# if we swap the columns of dat we have to change the wrapper accordingly
+dat &lt;- dat[,c("x1","x2","cls")]
+
+# now class label variable is the last one
+knn.wrap &lt;- function(data, newdata, ...)
+{
+   knn(train=data[,-3], test=newdata, cl=data[,3], ...)
+}
+
+ROSE.eval(formula=cls~., data=dat, learner=knn.wrap,
+          subset=c(1:50, 981:1000), method.assess="holdout", 
+          control.learner=list(k=2, prob=T), seed=1)
+
+
+## End(Not run)
+</code></pre>
+
+
+</div>

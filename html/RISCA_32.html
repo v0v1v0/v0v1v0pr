@@ -1,0 +1,158 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pred.mixture.2states</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Cumulative Incidence Function Form Horizontal Mixture Model With Two Competing Events
+</h2>
+
+<h3>Description</h3>
+
+<p>This function allows to estimate a cumulative incidence function (CIF) from an horizontal mixture model with two competing events, i.e. the results obtained from the function <code>mixture.2states</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pred.mixture.2states(model, failure, times, cov.12=NULL, cov.13=NULL, cov.p=NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>A list obtained by using the function <code>mixture.2states</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>failure</code></td>
+<td>
+<p>A numeric value for identifying the event for which the CIF has to be computed. Two possible values are allowed: 2 (for the CIF related to X=2) and 3 (for the CIF related to X=3).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>times</code></td>
+<td>
+<p>A numeric vector with positive values related to the times for which the CIF has to be computed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cov.12</code></td>
+<td>
+<p>A vector, matrix or data frame in which to look for variables related to the time from X=1 to X=2 with which to predict the CIF.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cov.13</code></td>
+<td>
+<p>A vector, matrix or data frame in which to look for variables related to the time from X=1 to X=3 with which to predict the CIF.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cov.p</code></td>
+<td>
+<p>A vector, matrix or data frame in which to look for variables related to the probability P(X=2).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The covariates has to be identical than the ones included in the mixture model declared in the argument <code>model</code>. More precisely, the columns of <code>cov.12</code>, <code>cov.13</code> and <code>cov.p</code> must correspond to the same variables.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>times</code></td>
+<td>
+<p>A numeric vector with the times for which the CIF has to be computed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cif</code></td>
+<td>
+<p>A matrix with the predicted CIF for the <code>times</code> in columns and the individuals in rows.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Yohann Foucher &lt;Yohann.Foucher@univ-poitiers.fr&gt;
+</p>
+
+
+<h3>References</h3>
+
+<p>Trebern-Launay et al. Horizontal mixture model for competing risks: a method used in waitlisted renal transplant candidates. European Journal of Epidemiology. 33(3):275-286, 2018. &lt;doi: 10.1007/s10654-017-0322-3&gt;.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># import the observed data
+# X=1 corresponds to initial state with a functioning graft,
+# X=2 to acute rejection episode (transient state), 
+# X=3 to return to dialysis, X=4 to death with a functioning graft
+
+data(dataDIVAT1)
+
+# A subgroup analysis to reduce the time needed for this example
+
+dataDIVAT1$id&lt;-c(1:nrow(dataDIVAT1))
+set.seed(2)
+d2&lt;-dataDIVAT1[dataDIVAT1$id %in% sample(dataDIVAT1$id, 300, replace = FALSE),]
+
+# Data-management: two competing events
+# the patient death is now X=2
+# the return in dialysis is now X=3
+
+d2$time&lt;-NA
+d2$time[d2$trajectory==1]&lt;-d2$time1[d2$trajectory==1]
+
+d2$time[d2$trajectory==12]&lt;-d2$time2[d2$trajectory==12]
+d2$trajectory[d2$trajectory==12]&lt;-1
+
+d2$time[d2$trajectory==13]&lt;-d2$time1[d2$trajectory==13]
+
+d2$time[d2$trajectory==123]&lt;-d2$time2[d2$trajectory==123]
+d2$trajectory[d2$trajectory==123]&lt;-13
+
+d2$time[d2$trajectory==14]&lt;-d2$time1[d2$trajectory==14]
+
+d2$time[d2$trajectory==124]&lt;-d2$time2[d2$trajectory==124]
+d2$trajectory[d2$trajectory==124]&lt;-14
+
+d2$trajectory[d2$trajectory==14]&lt;-12
+
+table(d2$trajectory)
+
+# Univariable horizontal mixture model one binary explicative variable
+# z is 1 if delayed graft function and 0 otherwise
+
+mm2.model &lt;- mixture.2states(times=d2$time, sequences=d2$trajectory,
+  weights=NULL, dist=c("E","W"), cuts.12=NULL, cuts.13=NULL, 
+  ini.dist.12=c(9.28), ini.dist.13=c(9.92, -0.23), 
+  cov.12=d2$z, init.cov.12=0.84, names.12="beta_12",
+  cov.13=d2$z, init.cov.13=0.76, names.13="beta_13",
+  cov.p=NULL, init.cov.p=NULL, names.p=NULL, init.intercept.p=-0.75,
+  conf.int=TRUE, silent=FALSE)
+
+cif2.mm2 &lt;- pred.mixture.2states(mm2.model, failure=2, times=seq(0, 4000, by=30),
+ cov.12=c(0,1), cov.13=c(0,1), cov.p=NULL)
+
+plot(cif2.mm2$times/365.25, cif2.mm2$cif[1,], col = 1, type="l", lty = 1,
+ ylim=c(0,1), lwd =2, ylab="Cumulative Incidence Function",
+ xlab="Times (years)", main="", xlim=c(0, 11), legend=FALSE)
+
+lines(cif2.mm2$times/365.25, cif2.mm2$cif[2,], lwd=2, col=2)
+</code></pre>
+
+
+</div>

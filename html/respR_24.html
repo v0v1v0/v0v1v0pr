@@ -1,0 +1,379 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>calc_rate.int</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Extract rates from multiple replicates in intermittent-flow respirometry data</h2>
+
+<h3>Description</h3>
+
+<p><code>calc_rate.int</code> allows you to extract an oxygen uptake or production rate
+from multiple replicates in intermittent-flow respirometry. It allows you to
+easily use consistent selection parameters to extract a single rate from each
+replicate, for example a specific time range or row range.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">calc_rate.int(
+  x,
+  starts = NULL,
+  wait = NULL,
+  measure = NULL,
+  by = "row",
+  plot = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Object of class <code>inspect</code> or <code>data.frame</code>. This is the timeseries of
+paired values of oxygen against time containing multiple replicates from
+which to calculate rates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>starts</code></td>
+<td>
+<p>Integer(s). Row locations or times of the start of each
+replicate. A single value input indicates a regular interval in rows or
+time units starting at the first row of the data in <code>x</code>. If replicates do
+not cycle at a regular interval, a vector of the row or time of each
+replicate can be entered. The function assumes each replicate ends at the
+row preceding the start of the next replicate, or for the final replicate
+the final row of the dataset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>wait</code></td>
+<td>
+<p>Numeric. Rows or time period to exclude at the start of each
+replicate. Default is <code>NULL</code> in which case no wait phase is applied. See
+Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>measure</code></td>
+<td>
+<p>Numeric. Rows or time period over which to calculate rate in
+each replicate. Applied directly after <code>wait</code> phase. Default is <code>NULL</code> in
+which case the entire replicate is used. See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>by</code></td>
+<td>
+<p>String. <code>"row"</code> or <code>"time"</code>. Defaults to <code>"row"</code>. Method by which
+<code>starts</code>, <code>wait</code> and <code>measure</code> are applied.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>Logical. Default is <code>TRUE</code>. Plots the results. See 'Plotting'
+section for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Allows additional plotting controls to be passed, such as <code>type</code>,
+<code>pos</code>, <code>legend</code>, and <code>quiet</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>calc_rate.int</code> uses the <code>starts</code> input to subset each replicate. The <code>wait</code>
+and <code>measure</code> inputs control which parts of each replicate data are excluded
+and included from the rate calculation. It extracts a rate from each
+replicate using these, and saves it and other data to a summary table.
+</p>
+<p>The <code>x</code> input should be an<code>inspect</code> object. Alternatively, it can be a
+two-column data frame containing paired values of time and oxygen from an
+intermittent-flow experiment in columns 1 and 2 respectively (though we
+always recommend processing such data in <code>inspect()</code> first). If a multiple
+column dataset is entered as <code>x</code> the first two columns are selected by
+default. If these are not the intended data use <code>inspect</code> to select the
+correct time and oxygen columns.
+</p>
+
+
+<h4>Specifying replicate structure</h4>
+
+<p>The <code>starts</code> input specifies the locations of the start of each replicate in
+the data in <code>x</code>. This can be in one of two ways:
+</p>
+
+<ul>
+<li>
+<p> A single numeric value specifying how replicates are spaced starting from
+the data in the first row. This option should only be used when replicates
+cycle at regular intervals. This can be a regular row or time interval, as
+specified via the <code>by</code> input. If the first replicate does not start at row 1,
+the data should be subset so that it does (see <code>subset_data()</code>) and example
+<a href="https://januarharianto.github.io/respR/articles/intermittent_long.html">here</a>.
+</p>
+</li>
+<li>
+<p> A numeric vector of row locations or times, as specified via the <code>by</code>
+input, of the start of each individual replicate. The first replicate does
+not have to start at the first row of the data, and all data after the last
+entry is assumed to be part of the final replicate. Regular <code>R</code> syntax such
+as <code>seq()</code>, <code>1:10</code>, etc. is also accepted, so can be used to specify both
+regular and irregular replicate spacing.
+</p>
+</li>
+</ul>
+<p>For both methods it is assumed each replicate ends at the row preceding the
+start of the next replicate, or in the case of the last replicate the final
+row of the dataset.
+</p>
+
+
+
+<h4>Specifying rate region</h4>
+
+<p>The <code>wait</code> and <code>measure</code> inputs are used to specify the region from which to
+extract a rate and exclude flush periods. They can be entered as row
+intervals or time values in the units of the input data. The <code>wait</code> phase
+controls the amount of data at the start of each replicate to be ignored,
+that is not used in rate calculations. The <code>measure</code> phase determines the
+region after this over which a rate is calculated. There is no <code>flush</code> phase
+input since this is assumed to be from the end of the <code>measure</code> phase to the
+end of the replicate.
+</p>
+<p>Both <code>wait</code> and <code>measure</code> can be entered in one of two ways:
+</p>
+
+<ul>
+<li>
+<p> Single numeric values specifying a row width or a time period, as specified
+via the <code>by</code> input. Use this if you want to use the <em>same</em> <code>wait</code> and
+<code>measure</code> phases in every replicate, that is extract a rate from the same
+region of each.
+</p>
+</li>
+<li>
+<p> If <code>starts</code> is a vector of locations of the start of each replicate, these
+inputs can also be vectors of equal length of row lengths or time periods as
+specified via the <code>by</code> input. This is only useful if you want to use
+<em>different</em> <code>wait</code> and/or <code>measure</code> phases in different replicates.
+</p>
+</li>
+</ul>
+<p>If <code>wait = NULL</code> no wait phase is applied. If <code>measure = NULL</code> the rate is
+extracted from the start of the replicate or end of the <code>wait</code> phase to the
+last row of the replicate. This will typically include the flush period, so
+is rarely what you would want. Similarly if any <code>measure</code> input is beyond the
+available values in the replicate the closest value (row or time) is used
+instead, which again would typically be the last row of the replicate.
+</p>
+
+
+
+<h4>Example</h4>
+
+<p>See examples below for actual code, but here is a simple example. An
+experiment comprises replicates which cycle at ten minute intervals with data
+recorded every second. Therefore each replicate will be 600 rows long.
+Flushes of the respirometer take 3 minutes at the end of each replicate. We
+want to exclude the first 2 minutes (120 rows) of data in each, and measure
+an oxygen uptake rate for five minutes (300 rows), leaving the three minutes
+of flushing (180 rows) excluded. The inputs for this would be:
+</p>
+<p><code style="white-space: pre;">⁠starts = 600, wait = 120, measure = 300, by = "row"⁠</code>
+</p>
+
+
+
+<h4>More details</h4>
+
+<p>Only a single rate can be extracted from each replicate. If for some reason
+you need to extract multiple rates from single replicates use <code>subset_data()</code>
+and <code>calc_rate()</code> which accepts multiple <code>from</code> and <code>to</code> inputs. Similarly,
+the <code>calc_rate</code> method of <code>by = "oxygen"</code> is not supported in
+<code>calc_rate.int</code>. See vignettes on the website for examples of alternative
+ways of iterating <code>calc_rate</code> across multiple replicates if you need to get
+around these constraints.
+</p>
+
+
+
+<h4>Plot</h4>
+
+<p>If <code>plot = TRUE</code> (the default), the result for each replicate is plotted on a
+grid up to a maximum of 20. Which replicates are plotted can be selected
+using the <code>pos</code> input (default is 1:20), either in the main function call or
+when calling <code>plot()</code> on output objects.
+</p>
+<p>There are three ways of plotting the results, which can be selected using the
+<code>type</code> input:
+</p>
+
+<ul>
+<li> <p><code>type = "rep"</code>: The default. Each individual replicate is plotted with the
+rate region (i.e. <code>measure</code> phase) highlighted in yellow. The <code>wait</code> and
+<code>measure</code> phases are also highlighted with red and green backgrounds
+respectively. These are also labelled if <code>legend = TRUE</code>.
+</p>
+</li>
+<li> <p><code>type = "full"</code>: Each replicate rate (i.e. <code>measure</code> phase) is highlighted
+in the context of the whole dataset. May be quite difficult to interpret if
+dataset is large.
+</p>
+</li>
+<li> <p><code>type = "cr"</code>: Plots individual replicate results as <code>calc_rate</code> objects.
+</p>
+</li>
+</ul>
+<p>For all types <code>pos</code> can be used to select which replicate(s) to plot.
+</p>
+
+
+
+<h4>S3 Generic Functions</h4>
+
+<p>Saved output objects can be used in the generic S3 functions <code>plot()</code>,
+<code>print()</code>, <code>summary()</code>, and <code>mean()</code>.
+</p>
+
+<ul>
+<li> <p><code>plot()</code>: plots the result. See Plot section above.
+</p>
+</li>
+<li> <p><code>print()</code>: prints the result of a single replicate, by default the first.
+Others can be printed by passing the <code>pos</code> input. e.g. <code>print(x, pos = 2)</code>
+</p>
+</li>
+<li> <p><code>summary()</code>: prints summary table of all results and metadata, or the rows
+specified by the <code>pos</code> input. e.g. <code>summary(x, pos = 1:5)</code>. The <code style="white-space: pre;">⁠$rep⁠</code> column
+indicates the replicate number. The summary table can be exported as a
+separate data frame by passing <code>export = TRUE</code>.
+</p>
+</li>
+<li> <p><code>mean()</code>: calculates the mean of the rates from every replicate, or the
+rows specified by the <code>pos</code> input. e.g. <code>mean(x, pos = 1:5)</code> The mean can be
+exported as a numeric value by passing <code>export = TRUE</code>.
+</p>
+</li>
+</ul>
+<h4>More</h4>
+
+<p>For additional help, documentation, vignettes, and more visit the <code>respR</code>
+website at <a href="https://januarharianto.github.io/respR/">https://januarharianto.github.io/respR/</a>
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>Output is a <code>list</code> object of class <code>calc_rate.int</code> containing a
+<code>calc_rate</code> object for each replicate in <code style="white-space: pre;">⁠$results⁠</code>. The output also
+contains a <code style="white-space: pre;">⁠$summary⁠</code> table which includes the full rate regression results
+from each replicate with replicate number indicated by the <code style="white-space: pre;">⁠$rep⁠</code> column.
+Output also contains a <code style="white-space: pre;">⁠$rate⁠</code> element which contains the rate values from
+each replicate in order. The function call, inputs, and other metadata are
+also included. Note, that if you have many replicates this object can be
+rather large (several MB).
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Irregular replicate structure ------------------------------------------
+
+# Prepare the data to use in examples
+# Note in this dataset each replicate is a different length!
+data &lt;- intermittent.rd
+# Convert time to minutes (to show different options below)
+data[[1]] &lt;- round(data[[1]]/60, 2)
+# Inspect
+urch_insp &lt;- inspect(data)
+
+# Calculate rate across each entire replicate
+# This leads to erroneous rates because the flush is included
+calc_rate.int(urch_insp,
+              starts = c(1, 2101, 3901))
+
+# So instead we also specify a 'measure' phase
+calc_rate.int(urch_insp,
+              starts = c(1, 2101, 3901),
+              measure = 1000)
+
+# You can even specify different 'measure' phases in each rep
+calc_rate.int(urch_insp,
+              starts = c(1, 2101, 3901),
+              measure = c(1500, 1200, 200))
+
+# We usually don't want to use the start of a replicate just after the flush,
+# so we specify a 'wait' phase. We can also specify 'starts', 'wait' and
+# 'measure' in units of time instead of rows.
+#
+# By time
+# (this time we save the result)
+urch_res &lt;- calc_rate.int(urch_insp,
+                          starts = c(0, 35, 65), # start locations in minutes
+                          wait = 2,              # wait for 2 mins
+                          measure = 10,          # measure for 10 mins
+                          by = "time")
+
+# Regular replicate structure --------------------------------------------
+
+# If replicates cycle at regular intervals, 'starts' can be used to specify
+# the spacing in rows or time, starting at row 1. Therefore data must be
+# subset first so that the first replicate starts at row 1.
+#
+# Subset and inspect data
+zeb_insp &lt;- zeb_intermittent.rd %&gt;%
+  subset_data(from = 5840,
+              to = 75139,
+              by = "row",
+              quiet = TRUE) %&gt;%
+  inspect()
+
+# Calculate a rate from same 6-minute region in every replicate.
+# Replicates cycle at every 660 rows.
+zeb_res &lt;- calc_rate.int(zeb_insp,
+                         starts = 660,
+                         wait = 120, # exclude first 2 mins
+                         measure = 360, # rate from 6 mins after 'wait'
+                         plot = TRUE)
+
+# S3 functions ------------------------------------------------------------
+
+# Outputs can be used in print(), summary(), and mean().
+# 'pos' can be used to select replicate ranges
+summary(zeb_res)
+mean(zeb_res, pos = 1:5)
+
+# There are three ways by which the results can be plotted.
+# 'pos' can be used to select replicates to be plotted.
+#
+# type = "rep" - the default. Each replicate plotted on a grid with rate
+# region highlighted (up to a maximum of 20).
+plot(urch_res)
+
+# type = "full" - each replicate rate region plotted on entire data series.
+plot(urch_res, pos = 1:2, type = "full")
+# Of limited utility when datset is large
+plot(zeb_res, pos = 10, type = "full")
+
+# type = "cr" - the 'calc_rate' object for selected replicates in 'pos' is plotted
+plot(urch_res, pos = 2, type = "cr")
+
+# See vignettes on website for how to adjust and convert rates from calc_rate.int
+
+</code></pre>
+
+
+</div>

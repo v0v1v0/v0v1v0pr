@@ -1,0 +1,229 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>RobPer</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Periodogram based on (robustly) fitting a periodic function to a light curve
+</h2>
+
+<h3>Description</h3>
+
+<p>Calculates a periodogram by fitting a periodic function to a light curve, using a possibly robust regression technique and possibly taking into account measurement accuracies.  
+See <code>RobPer-package</code> for more information about light curves. For a lot of more details see Thieler, Fried and Rathjens (2016) and Thieler et al. (2013).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">RobPer(ts, weighting, periods, regression, model, steps = 10, tol = 1e-03,
+ var1 = weighting, genoudcontrol = list(pop.size = 50, max.generations = 50,
+ wait.generations = 5), LTSopt =TRUE, 
+ taucontrol = list(N = 100, kk = 2, tt = 5, rr = 2, approximate = FALSE),
+ Scontrol=list(N = ifelse(weighting,200,50), kk = 2, tt = 5, b=.5, cc = 1.547,
+ seed = NULL) )
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>ts</code></td>
+<td>
+
+<p>dataframe or matrix with three (or two) numeric columns containing the light curve to be analyzed: 
+observation times (first column), observed values (second column), measurement accuracies (thirs column). 
+If it is intended to calculate the periodogram of a time series without measurement accuracies (<code>weighting=FALSE</code>), 
+the third column may be omitted.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weighting</code></td>
+<td>
+
+<p>logical: Should measurement accuracies be taken into account performing weighted regression?
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>periods</code></td>
+<td>
+
+<p>vector of positive numeric values: Trial periods.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>regression</code></td>
+<td>
+
+<p>character string specifying the regression method used: Possible choices are
+<code>"L2"</code> (least squares regression using the R-function <code>lm</code>, package <code>stats</code>), 
+<code>"L1"</code> (least absolute deviation regression, using the R-function <code>rq</code>, package <code>quantreg</code>),
+<code>"LTS"</code> (least trimmed squares regression, using the R-function <code>ltsReg</code>, package <code>robustbase</code>),
+<code>"huber"</code> (M-regression using the Huber function),
+<code>"bisquare"</code> (M-regression using the bisquare function),
+<code>"S"</code> (S-regression using adapted code from Salibian-Barrera and Yohai 2006, see <code>FastS</code>),
+<code>"tau"</code> (tau-regression using adapted code from Salibian-Barrera, Willems and Zamar 2008, see <code>FastTau</code>).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+
+<p>character string specifying the periodic function fitted to the light curve: Possible choices are
+<code>"step"</code> (periodic step function),
+<code>"2step"</code> (two overlapping periodic step functions, see Details),
+<code>"sine"</code>  (sine function),
+<code>"fourier(2)"</code> and <code>"fourier(3)"</code> (Fourier series of second or third degree),
+<code>"splines"</code> (periodic spline function with four B-splines per cycle, generated using <code>spline.des</code>, package <code>splines</code>).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>steps</code></td>
+<td>
+
+<p>integer value: Number of steps per cycle for the periodic step function(s).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+
+<p>(small) positive number: Precision for convergence criteria. Used in case of <code>regression="huber"</code> or <code>"bisquare"</code> or if <code>regression="LTS"</code> and <code>LTSopt=TRUE</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>var1</code></td>
+<td>
+
+<p>logical: Should variance estimate be set to 1 in case of weighted M-regression?
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>genoudcontrol</code></td>
+<td>
+
+<p>list of three integers <code>pop.size</code>, <code>max.generations</code>, <code>wait.generations</code>: Control parameters for the R-function <code>genoud</code>, package <code>rgenoud</code>, see Details and Mebane Jr. and Sekhon (2011). Used in case of <code>regression="bisquare"</code> or if <code>regression="LTS"</code> and <code>LTSopt=TRUE</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>LTSopt</code></td>
+<td>
+
+<p>logical: In case of LTS-regression, should regression result of <code>ltsReg</code> be optimized using the R-function <code>genoud</code>, package <code>rgenoud</code>?
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>taucontrol</code></td>
+<td>
+
+<p>list of four integer values <code>N</code>, <code>kk</code>, <code>tt</code>, <code>rr</code> and one logical <code>approximate</code>: Control parameters for the R-function <code>FastTau</code>. For more details see <code>FastTau</code> and Salibian-Barrera, Willems and Zamar (2008).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Scontrol</code></td>
+<td>
+
+<p>list of three integers <code>N</code>, <code>kk</code> and <code>tt</code>, two positive numbers <code>b</code> and <code>cc</code> and another integer <code>seed</code>: Control parameters for the R-function <code>FastS</code>. For more details see <code>FastS</code> and Salibian-Barrera and Yohai (2006). Please notice that the further Scontrol entry <code>int</code> expected by <code>FastS</code> is automatically set to <code>FALSE</code> in order to let <code>RobPer</code> work properly.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For each trial period, a periodic function (defined by <code>model</code>) is fitted to the light curve using regression technique <code>regression</code>. The periodogram bar is the coefficient of determination. In case of <code>model="2step"</code>, two different step functions with opposed jumping times are fitted separately and the periodogram bar is the mean of both coefficients of determination. For a lot of more details see Thieler, Fried and Rathjens (2016) and Thieler et al. (2013).
+</p>
+
+
+<h3>Value</h3>
+
+<p>numeric vector: Periodogram bars related to the trial periods.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Performing <code>weighting = FALSE</code>, <code>regression="L2"</code>, <code>model="sine"</code> on a equidistantly sampled time series is equivalent to calculating the standard periodogram of Fourier analysis, see Example.
+</p>
+<p>Performing <code>regression="L2"</code>, <code>model="sine"</code> is equivalent to calculating a Generalized Lomb-Scargle periodogram (see Zechmeister and Kürster 2009).
+</p>
+<p>Performing <code>regression="L2"</code>, <code>model="step"</code> is equivalent to calculating an Epoch Folding (Leahy et al. 1983) or Anaysis of Variance (Schwarzenberg-Czerny 1989) periodogram.
+</p>
+<p>Performing <code>regression="L2"</code>, <code>model="2step"</code> is equivalent to calculating a Phase Dispersion Minimization periodogram (Stellingwerf 1978).
+</p>
+<p>A former version of this function is used in Thieler et al. (2013). For more equivalences see there. 
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Anita M. Thieler, Jonathan Rathjens and Roland Fried
+</p>
+
+
+<h3>References</h3>
+
+<p>Leahy, D. A., Darbro, W., Elsner, R. F., Weisskopf, M. C., Kahn, S., Sutherland, P. G. and Grindlay, J. E. (1983): On Searches for Pulsed Emission with Application to Four Globular Cluster X-ray Sources-NGC 1851, 6441, 6624, and 6712. The Astrophysical Journal, 266 (1), 160-170
+</p>
+<p>Mebane Jr., W. R. and Sekhon, J. S. (2011): Genetic Optimization Using Derivatives: The rgenoud Package for R. Journal of Statistical Software, 42 (11), 1-26
+</p>
+<p>Salibian-Barrera, M. and Yohai, V. (2006): A Fast Algorithm for S-Regression Estimates. Journal of Computational and Graphical Statistics, 15 (2), 414-427 
+</p>
+<p>Salibian-Barrera, M., Willems, G. and Zamar, R. (2008): The Fast-tau Estimator for Regression. Journal of Computational and Graphical Statistics, 17 (3), 659-682
+</p>
+<p>Stellingwerf, R. F. (1978): Period Determination Using Phase Dispersion Minimization. The Astrophysical Journal, 224, 953-960
+</p>
+<p>Thieler, A. M., Backes, M., Fried, R. and Rhode, W. (2013): Periodicity Detection in Irregularly Sampled Light Curves by Robust Regression and Outlier Detection. Statistical Analysis and Data Mining, 6 (1), 73-89
+</p>
+<p>Thieler, A. M., Fried, R. and Rathjens, J. (2016): RobPer: An R Package to Calculate Periodograms for Light Curves Based on Robust Regression. Journal of Statistical Software, 69 (9), 1-36, &lt;doi:10.18637/jss.v069.i09&gt;
+</p>
+<p>Zechmeister, M. and Kürster, M. (2009): The Generalised Lomb-Scargle Periodogram. A New Formalism for the Floating-Mean and Keplerian Periodograms. Astronomy and Astrophysics, 496 (2), 577-584
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Applies <code>FastS</code> and <code>FastTau</code>, <code>Xgen</code>, examples in <code>RobPer-package</code> and <code>TK95_uneq</code>. 
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># For more examples see RobPer-package and TK95_uneq!
+
+# Example to show the equivalence between the periodogram from Fourier analysis
+# and the Lomb-Scargle periodogram in case of equidistant sampling and equal weighting:
+set.seed(7)
+n &lt;- 120
+# equidistant time series:
+zr &lt;- tsgen(ttype="equi", ytype="const", pf=1, redpart= 0, s.outlier.fraction=0.2, 
+    interval=FALSE, npoints=n, ncycles=n, ps=1, SNR=1, alpha=1.5)
+# periodogram of Fourier analysis
+PP_konv &lt;- spec.pgram(zr[,2], taper = 0,pad = 0, fast = FALSE, demean = TRUE,
+    detrend = TRUE, plot = TRUE)
+# Lomb-Scargle periodogram - Note: Due to the regression ansatz,
+# RobPer is not able to compute period 2 in this case.
+PP_new &lt;- RobPer(ts=zr, weighting=FALSE, periods=1/PP_konv$freq,
+    regression="L2", model="sine")
+plot(PP_konv$freq, PP_konv$spec, ylab="periodogram", xlab="frequency",
+    main="Comparison of RobPer(...regression='LS', model='sine') and spec.pgram")
+points(PP_konv$freq, PP_new*var(zr[,2])*n/2, type="l")
+legend("top",lty=c(1,0), pch=c(-5,1), legend=c("RobPer*var(y)*n/2", "spec.pgram"))
+# Due to different ways of computation, the scaled periodograms are not exactly
+# identical, but show very similar behavior.
+</code></pre>
+
+
+</div>

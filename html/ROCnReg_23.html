@@ -1,0 +1,252 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pooledROC.kernel</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Kernel-based estimation of the pooled ROC curve.
+</h2>
+
+<h3>Description</h3>
+
+<p>This function estimates the pooled ROC curve using the kernel-based density estimator proposed by Zhou et al. (1997).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pooledROC.kernel(marker, group, tag.h, data, 
+	p = seq(0, 1, l = 101), 
+	bw = c("SRT", "UCV"), B = 1000, ci.level = 0.95, 
+	method = c("ncoutcome", "coutcome"), pauc = pauccontrol(),
+  parallel = c("no", "multicore", "snow"), ncpus = 1, cl = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>marker</code></td>
+<td>
+<p>A character string with the name of the diagnostic test variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group</code></td>
+<td>
+<p>A character string with the name of the variable that distinguishes healthy from diseased individuals.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tag.h</code></td>
+<td>
+<p>The value codifying healthy individuals in the variable <code>group</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>Data frame representing the data and containing all needed variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>Set of false positive fractions (FPF) at which to estimate the pooled ROC curve. This set is also used to compute the area under the ROC curve (AUC) using Simpson's rule. Thus, the length of the set should be an odd number, and it should be rich enough for an accurate estimation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bw</code></td>
+<td>
+<p>A character string specifying the density bandwidth selection method. “SRT”: Silverman's rule-of-thumb; “UCV”: unbiased cross-validation. The default is “SRT”. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B</code></td>
+<td>
+<p>An integer value specifying the number of bootstrap resamples for the construction of the confidence intervals. The default is 1000.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ci.level</code></td>
+<td>
+<p>An integer value (between 0 and 1) specifying the confidence level. The default is 0.95.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>A character string specifying if bootstrap resampling (for the confidence intervals) should be done with or without regard to the disease status (“coutcome” or “noutcome”). In both cases, a naive bootstrap is used. By default, the resampling is done conditionally on the disease status.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pauc</code></td>
+<td>
+<p>A list of control values to replace the default values returned by the function <code>pauccontrol</code>. This argument is used to indicate whether the partial area under the pooled ROC curve should be computed, and in case it is computed, whether the focus should be placed on restricted false positive fractions (FPFs) or on restricted true positive fractions (TPFs), and the upper bound for the FPF (if focus is FPF) or the lower bound for the TPF (if focus is TPF).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel</code></td>
+<td>
+<p>A characters string with the type of parallel operation: either "no" (default), "multicore" (not available on Windows) or "snow".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncpus</code></td>
+<td>
+<p>An integer with the number of processes to be used in parallel operation. Defaults to 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cl</code></td>
+<td>
+<p>An object inheriting from class <code>cluster</code> (from the <code>parallel</code> package), specifying an optional parallel or snow cluster if parallel = "snow". If not supplied, a cluster on the local machine is created for the duration of the call.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Estimates the pooled ROC curve (ROC) defined as
+</p>
+<p style="text-align: center;"><code class="reqn">ROC(p) = 1 - F_{D}\{F_{\bar{D}}^{-1}(1-p)\},</code>
+</p>
+
+<p>where
+</p>
+<p style="text-align: center;"><code class="reqn">F_{D}(y) = Pr(Y_{D} \leq y),</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">F_{\bar{D}}(y) = Pr(Y_{\bar{D}} \leq y).</code>
+</p>
+
+<p>The method implemented in this function estimates <code class="reqn">F_{D}(\cdot)</code> and <code class="reqn">F_{\bar{D}}(\cdot)</code> by means of kernel methods. More precisely, and letting <code class="reqn">\{y_{\bar{D}i}\}_{i=1}^{n_{\bar{D}}}</code>  and <code class="reqn">\{y_{Dj}\}_{j=1}^{n_{D}}</code> be two independent random samples from the nondiseased and diseased populations, respectively, the distribution functions in each group take the form
+
+</p>
+<p style="text-align: center;"><code class="reqn">F_{D}(y)=\frac{1}{n_{D}}\sum_{j=1}^{n_D}\Phi\left(\frac{y-y_{Dj}}{h_D}\right).</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">F_{\bar{D}}(y)=\frac{1}{n_{\bar{D}}}\sum_{i=1}^{n_D}\Phi\left(\frac{y-y_{\bar{D}i}}{h_{\bar{D}}}\right).</code>
+</p>
+
+<p>where <code class="reqn">\Phi(y)</code> stands for the standard normal distribution function evaluated at <code class="reqn">y</code>. For the bandwidth <code class="reqn">h_d</code>, <code class="reqn">d \in \{D,\bar{D}\}</code> which controls the amount of smoothing, two options are available. When <code>bw = "SRT"</code>, </p>
+<p style="text-align: center;"><code class="reqn">h_{d}=0.9\min\{SD(\mathbf{y}_d),IQR(\mathbf{y}_d)/1.34\}n_{d}^{-0.2},</code>
+</p>
+<p> where <code class="reqn">SD(\mathbf{y}_d)</code> and <code class="reqn">IQR(\mathbf{y}_d)</code> are the standard deviation and interquantile range, respectively, of <code class="reqn">\mathbf{y}_d=(y_{d1},\ldots,y_{dn_{d}})</code>. In turn, when <code>bw = "UCV"</code>, the bandwidth is selected via unbiased cross-validation, for further details we refer to <code>bw.ucv</code> from the base package <code>stats</code>.
+</p>
+<p>The area under the curve is </p>
+<p style="text-align: center;"><code class="reqn">AUC=\int_{0}^{1}ROC(p)dp</code>
+</p>
+<p> and is computed numerically (using Simpson's rule). With regard to the partial area under the curve, when <code>focus = "FPF"</code> and assuming an upper bound <code class="reqn">u_1</code> for the FPF, what it is computed is </p>
+<p style="text-align: center;"><code class="reqn">pAUC_{FPF}(u_1)=\int_0^{u_1} ROC(p)dp,</code>
+</p>
+<p> where again the integral is approximated numerically (Simpson's rule). The returned value is the normalised pAUC, <code class="reqn">pAUC_{FPF}(u_1)/u_1</code> so that it ranges from <code class="reqn">u_1/2</code> (useless test) to 1 (perfect marker). Conversely, when <code>focus = "TPF"</code>, and assuming a lower bound for the TPF of <code class="reqn">u_2</code>, the partial area corresponding to TPFs lying in the interval <code class="reqn">(u_2,1)</code> is computed as </p>
+<p style="text-align: center;"><code class="reqn">pAUC_{TPF}(u_2)=\int_{u_2}^{1}ROC_{TNF}(p)dp,</code>
+</p>
+<p> where <code class="reqn">ROC_{TNF}(p)</code> is a <code class="reqn">270^\circ</code> rotation of the ROC curve, and it can be expressed as <code class="reqn">ROC_{TNF}(p) = F_{\bar{D}}\{F_{D}^{-1}(1-p)\}.</code> Again, the computation of the integral is done via Simpson's rule. The returned value is the normalised pAUC, <code class="reqn">pAUC_{TPF}(u_2)/(1-u_2)</code>, so that it ranges from <code class="reqn">(1-u_2)/2</code> (useless test) to 1 (perfect test).
+</p>
+
+
+<h3>Value</h3>
+
+<p>As a result, the function provides a list with the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>The matched call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>marker</code></td>
+<td>
+<p>A list with the diagnostic test outcomes in the healthy (h) and diseased (d) groups.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>missing.ind</code></td>
+<td>
+<p>A logical value indicating whether missing values occur.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bws</code></td>
+<td>
+<p>Named list of length two with components 'h' (healthy) and 'd' (diseased). Each component is a numeric value with the selected bandwidth.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bw</code></td>
+<td>
+<p>The value of the argument <code>bw</code> used in the call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>Set of false positive fractions (FPF) at which the pooled ROC curve has been estimated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ci.level</code></td>
+<td>
+<p>The value of the argument <code>ci.level</code> used in the call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ROC</code></td>
+<td>
+<p>Estimated pooled ROC curve, and corresponding <code>ci.level</code>*100% pointwise confidence band (if computed).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>AUC</code></td>
+<td>
+<p>Estimated pooled AUC, and corresponding <code>ci.level</code>*100% confidence interval (if computed).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pAUC</code></td>
+<td>
+<p>If computed, estimated partial area under the pooled ROC curve along with its <code>ci.level</code>*100% confidence interval (if B greater than zero). Note that the returned values are normalised, so that the maximum value is one (see more on Details).</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Zou, K.H., Hall, W.J., Shapiro, D.E. (1997) Smooth non-parametric receiver operating characteristic (ROC) curves for continuous diagnostic tests. Statistics in Medicine, <b>16</b>, 2143–2156.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>AROC.bnp</code>, <code>AROC.sp</code>, <code>AROC.kernel</code>, <code>pooledROC.BB</code>, <code>pooledROC.emp</code>, <code>pooledROC.kernel</code>, <code>pooledROC.dpm</code>, <code>cROC.bnp</code>, <code>cROC.sp</code> or <code>AROC.kernel</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(ROCnReg)
+data(psa)
+# Select the last measurement
+newpsa &lt;- psa[!duplicated(psa$id, fromLast = TRUE),]
+
+# Log-transform the biomarker
+newpsa$l_marker1 &lt;- log(newpsa$marker1)
+
+m0_kernel &lt;- pooledROC.kernel(marker = "l_marker1", group = "status",
+tag.h = 0, data = newpsa, p = seq(0,1,l=101), bw = "SRT",
+B = 500, method = "coutcome", 
+pauc = pauccontrol(compute = TRUE, value = 0.5, focus = "FPF"))
+
+summary(m0_kernel)
+
+plot(m0_kernel)
+
+
+</code></pre>
+
+
+</div>

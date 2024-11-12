@@ -1,0 +1,198 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>gan_trainer</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>gan_trainer</h2>
+
+<h3>Description</h3>
+
+<p>Provides a function to quickly train a GAN model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">gan_trainer(
+  data,
+  noise_dim = 2,
+  noise_distribution = "normal",
+  value_function = "original",
+  data_type = "tabular",
+  generator = NULL,
+  generator_optimizer = NULL,
+  discriminator = NULL,
+  discriminator_optimizer = NULL,
+  base_lr = 1e-04,
+  ttur_factor = 4,
+  weight_clipper = NULL,
+  batch_size = 50,
+  epochs = 150,
+  plot_progress = FALSE,
+  plot_interval = "epoch",
+  eval_dropout = FALSE,
+  synthetic_examples = 500,
+  plot_dimensions = c(1, 2),
+  device = "cpu"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>Input a data set. Needs to be a matrix, array, torch::torch_tensor or torch::dataset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>noise_dim</code></td>
+<td>
+<p>The dimensions of the GAN noise vector z. Defaults to 2.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>noise_distribution</code></td>
+<td>
+<p>The noise distribution. Expects a function that samples from a distribution and returns a torch_tensor. For convenience "normal" and "uniform" will automatically set a function. Defaults to "normal".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>value_function</code></td>
+<td>
+<p>The value function for GAN training. Expects a function that takes discriminator scores of real and fake data as input and returns a list with the discriminator loss and generator loss. For reference see: . For convenience three loss functions "original", "wasserstein" and "f-wgan" are already implemented. Defaults to "original".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data_type</code></td>
+<td>
+<p>"tabular" or "image", controls the data type, defaults to "tabular".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>generator</code></td>
+<td>
+<p>The generator network. Expects a neural network provided as torch::nn_module. Default is NULL which will create a simple fully connected neural network.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>generator_optimizer</code></td>
+<td>
+<p>The optimizer for the generator network. Expects a torch::optim_xxx function, e.g. torch::optim_adam(). Default is NULL which will setup <code>torch::optim_adam(g_net$parameters, lr = base_lr)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>discriminator</code></td>
+<td>
+<p>The discriminator network. Expects a neural network provided as torch::nn_module. Default is NULL which will create a simple fully connected neural network.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>discriminator_optimizer</code></td>
+<td>
+<p>The optimizer for the generator network. Expects a torch::optim_xxx function, e.g. torch::optim_adam(). Default is NULL which will setup <code>torch::optim_adam(g_net$parameters, lr = base_lr * ttur_factor)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>base_lr</code></td>
+<td>
+<p>The base learning rate for the optimizers. Default is 0.0001. Only used if no optimizer is explicitly passed to the trainer.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ttur_factor</code></td>
+<td>
+<p>A multiplier for the learning rate of the discriminator, to implement the two time scale update rule.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weight_clipper</code></td>
+<td>
+<p>The wasserstein GAN puts some constraints on the weights of the discriminator, therefore weights are clipped during training.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>batch_size</code></td>
+<td>
+<p>The number of training samples selected into the mini batch for training. Defaults to 50.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>epochs</code></td>
+<td>
+<p>The number of training epochs. Defaults to 150.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot_progress</code></td>
+<td>
+<p>Monitor training progress with plots. Defaults to FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot_interval</code></td>
+<td>
+<p>Number of training steps between plots. Input number of steps or "epoch". Defaults to "epoch".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eval_dropout</code></td>
+<td>
+<p>Should dropout be applied during the sampling of synthetic data? Defaults to FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>synthetic_examples</code></td>
+<td>
+<p>Number of synthetic examples that should be generated. Defaults to 500. For image data e.g. 16 would be more reasonable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot_dimensions</code></td>
+<td>
+<p>If you monitor training progress with a plot which dimensions of the data do you want to look at? Defaults to c(1, 2), i.e. the first two columns of the tabular data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>device</code></td>
+<td>
+<p>Input on which device (e.g. "cpu" or "cuda") training should be done. Defaults to "cpu".</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>gan_trainer trains the neural networks and returns an object of class trained_RGAN that contains the last generator, discriminator and the respective optimizers, as well as the settings.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# Before running the first time the torch backend needs to be installed
+torch::install_torch()
+# Load data
+data &lt;- sample_toydata()
+# Build new transformer
+transformer &lt;- data_transformer$new()
+# Fit transformer to data
+transformer$fit(data)
+# Transform data and store as new object
+transformed_data &lt;-  transformer$transform(data)
+# Train the default GAN
+trained_gan &lt;- gan_trainer(transformed_data)
+# Sample synthetic data from the trained GAN
+synthetic_data &lt;- sample_synthetic_data(trained_gan, transformer)
+# Plot the results
+GAN_update_plot(data = data,
+synth_data = synthetic_data,
+main = "Real and Synthetic Data after Training")
+
+## End(Not run)
+</code></pre>
+
+
+</div>

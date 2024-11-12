@@ -1,0 +1,160 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>RN_pmi</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+
+Compute point mutual information matrix for the experimental conditions. 
+</h2>
+
+<h3>Description</h3>
+
+
+<p>Compute point mutual information for experimental conditions from the overxexpressed genes identified by RN_select.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">RN_pmi(Results)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>Results</code></td>
+<td>
+
+
+<p>The output of RNentropy, RN_calc or RN_select. If RN_select has not already run on the results it will be invoked by RN_pmi using default arguments.
+</p>
+</td>
+</tr></table>
+<h3>Value</h3>
+
+<p>The original input containing
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>gpv</code></td>
+<td>
+<p>-log10 of the Global p-values</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lpv</code></td>
+<td>
+<p>-log10 of the Local p-values</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>c_like</code></td>
+<td>
+<p>a table similar to the one you obtain running the C++ implementation of RNentropy.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>res</code></td>
+<td>
+<p>The results data.frame containing the original expression values together with the -log10 of Global and Local p-values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>design</code></td>
+<td>
+<p>The experimental design matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>selected</code></td>
+<td>
+<p>Transcripts/genes with a corrected Global p-value lower than gpv_t. Each condition N gets a condition_N column which values can be -1,0,1 or NA. 1 means that all the replicates of this condition seems to be consistently over-expressed w.r.t the overall expression of the transcript in all the conditions (that is, all the replicates of condition N have a positive Local p-value &lt;= lpv_t).  -1 means that all the replicates of this condition seems to be consistently under-expressed w.r.t the overall expression of the transcript in all the conditions (that is, all the replicates of condition N have a negative Local p-value and abs(Local p-values) &lt;= lpv_t). 0 means that one or more replicates have an abs(Local p-value) &gt; lpv_t. NA means that the Local p-values of the replicates are not consistent for this condition.</p>
+</td>
+</tr>
+</table>
+<p>And two new matrices:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>pmi</code></td>
+<td>
+<p>Point mutual information matrix of the conditions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>npmi</code></td>
+<td>
+<p>Normalized point mutual information matrix of the conditions.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+
+<p>Giulio Pavesi - Dep. of Biosciences, University of Milan
+</p>
+<p>Federico Zambelli - Dep. of Biosciences, University of Milan
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data("RN_Brain_Example_tpm", "RN_Brain_Example_design")
+#compute statistics and p-values (considering only a subset of genes due to
+#examples running time limit of CRAN)
+Results &lt;- RN_calc(RN_Brain_Example_tpm[1:10000,], RN_Brain_Example_design)
+Results &lt;- RN_select(Results)
+Results &lt;- RN_pmi(Results)
+
+## The function is currently defined as
+RN_pmi &lt;- function(Results)
+{
+  if(is.null(Results$selected))
+    Results &lt;- RN_select(Results)
+  
+  Results$pmi &lt;- matrix(nrow = ncol(Results$design), 
+                        ncol = ncol(Results$design))
+  
+  colnames(Results$pmi) &lt;- colnames(Results$design)
+  rownames(Results$pmi) &lt;- colnames(Results$design)
+  
+  Results$npmi &lt;- Results$pmi
+  
+  colshift &lt;- ncol(Results$selected) - ncol(Results$design) 
+  
+  for(x in 1:nrow(Results$pmi))
+  {
+    for(y in 1:nrow(Results$pmi))
+    {
+      if(x &gt; y)
+      {
+        Results$pmi[x,y] &lt;- Results$pmi[y,x]
+        Results$npmi[x,y] &lt;- Results$npmi[y,x]
+        next
+      } else
+      {
+        sum_x &lt;- sum(Results$selected[,x+colshift] == 1, na.rm = TRUE)
+        sum_y &lt;- sum(Results$selected[,y+colshift] == 1, na.rm = TRUE)
+        sum_xy &lt;- sum(Results$selected[,x+colshift] == 1 &amp; 
+                        Results$selected[,y+colshift] == 1, na.rm = TRUE)
+        freq_x &lt;- sum_x / nrow(Results$selected)
+        freq_y &lt;- sum_y / nrow(Results$selected)
+        freq_xy &lt;- sum_xy / nrow(Results$selected)
+        
+        h_xy &lt;- log2(1/freq_xy)
+        
+        Results$pmi[x,y] &lt;- log2(freq_xy / (freq_x * freq_y))
+        Results$npmi[x,y] &lt;- Results$pmi[x,y] / h_xy
+      }
+    }
+  }
+  
+  return (Results)
+  }
+</code></pre>
+
+
+</div>

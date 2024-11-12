@@ -1,0 +1,420 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>gKinship</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Generalised kinship coefficients</h2>
+
+<h3>Description</h3>
+
+<p>Computes single-locus generalised kinship coefficients of various kinds.
+These are fundamental for computing identity coefficients (see
+<code>identityCoefs()</code>), but are also interesting in their own right. Each
+generalised kinship coefficient is defined as the probability of observing a
+corresponding <em>generalised IBD pattern</em>, as defined and discussed in the
+Details section below.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">gKinship(
+  x,
+  pattern,
+  distinct = TRUE,
+  Xchrom = FALSE,
+  method = c("auto", "K", "WL", "LS", "GC"),
+  verbose = FALSE,
+  debug = FALSE,
+  mem = NULL,
+  ...
+)
+
+gip(x, pattern, distinct = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A <code>ped</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pattern</code></td>
+<td>
+<p>A <code>gip</code> object, or a list of vectors to be passed onto
+<code>gip()</code>. Each vector should contain members of <code>x</code> constituting an IBD
+block. (See Details and Examples.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>distinct</code></td>
+<td>
+<p>A logical indicating if different blocks are required to be
+non-IBD. Default: TRUE. (Irrelevant for single-block patterns.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Xchrom</code></td>
+<td>
+<p>A logical, by default FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Either "auto", "K", "WL", "LS" or "GC".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>A logical, by default FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>debug</code></td>
+<td>
+<p>A logical, by default FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mem</code></td>
+<td>
+<p>For internal use.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+
+
+<h4>The starting point: standard kinship coefficients</h4>
+
+<p>The classical kinship coefficient phi between two pedigree members A and B,
+is the probability that two alleles sampled from A and B (one from each), at
+a random autosomal locus, are identical by descent (IBD).
+</p>
+<p>In the language and notation to be introduced shortly, we would write <code style="white-space: pre;">⁠phi = Pr[(A,B)]⁠</code> where <code style="white-space: pre;">⁠(A,B)⁠</code> is an <em>IBD pattern</em>.
+</p>
+
+
+
+<h4>Generalised IBD patterns</h4>
+
+<p>We define a <em>generalised IBD pattern</em> (GIP) to be a partition of a set of
+alleles drawn from members of a pedigree, such that the alleles in each
+subset are IBD. Each subset (also referred to as a <em>group</em> or a <em>block</em>) is
+written as a collection of pedigree members (A, B, ...), with the
+understanding that each member represents one of its alleles at the given
+locus. A member may occur in multiple blocks, and also more than once within
+a block.
+</p>
+<p>Additional requirements give rise to different flavours of GIPs (and their
+corresponding coefficients):
+</p>
+
+<ul>
+<li> <p><code>Distinct</code> (resp. <code>non-distinct</code>): alleles in different blocks are non-IBD
+(resp. may be IBD)
+</p>
+</li>
+<li> <p><code>Deterministic</code> (resp. <code>random</code>): the parental origin (paternal or
+maternal) of each allele is fixed (resp. unknown).
+</p>
+</li>
+</ul>
+<p>We may say that a GIP is <em>partially</em> (rather than <em>fully</em>) deterministic if
+the parental origin is fixed for some, but not all alleles involved.
+</p>
+
+
+
+<h4>Notational examples</h4>
+
+<p>Our notation distinguishes the different types of patterns, as exemplified
+below. Blocks are separated with "/" if they are distinct, and "&amp;" otherwise.
+Deterministically sampled alleles are suffixed by either ":p" (paternal) or
+":m" (maternal).
+</p>
+
+<ul>
+<li> <p><code style="white-space: pre;">⁠(A, B) &amp; (A, C)⁠</code>: 4 alleles are sampled randomly; two from A, one from B
+and one from C. The first from A is IBD with that from B, and the second from
+A is IBD with that from C. All four alleles may be IBD. [Random,
+non-distinct]
+</p>
+</li>
+<li> <p><code style="white-space: pre;">⁠(A, B) / (A, C)⁠</code>: Same as the previous, but the two allele pairs must be
+non-IBD. [Random, distinct]
+</p>
+</li>
+<li> <p><code style="white-space: pre;">⁠(A:p, C:p) / (C:m)⁠</code>: The paternal alleles of A and C are IBD, and
+different from the maternal allele of C. [Deterministic, distinct]
+</p>
+</li>
+<li> <p><code style="white-space: pre;">⁠(A, C:p) &amp; (B, C:m)⁠</code>: The paternal and maternal alleles of C are IBD with
+random alleles of from A and B, respectively. The two pairs are not
+necessarily different. [Partially deterministic, non-distinct]
+</p>
+</li>
+<li> <p><code style="white-space: pre;">⁠(A:p, A, A)⁠</code>: Here we have just one group, specifying that the paternal
+allele of A is IBD with two other alleles sampled randomly from A. (If A is
+non-inbred, this must have probability 1/4.) [Partially deterministic,
+single-block]
+</p>
+</li>
+</ul>
+<p>In the <code>gip()</code> constructor, deterministic sampling is indicated by naming
+elements with "p" or "m", e.g., <code>c(p = A)</code> produces <code>(A:p)</code>. See Examples for
+how to create the example patterns listed above.
+</p>
+
+
+
+<h4>Internal structure of <code>gip</code> objects</h4>
+
+<p>(Note: This section is included only for completeness; <code>gip</code> objects should
+not be directly manipulated by end users.)
+</p>
+<p>Internally, a GIP is stored as a list of integer vectors, each vector giving
+the indices of pedigree members constituting an IBD block. In addition, the
+object has three attributes:
+</p>
+
+<ul>
+<li> <p><code>labs</code>: A character vector containing the names of all pedigree members
+</p>
+</li>
+<li> <p><code>deterministic</code>: A logical, which is TRUE if the pattern is (partially or
+fully) deterministic
+</p>
+</li>
+<li> <p><code>distinct</code>: A logical.
+</p>
+</li>
+</ul>
+<p>If <code>deterministic = TRUE</code>, the last digit of each integer encodes the
+parental origin of the allele (0 = unknown; 1 = paternal; 2 = maternal). For
+example:
+</p>
+
+<ul>
+<li>
+<p> 12 = the maternal origin of individual 1
+</p>
+</li>
+<li>
+<p> 231 = the paternal allele of individual 23
+</p>
+</li>
+<li>
+<p> 30 = a random allele of individual 3
+</p>
+</li>
+</ul>
+<h4>A brief history of generalised kinship coefficients</h4>
+
+<p>The notion of generalised kinship coefficients originated with Karigl (1981)
+who used a selection of random, non-distinct patterns (in our terminology) to
+compute identity coefficients.
+</p>
+<p>Weeks &amp; Lange (1988), building on Karigl's work, defined random, distinct
+patterns in full generality and gave an algorithm for computing the
+corresponding coefficients.
+</p>
+<p>In a follow-up paper, Lange &amp; Sinsheimer (1992) introduced partially
+deterministic (distinct) patterns, and used these to compute detailed
+identity coefficients.
+</p>
+<p>In another follow-up, Weeks et al. (1995) extended the work on random,
+distinct patterns by Weeks &amp; Lange (1988) to X-chromosomal loci.
+</p>
+<p>Garcia-Cortes (2015) gave an alternative algorithm for the detailed identity
+coefficients, based on (in our terminology) fully deterministic, non-distinct
+patterns.
+</p>
+
+
+
+<h4>Implemented algorithms</h4>
+
+<p>The following are valid options for the <code>methods</code> parameters, and what they
+implement.
+</p>
+
+<ul>
+<li> <p><code>auto</code>: Chooses method automatically, based on the pattern type.
+</p>
+</li>
+<li> <p><code>K</code>: Karigl's algorithm for random, non-distinct patterns. Only the cases
+considered by Karigl are currently supported, namely single groups up to
+length 4, and two groups of length two. The implementation in <strong>ribd</strong>
+includes an X-chromosomal version, and allows inbred founders.
+</p>
+</li>
+<li> <p><code>WL</code>: Weeks &amp; Lange's algorithm for random, distinct patterns of any size.
+[TODO: Include the extension to X by Weeks et al. (1995).]
+</p>
+</li>
+<li> <p><code>LS</code>: Lange &amp; Sinsheimer's algorithm for partially deterministic, distinct
+patterns of any size. Does not support X, nor patterns involving inbred
+founders.
+</p>
+</li>
+<li> <p><code>GC</code>: Garcia-Cortes' algorithm for fully deterministic, non-distinct
+patterns. The current implementation only covers the patterns needed to
+compute identity coefficients, namely single blocks and two blocks of length
+two. The original algorithm has been extended to an X-chromosomal version,
+and to pedigrees with inbred founders.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p><code>gKinship()</code> returns a single number, the probability of the given
+IBD pattern.
+</p>
+<p><code>gip()</code> returns an object of class <code>gip</code>. This is internally a list
+of integer vectors, with attributes <code>labs</code>, <code>deterministic</code> and <code>distinct</code>.
+(See also Details.)
+</p>
+
+
+<h3>References</h3>
+
+
+<ul>
+<li>
+<p> G. Karigl (1981). A recursive algorithm for the calculation of identity
+coefficients. Ann. Hum. Genet.
+</p>
+</li>
+<li>
+<p> D.E. Weeks &amp; K. Lange (1988). The affected-pedigree-member method of
+linkage analysis. Am. J. Hum. Genet
+</p>
+</li>
+<li>
+<p> K. Lange &amp; J.S. Sinsheimer (1992). Calculation of genetic identity
+coefficients. Ann. Hum. Genet.
+</p>
+</li>
+<li>
+<p> D.E. Weeks, T.I. Valappil, M. Schroeder, D.L. Brown (1995) An X-linked
+version of the affected-pedigree-member method of linkage analysis. Hum
+Hered.
+</p>
+</li>
+<li>
+<p> L.A. García-Cortés (2015). A novel recursive algorithm for the calculation
+of the detailed identity coefficients. Gen Sel Evol.
+</p>
+</li>
+</ul>
+<h3>See Also</h3>
+
+<p><code>kinship()</code>, <code>identityCoefs()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+### Trivial examples ###
+
+x = nuclearPed(father = "A", mother = "B", children = "C")
+
+# Random, distinct
+patt1 = gip(x, list(c("A", "B"), c("A", "C")))
+patt1
+
+# Random, non-distinct
+patt2 = gip(x, list(c("A", "B"), c("A", "C")), distinct = FALSE)
+patt2
+
+# Fully deterministic, distinct
+patt3 = gip(x, list(c(p="A", p="C"), c(m="C")))
+patt3
+
+# Partially deterministic, non-distinct`
+patt4 = gip(x, list(c("A", p="C"), c("B", m="C")), distinct = FALSE)
+patt4
+
+# Partially deterministic, single block
+patt5 = gip(x, list(c(p="A", "A", "A")))
+patt5
+
+stopifnot(
+  gKinship(x, patt1) == 0,      # (since A and B are unrelated)
+  gKinship(x, patt2) == 0,      # (same as previous)
+  gKinship(x, patt3) == 0.5,    # (only uncertainty is which allele A gave to C)
+  gKinship(x, patt4) == 0.25,   # (distinct irrelevant)
+  gKinship(x, patt5) == 0.25   # (both random must hit the paternal)
+)
+
+
+
+### Kappa coefficients via generalised kinship ###
+
+# NB: Much less efficient than `kappaIBD()`; only for validation
+
+kappa_from_gk = function(x, ids, method = "WL") {
+  fa1 = father(x, ids[1])
+  fa2 = father(x, ids[2])
+  mo1 = mother(x, ids[1])
+  mo2 = mother(x, ids[2])
+
+  GK = function(...) gKinship(x, list(...), method = method)
+
+  k0 = GK(fa1, fa2, mo1, mo2)
+  k1 = GK(c(fa1, fa2), mo1, mo2) + GK(c(fa1, mo2), fa2, mo1) +
+       GK(c(mo1, fa2), fa1, mo2) + GK(c(mo1, mo2), fa1, fa2)
+  k2 = GK(c(fa1, fa2), c(mo1, mo2)) + GK(c(fa1, mo2), c(mo1, fa2))
+  c(k0, k1, k2)
+}
+
+y1 = nuclearPed(2); ids = 3:4
+stopifnot(kappa_from_gk(y1, ids) == kappaIBD(y1, ids))
+
+y2 = quadHalfFirstCousins(); ids = 9:10
+stopifnot(kappa_from_gk(y2, ids) == kappaIBD(y2, ids))
+
+
+### Detailed outputs and debugging ###
+
+x = fullSibMating(1)
+
+# Probability of sampling IBD alleles from 1, 5 and 6
+p1 = gip(x, list(c(1,5,6)))
+p1
+gKinship(x, p1, method = "K", verbose = TRUE, debug = TRUE)
+gKinship(x, p1, method = "WL", verbose = TRUE, debug = TRUE)
+
+# Probability that paternal of 5 is IBD with maternal of 6
+p2 = gip(x, list(c(p=5, m=6)))
+p2
+gKinship(x, p2, method = "LS", verbose = TRUE, debug = TRUE)
+gKinship(x, p2, method = "GC", verbose = TRUE, debug = TRUE)
+
+# Probability that paternal of 5 is *not* IBD with maternal of 6
+p3 = gip(x, list(c(p=5), c(m=6)), distinct = TRUE)
+p3
+gKinship(x, p3, method = "LS", verbose = TRUE, debug = TRUE)
+
+
+</code></pre>
+
+
+</div>

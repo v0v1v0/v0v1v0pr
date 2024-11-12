@@ -1,0 +1,229 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>runPairwiseDEG</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Find DEG between two groups</h2>
+
+<h3>Description</h3>
+
+<p>Find DEG between two groups. Two methods are supported:
+<code>"wilcoxon"</code> and <code>"pseudoBulk"</code>. Wilcoxon rank sum test is
+performed on single-cell level, while pseudo-bulk method aggregates cells
+basing on biological replicates and calls bulk RNAseq DE methods, DESeq2 wald
+test. When real biological replicates are not available, pseudo replicates
+can be generated. Please see below for detailed scenario usage.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">runPairwiseDEG(
+  object,
+  groupTest,
+  groupCtrl,
+  variable1 = NULL,
+  variable2 = NULL,
+  method = c("wilcoxon", "pseudoBulk"),
+  usePeak = FALSE,
+  useReplicate = NULL,
+  nPsdRep = 5,
+  minCellPerRep = 10,
+  seed = 1,
+  verbose = getOption("ligerVerbose", TRUE)
+)
+
+runMarkerDEG(
+  object,
+  conditionBy = NULL,
+  splitBy = NULL,
+  method = c("wilcoxon", "pseudoBulk"),
+  useDatasets = NULL,
+  usePeak = FALSE,
+  useReplicate = NULL,
+  nPsdRep = 5,
+  minCellPerRep = 10,
+  seed = 1,
+  verbose = getOption("ligerVerbose", TRUE)
+)
+
+runWilcoxon(
+  object,
+  data.use = NULL,
+  compare.method = c("clusters", "datasets")
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>A liger object, with normalized data available</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>groupTest, groupCtrl, variable1, variable2</code></td>
+<td>
+<p>Condition specification. See
+<code>?runPairwiseDEG</code> section <b>Pairwise DEG Scenarios</b> for detail.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>DEG test method to use. Choose from <code>"wilcoxon"</code> or
+<code>"pseudoBulk"</code>. Default <code>"wilcoxon"</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>usePeak</code></td>
+<td>
+<p>Logical. Whether to use peak count instead of gene count.
+Only supported when ATAC datasets are involved. Default <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>useReplicate</code></td>
+<td>
+<p><code>cellMeta</code> variable of biological replicate
+annotation. Only used with <code>method = "pseudoBulk"</code>. Default <code>NULL</code>
+will create <code>nPsdRep</code> pseudo replicates per group.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nPsdRep</code></td>
+<td>
+<p>Number of pseudo replicates to create. Only used when
+<code>method = "pseudoBulk", useReplicate = NULL</code>. Default <code>5</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minCellPerRep</code></td>
+<td>
+<p>Numeric, will not make pseudo-bulk for replicate with
+less than this number of cells. Default <code>10</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>Random seed to use for pseudo-replicate generation. Default
+<code>1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Logical. Whether to show information of the progress. Default
+<code>getOption("ligerVerbose")</code> or <code>TRUE</code> if users have not set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>conditionBy</code></td>
+<td>
+<p><code>cellMeta</code> variable(s). Marker detection will be
+performed for each level of this variable. Multiple variables will be
+combined. Default <code>NULL</code> uses default cluster.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>splitBy</code></td>
+<td>
+<p>Split data by <code>cellMeta</code> variable(s) here and identify
+markers for <code>conditionBy</code> within each chunk. Default <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>useDatasets</code></td>
+<td>
+<p>Datasets to perform marker detection within. Default
+<code>NULL</code> will use all datasets.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data.use</code></td>
+<td>
+<p>Same as <code>useDatasets</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>compare.method</code></td>
+<td>
+<p>Choose from <code>"clusters"</code> (default) or
+<code>"datasets"</code>. <code>"clusters"</code> compares each cluster against all other
+cells, while <code>"datasets"</code> run within each cluster and compare each
+dataset against all other datasets.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A data.frame with DEG information
+</p>
+
+
+<h3>Pairwise DEG Scenarios</h3>
+
+<p>Users can select classes of cells from a variable in <code>cellMeta</code>.
+<code>variable1</code> and <code>variable2</code> are used to specify a column in
+<code>cellMeta</code>, and <code>groupTest</code> and <code>groupCtrl</code> are used to specify
+existing classes from <code>variable1</code> and <code>variable2</code>, respectively.
+When <code>variable2</code> is missing, <code>groupCtrl</code> will be considered from
+<code>variable1</code>.
+</p>
+<p>For example, when <code>variable1 = "celltype"</code> and <code>variable2 = NULL</code>,
+<code>groupTest</code> and <code>groupCtrl</code> should be valid cell types in
+<code>object$celltype</code>.
+</p>
+<p>When <code>variable1</code> is "celltype" and <code>variable2</code> is "gender",
+<code>groupTest</code> should be a valid cell type from <code>object$celltype</code> and
+<code>groupCtrl</code> should be a valid class from <code>object$gender</code>.
+</p>
+<p>When both <code>variable1</code> and <code>variable2</code> are missing, <code>groupTest</code>
+and <code>groupCtrl</code> should be valid index of cells in <code>object</code>.
+</p>
+
+
+<h3>Marker Detection Scenarios</h3>
+
+<p>Marker detection is generally performed in a one vs. rest manner. The
+grouping of such condition is specified by <code>conditionBy</code>, which should
+be a column name in <code>cellMeta</code>. When <code>splitBy</code> is specified as
+another variable name in <code>cellMeta</code>, the marker detection will be
+iteratively done for within each level of <code>splitBy</code> variable.
+</p>
+<p>For example, when <code>conditionBy = "celltype"</code> and <code>splitBy = NULL</code>,
+marker detection will be performed by comparing all cells of "celltype_i"
+against all other cells, and etc.
+</p>
+<p>When <code>conditionBy = "celltype"</code> and <code>splitBy = "gender"</code>, marker
+detection will be performed by comparing "celltype_i" cells from "gender_j"
+against other cells from "gender_j", and etc.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Compare between cluster "0" and cluster "1"
+degStats &lt;- runPairwiseDEG(pbmcPlot, groupTest = 0, groupCtrl = 1,
+                           variable1 = "leiden_cluster")
+# Compare between all cells from cluster "5" and
+# all cells from dataset "stim"
+degStats &lt;- runPairwiseDEG(pbmcPlot, groupTest = "5", groupCtrl = "stim",
+                           variable1 = "leiden_cluster",
+                           variable2 = "dataset")
+# Identify markers for each cluster. Equivalent to old version
+# `runWilcoxon(method = "cluster")`
+markerStats &lt;- runMarkerDEG(pbmcPlot, conditionBy = "leiden_cluster")
+# Identify dataset markers within each cluster. Equivalent to old version
+# `runWilcoxon(method = "dataset")`.
+markerStatsList &lt;- runMarkerDEG(pbmcPlot, conditionBy = "dataset",
+                                splitBy = "leiden_cluster")
+</code></pre>
+
+
+</div>

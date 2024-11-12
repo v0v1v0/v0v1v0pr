@@ -1,0 +1,160 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>cluster_pair_minsim</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Generate pairs with a minimal similarity using multiple processes</h2>
+
+<h3>Description</h3>
+
+<p>Generates all combinations of records from <code>x</code> and <code>y</code> where the 
+blocking variables are equal.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">cluster_pair_minsim(
+  cluster,
+  x,
+  y,
+  on,
+  minsim = 0,
+  on_blocking = character(0),
+  comparators = list(default_comparator),
+  default_comparator = cmp_identical(),
+  keep_simsum = TRUE,
+  deduplication = FALSE,
+  name = "default"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>cluster</code></td>
+<td>
+<p>a cluster object as created by <code>makeCluster</code>
+from <code>parallel</code> or <code>makeCluster</code> from <code>snow</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>first <code>data.frame</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>second <code>data.frame</code>. Ignored when <code>deduplication = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>on</code></td>
+<td>
+<p>the variables defining the blocks or strata for which 
+all pairs of <code>x</code> and <code>y</code> will be generated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minsim</code></td>
+<td>
+<p>minimal similarity score.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>on_blocking</code></td>
+<td>
+<p>variables for which the pairs have to match.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>comparators</code></td>
+<td>
+<p>named list of functions with which the variables are compared. 
+This function should accept two vectors. Function should either return a vector
+or a <code>data.table</code> with multiple columns.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>default_comparator</code></td>
+<td>
+<p>variables for which no comparison function is defined using
+<code>comparators</code> is compares with the function <code>default_comparator</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep_simsum</code></td>
+<td>
+<p>add a variable <code>minsim</code> to the result with the similarity 
+score of the pair.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deduplication</code></td>
+<td>
+<p>generate pairs from only <code>x</code>. Ignore <code>y</code>. This 
+is usefull for deduplication of <code>x</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p>the name of the resulting object to create locally on the different
+R processes.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Generating (all) pairs of the records of two data sets, is usually the first 
+step when linking the two data sets. However, this often results in a too 
+large number of records. <code>pair_minsim</code> will only keep pairs with a 
+similarity score equal or larger than <code>minsim</code>. The similarity score is
+calculated by summing the results of the comparators for all variables 
+of <code>on</code>.
+</p>
+<p><code>x</code> is split into <code>length{cluster}</code> parts which are distributed
+over the worker nodes. <code>y</code> is copied to each of the nodes. On the nodes
+then <code>cluster_pair_minsim</code> is called. The pairs are stored in the global
+object <code>reclin_env</code> on the nodes in the variable <code>name</code>. The pairs
+can then be further processes using functions such as
+<code>compare_pairs</code>, and <code>tabulate_patterns</code>. The function
+<code>cluster_collect</code> collects the pairs from each of the nodes.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A object of type <code>cluster_pairs</code> which is a <code>list</code> containing the
+cluster and the name of the pairs object on the cluster nodes. For the pairs
+objects created on the nodes see the documentation of <code>pair</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>cluster_pair</code> and <code>cluster_pair_blocking</code> are 
+other methods to generate pairs.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(parallel)
+data("linkexample1", "linkexample2")
+cl &lt;- makeCluster(2)
+
+# Either address or postcode has to match to keep a pair
+pairs &lt;- cluster_pair_minsim(cl, linkexample1, linkexample2, 
+   on = c("postcode", "address"), minsim = 1)
+stopCluster(cl)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,188 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ootb_mblt</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Out-of-the-box model-based local thresholding</h2>
+
+<h3>Description</h3>
+
+<p>Out-of-the-box version of the model-based local thresholding (MBLT) algorithm
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ootb_mblt(r, z, a, bin = NULL, fix_cs_sky = FALSE, w = 0.5)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>r</code></td>
+<td>
+<p>SpatRaster. A normalized greyscale image. Typically, the
+blue channel extracted from a canopy photograph. Please see <code>read_caim()</code>
+and <code>normalize()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>z</code></td>
+<td>
+<p>SpatRaster built with <code>zenith_image()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>a</code></td>
+<td>
+<p>SpatRaster built with <code>azimuth_image()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bin</code></td>
+<td>
+<p>SpatRaster. This should be a preliminary binarization of
+<code>r</code> useful for masking pixels that are very likely pure sky pixels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fix_cs_sky</code></td>
+<td>
+<p>Logical vector of length one. If it is <code>TRUE</code>,
+<code>fix_reconstructed_sky()</code> is used to fix the cone-shaped sky.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w</code></td>
+<td>
+<p>Numeric vector of length one. Weighting parameter from
+Díaz and Lencinas (2018)'s Equation 1. See <code>thr_mblt()</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function is a hard-coded version of a MBLT pipeline. The MBLT approach
+proposes a linear relationship between background value and optimal threshold
+value. This function uses statistical models for sky reconstruction that are
+able to explain smooth changes in sky brightness, so this function works best
+under clear skies or overcast conditions. After the reconstruction, local
+thresholds are linearly predicted from sky brightness values (see
+<code>thr_mblt()</code>).
+</p>
+<p>As a high-level summary, the function starts producing a working binarized
+image and ends with a refined binarized image.
+</p>
+<p>The pipeline combines these main functions <code>extract_sky_points_simple()</code> or
+<code>extract_sky_points()</code>, <code>fit_coneshaped_model()</code>, and <code>fit_trend_surface()</code>.
+The code can be easily inspected by calling <code>ootb_mblt</code> without parenthesis.
+Advanced users can use that code as a template.
+</p>
+<p>The MBLT algorithm was first presented in
+Díaz and Lencinas (2018). The version presented here differs
+from the original in the following main aspects:
+</p>
+
+<ul>
+<li>
+<p> The original version used a global thresholding method to provide sky
+points to the cone-shaped model. This one uses <code>extract_sky_points_simple()</code>.
+Nevertheless, a binarized image can be provided through the <code>bin</code> argument,
+triggering the use of <code>extract_sky_points()</code> instead of
+<code>extract_sky_points_simple()</code>.
+</p>
+</li>
+<li> <p><code>intercept</code> and <code>slope</code> are automatically obtained using data from sky
+points and a linear model for accuracy evaluation after
+Piñeiro et al. (2008). This approach handles inaccuracies
+in background reconstruction (see <code>thr_mblt()</code> for additional details).
+</p>
+</li>
+<li>
+<p> This version does not use asynchronous acquisition under the open sky, as
+the original method did. The cone-shaped model (<code>fit_coneshaped_model()</code>) run
+without a filling source and the cone-shaped sky is used as filling source
+for trend surface fitting (<code>fit_trend_surface()</code>).
+</p>
+</li>
+</ul>
+<p>This function searches for black objects against a light background. When
+regular canopy hemispherical images are provided as input, the algorithm will
+find dark canopy elements against a bright sky almost everywhere in the
+picture and, therefore, the result will fit user expectations. However, if a
+hemispherical photograph taken under the open sky is provided, this algorithm
+would be still searching black objects against a light background, so the
+darker portions of the sky will be taken as objects, i.e., canopy. As a
+consequence, this will not fit users expectations since they are looking for
+the classes <em>Gap</em> and <em>No-gap</em>, no matter if one of those are not in the
+picture itself. This kind of error could happen with photographs of open
+forests for the same working principle.
+</p>
+<p>If you use this function in your research, please cite
+Díaz and Lencinas (2018) in addition to this package
+(<code style="white-space: pre;">⁠citation("rcaiman"⁠</code>).
+</p>
+
+
+<h3>Value</h3>
+
+<p>Object from class list containing the binarized image (named
+<em>bin</em>) and the reconstructed skies (named <em>sky_cs</em> and
+<em>sky_s</em>).
+</p>
+
+
+<h3>Note</h3>
+
+<p>If <code>NULL</code> is provided as the <code>w</code> argument, the weight is calculated as the
+coefficient of determination (<code class="reqn">R^2</code>) of linear model for accuracy
+evaluation (Piñeiro et al. 2008).
+</p>
+
+
+<h3>References</h3>
+
+<p>Díaz GM, Lencinas JD (2018).
+“Model-based local thresholding for canopy hemispherical photography.”
+<em>Canadian Journal of Forest Research</em>, <b>48</b>(10), 1204–1216.
+<a href="https://doi.org/10.1139/cjfr-2018-0006">doi:10.1139/cjfr-2018-0006</a>.<br><br> Piñeiro G, Perelman S, Guerschman JP, Paruelo JM (2008).
+“How to evaluate models: Observed vs. predicted or predicted vs. observed?”
+<em>Ecological Modelling</em>, <b>216</b>(3-4), 316–322.
+<a href="https://doi.org/10.1016/j.ecolmodel.2008.05.006">doi:10.1016/j.ecolmodel.2008.05.006</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Binarization Functions: 
+<code>apply_thr()</code>,
+<code>obia()</code>,
+<code>ootb_obia()</code>,
+<code>regional_thresholding()</code>,
+<code>thr_isodata()</code>,
+<code>thr_mblt()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+path &lt;- system.file("external/DSCN4500.JPG", package = "rcaiman")
+caim &lt;- read_caim(path, c(1250, 1020) - 745, 745 * 2, 745 * 2)
+z &lt;- zenith_image(ncol(caim), lens("Nikon_FCE9"))
+a &lt;- azimuth_image(z)
+r &lt;- gbc(caim$Blue)
+r &lt;- correct_vignetting(r, z, c(0.0638, -0.101)) %&gt;% normalize()
+bin &lt;- find_sky_pixels(r, z, a)
+bin &lt;- ootb_mblt(r, z, a, bin)
+plot(bin$bin)
+
+
+## End(Not run)
+</code></pre>
+
+
+</div>

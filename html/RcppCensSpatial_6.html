@@ -1,0 +1,132 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>predict.sclm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Prediction in spatial models with censored/missing responses</h2>
+
+<h3>Description</h3>
+
+<p>It performs spatial prediction in a set of new <code>S</code> spatial locations.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'sclm'
+predict(object, locPre, xPre, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>object of class <code>'sclm'</code> given as output of <code>EM.sclm</code>,
+<code>MCEM.sclm</code>, or <code>SAEM.sclm</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>locPre</code></td>
+<td>
+<p>matrix of coordinates for which prediction is performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xPre</code></td>
+<td>
+<p>matrix of covariates for which prediction is performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments passed to or from other methods.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function predicts using the mean squared error (MSE) criterion, which
+takes the conditional expectation E(Y|X) as the best linear predictor.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The function returns a list with:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>coord</code></td>
+<td>
+<p>matrix of coordinates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predValues</code></td>
+<td>
+<p>predicted values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sdPred</code></td>
+<td>
+<p>predicted standard deviations.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Katherine L. Valeriano, Alejandro Ordoñez, Christian E. Galarza, and Larissa A. Matos.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>EM.sclm</code>, <code>MCEM.sclm</code>, <code>SAEM.sclm</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">set.seed(1000)
+n = 120
+coords = round(matrix(runif(2*n,0,15),n,2), 5)
+x = cbind(rbinom(n,1,0.50), rnorm(n), rnorm(n))
+data = rCensSp(c(1,4,-1), 2, 3, 0.50, x, coords, "left", 0.10, 20)
+
+## Estimation
+data1 = data$Data
+
+# Estimation: EM algorithm
+fit1 = EM.sclm(y=data1$y, x=data1$x, ci=data1$ci, lcl=data1$lcl,
+               ucl=data1$ucl, coords=data1$coords, phi0=2.50, nugget0=1)
+
+# Estimation: SAEM algorithm
+fit2 = SAEM.sclm(y=data1$y, x=data1$x, ci=data1$ci, lcl=data1$lcl,
+                 ucl=data1$ucl, coords=data1$coords, phi0=2.50, nugget0=1)
+
+# Estimation: MCEM algorithm
+fit3 = MCEM.sclm(y=data1$y, x=data1$x, ci=data1$ci, lcl=data1$lcl,
+                 ucl=data1$ucl, coords=data1$coords, phi0=2.50, nugget0=1,
+                 MaxIter=300)
+cbind(fit1$theta, fit2$theta, fit3$theta)
+
+# Prediction
+data2 = data$TestData
+pred1 = predict(fit1, data2$coords, data2$x)
+pred2 = predict(fit2, data2$coords, data2$x)
+pred3 = predict(fit3, data2$coords, data2$x)
+
+# Cross-validation
+mean((data2$y - pred1$predValues)^2)
+mean((data2$y - pred2$predValues)^2)
+mean((data2$y - pred3$predValues)^2)
+</code></pre>
+
+
+</div>

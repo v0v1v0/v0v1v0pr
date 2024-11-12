@@ -1,0 +1,288 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>R2_pred</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate R2_pred</h2>
+
+<h3>Description</h3>
+
+<p>Calculate partial and total R2s for LMM, GLMM, PGLS, and PGLMM using R2_pred, an R2 based on the variance of the difference between the observed and predicted values of a fitted model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">R2_pred(mod = NULL, mod.r = NULL, gaussian.pred = "tip_rm", phy = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>mod</code></td>
+<td>
+<p>A regression model with one of the following classes: 'lm', 'glm', 'lmerMod', 'glmerMod', 'phylolm', 'gls', 'pglmm', pglmm_compare', 'binaryPGLMM', or 'communityPGLMM'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mod.r</code></td>
+<td>
+<p>A reduced model; if not provided, the total R2 will be given by setting 'mod.r' to the model corresponding to 'mod' with the intercept as the only predictor.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gaussian.pred</code></td>
+<td>
+<p>For models of classes 'pglmm' and 'pglmm_compare' when family = gaussian, which type of prediction to calculate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phy</code></td>
+<td>
+<p>The phylogeny for phylogenetic models (as a 'phylo' object), which must be specified for models of class 'phylolm'.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>R2_pred works with classes 'lm', 'glm', 'lmerMod', 'glmerMod', 'phylolm', 'phyloglm', 'gls', 'pglmm', 'pglmm_compare', binaryPGLMM', and 'communityPGLMM' (family = gaussian and binomial).
+</p>
+<p><strong>LMM (lmerMod), GLMM (glmerMod), PGLMM (pglmm, pglmm_compare, binaryPGLMM and communityPGLMM):</strong>
+</p>
+<p style="text-align: center;"><code class="reqn">partial R2 = 1 - var(y - y.fitted.f)/var(y - y.fitted.r)</code>
+</p>
+
+<p>where y are the observed data, and y.fitted.f and y.fitted.r are the fitted (predicted) values from the full and reduced models. For GLMMs and PGLMMs, the values of y.fitted are in the space of the raw data (as opposed to the 'Normal' or 'latent' space). When the reduced model 'mod.r' is not specified, the total R2 is computing using the reduced model with only the intercept.
+</p>
+<p>For pglmm and pglmm_compare with gaussian models, the default method for computing predicted values is "nearest_node" to correspond to predicted values in lmer, although the method "tip_rm" can be specified to correspond to the analyses in Ives (2018).
+</p>
+<p>Note that the version of <code>binaryPGLMM()</code> in the package ape is replaced by a version contained within rr2 that outputs all of the required information for the calculation of R2_resid.
+</p>
+<p><strong>PGLS (phylolm and gls):</strong>
+</p>
+<p>For PGLS, the total R2_pred is computed by removing each datum one at a time, predicting its value from the fitted model, repeating this for all data points, and then calculating the variance of the difference between observed and fitted values. The predictions are calculated as
+</p>
+<p style="text-align: center;"><code class="reqn">res.predicted[j] = V[j, -j] solve(V[-j, -j]) res[-j]</code>
+</p>
+
+<p>where res[-j] is a vector of residuals with datum j removed, V[-j,-j] is the phylogenetic covariance matrix with row and column j removed, and V[j, -j] is row j of covariance matrix V with element j removed. The partial R2_pred is calculated from the total R2_pred from full and reduced models as
+</p>
+<p style="text-align: center;"><code class="reqn">partial R2 = 1 - (1 - R2_pred.f)/(1 - R2_pred.r)</code>
+</p>
+
+<p>Note that <code>phylolm()</code> can have difficulties in finding solutions when there is no phylogenetic signal; when the estimate indicates no phylogenetic signal, you should refit the model with the corresponding LM.
+</p>
+<p><strong>LM (lm) and GLM (glm):</strong> 
+</p>
+<p>For compatibility and generating reduced models, rr2 will compute R2_pred for LM and GLM that correspond to LMM/PGLS and GLMM/PGLMM.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Anthony R. Ives
+</p>
+
+
+<h3>References</h3>
+
+<p>Ives A.R. and Li D. 2018. rr2: An R package to calculate R2s for regression models. Journal of Open Source Software. DOI:10.21105/joss.01028
+</p>
+<p>Ives A.R. 2018. R2s for Correlated Data: Phylogenetic Models, LMMs, and GLMMs. Systematic Biology, Volume 68, Issue 2, March 2019, Pages 234-251. DOI:10.1093/sysbio/syy060
+</p>
+
+
+<h3>See Also</h3>
+
+<p>MuMIn, lme4, ape, phylolm, pez
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(ape)
+library(phylolm)
+library(lme4)
+library(nlme)
+library(phyr)
+
+set.seed(12345)
+p1 &lt;- 10
+nsample &lt;- 10
+n &lt;- p1 * nsample
+
+d &lt;- data.frame(x1 = 0, x2 = 0, u1 = rep(1:p1, each = nsample),
+                u2 = rep(1:p1, times = nsample))
+d$u1 &lt;- as.factor(d$u1)
+d$u2 &lt;- as.factor(d$u2)
+
+b1 &lt;- 1
+b2 &lt;- -1
+sd1 &lt;- 1.5
+
+d$x1 &lt;- rnorm(n = n)
+d$x2 &lt;- rnorm(n = n)
+d$y.lmm &lt;- b1 * d$x1 + b2 * d$x2 + 
+  rep(rnorm(n = p1, sd = sd1), each = nsample) +
+  rep(rnorm(n = p1, sd = sd1), times = nsample) + 
+  rnorm(n = n)
+
+prob &lt;- inv.logit(b1 * d$x1 + rep(rnorm(n = p1, sd = sd1), each = nsample))
+d$y.glmm &lt;- rbinom(n = n, size = 1, prob = prob)
+
+# LMM with two fixed and two random effects ----
+z.f &lt;- lmer(y.lmm ~ x1 + x2 + (1 | u1) + (1 | u2), data = d, REML = FALSE)
+z.x &lt;- lmer(y.lmm ~ x1 + (1 | u1) + (1 | u2), data = d, REML = FALSE)
+z.v &lt;- lmer(y.lmm ~ 1 + (1 | u2), data = d, REML = FALSE)
+z.0 &lt;- lm(y.lmm ~ 1, data = d)
+
+R2_pred(z.f, z.x)
+R2_pred(z.f, z.v)
+R2_pred(z.f)
+
+# GLMM with one fixed and one random effect ----
+z.f &lt;- glmer(y.glmm ~ x1 + (1 | u1), data = d, family = 'binomial')
+z.x &lt;- glmer(y.glmm ~ 1 + (1 | u1), data = d, family = 'binomial')
+z.v &lt;- glm(y.glmm ~ x1, data = d, family = 'binomial')
+
+R2_pred(z.f, z.x)
+R2_pred(z.f, z.v)
+R2_pred(z.f)
+
+# PGLS with a single fixed effect ----
+n &lt;- 100
+d &lt;- data.frame(x = array(0, dim = n), y = 0)
+
+b1 &lt;- 1.5
+signal &lt;- 0.7
+
+phy &lt;- compute.brlen(rtree(n = n), method = 'Grafen', power = 1)
+phy.x &lt;- compute.brlen(phy, method = 'Grafen', power = .0001)
+
+# Generate random data
+x &lt;- rTraitCont(phy.x, model = 'BM', sigma = 1)
+e &lt;- signal ^ 0.5 * rTraitCont(phy, model = 'BM', sigma = 1) +
+  (1 - signal) ^ 0.5 * rnorm(n = n)
+d$x &lt;- x[match(names(e), names(x))]
+d$y &lt;- b1 * x + e
+rownames(d) &lt;- phy$tip.label
+d$sp &lt;- phy$tip.label
+
+z.x &lt;- gls(y ~ 1, data = d, correlation = corPagel(1, phy, form = ~sp), method = "ML")
+z.f &lt;- gls(y ~ x, data = d, correlation = corPagel(1, phy, form = ~sp), method = "ML")
+z.v &lt;- lm(y ~ x, data = d)
+
+R2_pred(z.f, z.x)
+R2_pred(z.f, z.v)
+R2_pred(z.f)
+
+# PGLMM with one fixed effect ----
+n &lt;- 100
+b1 &lt;- 1.5
+signal &lt;- 2
+
+phy &lt;- compute.brlen(rtree(n = n), method = 'Grafen', power = 1)
+phy.x &lt;- compute.brlen(phy, method = 'Grafen', power = .0001)
+
+# Generate random data
+x &lt;- rnorm(n)
+d &lt;- data.frame(x = x, y = 0)
+
+e &lt;- signal * rTraitCont(phy, model = 'BM', sigma = 1)
+e &lt;- e[match(phy$tip.label, names(e))]
+
+d$y &lt;- rbinom(n = n, size = 1, prob = inv.logit(b1 * d$x + e))
+rownames(d) &lt;- phy$tip.label
+
+z.f &lt;- pglmm_compare(y ~ x, data = d, family = "binomial", phy = phy)
+z.x &lt;- pglmm_compare(y ~ 1, data = d, family = "binomial", phy = phy)
+z.v &lt;- glm(y ~ x, data = d, family = "binomial")
+
+R2_pred(z.f, z.x)
+R2_pred(z.f, z.v)
+R2_pred(z.f)
+
+#' #################
+# A community example of pglmm {phyr} contrasting R2_pred when bayes = TRUE and bayes = F
+
+library(mvtnorm)
+nspp &lt;- 6
+nsite &lt;- 4
+
+# Simulate a phylogeny that has a lot of phylogenetic signal (power = 1.3)
+phy &lt;- compute.brlen(rtree(n = nspp), method = "Grafen", power = 1.3)
+
+# Simulate species means
+sd.sp &lt;- 1
+mean.sp &lt;- rTraitCont(phy, model = "BM", sigma=sd.sp^2)
+
+# Replicate values of mean.sp over sites
+Y.sp &lt;- rep(mean.sp, times=nsite)
+
+# Simulate site means
+sd.site &lt;- 1
+mean.site &lt;- rnorm(nsite, sd=sd.site)
+
+# Replicate values of mean.site over sp
+Y.site &lt;- rep(mean.site, each=nspp)
+
+# Compute a covariance matrix for phylogenetic attraction
+sd.attract &lt;- 1
+Vphy &lt;- vcv(phy)
+
+# Standardize the phylogenetic covariance matrix to have determinant = 1.
+# (For an explanation of this standardization, see subsection 4.3.1 in Ives (2018))
+Vphy &lt;- Vphy/(det(Vphy)^(1/nspp))
+
+# Construct the overall covariance matrix for phylogenetic attraction.
+# (For an explanation of Kronecker products, see subsection 4.3.1 in the book)
+V &lt;- kronecker(diag(nrow = nsite, ncol = nsite), Vphy)
+Y.attract &lt;- array(t(rmvnorm(n = 1, sigma = sd.attract^2*V)))
+
+# Simulate residual errors
+sd.e &lt;- 1
+Y.e &lt;- rnorm(nspp*nsite, sd = sd.e)
+
+# Construct the dataset
+d &lt;- data.frame(sp = rep(phy$tip.label, times = nsite), site = rep(1:nsite, each = nspp))
+
+# Simulate abundance data
+d$Y &lt;- Y.sp + Y.site + Y.attract + Y.e
+
+# Full and reduced models
+z.f &lt;- pglmm(Y ~ 1 + (1|sp__) + (1|site) + (1|sp__@site),
+        data = d, cov_ranef = list(sp = phy), REML = FALSE)
+z.nested &lt;- pglmm(Y ~ 1 + (1|sp__) + (1|site),
+        data = d, cov_ranef = list(sp = phy), REML = FALSE)
+z.sp &lt;- pglmm(Y ~ 1 + (1|sp) + (1|site),
+        data = d, cov_ranef = list(sp = phy), REML = FALSE)
+
+R2_pred(z.f, z.nested)
+R2_pred(z.nested, z.sp)
+R2_pred(z.f)
+
+# vector - matrix
+# These are generally larger when gaussian.pred = "nearest_node"
+R2_pred(z.f, z.nested, gaussian.pred = "nearest_node")
+R2_pred(z.nested, z.sp, gaussian.pred = "nearest_node")
+R2_pred(z.f, gaussian.pred = "nearest_node")
+
+# # When bayes = TRUE, gaussian.pred does not work.
+# # Commented out because INLA is not on CRAN
+# z.f.bayes &lt;- pglmm(Y ~ 1 + (1|sp__) + (1|site) + (1|sp__@site),
+#                data = d, cov_ranef = list(sp = phy), bayes = TRUE)
+# z.nested.bayes &lt;- pglmm(Y ~ 1 + (1|sp__) + (1|site),
+#                data = d, cov_ranef = list(sp = phy), bayes = TRUE)
+# z.sp.bayes &lt;- pglmm(Y ~ 1 + (1|sp) + (1|site),
+#                data = d, cov_ranef = list(sp = phy), bayes = TRUE)
+# 
+# R2_pred(z.f.bayes, z.nested.bayes)
+# R2_pred(z.nested.bayes, z.sp.bayes)
+# R2_pred(z.f.bayes)
+</code></pre>
+
+
+</div>

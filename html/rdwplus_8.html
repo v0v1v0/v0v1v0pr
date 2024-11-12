@@ -1,0 +1,231 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>compute_metrics_precomputed</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Compute spatially explicit watershed attributes for survey sites on streams</h2>
+
+<h3>Description</h3>
+
+<p>Workhorse function for <code>rdwplus</code>. This function computes the spatially explicit landuse metrics in IDW-Plus (Peterson and Pearse, 2017). In contrast to <code>compute_metrics()</code>, this version of the function assumes most of the intermediate data layers (i.e., flow path distance and inverse-distance weight rasters) have been precomputed.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">compute_metrics_precomputed(
+  metrics = c("lumped", "iFLO", "iFLS", "HAiFLO", "HAiFLS"),
+  landuse,
+  sites,
+  out_fields,
+  watersheds,
+  flow_dir,
+  flow_acc,
+  iEDO_weights,
+  iFLO_weights,
+  HAiFLO_weights,
+  iEDS_weights,
+  iFLS_weights,
+  HAiFLS_weights,
+  percentage = TRUE,
+  max_memory = 300
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>metrics</code></td>
+<td>
+<p>A character vector. This vector specifies which metric(s) should be calculated. Your options are lumped, iFLO, iFLS, iEDO, iEDS, HAiFLO and HAiFLS. The default is to calculate the lumped, iFLO, iFLS, HAiFLO, and HAiFLS metrics.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>landuse</code></td>
+<td>
+<p>Names of landuse or landcover rasters in the current GRASS mapset. These can be continuous (e.g., percentage cover or NDVI) or binary, with a value of 1 for cells with a particular land use category and a value of 0 otherwise.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sites</code></td>
+<td>
+<p>A set of survey sites in the current GRASS mapset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>out_fields</code></td>
+<td>
+<p>A character vector of output field names to store the metrics. Note that <code>length(out_fields)</code> must be the same as <code>length(landuse) * length(metrics)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>watersheds</code></td>
+<td>
+<p>A vector of watershed raster names in the current GRASS mapset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flow_dir</code></td>
+<td>
+<p>Name of a flow direction raster produced by <code>derive_flow</code> in the current GRASS mapset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flow_acc</code></td>
+<td>
+<p>Name of a flow accumulation raster produced by <code>derive_flow</code> in the current GRASS mapset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iEDO_weights</code></td>
+<td>
+<p>A vector of names of iEDO weight rasters in the GRASS mapset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iFLO_weights</code></td>
+<td>
+<p>A vector of names of iFLO weight rasters in the GRASS mapset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>HAiFLO_weights</code></td>
+<td>
+<p>A vector of names of HAiFLO weight rasters in the GRASS mapset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iEDS_weights</code></td>
+<td>
+<p>A vector of names of iEDS weight rasters in the GRASS mapset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iFLS_weights</code></td>
+<td>
+<p>A vector of names of iFLS weight rasters in the GRASS mapset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>HAiFLS_weights</code></td>
+<td>
+<p>A vector of names of HAiFLS weight rasters in the GRASS mapset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>percentage</code></td>
+<td>
+<p>A logical indicating whether the result should be expressed as a percentage. Defaults to <code>TRUE</code>. Set to <code>FALSE</code> if the landuse/landcover raster is continuous.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_memory</code></td>
+<td>
+<p>Max memory used in memory swap mode (MB). Defaults to <code>300</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A <code>sf</code> object of the snapped survey sites that also contains the computed landscape metrics.
+</p>
+
+
+<h3>References</h3>
+
+<p>Peterson, E.E. &amp; Pearse, A.R. (2017). IDW-Plus: An ArcGIS toolset for calculating spatially explicit watershed attributes for survey sites. <em>JAWRA</em>, <em>53</em>(5), 1241-1249.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Will only run if GRASS is running
+# You should load rdwplus and initialise GRASS via the initGRASS function
+if(check_running()){
+# Retrieve paths to data sets
+dem &lt;- system.file("extdata", "dem.tif", package = "rdwplus")
+lus &lt;- system.file("extdata", "landuse.tif", package = "rdwplus")
+sts &lt;- system.file("extdata", "site.shp", package = "rdwplus")
+stm &lt;- system.file("extdata", "streams.shp", package = "rdwplus")
+
+# Set environment
+set_envir(dem)
+
+# Get other data sets (stream layer, sites, land use, etc.)
+raster_to_mapset(lus)
+vector_to_mapset(c(stm, sts))
+
+# Reclassify streams
+out_stream &lt;- paste0(tempdir(), "/streams.tif")
+rasterise_stream("streams", out_stream, TRUE)
+reclassify_streams("streams.tif", "streams01.tif", overwrite = TRUE)
+
+# Burn in the streams to the DEM
+burn_in("dem.tif", "streams01.tif", "burndem.tif", overwrite = TRUE)
+
+# Fill dem
+fill_sinks("burndem.tif", "filldem.tif", "fd1.tif", "sinks.tif", overwrite = TRUE)
+
+# Derive flow direction and accumulation grids
+derive_flow("dem.tif", "fd.tif", "fa.tif", overwrite = T)
+
+# Derive a new stream raster from the FA grid
+derive_streams("dem.tif", "fa.tif", "new_stm.tif", "new_stm", min_acc = 200, overwrite = T)
+
+# Recode streams
+reclassify_streams("new_stm.tif", "null_stm.tif", "none")
+
+# Snap sites to streams and flow accumulation
+snap_sites("site", "new_stm.tif", "fa.tif", 2, "snapsite", T)
+
+# Get watersheds
+get_watersheds("snapsite", "fd.tif", "wshed.tif", T)
+
+#  Get pour points
+coord_to_raster("snapsite", which = 1, out = "pour_point")
+
+# Get iFLO weights
+compute_iFLO_weights(
+"pour_point", 
+"wshed.tif", 
+"null_stm.tif", 
+"fd.tif", 
+"fl_outlet.tif", 
+"iFLO_weights.tif", 
+idwp = -1, 
+remove_streams = FALSE
+)
+
+# Get iFLS weights
+compute_iFLS_weights(
+"new_stm.tif", 
+"null_stm.tif", 
+"fd.tif", 
+"fl_streams.tif", 
+"iFLS_weights.tif", 
+idwp = -1, 
+watershed = "wshed.tif", 
+remove_streams = FALSE, 
+overwrite = T
+)
+
+# Compute metrics for this site
+compute_metrics_precomputed(
+  metrics = c("iFLO", "iFLS"),
+  landuse = "landuse.tif",
+  sites = "snapsite",
+  out_fields = c("iFLO", "iFLS"),
+  watersheds = "wshed.tif",
+  iFLO_weights = "iFLO_weights.tif",
+  iFLS_weights = "iFLS_weights.tif",
+  flow_dir = "fd.tif",
+  flow_acc = "fa.tif"
+)
+}
+</code></pre>
+
+
+</div>

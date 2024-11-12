@@ -1,0 +1,155 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>parametric_boot_distribution</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Simulate the distribution of estimates by parametric bootstrap</h2>
+
+<h3>Description</h3>
+
+<p>Repeatedly simulates new response values by using the fitted model, holding
+the covariates fixed. By default, refits the same model to each simulated
+dataset, but an alternative model can be provided. Estimates, confidence
+intervals, or other quantities are extracted from each fitted model and
+returned as a tidy data frame.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">parametric_boot_distribution(
+  fit,
+  alternative_fit = fit,
+  data = model.frame(fit),
+  fn = tidy,
+  nsim = 100,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>A model fit to data, such as by <code>lm()</code> or <code>glm()</code>, to simulate new
+response values from.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alternative_fit</code></td>
+<td>
+<p>A model fit to data, to refit to the data sampled from
+<code>fit</code>. Defaults to <code>fit</code>, but an alternative model can be provided to
+examine its behavior when <code>fit</code> is the true model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>Data frame to be used in the simulation. Must contain the
+predictors needed for both <code>fit</code> and <code>alternative_fit</code>. Defaults to the
+predictors used in <code>fit</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fn</code></td>
+<td>
+<p>Function to call on each new model fit to produce a data frame of
+estimates. Defaults to <code>broom::tidy()</code>, which produces a tidy data frame of
+coefficients, estimates, standard errors, and hypothesis tests.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nsim</code></td>
+<td>
+<p>Number of total simulations to run.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments passed to <code>fn</code> each time it is called.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The default behavior samples from a model and refits the same model to the
+sampled data; this is useful when, for example, exploring how model
+diagnostics look when the model is well-specified. Another common use of the
+parametric bootstrap is hypothesis testing, where we might simulate from a
+null model and fit an alternative model to the data, to obtain the null
+distribution of a particular estimate or statistic. Provide <code>alternative_fit</code>
+to have a specific model fit to each simulated dataset, rather than the model
+they are simulated from.
+</p>
+<p>Only the response variable from the <code>fit</code> (or <code>alternative_fit</code>, if given) is
+redrawn; other response variables in the population are left unchanged from
+their values in <code>data</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A data frame (tibble) with columns corresponding to the columns
+returned by <code>fn</code>. The additional column <code>.sample</code> indicates which fit each
+row is from.
+</p>
+
+
+<h3>Model limitations</h3>
+
+<p>Because this function uses S3 generic methods such as <code>model.frame()</code>,
+<code>simulate()</code>, and <code>update()</code>, it can be used with any model fit for which
+methods are provided. In base R, this includes <code>lm()</code> and <code>glm()</code>.
+</p>
+<p>The model provided as <code>fit</code> must be fit using the <code>data</code> argument to provide
+a data frame. For example:
+</p>
+<div class="sourceCode"><pre>fit &lt;- lm(dist ~ speed, data = cars)
+</pre></div>
+<p>When simulating new data, this function provides the simulated data as the
+<code>data</code> argument and re-fits the model. If you instead refer directly to local
+variables in the model formula, this will not work. For example, if you fit a
+model this way:
+</p>
+<div class="sourceCode"><pre># will not work
+fit &lt;- lm(cars$dist ~ cars$speed)
+</pre></div>
+<p>It will not be possible to refit the model using simulated datasets, as that
+would require modifying your environment to edit <code>cars</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>model_lineup()</code> to use resampling to aid in regression diagnostics;
+<code>sampling_distribution()</code> to simulate draws from the population
+distribution, rather than the null
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Bootstrap distribution of estimates:
+fit &lt;- lm(mpg ~ hp, data = mtcars)
+parametric_boot_distribution(fit, nsim = 5)
+
+# Bootstrap distribution of estimates for a quadratic model, when true
+# relationship is linear:
+quad_fit &lt;- lm(mpg ~ poly(hp, 2), data = mtcars)
+parametric_boot_distribution(fit, quad_fit, nsim = 5)
+
+# Bootstrap distribution of estimates for a model with an additional
+# predictor, when it's truly zero. data argument must be provided so
+# alternative fit has all predictors available, not just hp:
+alt_fit &lt;- lm(mpg ~ hp + wt, data = mtcars)
+parametric_boot_distribution(fit, alt_fit, data = mtcars, nsim = 5)
+</code></pre>
+
+
+</div>

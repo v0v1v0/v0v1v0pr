@@ -1,0 +1,131 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pos.det</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Determining the cell position</h2>
+
+<h3>Description</h3>
+
+<p>Returns a <code>data.frame</code>, similar as produced by <code>first.cell</code>, but with added columns providing ROW and POSITION which indicate the radial files number (ROW, from left to right) and radial cell position (from earlywood to latewood) of each tracheid. <code>NA</code> is assigned to cells not belonging to recognized radial files. A MARKER column is added to indicate the last detected cell in the earlywood search (indicated with 1), latewood search (2), the last detected cell (3), rows that are removed due to gaps (4, see prof.co) and rows that are removed due to limited amount of cells (5, see max.cells).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pos.det(input, swe = 0.5, sle = 3, ec = 1.75 , swl = 0.25, sll = 5, lc = 5,
+        prof.co = 6, max.cells = 0.5, list=FALSE, yrs = FALSE,
+        aligning = TRUE, make.plot = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>input</code></td>
+<td>
+<p>an input file as produced by <code>first.cell</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>swe</code></td>
+<td>
+<p>a numeric value that is multiplied by the square-rooted cell lumen area (l) of the target cell and used to determine the width of the rectangular search area which locates the next earlywood cell in the row (default = 0.5).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sle</code></td>
+<td>
+<p>a numeric value that is multiplied by the square rooted cell lumen area (l) of the target cell to determine the length of the rectangle search area which locates the next earlywood cell in the row (default = 3).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ec</code></td>
+<td>
+<p>threshold ratio between the lumen area of two consecutive earlywood cells to determine the end of the earlywood search (default = 1.75). The default setting indicates that the earlywood search ends when the next cell lumen area is at least 1.75 times smaller than the target cell.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>swl</code></td>
+<td>
+<p>a numeric value that is multiplied by the square rooted cell lumen area (l) of the target cell to determine the width of the rectangle search area which locates the next latewood cell in the row (default = 0.25).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sll</code></td>
+<td>
+<p>a numeric value that is multiplied by the square rooted cell lumen area (l) of the target cell to determine the length of the rectangle search area which locates the next earlywood cell in the row (default = 5).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lc</code></td>
+<td>
+<p>threshold ratio between the lumen area of two consecutive latewood cells to determine the end of the radial file (default = 10). The default setting indicates that the latewood search ends when the next cell lumen area is at least 10 times smaller than the target cell.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prof.co</code></td>
+<td>
+<p>threshold ratio between the distance to the previous and consecutive cell to determine if the row (or radial file) should be excluded (default = 6).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.cells</code></td>
+<td>
+<p>threshold proportion of the maximum number of cells to determine if the radial file has to be excluded (default = 0.6).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>list</code></td>
+<td>
+<p>a <code>data.frame</code> of "CID" (unique cell ID) from cells which should be considered as first row cells. Should be filled if <code>first.cell</code> output is not used as input. The vector should be ordered to years and present specific "CID" which is considered the first cell.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yrs</code></td>
+<td>
+<p>either a vector providing the year(s) of interest or <code>FALSE</code> to select all years included in the input file (default = <code>FALSE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aligning</code></td>
+<td>
+<p>logical flag indicating whether a second alignment has to be performed based upon the cells detected within <code>first.cell</code> (default = <code>TRUE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>make.plot</code></td>
+<td>
+<p>logical flag indicating whether to make a plot (default =  <code>FALSE</code>).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>After the identification of the first cells (with <code>first.cell</code>) within a radial file, this function assigns remaining cells to a corresponding radial file based on various search criteria. A local search algorithm is applied which searches cells above a specified target cell (n; starts with first cell of the radial file detected by <code>first.cell</code>). First the "earlywood" search process projects a search area from the selected cell with a specific width (x-axis) and length (y-axis). The search length and width is based on the length of the target cell (l_n) determined with size of the cell (where l_n= <code>sqrt</code>(CA_n) ) and multiplied by a factor (sle = search length earlywood, for the search length and swe = search width earlywood, for the search width). This initial search grid is presented in "orange"(if make.plot = <code>TRUE</code>), where the width can be adjusted by changing swe and the length by sle. When no cells are detected (last detected cells are indicated with orange circles), caused in most cases by the small size of latewood cells, a second search grid is established with an altered length and width (sll = search length latewood and swl = search width latewood; presented in "red" if make.plot = <code>TRUE</code>; last detected cell are indicates with red circles). Due to smaller fragments of erroneously detected cells, for both search grids a cut-off value is added where the next cell should not be smaller than the lumen area of the target cell (CA_n) times a factor (ec = earlywood cut off and lc = latewood cut off). Finally, a flexible spline is fitted through the selected cells within a row to detect missing cells. Once all cells are detected (last cell is indicated with a red square), the distance between the cells is analysed and depending upon a profile cut-off factor (prof.co) the row is omitted, if the distance difference between n+1 and n+2 times prof.co is bigger than the distance of n and n+1 (which could present a gap often caused by resin ducts; omitted rows are indicated with a "+" symbol). Also, rows that have less cells then the maximum cell count times a factor (max.cells) are removed, as the row might be incomplete (omitted rows are indicated with a "x" symbol).
+</p>
+
+
+<h3>Value</h3>
+
+<p>An <code>is.raptor</code> file with an added column describing the position within the radial file.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+#example of position detection
+input&lt;-is.raptor(example.data(species="MOUNT_PINUS"), str = FALSE)
+aligned&lt;-align(input, list=c("h", "h", "h", 0.03), make.plot = FALSE)
+first&lt;-first.cell(aligned, frac.small = 0.2, yrs = FALSE, make.plot = FALSE)
+output&lt;-pos.det(first, swe = 0.7, sle = 3, ec = 1.75, swl = 0.5, sll = 5, lc = 10,
+                prof.co = 1.7, max.cells = 0.7, yrs = FALSE, aligning = FALSE, make.plot = TRUE)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

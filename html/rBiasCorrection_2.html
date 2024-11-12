@@ -1,0 +1,131 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>better_model</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>better_model helper function</h2>
+
+<h3>Description</h3>
+
+<p>Internal function to select the better model between
+hyperbolic regression and cubic regression.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">better_model(
+  statstable_pre,
+  statstable_post_hyperbolic = NULL,
+  statstable_post_cubic = NULL,
+  selection_method = "SSE"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>statstable_pre</code></td>
+<td>
+<p>A data.table object, containing the output of
+<code>statisticsList_()</code> of the calculated regression parameters (form
+the provided calibration data).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>statstable_post_hyperbolic</code></td>
+<td>
+<p>A data.table object, containing
+the output of <code>statisticsList_()</code> of the calculated regression
+parameters form the calibration data corrected with hyperbolic regression.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>statstable_post_cubic</code></td>
+<td>
+<p>A data.table object, containing the output
+of <code>statisticsList_()</code> of the calculated regression parameters form
+the calibration data corrected with cubic regression.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>selection_method</code></td>
+<td>
+<p>A character string. The method used to select the
+regression algorithm to correct the respective CpG site. This is by
+default the sum of squared errors ("SSE"). The second option is
+"RelError", which selects the regression method based on the theoretical
+relative error after correction. This metric is calculated by correcting
+the calibration data with both the hyperbolic regression and the cubic
+regression and using them again as input data to calculate the 'goodness
+of fit'-metrics.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The function returns a data.table with 4 columns, the last column
+being named 'better_model', which indicates in a binary manner,
+if the hyperbolic model (better_model = 0) or the cubic model
+(better_model = 1) result in a 'better' 'SSE' or 'RelError' respectively.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# define list object to save all data
+rv &lt;- list()
+rv$minmax &lt;- TRUE
+rv$selection_method &lt;- "RelError"
+rv$sample_locus_name &lt;- "Test"
+rv$seed &lt;- 1234
+
+# define logfilename
+logfilename &lt;- paste0(tempdir(), "/log.txt")
+
+# import experimental file
+exp_type_1 &lt;- rBiasCorrection::example.data_experimental
+rv$fileimport_experimental &lt;- exp_type_1$dat
+
+# import calibration file
+cal_type_1 &lt;- rBiasCorrection::example.data_calibration
+rv$fileimport_calibration &lt;- cal_type_1$dat
+rv$vec_cal &lt;- cal_type_1$vec_cal
+
+
+# perform regression
+regression_results &lt;- regression_utility(
+  rv$fileimport_calibration,
+  "Testlocus",
+  locus_id = NULL,
+  rv = rv,
+  mode = NULL,
+  logfilename,
+  minmax = rv$minmax,
+  seed = rv$seed
+)
+
+# extract regression results
+rv$result_list &lt;- regression_results$result_list
+
+# get regression statistics
+rv$reg_stats &lt;- statistics_list(
+  rv$result_list,
+  minmax = rv$minmax
+)
+
+# select the better model based on the sum of squared errrors ("SSE")
+rv$choices_list &lt;- better_model(
+  statstable_pre = rv$reg_stats,
+  selection_method = "SSE"
+)
+
+
+</code></pre>
+
+
+</div>

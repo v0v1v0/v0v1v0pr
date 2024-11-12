@@ -1,0 +1,349 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>EM3.linker.cpp</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Equation of mixed model for multi-kernel (fast, for limited cases)</h2>
+
+<h3>Description</h3>
+
+<p>This function solves multi-kernel mixed model using fastlmm.snpset approach (Lippert et al., 2014).
+This function can be used only when the kernels other than genomic relationship matrix are linear kernels.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">EM3.linker.cpp(
+  y0,
+  X0 = NULL,
+  ZETA = NULL,
+  Zs0 = NULL,
+  Ws0,
+  Gammas0 = lapply(Ws0, function(x) diag(ncol(x))),
+  gammas.diag = TRUE,
+  X.fix = TRUE,
+  eigen.SGS = NULL,
+  eigen.G = NULL,
+  n.core = 1,
+  tol = NULL,
+  bounds = c(1e-06, 1e+06),
+  optimizer = "nlminb",
+  traceInside = 0,
+  n.thres = 450,
+  spectral.method = NULL,
+  REML = TRUE,
+  pred = TRUE,
+  return.u.always = TRUE,
+  return.u.each = TRUE,
+  return.Hinv = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y0</code></td>
+<td>
+<p>A <code class="reqn">n \times 1</code> vector. A vector of phenotypic values should be used. NA is allowed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X0</code></td>
+<td>
+<p>A <code class="reqn">n \times p</code> matrix. You should assign mean vector (rep(1, n)) and covariates. NA is not allowed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ZETA</code></td>
+<td>
+<p>A list of variance (relationship) matrix (K; <code class="reqn">m \times m</code>) and its design matrix (Z; <code class="reqn">n \times m</code>) of random effects. You can use only one kernel matrix.
+For example, ZETA = list(A = list(Z = Z, K = K))
+Please set names of list "Z" and "K"!</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Zs0</code></td>
+<td>
+<p>A list of design matrices (Z; <code class="reqn">n \times m</code> matrix) for Ws.
+For example, Zs0 = list(A.part = Z.A.part, D.part = Z.D.part)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Ws0</code></td>
+<td>
+<p>A list of low rank matrices (W; <code class="reqn">m \times k</code> matrix). This forms linear kernel <code class="reqn">K = W \Gamma W'</code>.
+For example, Ws0 = list(A.part = W.A, D.part = W.D)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Gammas0</code></td>
+<td>
+<p>A list of matrices for weighting SNPs (Gamma; <code class="reqn">k \times k</code> matrix). This forms linear kernel <code class="reqn">K = W \Gamma W'</code>.
+For example, if there is no weighting, Gammas0 = lapply(Ws0, function(x) diag(ncol(x)))</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gammas.diag</code></td>
+<td>
+<p>If each Gamma is the diagonal matrix, please set this argument TRUE. The calculationtime can be saved.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X.fix</code></td>
+<td>
+<p>If you repeat this function and when X0 is fixed during iterations, please set this argument TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eigen.SGS</code></td>
+<td>
+<p>A list with
+</p>
+
+<dl>
+<dt>$values</dt>
+<dd>
+<p>Eigen values</p>
+</dd>
+<dt>$vectors</dt>
+<dd>
+<p>Eigen vectors</p>
+</dd>
+</dl>
+<p>The result of the eigen decompsition of <code class="reqn">SGS</code>, where <code class="reqn">S = I - X(X'X)^{-1}X'</code>, <code class="reqn">G = ZKZ'</code>.
+You can use "spectralG.cpp" function in RAINBOWR.
+If this argument is NULL, the eigen decomposition will be performed in this function.
+We recommend you assign the result of the eigen decomposition beforehand for time saving.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eigen.G</code></td>
+<td>
+<p>A list with
+</p>
+
+<dl>
+<dt>$values</dt>
+<dd>
+<p>Eigen values</p>
+</dd>
+<dt>$vectors</dt>
+<dd>
+<p>Eigen vectors</p>
+</dd>
+</dl>
+<p>The result of the eigen decompsition of <code class="reqn">G = ZKZ'</code>. You can use "spectralG.cpp" function in RAINBOWR.
+If this argument is NULL, the eigen decomposition will be performed in this function.
+We recommend you assign the result of the eigen decomposition beforehand for time saving.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.core</code></td>
+<td>
+<p>Setting n.core &gt; 1 will enable parallel execution on a machine with multiple cores.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>The tolerance for detecting linear dependencies in the columns of G = ZKZ'.
+Eigen vectors whose eigen values are less than "tol" argument will be omitted from results.
+If tol is NULL, top 'n' eigen values will be effective.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bounds</code></td>
+<td>
+<p>Lower and upper bounds for weights.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optimizer</code></td>
+<td>
+<p>The function used in the optimization process. We offer "optim", "optimx", and "nlminb" functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>traceInside</code></td>
+<td>
+<p>Perform trace for the optimzation if traceInside &gt;= 1, and this argument shows the frequency of reports.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.thres</code></td>
+<td>
+<p>If <code class="reqn">n &gt;= n.thres</code>, perform EMM1.cpp. Else perform EMM2.cpp.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>spectral.method</code></td>
+<td>
+<p>The method of spectral decomposition.
+In this function, "eigen" : eigen decomposition and "cholesky" : cholesky and singular value decomposition are offered.
+If this argument is NULL, either method will be chosen accorsing to the dimension of Z and X.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>REML</code></td>
+<td>
+<p>You can choose which method you will use, "REML" or "ML".
+If REML = TRUE, you will perform "REML", and if REML = FALSE, you will perform "ML".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pred</code></td>
+<td>
+<p>If TRUE, the fitting values of y is returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return.u.always</code></td>
+<td>
+<p>If TRUE, BLUP ('u'; <code class="reqn">u</code>) will be returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return.u.each</code></td>
+<td>
+<p>If TRUE, the function also computes each BLUP corresponding
+to different kernels (when solving multi-kernel mixed-effects model). It takes
+additional time compared to the one with 'return.u.each = FALSE'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return.Hinv</code></td>
+<td>
+<p>If TRUE, <code class="reqn">H ^ {-1} = (Var[y] / \sum _{l=1} ^ {L} \sigma _ {l} ^ 2) ^ {-1}</code>
+will be computed. It also returns <code class="reqn">V ^ {-1} = (Var[y]) ^ {-1}</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+
+<dl>
+<dt>$y.pred</dt>
+<dd>
+<p>The fitting values of y <code class="reqn">y = X\beta + Zu</code></p>
+</dd>
+<dt>$Vu</dt>
+<dd>
+<p>Estimator for <code class="reqn">\sigma^2_u</code>, all of the genetic variance</p>
+</dd>
+<dt>$Ve</dt>
+<dd>
+<p>Estimator for <code class="reqn">\sigma^2_e</code></p>
+</dd>
+<dt>$beta</dt>
+<dd>
+<p>BLUE(<code class="reqn">\beta</code>)</p>
+</dd>
+<dt>$u</dt>
+<dd>
+<p>BLUP(Sum of <code class="reqn">Zu</code>)</p>
+</dd>
+<dt>$u.each</dt>
+<dd>
+<p>BLUP(Each <code class="reqn">u</code>)</p>
+</dd>
+<dt>$weights</dt>
+<dd>
+<p>The proportion of each genetic variance (corresponding to each kernel of ZETA) to Vu</p>
+</dd>
+<dt>$LL</dt>
+<dd>
+<p>Maximized log-likelihood (full or restricted, depending on method)</p>
+</dd>
+<dt>$Vinv</dt>
+<dd>
+<p>The inverse of <code class="reqn">V = Vu \times ZKZ' + Ve \times I</code></p>
+</dd>
+<dt>$Hinv</dt>
+<dd>
+<p>The inverse of <code class="reqn">H = ZKZ' + \lambda I</code></p>
+</dd>
+</dl>
+<h3>References</h3>
+
+<p>Kang, H.M. et al. (2008) Efficient Control of Population Structure
+in Model Organism Association Mapping. Genetics. 178(3): 1709-1723.
+</p>
+<p>Zhou, X. and Stephens, M. (2012) Genome-wide efficient mixed-model analysis
+for association studies. Nat Genet. 44(7): 821-824.
+</p>
+<p>Lippert, C. et al. (2014) Greater power and computational efficiency for kernel-based
+association testing of sets of genetic variants. Bioinformatics. 30(22): 3206-3214.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+
+
+  ### Import RAINBOWR
+  require(RAINBOWR)
+  
+  ### Load example datasets
+  data("Rice_Zhao_etal")
+  Rice_geno_score &lt;- Rice_Zhao_etal$genoScore
+  Rice_geno_map &lt;- Rice_Zhao_etal$genoMap
+  Rice_pheno &lt;- Rice_Zhao_etal$pheno
+  
+  ### View each dataset
+  See(Rice_geno_score)
+  See(Rice_geno_map)
+  See(Rice_pheno)
+  
+  ### Select one trait for example
+  trait.name &lt;- "Flowering.time.at.Arkansas"
+  y &lt;- as.matrix(Rice_pheno[, trait.name, drop = FALSE])
+  
+  ### Remove SNPs whose MAF &lt;= 0.05
+  x.0 &lt;- t(Rice_geno_score)
+  MAF.cut.res &lt;- MAF.cut(x.0 = x.0, map.0 = Rice_geno_map)
+  x &lt;- MAF.cut.res$x
+  map &lt;- MAF.cut.res$map
+  
+  
+  ### Estimate additive genomic relationship matrix (GRM)
+  K.A &lt;- calcGRM(genoMat = x)
+  
+  
+  ### Modify data
+  Z &lt;- design.Z(pheno.labels = rownames(y),
+                geno.names = rownames(K.A))  ### design matrix for random effects
+  pheno.mat &lt;- y[rownames(Z), , drop = FALSE]
+  ZETA &lt;- list(A = list(Z = Z, K = K.A))
+  
+  
+  ### Including the additional linear kernel for chromosome 12
+  chrNo &lt;- 12
+  W.A &lt;- x[, map$chr == chrNo]    ### marker genotype data of chromosome 12
+  
+  Zs0 &lt;- list(A.part = Z)
+  Ws0 &lt;- list(A.part = W.A)       ### This will be regarded as linear kernel
+  ### for the variance-covariance matrix of another random effects.
+  
+  
+  ### Solve multi-kernel linear mixed effects model (2 random efects)
+  EM3.linker.res &lt;- EM3.linker.cpp(y0 = pheno.mat, X0 = NULL, ZETA = ZETA,
+                                   Zs0 = Zs0, Ws0 = Ws0)
+  (Vu &lt;- EM3.linker.res$Vu)   ### estimated genetic variance
+  (Ve &lt;- EM3.linker.res$Ve)   ### estimated residual variance
+  (weights &lt;- EM3.linker.res$weights)   ### estimated proportion of two genetic variances
+  (herit &lt;- Vu * weights / (Vu + Ve))   ### genomic heritability (all chromosomes, chromosome 12)
+  
+  (beta &lt;- EM3.linker.res$beta)   ### Here, this is an intercept.
+  u.each &lt;- EM3.linker.res$u.each   ### estimated genotypic values (all chromosomes, chromosome 12)
+  See(u.each)
+
+</code></pre>
+
+
+</div>

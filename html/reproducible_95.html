@@ -1,0 +1,157 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Copy</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Recursive copying of nested environments, and other "hard to copy" objects</h2>
+
+<h3>Description</h3>
+
+<p>When copying environments and all the objects contained within them, there are
+no copies made: it is a pass-by-reference operation. Sometimes, a deep copy is
+needed, and sometimes, this must be recursive (i.e., environments inside
+environments).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">Copy(object, ...)
+
+## S4 method for signature 'ANY'
+Copy(
+  object,
+  filebackedDir,
+  drv = getDrv(getOption("reproducible.drv", NULL)),
+  conn = getOption("reproducible.conn", NULL),
+  verbose = getOption("reproducible.verbose"),
+  ...
+)
+
+## S4 method for signature 'data.table'
+Copy(object, ...)
+
+## S4 method for signature 'list'
+Copy(object, ...)
+
+## S4 method for signature 'refClass'
+Copy(object, ...)
+
+## S4 method for signature 'data.frame'
+Copy(object, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>An R object (likely containing environments) or an environment.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Only used for custom Methods</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>filebackedDir</code></td>
+<td>
+<p>A directory to copy any files that are backing R objects,
+currently only valid for <code>Raster</code> classes. Defaults
+to <code>.reproducibleTempPath()</code>, which is unlikely to be very useful.
+Can be <code>NULL</code>, which means that the file will not be
+copied and could therefore cause a collision as the
+pre-copied object and post-copied object would have the same
+file backing them.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drv</code></td>
+<td>
+<p>if using a database backend, drv must be an object that
+inherits from DBIDriver e.g., from package RSQLite, e.g., SQLite</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>conn</code></td>
+<td>
+<p>an optional DBIConnection object, as returned by dbConnect().</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Numeric, -1 silent (where possible), 0 being very quiet,
+1 showing more messaging, 2 being more messaging, etc.
+Default is 1. Above 3 will output much more information about the internals of
+Caching, which may help diagnose Caching challenges. Can set globally with an
+option, e.g., <code style="white-space: pre;">⁠options('reproducible.verbose' = 0) to reduce to minimal⁠</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>To create a new Copy method for a class that needs its own method, try something like
+shown in example and put it in your package (or other R structure).
+</p>
+
+
+<h3>Value</h3>
+
+<p>The same object as <code>object</code>, but with pass-by-reference class elements "deep" copied.
+<code>reproducible</code> has methods for several classes.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Eliot McIntire
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>.robustDigest()</code>, <code>Filenames()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">e &lt;- new.env()
+e$abc &lt;- letters
+e$one &lt;- 1L
+e$lst &lt;- list(W = 1:10, X = runif(10), Y = rnorm(10), Z = LETTERS[1:10])
+ls(e)
+
+# 'normal' copy
+f &lt;- e
+ls(f)
+f$one
+f$one &lt;- 2L
+f$one
+e$one ## uh oh, e has changed!
+
+# deep copy
+e$one &lt;- 1L
+g &lt;- Copy(e)
+ls(g)
+g$one
+g$one &lt;- 3L
+g$one
+f$one
+e$one
+## To create a new deep copy method, use the following template
+## setMethod("Copy", signature = "the class", # where = specify here if not in a package,
+##           definition = function(object, filebackendDir, ...) {
+##           # write deep copy code here
+##           })
+
+</code></pre>
+
+
+</div>

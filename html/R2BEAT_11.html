@@ -1,0 +1,186 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>eval_2stage</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Evaluation of the two-stage sample design optimized solution by simulation
+</h2>
+
+<h3>Description</h3>
+
+<p>The user can indicate the number of samples that must be selected by the optimized frame. First, the true values of the parameters are calculated from the frame. Then, for each sample the sampling estimates are calculated, together with the differences between them and the true values of the parameters.
+At the end, an estimate of the CV is produced for each target variable, in order to compare them
+with the precision constraints set at the beginning of the optimization process.
+If the flag 'writeFiles' is set to TRUE, boxplots of distribution of the CV's in the different 
+domains are produced for each Y variable ('cv.pdf'),
+together with boxplot of the distributions of differences between estimates and values of the parameters
+in the population ('differences.pdf').
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">eval_2stage(df,
+            PSU_code,
+            SSU_code,
+            domain_var,
+            target_vars,
+            PSU_sampled,
+            nsampl = 100, 
+            writeFiles = TRUE) 
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>df</code></td>
+<td>
+
+<p>The sampling frame.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>PSU_code</code></td>
+<td>
+
+<p>In the sampling frame, the identifier of the PSU.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SSU_code</code></td>
+<td>
+
+<p>In the sampling frame, the identifier of the SSU.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>domain_var</code></td>
+<td>
+
+<p>In the sampling frame, the identifier of the domain of interest for the estimates.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target_vars</code></td>
+<td>
+
+<p>In the sampling frame, the variables used to produce the target estimates.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>PSU_sampled</code></td>
+<td>
+
+<p>The set of selected PSUs.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nsampl</code></td>
+<td>
+
+<p>The number of samples to be drawn from the frame.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>writeFiles</code></td>
+<td>
+
+<p>A flag to write in the work directory the outputs of the function. Default is TRUE.
+</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list containing (i) the CV distribution in the domains, (ii) the bias distribution in the domains, (iii) the dataframe containing the sampling
+estimates by domain
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Giulio Barcaroli
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+library(readr)
+pop &lt;- read_rds("https://github.com/barcaroli/R2BEAT_workflows/blob/master/pop.RDS?raw=true")
+library(R2BEAT)
+cv &lt;- as.data.frame(list(DOM=c("DOM1","DOM2"),
+                         CV1=c(0.02,0.03),
+                         CV2=c(0.03,0.05),
+                         CV3=c(0.03,0.05),
+                         CV4=c(0.05,0.08)))
+samp_frame &lt;- pop
+id_PSU &lt;- "municipality"  
+id_SSU &lt;- "id_ind"        
+strata_var &lt;- "stratum"   
+target_vars &lt;- c("income_hh","active","inactive","unemployed")   # more than one
+deff_var &lt;- "stratum"     
+domain_var &lt;- "region"  
+delta =  1     # households = survey units
+minimum &lt;- 50  # minimum number of SSUs to be interviewed in each selected PSU
+deff_sugg &lt;- 1.5  # suggestion for the deff value
+inp &lt;- prepareInputToAllocation1(samp_frame,
+                                id_PSU,
+                                id_SSU,
+                                strata_var,
+                                target_vars,
+                                deff_var,
+                                domain_var,
+                                minimum,
+                                delta,
+                                deff_sugg)
+inp$desfile$MINIMUM &lt;- 50
+alloc &lt;- beat.2st(stratif = inp$strata, 
+                  errors = cv, 
+                  des_file = inp$des_file, 
+                  psu_file = inp$psu_file, 
+                  rho = inp$rho, 
+                  deft_start = NULL,
+                  effst = inp$effst, 
+                  minPSUstrat = 2,
+                  minnumstrat = 50
+                  )
+sample_1st &lt;- select_PSU(alloc, type="ALLOC", pps=TRUE)
+
+df=pop
+df$one &lt;- 1
+PSU_code="municipality"
+SSU_code="id_ind"
+target_vars &lt;- c("income_hh",
+                 "active",
+                 "inactive",
+                 "unemployed")  
+
+PSU_sampled &lt;- sample_1st$sample_PSU
+eval &lt;- eval_2stage(df,
+                    PSU_code,
+                    SSU_code,
+                    domain_var,
+                    target_vars,
+                    PSU_sampled,
+                    nsampl=10, 
+                    writeFiles=TRUE) 
+eval$coeff_var
+eval$rel_bias
+
+## End(Not run)
+</code></pre>
+
+
+</div>

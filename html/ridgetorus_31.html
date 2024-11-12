@@ -1,0 +1,217 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ridge_pca</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Toroidal PCA via density ridges</h2>
+
+<h3>Description</h3>
+
+<p>This function computes the whole process of toroidal PCA
+via density ridges on a given sample: parameter estimation of the
+underlying distribution, estimation of the connected component of the ridge,
+and determination of its Fourier expansion from which to obtain the first
+and second scores.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ridge_pca(
+  x,
+  type = c("auto", "bvm", "bwc")[1],
+  N = 500,
+  K = 15,
+  scale = TRUE,
+  lrts = TRUE,
+  alpha = 0.05,
+  at2 = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>matrix of dimension  <code>c(n, 2)</code> containing the <code>n</code>
+observations of the pair of angles.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>either <code>"bvm"</code> (bivariate sine von Mises), <code>"bwc"</code>
+(bivariate wrapped Cauchy), or <code>"auto"</code> (default). <code>"auto"</code>
+performs both fits and uses the one with lowest BIC.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>N</code></td>
+<td>
+<p>number of discretization points for approximating curve lengths.
+Defaults to <code>5e2</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K</code></td>
+<td>
+<p>number of terms in the Fourier expansion. Defaults to <code>15</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>scale the resulting scores to <code class="reqn">[-\pi, \pi)^2</code>? Defaults
+to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lrts</code></td>
+<td>
+<p>run <code>biv_lrt</code> to check the null hypothesis of
+homogeneous concentration parameters using likelihood ratio tests? If
+<code>TRUE</code> (default), enforces the special horizontal/vertical/diagonal
+cases to become "sticky" fits.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>significance level for the homogeneity test.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>at2</code></td>
+<td>
+<p>do the <code>atan2</code> fit instead of the sine fit (only using
+<code class="reqn">S_m</code>)? Defaults to <code>TRUE</code>. <code>at2 = FALSE</code> is not
+recommended to use.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>optional parameters passed to <code>fit_bvm_mle</code> and
+<code>fit_bwc_mle</code>, such as <code>start</code>, <code>lower</code>, or
+<code>upper</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list with:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>mu_hat</code></td>
+<td>
+<p>estimated circular means of the sample.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coefs_hat</code></td>
+<td>
+<p>estimated Fourier coefficients.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ind_var</code></td>
+<td>
+<p>indexing variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scores</code></td>
+<td>
+<p>scores for each of the sample points.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>var_exp</code></td>
+<td>
+<p>percentage of explained variance.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit_mle</code></td>
+<td>
+<p>maximum likelihood fit.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bic_fit</code></td>
+<td>
+<p>BIC of the fit.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>original sample.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scales</code></td>
+<td>
+<p>vector of length 2 with the scale limits for the axes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>type of fit performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p_hom</code></td>
+<td>
+<p><code class="reqn">p</code>-value of the homogeneity test.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p_indep</code></td>
+<td>
+<p><code class="reqn">p</code>-value of the independence test.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Bivariate von Mises
+
+n &lt;- 100
+x &lt;- r_bvm(n = n, mu = c(1, 2), kappa = c(0.4, 0.4, 0.5))
+fit &lt;- ridge_pca(x = x, type = "bvm")
+show_ridge_pca(fit = fit, col_data = "red")
+
+x &lt;- r_bvm(n = n, mu = c(2, 1), kappa = c(1, 2, 0))
+fit &lt;- ridge_pca(x = x, type = "bvm")
+show_ridge_pca(fit = fit, col_data = "red")
+
+x &lt;- r_bvm(n = n, mu = c(2, 1), kappa = c(3, 2, 0))
+fit &lt;- ridge_pca(x = x, type = "bvm")
+show_ridge_pca(fit = fit, col_data = "red")
+
+## Bivariate wrapped Cauchy
+
+x &lt;- r_bwc(n = n, mu = c(1, 2), xi = c(0.2, 0.2, 0.5))
+fit &lt;- ridge_pca(x = x, type = "bwc")
+show_ridge_pca(fit = fit, col_data = "red")
+
+x &lt;- r_bwc(n = n, mu = c(1, 2), xi = c(0.2, 0.8, 0))
+fit &lt;- ridge_pca(x = x, type = "bwc")
+show_ridge_pca(fit = fit, col_data = "red")
+
+x &lt;- r_bwc(n = n, mu = c(1, 2), xi = c(0.5, 0.2, 0))
+fit &lt;- ridge_pca(x = x, type = "bwc")
+show_ridge_pca(fit = fit, col_data = "red")
+</code></pre>
+
+
+</div>

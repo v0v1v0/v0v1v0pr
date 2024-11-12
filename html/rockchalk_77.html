@@ -1,0 +1,216 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>residualCenter</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculates a "residual-centered" interaction regression.</h2>
+
+<h3>Description</h3>
+
+<p>Given a fitted <code>lm</code>, this function scans for coefficients
+estimated from "interaction terms" by checking for colon
+symbols. The function then calculates the "residual centered"
+estimate of the interaction term and replaces the interaction term
+with that residual centered estimate. It works for any order of
+interaction, unlike other implementations of the same
+approach. The function <code>lmres</code> in the now-archived package
+pequod was a similar function.
+</p>
+<p>Calculates predicted values of
+residual centered interaction regressions estimated in
+any type of regression framework (lm, glm, etc).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">residualCenter(model)
+
+## Default S3 method:
+residualCenter(model)
+
+## S3 method for class 'rcreg'
+predict(object, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>A fitted lm object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>Fitted residual-centered regression from residualCenter</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Other named arguments. May include newdata, a dataframe of 
+predictors. That should include values for individual predictor, need 
+not include interactions that are constructed by residualCenter. 
+These parameters that will be passed to the predict method of the model.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>a regression model of the type as the input model, with
+the exception that the residualCentered predictor is used in place
+of the original interaction. The return model includes new
+variable centeringRegressions: a list including each of the
+intermediate regressions that was calculated in order to create
+the residual centered interaction terms. These latter objects may
+be necessary for diagnostics and to calculate predicted values for
+hypothetical values of the inputs. If there are no interactive
+terms, then NULL is returned.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Paul E. Johnson <a href="mailto:pauljohn@ku.edu">pauljohn@ku.edu</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>Little, T. D., Bovaird, J. A.,
+&amp; Widaman, K. F. (2006). On the Merits of Orthogonalizing
+Powered and Product Terms: Implications for Modeling
+Interactions Among Latent Variables.
+Structural Equation Modeling, 13(4), 497-519.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">set.seed(123)
+x1 &lt;- rnorm(100)
+x2 &lt;- rnorm(100)
+x3 &lt;- rnorm(100)
+x4 &lt;- rnorm(100)
+y &lt;- rnorm(100)
+dat &lt;- data.frame(y, x1,x2,x3,x4)
+rm(x1,x2,x3,x4,y)
+m1 &lt;- lm(y~ x1*x2 + x4, data = dat)
+ 
+m1RC &lt;- residualCenter(m1)
+
+m1RCs &lt;- summary(m1RC)
+## The stage 1 centering regressions can be viewed as well
+## lapply(m1RC$rcRegressions, summary)
+
+## Verify residualCenter() output against the manual calculation
+dat$x1rcx2 &lt;- as.numeric(resid(lm(I(x1*x2) ~ x1 + x2, data = dat)))
+m1m &lt;- lm(y ~ x1 + x2 + x4 + x1rcx2, data=dat)
+summary(m1m)
+cbind("residualCenter" = coef(m1RC), "manual" = coef(m1m))
+
+
+m2 &lt;- lm(y~ x1*x2*x3 + x4, data=dat)
+m2RC &lt;- residualCenter(m2)
+m2RCs &lt;- summary(m2RC)
+
+## Verify that result manually
+dat$x2rcx3 &lt;- as.numeric(resid(lm(I(x2*x3) ~ x2 + x3, data = dat)))
+dat$x1rcx3 &lt;- as.numeric(resid(lm(I(x1*x3) ~ x1 + x3, data = dat)))
+dat$x1rcx2rcx3 &lt;- as.numeric( resid(lm(I(x1*x2*x3) ~ x1 + x2 + x3 + x1rcx2 +
+                                       x1rcx3 + x2rcx3 , data=dat)))
+(m2m &lt;- lm(y ~ x1 + x2 + x3+ x4 + x1rcx2 + x1rcx3 + x2rcx3 + x1rcx2rcx3,
+           data = dat))
+
+cbind("residualCenter" = coef(m2RC), "manual" = coef(m2m))
+
+
+### As good as pequod's lmres
+### not run because pequod generates R warnings
+###
+### if (require(pequod)){
+###  pequodm1 &lt;- lmres(y ~ x1*x2*x3 + x4, data=dat) 
+###  pequodm1s &lt;- summary(pequodm1)
+###  coef(pequodm1s)
+### }
+
+### Works with any number of interactions. See:
+
+m3 &lt;- lm(y~ x1*x2*x3*x4, data=dat)
+m3RC &lt;- residualCenter(m3)
+summary(m3RC)
+##'
+## Verify that one manually (Gosh, this is horrible to write out)
+dat$x1rcx4 &lt;- as.numeric(resid(lm(I(x1*x4) ~ x1 + x4, data=dat)))
+dat$x2rcx4 &lt;- as.numeric(resid(lm(I(x2*x4) ~ x2 + x4, data=dat)))
+dat$x3rcx4 &lt;- as.numeric(resid(lm(I(x3*x4) ~ x3 + x4, data=dat)))
+dat$x1rcx2rcx4 &lt;- as.numeric(resid(lm(I(x1*x2*x4) ~ x1 + x2 + x4 +
+                                      x1rcx2 + x1rcx4 + x2rcx4, data=dat)))
+dat$x1rcx3rcx4 &lt;- as.numeric(resid(lm(I(x1*x3*x4) ~ x1 + x3 + x4 +
+                                      x1rcx3 + x1rcx4 + x3rcx4, data=dat)))
+dat$x2rcx3rcx4 &lt;- as.numeric(resid(lm(I(x2*x3*x4) ~ x2 + x3 + x4 +
+                                      x2rcx3 + x2rcx4 + x3rcx4, data=dat)))
+dat$x1rcx2rcx3rcx4 &lt;-
+    as.numeric(resid(lm(I(x1*x2*x3*x4) ~ x1 + x2 + x3 + x4 +
+                        x1rcx2 + x1rcx3 + x2rcx3 + x1rcx4  + x2rcx4 +
+                        x3rcx4  + x1rcx2rcx3 + x1rcx2rcx4 + x1rcx3rcx4 +
+                        x2rcx3rcx4, data=dat)))
+(m3m &lt;- lm(y ~ x1 + x2 + x3 + x4 + x1rcx2 + x1rcx3 + x2rcx3 + x1rcx4 +
+           x2rcx4 + x3rcx4 + x1rcx2rcx3 + x1rcx2rcx4 + x1rcx3rcx4 +
+           x2rcx3rcx4 + x1rcx2rcx3rcx4, data=dat))
+
+cbind("residualCenter"=coef(m3RC), "manual"=coef(m3m))
+
+### If you want to fit a sequence of models, as in pequod, can do.
+
+tm &lt;-terms(m2)
+tmvec &lt;- attr(terms(m2), "term.labels")
+f1 &lt;- tmvec[grep(":", tmvec, invert = TRUE)]
+f2 &lt;- tmvec[grep(":.*:", tmvec, invert = TRUE)]
+f3 &lt;- tmvec[grep(":.*:.*:", tmvec, invert = TRUE)]
+
+## &gt; f1
+## [1] "x1" "x2" "x3" "x4"
+## &gt; f2
+## [1] "x1"    "x2"    "x3"    "x4"    "x1:x2" "x1:x3" "x2:x3"
+## &gt; f3
+## [1] "x1"       "x2"       "x3"       "x4"       "x1:x2"    "x1:x3"    "x2:x3"   
+## [8] "x1:x2:x3"
+
+f1 &lt;- lm(as.formula(paste("y","~", paste(f1, collapse=" + "))), data=dat)
+f1RC &lt;- residualCenter(f1)
+summary(f1RC)
+
+f2 &lt;- lm(as.formula(paste("y","~", paste(f2, collapse=" + "))), data=dat)
+f2RC &lt;- residualCenter(f2)
+summary(f2RC)
+
+f3 &lt;- lm(as.formula(paste("y","~", paste(f3, collapse=" + "))), data=dat)
+f3RC &lt;- residualCenter(f3)
+summary(f3RC)
+
+library(rockchalk)
+dat &lt;- genCorrelatedData(1000, stde=5)
+
+m1 &lt;- lm(y ~ x1 * x2, data=dat)
+
+m1mc &lt;- meanCenter(m1)
+summary(m1mc)
+
+m1rc &lt;- residualCenter(m1)
+summary(m1rc)
+
+
+newdf &lt;- apply(dat, 2, summary)
+newdf &lt;- as.data.frame(newdf)
+
+predict(m1rc, newdata=newdf)
+</code></pre>
+
+
+</div>

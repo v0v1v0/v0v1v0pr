@@ -1,0 +1,240 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>slot_agg_list</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>A class to control how RiverWare data are aggregated</h2>
+
+<h3>Description</h3>
+
+<p><code>"slot_agg_list"</code> is a class that contains a set of RiverWare slots, which
+rdf file they are found in, and a set of keywords that are used to control
+how <code>getDataForAllScens()</code> aggregates RiverWare data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">slot_agg_list(x)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Either an Nx4 character matrix or a character with an absolute
+or relative path to a csv file.</p>
+</td>
+</tr></table>
+<h3>Details</h3>
+
+<p>The <code>slot_agg_list</code> class, contains a list that includes: which rdf file to
+find each slot in, how to aggregate and process the slot data, and any
+thresholds or scaling factors. The function can either read in a csv file or
+start from an N x 4 or N x 5 string matrix (the 5th column is optional).
+</p>
+<p>The csv file and the matrix should be in the form of an Nx4 or Nx5 matrix.
+Each row is a single slot, aggregation, and threshold combination. If you
+want to compare a single slot value to multiple thresholds, it needs to have
+one row for each threshold. The first column is the rdf the slot is found in.
+The second column is the slot name. The third column is the aggregation
+method that will be applied to the slot (see below for a list of the
+aggregation methods).  The fourth column is a scaling factor or threshold to
+compare the slot data to. The fifth column is an optional column; if
+specified, the 5th column will be used for the variable name for the
+data.frame created by <code>getDataForAllScens()</code>. If it is not specified
+the variable name will be created by concatenating the slot, aggregation
+method, and threshold/scaling factor using '_' to separate the columns.
+Below is an example table. All values should be strings except for <code>NA</code>,
+if specified as a matrix in R.
+</p>
+
+<table>
+<tr>
+<td style="text-align: center;">
+<strong>rdf</strong> </td>
+<td style="text-align: center;"> <strong>Slot</strong> </td>
+<td style="text-align: center;"> <strong>Aggregation Method</strong> </td>
+<td style="text-align: center;">
+<strong>Threshold or Scaling Factor</strong> </td>
+<td style="text-align: center;"> <strong>Variable Name (optional)</strong>
+</td>
+</tr>
+<tr>
+<td style="text-align: center;">
+'KeySlots.rdf' </td>
+<td style="text-align: center;"> 'Mead.Pool Elevation' </td>
+<td style="text-align: center;"> 'EOCY' </td>
+<td style="text-align: center;"> NA </td>
+<td style="text-align: center;"> Mead EOCY Elevation</td>
+</tr>
+<tr>
+<td style="text-align: center;">
+'KeySlots.rdf' </td>
+<td style="text-align: center;"> 'Mead.Pool Elevation' </td>
+<td style="text-align: center;"> 'AnnMinLTE' </td>
+<td style="text-align: center;"> '1100' </td>
+<td style="text-align: center;"> Mead &lt; 1,100</td>
+</tr>
+<tr>
+<td style="text-align: center;">
+'KeySlots.rdf' </td>
+<td style="text-align: center;"> 'Mead.Pool Elevation' </td>
+<td style="text-align: center;"> 'AnnMinLTE' </td>
+<td style="text-align: center;"> '1060' </td>
+<td style="text-align: center;"> Mead &lt; 1,060</td>
+</tr>
+<tr>
+<td style="text-align: center;">
+'Other.rdf' </td>
+<td style="text-align: center;"> 'Powell.Outflow' </td>
+<td style="text-align: center;"> 'AnnualSum' </td>
+<td style="text-align: center;"> '0.001' </td>
+<td style="text-align: center;"> Powell Annual Release</td>
+</tr>
+<tr>
+<td style="text-align: center;">
+</td>
+</tr>
+</table>
+<p>The above table lists each slot, the rdf the slot is saved in, the summary
+function, the threshold to be used to scale the data by or compare the data
+to, and an optionally specified variable name. The threshold and scaling
+factors are described in more detail below. For example, the first row will
+result in compiling all end-of-December values for Mead's pool elevation.
+The data will not be scaled, and <code>getDataForAllScens()</code> will look in
+KeySlots.rdf for the "Mead.Pool Elevation" slot. The second row will find
+the annual minimum Mead pool elevation and see if it is less than or equal
+to 1,100' feet in the second line and less than or equal to 1,060' feet in
+the third row.
+</p>
+<p>To scale the data by a value less than 1, use decimals rather than fractions,
+as shown in the fourth row. If the Variable Name column was not specified,
+the variable name for the first row would be <code style="white-space: pre;">⁠Mead.Pool Elevation_EOCY_1⁠</code>
+<code>NA</code> is replaced with a 1 when constructing the variable names.
+</p>
+<p>See the <strong>Aggregation Methods</strong> section for available aggregation methods.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A  <code>slot_agg_list</code>  object.
+</p>
+
+
+<h3>Aggregation Methods</h3>
+
+<p>The available aggregation methods are as follows. The behavior of the
+"Threshold or scaling factor" are described and a bold <strong>"Threshold"</strong> or
+<strong>"Scaled"</strong> indicates which is used by the aggregation method. For scaling
+factors, a value of <code>NA</code> will not scale the data.
+</p>
+
+<dl>
+<dt>'AnnMin'</dt>
+<dd>
+<p>Returns the minimum annual <strong>scaled</strong> value.</p>
+</dd>
+<dt>'AnnMax'</dt>
+<dd>
+<p>Returns the maximum annual <strong>scaled</strong> value.</p>
+</dd>
+<dt>'AnnualSum'</dt>
+<dd>
+<p>Returns the annual <strong>scaled</strong> sum.</p>
+</dd>
+<dt>'AnnMinLTE'</dt>
+<dd>
+<p>Checks to see if the annual minimum value is less than or
+equal to a <strong>threshold.</strong> Returns 1 if it is less than or equal to
+the <strong>threshold</strong> and 0 otherwise.</p>
+</dd>
+<dt>'AnnualRaw'</dt>
+<dd>
+<p>Returns the annual <strong>scaled</strong> data. This aggregation
+method should only be used if the rdf file contains only annual data. For
+rdf files that include monthly data and only an annual value is desired, the
+EOCY aggregation method should be used. This differs from the Monthly
+aggregation method, only in the timestep naming.</p>
+</dd>
+<dt>'BOCY'</dt>
+<dd>
+<p>Beginning-of-calendar year values are reported and
+<strong>scaled</strong>. Any values that are NaNs are changed to 0s.</p>
+</dd>
+<dt>'EOCY'</dt>
+<dd>
+<p>End-of-calendar year values are reported and <strong>scaled</strong>.
+Any values that are NaNs are changed to 0s.</p>
+</dd>
+<dt>'EOCYGTE'</dt>
+<dd>
+<p>Checks to see if the end-of-calendar year values are
+greater than or equal to a <strong>threshold</strong>. Returns 1 if it is greater
+than or equal to the <strong>threshold</strong> and 0 otherwise.</p>
+</dd>
+<dt>'EOCYLTE'</dt>
+<dd>
+<p>Checks to see if the end-of-calendar year values are less
+than or equal to a <strong>threshold</strong>. Returns 1 if it is less than or
+equal to the <strong>threshold</strong> and 0 otherwise.</p>
+</dd>
+<dt>'EOWY'</dt>
+<dd>
+<p>End-of-water year values are reported and <strong>scaled</strong>.
+Any values that are NaNs are changed to 0s.</p>
+</dd>
+<dt>'Monthly'</dt>
+<dd>
+<p>Returns the monthly <strong>scaled</strong> data.</p>
+</dd>
+<dt>'WYMaxLTE'</dt>
+<dd>
+<p>Checks to see if the maximum water year value is less than
+or equal to a <strong>threshold.</strong> Returns 1 if it is less than or equal to
+the <strong>threshold</strong> and 0 otherwise. This can be used to determine if an
+entire water year is below a <strong>threshold</strong>. The water year is defined
+as October through September of the next year. For the first year, only
+January through September are evaluated as RiverWare does not typically
+export pre-simulation data.</p>
+</dd>
+<dt>'WYMinLTE'</dt>
+<dd>
+<p>Checks to see if the minimum water year value is less than
+or equal to a <strong>threshold.</strong> Returns 1 if it is less than or equal to
+the <strong>threshold</strong> and 0 otherwise. The water year is defined as October
+through September of the next year. For the first year, only January through
+September are evaluated as RiverWare does not typically export
+pre-simulation data.</p>
+</dd>
+</dl>
+<h3>See Also</h3>
+
+<p><code>getDataForAllScens()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># read in a csv file that contains the data
+slot_agg_list(
+  system.file('extdata','SlotAggTable.csv',package = 'RWDataPlyr')
+)
+
+# or specify as a matrix
+slot_agg_matrix &lt;- matrix(
+  c("KeySlots.rdf", "Powell.Outflow", "AnnualSum", ".001", "powellAnnRel", 
+  "KeySlots.rdf", "Mead.Pool Elevatoin", "AnnMinLTE", "1050", "meadLt1050"), 
+  nrow = 2, 
+  byrow = TRUE
+)
+slot_agg_list(slot_agg_matrix)
+
+</code></pre>
+
+
+</div>

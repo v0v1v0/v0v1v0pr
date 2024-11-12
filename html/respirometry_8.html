@@ -1,0 +1,168 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>calc_pcrit</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate Pcrit</h2>
+
+<h3>Description</h3>
+
+<p>Calculates Pcrit (commonly understood as the threshold below which oxygen consumption rate can no longer be sustained) based on paired PO2 and MO2 values. Five Pcrit metrics are returned using many of the popular techniques for Pcrit calculation: the traditional breakpoint metric (broken stick regression), the nonlinear regression metric (Marshall et al. 2013), the sub-prediction interval metric (Birk et al. 2019), the alpha-based Pcrit method (Seibel et al. 2021), and the linear low O2 (LLO) method (Reemeyer &amp; Rees 2019). To see the Pcrit values plotted, see <code>plot_pcrit</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">calc_pcrit(
+  po2,
+  mo2,
+  mo2_data,
+  method = "Breakpoint",
+  avg_top_n = 1,
+  level = 0.95,
+  iqr = 1.5,
+  NLR_m = 0.065,
+  MR = NULL,
+  mo2_threshold = Inf,
+  return_models = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>po2</code></td>
+<td>
+<p>a vector of PO2 values. Any unit of measurement should work, but the NLR calculation was optimized using kPa. If the NLR metric is giving you trouble, try converting to kPa using <code>conv_o2</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mo2</code></td>
+<td>
+<p>a vector of metabolic rate values. Must be the same length and corresponding to <code>po2</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mo2_data</code></td>
+<td>
+<p>for convenience, the output of <code>calc_MO2</code> can be entered here, as an alternative to specifying the <code>po2</code> and <code>mo2</code> parameters (optional).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Over the years, many different methods of analysis have been proposed to quantify Pcrit. You must choose one of the following: Alpha, Breakpoint (default), LLO, NLR, Sub_PI, All. If in doubt, try "All".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>avg_top_n</code></td>
+<td>
+<p>applies to the <code>alpha</code> metric only (only when <code>method == "Alpha"</code> or <code>"All"</code>). A numeric value representing the number of top <code class="reqn">\alpha0</code> (MO2/PO2) values to average together to estimate <code class="reqn">\alpha</code>. Default is 1. We recommend no more than 3 to avoid diminishing the <code class="reqn">\alpha</code> value with sub-maximal observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>level</code></td>
+<td>
+<p>applies to the <code>Sub_PI</code> metric only (only when <code>method == "Sub_PI"</code> or <code>"All"</code>). Percentage at which the prediction interval should be constructed. Default is 0.95.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iqr</code></td>
+<td>
+<p>applies to the <code>Sub_PI</code> metric only (only when <code>method == "Sub_PI"</code> or <code>"All"</code>). Removes <code>mo2</code> observations that are this many interquartile ranges away from the mean value for the oxyregulating portion of the trial. If this filtering is not desired, set to infinity. To visualize which observations will be removed by this parameter, use <code>plot_pcrit</code>. Default is 1.5.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>NLR_m</code></td>
+<td>
+<p>applies to the <code>NLR</code> metric only (only when <code>method == "NLR"</code> or <code>"All"</code>). Pcrit is defined as the PO2 at which the slope of the best fitting function equals <code>NLR_m</code> (after the MO2 data are normalized to the 90% quantile). Default is 0.065.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>MR</code></td>
+<td>
+<p>applies to the <code>alpha</code> and <code>LLO</code> metrics only (only when <code>method == "Alpha", "LLO"</code> or <code>"All"</code>). A numeric value for the metabolic rate at which <code>pcrit_alpha</code> and <code>pcrit_LLO</code> should be returned. If not supplied by the user, then the mean MO2 of the "oxyregulating" portion of the curve is applied for <code>pcrit_alpha</code> and <code>NA</code> is returned for <code>pcrit_LLO</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mo2_threshold</code></td>
+<td>
+<p>applies to the <code>alpha</code> metric only (only when <code>method == "Alpha"</code> or <code>"All"</code>). A single numeric value above which <code>mo2</code> values are ignored for <code>alpha</code> Pcrit estimation. Useful to removing obviously erroneous values. Default is <code>Inf</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return_models</code></td>
+<td>
+<p>logical. Should a list of model parameters be returned along with the converged Pcrit values? Default is <code>FALSE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+
+<dl>
+<dt>Alpha Pcrit</dt>
+<dd>
+<p>Alpha is calculated from <code>calc_alpha</code> and the Pcrit corresponding to <code>MR</code> is returned. This determine's the animal's oxygen supply capacity and calculates the Pcrit at any given metabolic rate of interest. If no <code>MR</code> is provided, then it defaults to the mean MO2 value from the oxyregulating portion of the curve (as defined by the broken-stick regression).</p>
+</dd>
+<dt>Breakpoint Pcrit</dt>
+<dd>
+<p>Data are fit to a broken-stick regression using <code>segmented</code>.</p>
+</dd>
+<dt>LLO Pcrit</dt>
+<dd>
+<p>A subset of observations are chosen only from those with an MO2 &lt; <code>MR</code>. Then, a linear model is fit through the observations and Pcrit is calculated as the PO2 at which the line reaches <code>MR</code>.</p>
+</dd>
+<dt>NLR Pcrit</dt>
+<dd>
+<p>Data are fit to the following functions: Michaelis-Menten, Power, Hyperbola, Pareto, and Weibull with intercept. Following the method developed by Marshall et al. 2013, the function that best fits the data (smallest AIC) is chosen and the Pcrit is determined as the PO2 at which the slope of the function is <code>NLR_m</code> (by default = 0.065 following the authors' suggestion).</p>
+</dd>
+<dt>Sub_PI Pcrit</dt>
+<dd>
+<p>This metric builds off the <code>Breakpoint</code> metric and results in a systematically lower Pcrit value. This is useful for applications where it is important to ensure that Pcrit is not being overestimated. It represents a reasonable lower bounded estimate of the Pcrit value for a given trial. Once the <code>Breakpoint</code> Pcrit is calculated, a 95% prediction interval (can be changed with the <code>level</code> argument) is calculated around the oxyregulating region (i.e. using PO2 values &gt; breakpoint Pcrit). By default, <code>iqr</code> provides some filtering of abberant observations to prevent their influence on the calculated prediction interval. Finally, the Sub_PI Pcrit value is returned at the intersection of the oxyconforming line and the lower limit of the oxyregulating prediction interval.</p>
+</dd>
+</dl>
+<h3>Value</h3>
+
+<p>If <code>return_models</code> is <code>FALSE</code> (default), a numeric Pcrit value is returned based on <code>method</code>. If <code>method == "All"</code>, a named numeric vector of Pcrit values calculated using the <code>Alpha</code>, <code>Breakpoint</code>, <code>LLO</code>, <code>NLR</code>, and <code>Sub_PI</code> metrics is returned. If <code>return_models</code> is <code>TRUE</code>, then a list of converged Pcrit values, along with breakpoint function parameters, the <code>MR</code> value used for calculating Pcrit-alpha, a data frame of the "oxyregulating" portion of the curve, and NLR parameters are returned.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Matthew A. Birk, <a href="mailto:matthewabirk@gmail.com">matthewabirk@gmail.com</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>Birk, Matthew A., K.A.S. Mislan, Karen F. Wishner, and Brad A. Seibel. 2019. “Metabolic Adaptations of the Pelagic Octopod Japetella Diaphana to Oxygen Minimum Zones.” Deep-Sea Research Part I 148: 123–31.
+</p>
+<p>Marshall, Dustin J., Michael Bode, and Craig R. White. 2013. “Estimating Physiological Tolerances - a Comparison of Traditional Approaches to Nonlinear Regression Techniques.” Journal of Experimental Biology 216(12): 2176–82.
+</p>
+<p>Reemeyer, Jessica E., and Bernard B. Rees. 2019. “Standardizing the Determination and Interpretation of Pcrit in Fishes.” Journal of Experimental Biology 222(18): jeb210633.
+</p>
+<p>Seibel, B. A., A. Andres, M. A. Birk, A. L. Burns, C. T. Shaw, A. W. Timpe, C. J. Welsh. 2021. “Oxygen supply capacity breathes new life into the critical oxygen partial pressure (Pcrit).” Journal of Experimental Biology.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>plot_pcrit</code>, <code>calc_MO2</code>, <code>conv_o2</code>, <code>calc_alpha</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">raw_data &lt;- system.file('extdata/pcrit_run/', package = 'respirometry')
+o2_data &lt;- import_pyroscience_workbench(folder = raw_data)
+mo2_data &lt;- calc_MO2(duration = o2_data$DURATION, o2 = o2_data$CH_1_O2, bin_width = 10, vol = 3)
+calc_pcrit(mo2_data = mo2_data)
+calc_pcrit(po2 = mo2_data$O2_MEAN, mo2 = mo2_data$MO2, method = 'All', MR = 100)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,189 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>expose</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Expose data to rule packs</h2>
+
+<h3>Description</h3>
+
+<p>Function for applying rule packs to data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">expose(.tbl, ..., .rule_sep = inside_punct("\\._\\."),
+  .remove_obeyers = TRUE, .guess = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>.tbl</code></td>
+<td>
+<p>Data frame of interest.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Rule packs. They can be in pure form or inside a list
+(at any depth).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.rule_sep</code></td>
+<td>
+<p>Regular expression used as separator between column and
+rule names in col packs and cell packs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.remove_obeyers</code></td>
+<td>
+<p>Whether to remove elements which obey rules from
+report.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.guess</code></td>
+<td>
+<p>Whether to guess type of unsupported rule pack type (see
+Details).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>expose()</code> applies all supplied rule packs to data, creates an
+exposure object based on results and stores it to attribute 'exposure'.
+It is guaranteed that <code>.tbl</code> is not modified in any other way in order to
+use <code>expose()</code> inside a <code>pipe</code>.
+</p>
+<p>It is a good idea to name all rule packs: explicitly in <code>...</code> (if they are
+supplied not inside list) or during creation with respective rule pack
+function. In case of missing name it is imputed based on possibly existing
+exposure attribute in <code>.tbl</code> and supplied rule packs. Imputation is similar
+to one in <code>rules()</code> but applied to every pack type separately.
+</p>
+<p>Default value for <code>.rule_sep</code> is the regular expression <code style="white-space: pre;">⁠characters ._. surrounded by non alphanumeric characters⁠</code>. It is picked to be used
+smoothly with <code>dplyr</code>'s scoped verbs and <code>rules()</code> instead
+of pure list. In most cases it shouldn't be changed but if needed it
+should align with <code>.prefix</code> in <code>rules()</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>.tbl</code> with possibly added 'exposure' attribute containing the
+resulting exposure. If <code>.tbl</code> already contains 'exposure' attribute then
+the result is binded with it.
+</p>
+
+
+<h3>Guessing</h3>
+
+<p>To work properly in some edge cases one should specify pack types with
+appropriate function. However with <code>.guess</code> equals to <code>TRUE</code>
+<code>expose</code> will guess the pack type based on its output after applying to
+<code>.tbl</code>. It uses the following features:
+</p>
+
+<ul>
+<li>
+<p> Presence of non-logical columns: if present then the guess is group pack. Grouping columns are guessed as all non-logical. This
+works incorrectly if some grouping column is logical: it will be guessed as
+result of applying the rule. <strong>Note</strong> that on most occasions this edge case
+will produce error about grouping columns define non-unique levels.
+</p>
+</li>
+<li>
+<p> Combination of whether number of rows equals 1 (<code>n_rows_one</code>) and
+presence of <code>.rule_sep</code> in all column names (<code>all_contain_sep</code>). Guesses
+are:
+</p>
+
+<ul>
+<li> <p>Data pack if <code>n_rows_one == TRUE</code> and <code>all_contain_sep   == FALSE</code>.
+</p>
+</li>
+<li> <p>Column pack if <code>n_rows_one == TRUE</code> and
+<code>all_contain_sep == TRUE</code>.
+</p>
+</li>
+<li> <p>Row pack if <code>n_rows_one == FALSE</code> and <code>all_contain_sep ==   FALSE</code>. This works incorrectly if output has one row which is checked.
+In this case it will be guessed as data pack.
+</p>
+</li>
+<li> <p>Cell pack if <code>n_rows_one == FALSE</code> and <code>all_contain_sep   == TRUE</code>. This works incorrectly if output has one row in which cells
+are checked. In this case it will be guessed as column pack.
+</p>
+</li>
+</ul>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">my_rule_pack &lt;- . %&gt;% dplyr::summarise(nrow_neg = nrow(.) &lt; 0)
+my_data_packs &lt;- data_packs(my_data_pack_1 = my_rule_pack)
+
+# These pipes give identical results
+mtcars %&gt;%
+  expose(my_data_packs) %&gt;%
+  get_report()
+
+mtcars %&gt;%
+  expose(my_data_pack_1 = my_rule_pack) %&gt;%
+  get_report()
+
+# This throws an error because no pack type is specified for my_rule_pack
+## Not run: 
+mtcars %&gt;% expose(my_data_pack_1 = my_rule_pack, .guess = FALSE)
+
+## End(Not run)
+
+# Edge cases against using 'guess = TRUE' for robust code
+group_rule_pack &lt;- . %&gt;%
+  dplyr::mutate(vs_one = vs == 1) %&gt;%
+  dplyr::group_by(vs_one, am) %&gt;%
+  dplyr::summarise(n_low = dplyr::n() &gt; 10)
+group_rule_pack_dummy &lt;- . %&gt;%
+  dplyr::mutate(vs_one = vs == 1) %&gt;%
+  dplyr::group_by(mpg, vs_one, wt) %&gt;%
+  dplyr::summarise(n_low = dplyr::n() &gt; 10)
+row_rule_pack &lt;- . %&gt;% dplyr::transmute(neg_row_sum = rowSums(.) &lt; 0)
+cell_rule_pack &lt;- . %&gt;% dplyr::transmute_all(rules(neg_value = . &lt; 0))
+
+# Only column 'am' is guessed as grouping which defines non-unique levels.
+## Not run: 
+mtcars %&gt;%
+  expose(group_rule_pack, .remove_obeyers = FALSE, .guess = TRUE) %&gt;%
+  get_report()
+
+## End(Not run)
+
+# Values in `var` should contain combination of three grouping columns but
+# column 'vs_one' is guessed as rule. No error is thrown because the guessed
+# grouping column define unique levels.
+mtcars %&gt;%
+  expose(group_rule_pack_dummy, .remove_obeyers = FALSE, .guess = TRUE) %&gt;%
+  get_report()
+
+# Results should have in column 'id' value 1 and not 0.
+mtcars %&gt;%
+  dplyr::slice(1) %&gt;%
+  expose(row_rule_pack) %&gt;%
+  get_report()
+
+mtcars %&gt;%
+  dplyr::slice(1) %&gt;%
+  expose(cell_rule_pack) %&gt;%
+  get_report()
+</code></pre>
+
+
+</div>

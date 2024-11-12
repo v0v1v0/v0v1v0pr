@@ -1,0 +1,116 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rq_coltypes</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Get column types by example values as a data.frame.</h2>
+
+<h3>Description</h3>
+
+<p>Example values not necessarily all from same row.  Taking values from different rows is
+to try to work around NA not carrying type/class info in many cases.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rq_coltypes(
+  db,
+  table_name,
+  ...,
+  qualifiers = NULL,
+  prefer_not_NA = FALSE,
+  force_check = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>db</code></td>
+<td>
+<p>Connection handle.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>table_name</code></td>
+<td>
+<p>character table name referring to a non-empty table.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>force later arguments to bind by name.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>qualifiers</code></td>
+<td>
+<p>optional named ordered vector of strings carrying additional db hierarchy terms, such as schema.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prefer_not_NA</code></td>
+<td>
+<p>logical, if TRUE try to find an non-NA example for all columns (FALSE just for logical columns).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>force_check</code></td>
+<td>
+<p>logical, if TRUE perform checks regardless of check_logical_column_types option setting.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>single row data.frame with example values, not all values necessarily from same database row.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+if(requireNamespace("DBI", quietly = TRUE) &amp;&amp; requireNamespace("RSQLite", quietly = TRUE)) {
+  db &lt;- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+
+  # getDBOption(db, "check_logical_column_types", FALSE)
+  # options(rq_connection_tests(db))
+  # getDBOption(db, "check_logical_column_types", FALSE)
+
+  d &lt;- data.frame(w= c(NA, 1L),
+                  x= c(NA, 2.0),
+                  y= factor(c(NA, "x")),
+                  z= c(NA, "y"),
+                  want = c(1, 0),
+                  stringsAsFactors=FALSE)
+  d &lt;- rq_copy_to(db, "d", d,
+                   overwrite = TRUE,
+                   temporary = TRUE)
+  res &lt;- d %.&gt;%
+    extend(.,
+               wc %:=% ifelse(w&gt;1, "x", "y"),
+               wn %:=% ifelse(w&gt;1, 1, 2),
+               xc %:=% ifelse(x&gt;1, "x", "y"),
+               xn %:=% ifelse(x&gt;1, 1, 2),
+               yc %:=% ifelse(y=="a", "x", "y"),
+               yn %:=% ifelse(y=="a", "x", "y")) %.&gt;%
+    materialize(db, .)
+  resn &lt;- DBI::dbQuoteIdentifier(db, res$table_name)
+  print("full table types")
+  print(str(DBI::dbGetQuery(db, paste("SELECT * FROM", resn))))
+  print("single row mis-reported types")
+  print(str(DBI::dbGetQuery(db, paste("SELECT * FROM", resn, "WHERE want=1"))))
+  print("rq_coltypes correct synthetic example row types")
+  print(str(rq_coltypes(db, res$table_name, force_check = TRUE)))
+  DBI::dbDisconnect(db)
+}
+
+</code></pre>
+
+
+</div>

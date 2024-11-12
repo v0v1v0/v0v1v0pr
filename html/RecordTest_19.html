@@ -1,0 +1,290 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>N.test</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Number of Records Test</h2>
+
+<h3>Description</h3>
+
+<p>Performs tests based on the (weighted) number of records, 
+<code class="reqn">N^\omega</code>. The hypothesis of the classical record model (i.e., of IID
+continuous RVs) is tested against the alternative hypothesis.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">N.test(
+  X,
+  weights = function(t) 1,
+  record = c("upper", "lower"),
+  distribution = c("normal", "t", "poisson-binomial"),
+  alternative = c("greater", "less"),
+  correct = TRUE,
+  method = c("mixed", "dft", "butler"),
+  permutation.test = FALSE,
+  simulate.p.value = FALSE,
+  B = 1000
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>A numeric vector, matrix (or data frame).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>A function indicating the weight given to the different 
+records according to their position in the series,
+e.g., if <code>function(t) t - 1</code> then <code class="reqn">\omega_t = t - 1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>record</code></td>
+<td>
+<p>A character string indicating the type of record to be 
+calculated, <code>"upper"</code> or <code>"lower"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>distribution</code></td>
+<td>
+<p>A character string indicating the asymptotic 
+distribution of the statistic, <code>"normal"</code> distribution, Student's
+<code>"t"</code>-distribution or exact <code>"poisson-binomial"</code> distribution.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alternative</code></td>
+<td>
+<p>A character string indicating the type of alternative 
+hypothesis, <code>"greater"</code> number of records or <code>"less"</code> number of
+records.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>correct</code></td>
+<td>
+<p>Logical. Indicates, whether a continuity correction
+should be done; defaults to <code>TRUE</code>. No correction is done if    
+<code>permutation.test = TRUE</code>, <code>simulate.p.value = TRUE</code> or     
+<code>distribution = "poisson-binomial"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>(If <code>distribution = "poisson-binomial"</code>.) A character 
+string that indicates the method by which the cdf
+of the Poisson binomial distribution is calculated and therefore the 
+p-value. <code>"mixed"</code> is the preferred (and default) method, it is a 
+more efficient combination of the later algorithms. <code>"dft"</code> uses the 
+discrete Fourier transform which algorithm is given in Hong (2013). 
+<code>"butler"</code> use the algorithm given by Butler and Stephens (2016).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>permutation.test</code></td>
+<td>
+<p>Logical. Indicates whether to compute p-values by
+permutation simulation (Castillo-Mateo et al. 2023). It does not require 
+that the columns of <code>X</code> be independent. If <code>TRUE</code> and 
+<code>simulate.p.value = TRUE</code>, permutations take precedence and 
+permutations are performed. No simulation is done if 
+<code>distribution = "poisson-binomial"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>simulate.p.value</code></td>
+<td>
+<p>Logical. Indicates whether to compute p-values by
+Monte Carlo simulation. If <code>permutation.test = TRUE</code>, permutations    
+take precedence and permutations are performed. No simulation is done if     
+<code>distribution = "poisson-binomial"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B</code></td>
+<td>
+<p>If <code>permutation.test = TRUE</code> or <code>simulate.p.value = TRUE</code>,
+an integer specifying the number of replicates used in the permutation or    
+Monte Carlo estimation.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The null hypothesis is that the data come from a population with 
+independent and identically distributed continuous realisations. The 
+one-sided alternative hypothesis is that the (weighted) number of records
+is greater (or less) than under the null hypothesis. The 
+(weighted)-number-of-records statistic is calculated according to:
+</p>
+<p style="text-align: center;"><code class="reqn">N^\omega = \sum_{m=1}^M \sum_{t=1}^T \omega_t I_{tm},</code>
+</p>
+ 
+<p>where <code class="reqn">\omega_t</code> are weights given to the different records
+according to their position in the series and <code class="reqn">I_{tm}</code> are the record
+indicators (see <code>I.record</code>).
+</p>
+<p>The statistic <code class="reqn">N^\omega</code> is exact Poisson binomial distributed
+when the <code class="reqn">\omega_t</code>'s only take values in <code class="reqn">\{0,1\}</code>. In any case,
+it is also approximately normally distributed, with
+</p>
+<p style="text-align: center;"><code class="reqn">Z = \frac{N^\omega - \mu}{\sigma},</code>
+</p>
+
+<p>where its mean and variance are
+</p>
+<p style="text-align: center;"><code class="reqn">\mu = M \sum_{t=1}^T \omega_t \frac{1}{t},</code>
+</p>
+ 
+<p style="text-align: center;"><code class="reqn">\sigma^2 = M \sum_{t=2}^T \omega_t^2 \frac{1}{t} \left(1-\frac{1}{t}\right).</code>
+</p>
+ 
+<p>If <code>correct = TRUE</code>, then a continuity correction will be employed:
+</p>
+<p style="text-align: center;"><code class="reqn">Z = \frac{N^\omega \pm 0.5 - \mu}{\sigma},</code>
+</p>
+
+<p>with “<code class="reqn">-</code>” if the alternative is greater and “<code class="reqn">+</code>” if the 
+alternative is less.
+</p>
+<p>When <code class="reqn">M&gt;1</code>, the expression of the variance under the null hypothesis
+can be substituted by the sample variance in the <code class="reqn">M</code> series, 
+<code class="reqn">\hat{\sigma}^2</code>. In this case, the statistic <code class="reqn">N_{S}^\omega</code>
+is asymptotically <code class="reqn">t</code> distributed, which is a more robust alternative
+against serial correlation.
+</p>
+<p>If <code>permutation.test = TRUE</code>, the p-value is estimated by permutation	
+simulations. This is the only method of calculating p-values that does not	
+require that the columns of <code>X</code> be independent.	
+</p>
+<p>If <code>simulate.p.value = TRUE</code>, the p-value is estimated by Monte Carlo
+simulations.
+</p>
+<p>The size of the tests is adequate for any values of <code class="reqn">T</code> and <code class="reqn">M</code>.
+Some comments and a power study are given by Cebrián, Castillo-Mateo and
+Asín (2022).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>"htest"</code> object with elements:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>statistic</code></td>
+<td>
+<p>Value of the test statistic.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parameter</code></td>
+<td>
+<p>(If <code>distribution = "t"</code>.) Degrees of freedom of
+the <code class="reqn">t</code> statistic (equal to <code class="reqn">M-1</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p.value</code></td>
+<td>
+<p>P-value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alternative</code></td>
+<td>
+<p>The alternative hypothesis.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estimate</code></td>
+<td>
+<p>(If <code>distribution = "normal"</code>) A vector with the
+value of <code class="reqn">N^\omega</code>, <code class="reqn">\mu</code> and <code class="reqn">\sigma^2</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>A character string indicating the type of test performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data.name</code></td>
+<td>
+<p>A character string giving the name of the data.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Jorge Castillo-Mateo
+</p>
+
+
+<h3>References</h3>
+
+<p>Butler K, Stephens MA (2017).
+“The Distribution of a Sum of Independent Binomial Random Variables.”
+<em>Methodology and Computing in Applied Probability</em>, <strong>19</strong>(2), 557-571.
+<a href="https://doi.org/10.1007/s11009-016-9533-4">doi:10.1007/s11009-016-9533-4</a>.
+</p>
+<p>Castillo-Mateo J, Cebrián AC, Asín J (2023).
+“Statistical Analysis of Extreme and Record-Breaking Daily Maximum Temperatures in Peninsular Spain during 1960–2021.”
+<em>Atmospheric Research</em>, <strong>293</strong>, 106934.
+<a href="https://doi.org/10.1016/j.atmosres.2023.106934">doi:10.1016/j.atmosres.2023.106934</a>.
+</p>
+<p>Cebrián AC, Castillo-Mateo J, Asín J (2022).
+“Record Tests to Detect Non Stationarity in the Tails with an Application to Climate Change.”
+<em>Stochastic Environmental Research and Risk Assessment</em>, <strong>36</strong>(2): 313-330. 
+<a href="https://doi.org/10.1007/s00477-021-02122-w">doi:10.1007/s00477-021-02122-w</a>.
+</p>
+<p>Hong Y (2013). 
+“On Computing the Distribution Function for the Poisson Binomial Distribution.”
+<em>Computational Statistics &amp; Data Analysis</em>, <strong>59</strong>(1), 41-51.
+<a href="https://doi.org/10.1016/j.csda.2012.10.006">doi:10.1016/j.csda.2012.10.006</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>N.record</code>, <code>N.plot</code>, 
+<code>foster.test</code>, <code>foster.plot</code>,
+<code>brown.method</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Forward Upper records
+N.test(ZaragozaSeries)
+# Forward Lower records
+N.test(ZaragozaSeries, record = "lower", alternative = "less")
+# Forward Upper records
+N.test(series_rev(ZaragozaSeries), alternative = "less")
+# Forward Upper records
+N.test(series_rev(ZaragozaSeries), record = "lower")
+
+# Exact test
+N.test(ZaragozaSeries, distribution = "poisson-binom")
+# Exact test for records in the last decade
+N.test(ZaragozaSeries, weights = function(t) ifelse(t &lt; 61, 0, 1), distribution = "poisson-binom")
+# Linear weights for a more powerful test (without continuity correction)
+N.test(ZaragozaSeries, weights = function(t) t - 1, correct = FALSE)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,227 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>FPM</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Floating Percentile Model</h2>
+
+<h3>Description</h3>
+
+<p>Generate sediment quality benchmarks using the floating percentile model algorithm
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">FPM(
+  data,
+  paramList,
+  FN_crit = 0.2,
+  paramFixed = NULL,
+  paramOverride = FALSE,
+  increment = 10,
+  precision = 0.1,
+  empirical = TRUE,
+  defIter = 5,
+  seed = 1,
+  densInfo = FALSE,
+  lockInfo = FALSE,
+  hitInfo = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>data.frame containing, at a minimum, chemical concentrations as columns and a logical <code>Hit</code> column classifying toxicity</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>paramList</code></td>
+<td>
+<p>character vector of column names of chemical concentration variables in <code>data</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>FN_crit</code></td>
+<td>
+<p>numeric vector of values between 0 and 1 indicating false negative threshold(s) for benchmark selection (default = <code>0.2</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>paramFixed</code></td>
+<td>
+<p>character vector of column names of chemical concentration variables to retain, bypassing testing for specific chemicals (default = <code>NULL</code>). See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>paramOverride</code></td>
+<td>
+<p>logical; whether to retain every chemical variable in <code>paramList</code> (default = <code>FALSE</code>). See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>increment</code></td>
+<td>
+<p>numeric value greater than 1; number of increments to evaluate (default = <code>10</code>). See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>precision</code></td>
+<td>
+<p>numeric value between 0 and 1 (default = <code>0.1</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>empirical</code></td>
+<td>
+<p>logical; whether to return the highest empirical value meeting acceptable conditions of the FPM algorithm (default = <code>TRUE</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>defIter</code></td>
+<td>
+<p>numeric value greater than 0; default number of iterations to use in the case of negative or zero values in <code>data</code> (default = <code>5</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>random seed to set for reproducible results; only for handling edge cases of ranking ties (default = <code>1</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>densInfo</code></td>
+<td>
+<p>logical; whether to return the "density" statistic defining how much FPM criteria changed within the algorithm (default = <code>FALSE</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lockInfo</code></td>
+<td>
+<p>logical; whether to return the reason for and order in which benchmarks were "locked" within the model algorithm (default = <code>FALSE</code>). See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hitInfo</code></td>
+<td>
+<p>logical; whether to return the predicted Hit results as part of the output (default = <code>FALSE</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional argument passed to <code>chemSigSelect</code> and <code>chemSig</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>FPM</code> is the main function provided in 'RFPM', which was developed firstly as a redevelopment of the Washington Department of Ecology's Excel-based
+floating percentile model tool (Avocet 2003; Ecology 2011), and secondly as a means to evaluate uncertainties and sensitivities associated with the model. <code>FPM</code> generates
+sediment quality benchmarks for chemicals with significantly higher concentrations among <code>Hit</code> samples (meaning they were determined to be categorically toxic).
+</p>
+<p><code>FPM</code> is an algorithmic approach to setting sediment quality benchmarks using sediment chemistry data and toxicity test results.
+Toxicity is treated as a binary classification - either a <code>Hit == TRUE</code> or <code>Hit == FALSE</code> (meaning toxic or non-toxic) by some user-defined definition.
+The most important input to <code>FPM</code> apart from the empirical data is <code>FN_crit</code>, which determines an upper limit for false negative errors associated with floating percentile model benchmarks.
+The default <code>FN_crit</code> recommended by the Department of Ecology is <code>0.2</code>; though intended to be protective, the value of <code>0.2</code> is arbitrary. We recommend
+that the user run the <code>optimFPM</code> and/or <code>cvFPM</code> functions to find the <code>FN_crit</code> value(s) that optimize benchmark performance within an acceptable error range for the site.
+<code>optimFPM</code> can also help users optimize the <code>alpha</code> parameter (see <code>?chemSig</code>), which is also somewhat arbitrarily set at a conventional default of <code>0.05</code>.
+</p>
+<p>There are two arguments that have defaults in <code>FPM</code> that the user may desire to change in certain circumstances, but that we
+generally recommend not changing without good reason. These are <code>paramFixed</code> and <code>paramOverride</code>, which override the chemical
+selection process, resulting in potentially non-toxic chemicals being assigned benchmarks.
+The <code>paramFixed</code> argument, which only forces named chemicals into the model algorithm, is looser than <code>paramOverride</code>, which forces all chemicals in paramList into the model algorithm.
+See <code>?chemSig</code> for more information regarding default parameters used within <code>FPM</code>.
+Even if chemical names are supplied to <code>paramFixed</code>, <code>FPM</code> will still use hypothesis testing methods to consider all other chemicals for inclusion.
+</p>
+<p><code>increment</code> determines (inversely) how large or small values should be that are added to percentile values in the model algorithm.
+A larger <code>increment</code> results in smaller incremental additions and vice-versa. The WA Department of Ecology recommends a default of
+<code>increment = 10</code>. This is a reasonable value, and we recommend not decreasing <code>increment</code> below <code>10</code>.
+Increasing <code>increment</code> will increase computation time, and may or may not result in more accurate benchmarks. So, we recommend not
+increasing <code>increment</code> much higher than <code>10</code>.
+</p>
+<p><code>precision</code> determines how many iterative loops will be attempted within the model algorithm when trying to increase each benchmark. If increasing the
+benchmark would increase the false negative rate above <code>FN_crit</code>, the benchmark would then be decreased, the increment size is divided by <code>increment</code>, and
+then the smaller incremental addition is used to increase the benchmark. This process repeats for a fixed number of iterations, which is related to <code>precision</code>.
+If the benchmark cannot be increased after the fixed number of iterations, the benchmark is locked in place.
+The default value for <code>precision</code> is <code>0.1</code>, but the value could be lower, if desired. Lowering the value will increase computation time and may or may not
+result in more accurate benchmarks. In general, we recommend reducing <code>precision</code> rather than increasing <code>increment</code> in order to potentially enhance the
+precision of benchmark calculations.
+</p>
+<p><code>empirical</code> by default returns empirical concentrations from <code>data</code> that meets the conditions of the FPM. The user can set this argument <code>FALSE</code> if an exact FPM calculation is desired. The exact calculation will still meet the FPM requirements.
+</p>
+<p>The <code>hitInfo</code> argument allows the user to export the Hit predictions (<code>FPM_Hit</code>) for <code>data</code> based on the calculated FPM criteria as well as the associated FN/FP/TP/TN <code>class</code>.
+</p>
+<p>The <code>lockInfo</code> argument allows the user to export information about what caused the model algorithm to lock for each
+chemical. Output options are: <code>"FN"</code> for exceeding the false negative limit (i.e., <code>FN_crit</code>), <code>"FP"</code> if the number of false positives was reduced to zero,
+<code>"Max"</code> if the empirical maximum concentration was exceeded, or <code>Mix</code> if more than one of the first three options occurred.
+</p>
+<p>The following classification statistics are reported alongside the generated benchmarks:
+<code>TP</code>, <code>FN</code>, <code>TN</code>, and <code>FP</code> - the numbers of true positive, false negative, true negative, and false positive predictions
+<code>pFN</code> and <code>pFP</code> - proportions of false predictions (false No-hit and false Hit, respectively)
+<code>sens</code> - sensitivity; the probability of detecting a Hit
+<code>spec</code> - specificity; the probability of detecting a No-hit
+<code>OR</code> - overall reliability; the probability of making a correct prediction (Hit or No-hit)
+<code>FM</code> - Fowlkes-Mallows Index; geometric mean of sensitivity and the positive predictive rate
+<code>MCC</code> - Matthew's Correlation Coefficient; metric analogous to Pearson's coefficient, but instead defining correspondance between categorical predictions and reality (rather than for continuous data).
+</p>
+<p>The second output of <code>FPM</code> is a metric called <code>chemDensity</code>. This is a measure of how much
+the percentile "floated" in the algorithm from the starting position up to the chemical's value at which it was locked in place.
+Values of <code>chemDensity</code> closer to 1 floated less and vice-versa. By floating less, this indicates that
+even small changes in the chemical concentration resulted in one of the acceptance criteria failing (as discussed above with regard to <code>lockInfo</code>). When comparing
+the <code>chemDensity</code> among chemicals, those with lower values might be viewed as having less of an influence on toxicity predictions
+and vice-versa. For those interested in understanding the relative importance of chemicals among benchmarks, we recommend using <code>chemVI</code> and considering the <code>MADP</code> and <code>dOR</code> outputs.
+</p>
+
+
+<h3>Value</h3>
+
+<p>list of 2 or 4 objects (depending on <code>lockInfo</code>):
+</p>
+
+<ol>
+<li>
+<p> Benchmarks and toxicity classification error statistics;
+</p>
+</li>
+<li>
+<p> order in which benchmarks were locked in place;
+</p>
+</li>
+<li>
+<p> reason for benchmarks being locked in place; and
+</p>
+</li>
+<li> <p><code>chemDensity</code> statistic
+</p>
+</li>
+</ol>
+<h3>References</h3>
+
+<p>Avocet. 2003. Development of freshwater sediment quality values for use in Washington State. Phase II report: Development and recommendation of SQVs for freshwater sediments in Washington State. Publication No. 03-09-088. Prepared for Washington Department of Ecology. Avocet Consulting, Kenmore, WA.
+Ecology. 2011. Development of benthic SQVs for freshwater sediments in Washington, Oregon, and Idaho. Publication no. 11-09-054. Toxics Cleanup Program, Washington State Department of Ecology, Olympia, WA.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>optimFPM, cvFPM, chemSig, chemSigSelect, chemVI
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">paramList = c("Cd", "Cu", "Fe", "Mn", "Ni", "Pb", "Zn")
+FPM(h.tristate, paramList, ExcelMode = TRUE, warn = FALSE)
+FPM(h.tristate, paramList, c(0.1, 0.2, 0.3))
+</code></pre>
+
+
+</div>

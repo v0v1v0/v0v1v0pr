@@ -1,0 +1,138 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>get.sim.tl</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+<code class="reqn">\tau</code>-leaping simulation algorithm</h2>
+
+<h3>Description</h3>
+
+<p>Simulate a trajectory of length S for a stochastic reaction network.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">get.sim.tl(Yt, theta, S, s2 = 0, tau = 1, rct.lst, verbose = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Yt</code></td>
+<td>
+<p>starting point of the trajectory</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>theta</code></td>
+<td>
+<p>vector parameter for the reactions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>S</code></td>
+<td>
+<p>length of the simulated trajectory.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s2</code></td>
+<td>
+<p>noise variance (defaults to 0).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tau</code></td>
+<td>
+<p>time interval length (defaults to 1).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rct.lst</code></td>
+<td>
+<p>list of biochemical reactions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>(defaults to TRUE) Logical value. If TRUE, then information messages
+on the simulation progress are printed to the console.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function allows to simulate a trajectory of a single clone given an
+initial conditions <code class="reqn">Y_0</code> for the cell counts, and obeying to a particular cell differentiation network
+defined by a net-effect (stoichiometric) matrix <code class="reqn">V</code> and an hazard function <code class="reqn">h()</code>.
+The function allows to consider only three cellular events, such as
+cell duplication (<code class="reqn">Y_{it} \rightarrow 1</code>), cell death (<code class="reqn">Y_{it} \rightarrow \emptyset</code>)
+and cell differentiation (<code class="reqn">Y_{it} \rightarrow Y_{jt}</code>) for a clone-specific time counting process
+</p>
+<p style="text-align: center;"><code class="reqn">Y_t = (Y_{1t},\dots,Y_{Nt})</code>
+</p>
+
+<p>observed in $N$ distinct cell lineages.
+In particular,  the cellular events of duplication, death and differentiation are
+respectively coded with the character labels <code class="reqn">\texttt{"A-&gt;1"}</code>, <code class="reqn">\texttt{"A-&gt;0"}</code>,
+and <code class="reqn">\texttt{"A-&gt;B"}</code>, where  <code class="reqn">\texttt{A}</code> and  <code class="reqn">\texttt{B}</code> are two distinct cell types.
+The output is a <code class="reqn">3</code>-dimensional array <code class="reqn">Y</code> whose <code class="reqn">ijk</code>-entry <code class="reqn">Y_{ijk}</code>
+is the number of cells of clone <code class="reqn">k</code> for cell type <code class="reqn">j</code> collected at time <code class="reqn">i</code>.
+More mathematical details can be found in the vignette of this package.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code class="reqn">S \times p</code> dimensional matrix of the simulated trajectory.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">rcts &lt;- c("A-&gt;1", "B-&gt;1", "C-&gt;1", "D-&gt;1",
+          "A-&gt;0", "B-&gt;0", "C-&gt;0", "D-&gt;0",
+          "A-&gt;B", "A-&gt;C", "C-&gt;D") ## set of reactions
+ctps &lt;- head(LETTERS,4)
+nC &lt;- 3 ## number of clones
+S &lt;- 10 ## trajectory length
+tau &lt;- 1 ## for tau-leaping algorithm
+u_1 &lt;- c(.2, .15, .17, .09*5,
+         .001, .007, .004, .002,
+         .13, .15, .08)
+u_2 &lt;- c(.2, .15, .17, .09,
+         .001, .007, .004, .002,
+         .13, .15, .08)
+u_3 &lt;- c(.2, .15, .17*3, .09,
+         .001, .007, .004, .002,
+         .13, .15, .08)
+theta_allcls &lt;- cbind(u_1, u_2, u_3) ## clone-specific parameters
+rownames(theta_allcls) &lt;- rcts
+s20 &lt;- 1 ## additional noise
+Y &lt;- array(data = NA,
+           dim = c(S + 1, length(ctps), nC),
+           dimnames = list(seq(from = 0, to = S*tau, by = tau),
+                           ctps,
+                           1:nC)) ## empty array to store simulations
+Y0 &lt;- c(100,0,0,0) ## initial state
+names(Y0) &lt;- ctps
+for (cl in 1:nC) { ## loop over clones
+  Y[,,cl] &lt;- get.sim.tl(Yt = Y0,
+                        theta = theta_allcls[,cl],
+                        S = S,
+                        s2 = s20,
+                        tau = tau,
+                        rct.lst = rcts,
+                        verbose = TRUE)
+}
+Y
+</code></pre>
+
+
+</div>

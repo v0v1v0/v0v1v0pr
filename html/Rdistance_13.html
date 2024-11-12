@@ -1,0 +1,214 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>estimateN</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Abundance point estimates</h2>
+
+<h3>Description</h3>
+
+<p>Estimate abundance given a distance function, 
+a "merged" data frame containing detections and transect lengths, area, 
+and the number of sides surveyed (if line-transects).   
+This is called internally by <code>abundEstim</code>.  Most users will call 
+<code>abundEstim</code> to estimate abundance.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">estimateN(
+  dfunc,
+  data,
+  area = NULL,
+  surveyedSides,
+  lengthColumn,
+  control = RdistanceControls()
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>dfunc</code></td>
+<td>
+<p>An estimate distance function (see <code>dfuncEstim</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame containing distance observations, transects, 
+and lengths.  This data frame must have a column named 'siteID' that identifies
+unique sites (transects or points). If observations were made on  line-transects, this 
+data frame must also have a column named 
+by the <code>lengthColumn</code> parameter that contains transect lengths. NA
+length transects are accepted and are dropped when computing total 
+transect length. Only observations on non-NA-length transects are toward density.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>area</code></td>
+<td>
+<p>A scalar containing the total area of 
+inference. Commonly, this is study area size.  
+If <code>area</code> is NULL (the default), 
+<code>area</code> will be set to 1 square unit of the output units and this
+produces abundance estimates equal density estimates. 
+If <code>area</code> is not NULL, it must have measurement units 
+assigned by the <code>units</code> package. 
+The units on <code>area</code> must be convertible
+to squared output units. Units 
+on <code>area</code> must be two-dimensional. 
+For example, if output units are "foo", 
+units on area must be convertible to "foo^2" by the <code>units</code>
+package. 
+Units of "km^2", "cm^2", "ha", "m^2", "acre", "mi^2", and many
+others are acceptable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>surveyedSides</code></td>
+<td>
+<p>The number of sides of the transect that were surveyed. Either 
+1 or 2.  Only applies to line transects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lengthColumn</code></td>
+<td>
+<p>Character string specifying the (single) column in 
+<code>siteData</code> that contains transect lengths. This is ignored if 
+<code>pointSurvey</code> = TRUE. This column must have measurement units.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>A list containing optimization control parameters such 
+as the maximum number of iterations, tolerance, the optimizer to use, 
+etc.  See the 
+<code>RdistanceControls</code> function for explanation of each value,
+the defaults, and the requirements for this list. 
+See examples below for how to change controls.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The abundance estimate for line-transect surveys (if no covariates
+are included in the detection function and both sides of the transect 
+were observed) is 
+</p>
+<p style="text-align: center;"><code class="reqn">N =\frac{n(A)}{2(ESW)(L)}</code>
+</p>
+ 
+<p>where <em>n</em> is total number of sighted individuals 
+(i.e., <code>sum(dfunc$detections$groupSizes)</code>), <em>L</em> is the total length of 
+surveyed transect (i.e., <code>sum(siteData[,lengthColumn])</code>),
+and <em>ESW</em> is effective strip width
+computed from the estimated distance function (i.e., <code>ESW(dfunc)</code>).
+If only one side of transects were observed, the "2" in the denominator 
+is not present (or, replaced with a "1"). 
+</p>
+<p>The abundance estimate for point transect surveys (if no covariates are
+included) is 
+</p>
+<p style="text-align: center;"><code class="reqn">N =\frac{n(A)}{\pi(ESR^2)(P)}</code>
+</p>
+ 
+<p>where <em>n</em> is total number of sighted individuals,
+<em>P</em> is the total number of surveyed points, 
+and <em>ESR</em> is effective search radius 
+computed from the estimated distance function (i.e., <code>ESR(dfunc)</code>).
+</p>
+<p>Setting <code>plot.bs=FALSE</code> and <code>showProgress=FALSE</code> 
+suppresses all intermediate output.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list containing the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>density</code></td>
+<td>
+<p>Estimated density in the surveyed area.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>abundance</code></td>
+<td>
+<p>Estimated abundance on the study area.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.groups</code></td>
+<td>
+<p>The number of detections (not individuals, unless all group sizes = 1) 
+used to estimate density and abundance.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.seen</code></td>
+<td>
+<p>The number of individuals (sum of group sizes) used to 
+estimate density and abundance.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>area</code></td>
+<td>
+<p>Total area of inference. Study area size</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>surveyedUnits</code></td>
+<td>
+<p>Number of surveyed sites.  This is total transect length
+for line-transects and number of points for point-transects. This total transect
+length does not include NA transects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>surveyedSides</code></td>
+<td>
+<p>Number of sides (1 or 2) of transects surveyed. Only relevant for line-transects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>avg.group.size</code></td>
+<td>
+<p>Average group size on non-NA transects</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w</code></td>
+<td>
+<p>Strip width. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pDetection</code></td>
+<td>
+<p>Probability of detection.</p>
+</td>
+</tr>
+</table>
+<p>For line-transects that do not involve covariates, x$density  
+is x$n.seen / (x$surveyedSides * x$w * x$pDetection * x$surveyedUnits)
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>dfuncEstim</code>, <code>abundEstim</code>
+</p>
+
+
+</div>

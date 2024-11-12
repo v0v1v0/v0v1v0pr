@@ -1,0 +1,268 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>idig_search_records</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Searching of iDigBio records</h2>
+
+<h3>Description</h3>
+
+<p>Function to query the iDigBio API for specimen records
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">idig_search_records(
+  rq,
+  fields = FALSE,
+  max_items = 1e+05,
+  limit = 0,
+  offset = 0,
+  sort = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>rq</code></td>
+<td>
+<p>iDigBio record query in nested list format</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fields</code></td>
+<td>
+<p>vector of fields that will be contained in the data.frame,
+limited set returned by default, use "all" to get all indexed fields</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_items</code></td>
+<td>
+<p>maximum number of results allowed to be retrieved (fail
+-safe)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>limit</code></td>
+<td>
+<p>maximum number of results returned</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>offset</code></td>
+<td>
+<p>number of results to skip before returning results</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sort</code></td>
+<td>
+<p>vector of fields to use for sorting, UUID is always appended to
+make paging safe</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional parameters</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Wraps <code>idig_search</code> to provide defaults specific to searching
+specimen records. Using this function instead of <code>idig_search</code>
+directly is recommened.
+</p>
+<p>Queries need to be specified as a nested list structure that will serialize
+to an iDigBio query object's JSON as expected by the iDigBio API:
+<a href="https://github.com/iDigBio/idigbio-search-api/wiki/Query-Format">https://github.com/iDigBio/idigbio-search-api/wiki/Query-Format</a>
+</p>
+<p>As an example, the first sample query looks like this in JSON in the API
+documentation:
+</p>
+<pre>
+{
+  "scientificname": {
+    "type": "exists"
+  },
+  "family": "asteraceae"
+}
+</pre>
+<p>To rewrite this in R for use as the rq parameter to
+<code>idig_search_records</code> or <code>idig_search_media</code>, it would look like
+this:
+</p>
+<pre>
+rq &lt;- list("scientificname"=list("type"="exists"),
+           "family"="asteraceae"
+           )
+</pre>
+<p>An example of a more complex JSON query with nested structures:
+</p>
+<pre>
+{
+  "geopoint": {
+   "type": "geo_bounding_box",
+   "top_left": {
+     "lat": 19.23,
+     "lon": -130
+    },
+    "bottom_right": {
+      "lat": -45.1119,
+      "lon": 179.99999
+    }
+   }
+ }
+</pre>
+<p>To rewrite this in R for use as the rq parameter, use nested calls to the
+list() function:
+</p>
+<pre>
+rq &lt;- list(geopoint=list(
+                         type="geo_bounding_box",
+                         top_left=list(lat=19.23, lon=-130),
+                         bottom_right=list(lat=-45.1119, lon= 179.99999)
+                        )
+           )
+</pre>
+<p>See the Examples section below for more samples of simpler and more complex
+queries. Please refer to the API documentation for the full functionality
+availible in queries.
+</p>
+<p>All matching results are returned up to the max_items cap (default 100,000).
+If more results are wanted, a higher max_items can be passed as an option.
+This API loads records 5,000 at a time using HTTP so performance with large
+sets of data is not very good. Expect result sets over 50,000 records to
+take tens of minutes. You can use the <code>idig_count_records</code> or
+<code>idig_count_media</code> functions to find out how many records a
+query will return; these are fast.
+</p>
+<p>The iDigBio API will only return 5,000 records at a time but this function
+will automatically page through the results and return them all. Limit
+and offset are availible if manual paging of results is needed though the
+max_items cap still applies. The item count comes from the results header
+not the count of actual records in the limit/offset window.
+</p>
+<p>Return is a data.frame containing the requested fields (or the default
+fields). The columns in the data frame are untyped and no factors are pre-
+built. Attribution and other metadata is attached to the dataframe in the
+data.frame's attributes. (I.e. <code>attributes(df)</code>)
+</p>
+
+
+<h3>Value</h3>
+
+<p>A data frame with fields requested or the following default fields:
+</p>
+
+<ul>
+<li>
+<p>UUID: Unique identifier assigned by iDigBio.
+</p>
+</li>
+<li>
+<p><a href="https://dwc.tdwg.org/list/#dwc_occurrenceID">occurrenceID</a>
+</p>
+</li>
+<li>
+<p><a href="https://rs.tdwg.org/dwc/terms/catalogNumber">catalognumber</a>
+</p>
+</li>
+<li>
+<p><a href="https://rs.tdwg.org/dwc/terms/family">family</a> - may be reassigned by iDigBio
+</p>
+</li>
+<li>
+<p><a href="https://dwc.tdwg.org/list/#dwc_genus">genus</a> - may be reassigned by iDigBio
+</p>
+</li>
+<li>
+<p><a href="https://rs.tdwg.org/dwc/terms/scientificName">scientificname</a> - may be reassigned by iDigBio
+</p>
+</li>
+<li>
+<p><a href="https://rs.tdwg.org/dwc/terms/country">country</a> - may be modified by iDigBio
+</p>
+</li>
+<li>
+<p><a href="https://rs.tdwg.org/dwc/terms/stateProvince">stateprovince</a> 
+</p>
+</li>
+<li>
+<p>geopoint: Assigned by iDigBio.
+</p>
+</li>
+<li>
+<p><a href="https://dwc.tdwg.org/list/#dwc_eventDate">data.dwc:eventDate</a>
+</p>
+</li>
+<li>
+<p><a href="https://dwc.tdwg.org/list/#dwc_year">data.dwc:year</a>
+</p>
+</li>
+<li>
+<p><a href="https://dwc.tdwg.org/list/#dwc_month">data.dwc:month</a>
+</p>
+</li>
+<li>
+<p><a href="https://dwc.tdwg.org/list/#dwc_day">data.dwc:day</a>
+</p>
+</li>
+<li>
+<p>datecollected: May be reassigned by iDigBio, <a href="https://github.com/iDigBio/idb-backend/issues/229">see more here</a>
+</p>
+</li>
+<li>
+<p>collector: Assigned by iDigBio.
+</p>
+</li>
+<li>
+<p>recordset: Assigned by iDigBio.
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>Matthew Collins
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# Simple example of retriving records in a genus:
+idig_search_records(rq=list(genus="acer"), limit=10)
+
+# This complex query shows that booleans passed to the API are represented
+# as strings in R, fields used in the query don't have to be returned, and
+# the syntax for accessing raw data fields:
+idig_search_records(rq=list("hasImage"="true", genus="acer"),
+            fields=c("uuid", "data.dwc:verbatimLatitude"), limit=100)
+
+# Searching inside a raw data field for a string, note that raw data fields
+# are searched as full text, indexed fields are search with exact matches:
+
+idig_search_records(rq=list("data.dwc:dynamicProperties"="parasite"),
+            fields=c("uuid", "data.dwc:dynamicProperties"), limit=100)
+
+# Retriving a data.frame for use with MaxEnt. Notice geopoint is expanded
+# to two columns in the data.frame: gepoint.lat and geopoint.lon:
+df &lt;- idig_search_records(rq=list(genus="acer", geopoint=list(type="exists")),
+          fields=c("uuid", "geopoint"), limit=10)
+write.csv(df[c("uuid", "geopoint.lon", "geopoint.lat")],
+          file="acer_occurrences.csv", row.names=FALSE)
+
+
+## End(Not run)
+</code></pre>
+
+
+</div>

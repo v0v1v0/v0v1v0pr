@@ -1,0 +1,232 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>filter_itch</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Filters an ITCH file to another ITCH file</h2>
+
+<h3>Description</h3>
+
+<p>This function allows to perform very fast filter operations on large ITCH
+files. The messages are written to another ITCH file.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">filter_itch(
+  infile,
+  outfile,
+  filter_msg_class = NA_character_,
+  filter_msg_type = NA_character_,
+  filter_stock_locate = NA_integer_,
+  min_timestamp = bit64::as.integer64(NA),
+  max_timestamp = bit64::as.integer64(NA),
+  filter_stock = NA_character_,
+  stock_directory = NA,
+  skip = 0,
+  n_max = -1,
+  append = FALSE,
+  overwrite = FALSE,
+  gz = FALSE,
+  buffer_size = -1,
+  quiet = FALSE,
+  force_gunzip = FALSE,
+  force_cleanup = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>infile</code></td>
+<td>
+<p>the input file where the messages are taken from, can be a
+gz-archive or a plain ITCH file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outfile</code></td>
+<td>
+<p>the output file where the filtered messages are written to.
+Note that the date and exchange information from the <code>infile</code> are used,
+see also <code>add_meta_to_filename()</code> for further information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>filter_msg_class</code></td>
+<td>
+<p>a vector of classes to load, can be "orders", "trades",
+"modifications", ... see also <code>get_msg_classes()</code>.
+Default value is to take all message classes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>filter_msg_type</code></td>
+<td>
+<p>a character vector, specifying a filter for message types.
+Note that this can be used to only return 'A' orders for instance.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>filter_stock_locate</code></td>
+<td>
+<p>an integer vector, specifying a filter for locate codes.
+The locate codes can be looked up by calling <code>read_stock_directory()</code>
+or by downloading from NASDAQ by using <code>download_stock_directory()</code>.
+Note that some message types (e.g., system events, MWCB, and IPO) do not use
+a locate code.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min_timestamp</code></td>
+<td>
+<p>an 64 bit integer vector (see also <code>bit64::as.integer64()</code>)
+of minimum timestamp (inclusive).
+Note: min and max timestamp must be supplied with the same length or left empty.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_timestamp</code></td>
+<td>
+<p>an 64 bit integer vector (see also <code>bit64::as.integer64()</code>)
+of maxium timestamp (inclusive).
+Note: min and max timestamp must be supplied with the same length or left empty.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>filter_stock</code></td>
+<td>
+<p>a character vector, specifying a filter for stocks.
+Note that this a shorthand for the <code>filter_stock_locate</code> argument, as it
+tries to find the stock_locate based on the <code>stock_directory</code> argument,
+if this is not found, it will try to extract the stock directory from the file,
+else an error is thrown.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stock_directory</code></td>
+<td>
+<p>A data.frame containing the stock-locate code relationship.
+As outputted by <code>read_stock_directory()</code>.
+Only used if <code>filter_stock</code> is set. To download the stock directory from
+NASDAQs server, use <code>download_stock_directory()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>skip</code></td>
+<td>
+<p>Number of messages to skip before starting parsing messages,
+note the skip parameter applies to the specific message class, i.e., it would
+skip the messages for each type (e.g., skip the first 10 messages for each class).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_max</code></td>
+<td>
+<p>Maximum number of messages to parse, default is to read all values.
+Can also be a data.frame of msg_types and counts, as returned by
+<code>count_messages()</code>.
+Note the n_max parameter applies to the specific message class not the whole
+file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>append</code></td>
+<td>
+<p>if the messages should be appended to the outfile, default is
+false. Note, this is helpful if <code>skip</code> and or <code>n_max</code> are used for
+batch filtering.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite</code></td>
+<td>
+<p>if an existing outfile with the same name should be
+overwritten. Default value is false</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gz</code></td>
+<td>
+<p>if the output file should be gzip-compressed. Note that the name
+of the output file will be appended with .gz if not already present. The
+final output name is returned. Default value is false.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>buffer_size</code></td>
+<td>
+<p>the size of the buffer in bytes, defaults to 1e8 (100 MB),
+if you have a large amount of RAM, 1e9 (1GB) might be faster</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quiet</code></td>
+<td>
+<p>if TRUE, the status messages are suppressed, defaults to FALSE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>force_gunzip</code></td>
+<td>
+<p>only applies if the input file is a gz-archive and a file with the same (gunzipped) name already exists.
+if set to TRUE, the existing file is overwritten. Default value is FALSE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>force_cleanup</code></td>
+<td>
+<p>only applies if the input file is a gz-archive.
+If force_cleanup=TRUE, the gunzipped raw file will be deleted afterwards.
+Only applies when the gunzipped raw file did not exist before.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Note that this can be especially useful on larger files or where memory
+is not large enough to filter the datalimits the analysis.
+</p>
+<p>As with the <code>read_itch()</code> functions, it allows to filter for
+<code>msg_class</code>, <code>msg_type</code>, <code>stock_locate</code>/<code>stock</code>, and
+<code>timestamp</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>the name of the output file (maybe different from the inputted
+outfile due to adding the date and exchange), silently
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">infile &lt;- system.file("extdata", "ex20101224.TEST_ITCH_50", package = "RITCH")
+outfile &lt;- tempfile(fileext = "_20101224.TEST_ITCH_50")
+filter_itch(
+  infile, outfile,
+  filter_msg_class = c("orders", "trades"),
+  filter_msg_type = "R", # stock_directory
+  skip = 0, n_max = 100
+)
+
+# expecting 100 orders, 100 trades, and 3 stock_directory entries
+count_messages(outfile)
+
+# check that the output file contains the same
+res  &lt;- read_itch(outfile, c("orders", "trades", "stock_directory"))
+sapply(res, nrow)
+
+res2 &lt;- read_itch(infile,  c("orders", "trades", "stock_directory"),
+                  n_max = 100)
+
+all.equal(res, res2)
+</code></pre>
+
+
+</div>

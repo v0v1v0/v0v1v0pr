@@ -1,0 +1,314 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>cROC.sp</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Parametric and semiparametric frequentist inference of the covariate-specific ROC curve (cROC).
+</h2>
+
+<h3>Description</h3>
+
+<p>This function estimates the covariate-specific ROC curve (cROC) using the parametric approach proposed by Faraggi (2003) and the semiparametric approach proposed by Pepe (1998).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">cROC.sp(formula.h, formula.d, group, tag.h, data, 
+  newdata, est.cdf = c("normal", "empirical"),
+  pauc = pauccontrol(), p = seq(0, 1, l = 101), B = 1000, ci.level = 0.95,
+  parallel = c("no", "multicore", "snow"), ncpus = 1, cl = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula.h</code></td>
+<td>
+<p>A <code>formula</code> object specifying the location regression model to be fitted in the healthy population (see Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula.d</code></td>
+<td>
+<p>A <code>formula</code> object specifying the location regression model to be fitted in the diseased population (see Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group</code></td>
+<td>
+<p>A character string with the name of the variable that distinguishes healthy from diseased individuals.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tag.h</code></td>
+<td>
+<p>The value codifying the healthy individuals in the variable <code>group</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>Data frame representing the data and containing all needed variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newdata</code></td>
+<td>
+<p>Optional data frame containing the values of the covariates at which the covariate-specific ROC curve (AUC and pAUC, if required) will be computed. If not supplied, the function <code>cROCData</code> is used to build a default dataset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>est.cdf</code></td>
+<td>
+<p>A character string. It indicates how the conditional distribution functions of the diagnostic test in healthy and diseased populations are estimated. Options are "normal" and "empirical" (see Details). The default is "normal".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pauc</code></td>
+<td>
+<p>A list of control values to replace the default values returned by the function <code>pauccontrol</code>. This argument is used to indicate whether the partial area under the covariate-adjusted ROC curve should be computed, and in case it is computed, whether the focus should be placed on restricted false positive fractions (FPFs) or on restricted true positive fractions (TPFs), and the upper bound for the FPF (if focus is FPF) or the lower bound for the TPF (if focus is TPF).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>Set of false positive fractions (FPF) at which to estimate the covariate-specific ROC curve. This set is also used to compute the area under the covariate-specific ROC curve using Simpson's rule. Thus, the length of the set should be an odd number, and it should be rich enough for an accurate estimation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B</code></td>
+<td>
+<p>An integer value specifying the number of bootstrap resamples for the construction of the confidence intervals. By default 1000.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ci.level</code></td>
+<td>
+<p>An integer value (between 0 and 1) specifying the confidence level. The default is 0.95.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel</code></td>
+<td>
+<p>A characters string with the type of parallel operation: either "no" (default), "multicore" (not available on Windows) or "snow".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncpus</code></td>
+<td>
+<p>An integer with the number of processes to be used in parallel operation. Defaults to 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cl</code></td>
+<td>
+<p>An object inheriting from class <code>cluster</code> (from the <code>parallel</code> package), specifying an optional parallel or snow cluster if parallel = "snow". If not supplied, a cluster on the local machine is created for the duration of the call.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Estimates the covariate-specific ROC curve (cROC) defined as
+</p>
+<p style="text-align: center;"><code class="reqn">ROC(p|\mathbf{x}) = 1 - F_{D}\{F_{\bar{D}}^{-1}(1-p|\mathbf{x})|\mathbf{x}\},</code>
+</p>
+
+<p>where
+</p>
+<p style="text-align: center;"><code class="reqn">F_{D}(y|\mathbf{x}) = Pr(Y_{D} \leq y | \mathbf{X}_{D} = \mathbf{x}),</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">F_{\bar{D}}(y|\mathbf{x}) = Pr(Y_{\bar{D}} \leq y | \mathbf{X}_{\bar{D}} = \mathbf{x}).</code>
+</p>
+
+<p>Note that, for the sake of clarity, we assume that the covariates of interest are the same in both healthy and diseased populations. In particular, the method implemented in this function estimates <code class="reqn">F_{D}(\cdot|\mathbf{x})</code> and <code class="reqn">F_{\bar{D}}(\cdot|\mathbf{x})</code> assuming a (semiparametric) location regression model for <code class="reqn">Y</code> in each population separately, i.e., 
+</p>
+<p style="text-align: center;"><code class="reqn">Y_{D} = \mathbf{X}_{D}^{T}\mathbf{\beta}_{D} + \sigma_{D}\varepsilon_{D},</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">Y_{\bar{D}} = \mathbf{X}_{\bar{D}}^{T}\mathbf{\beta}_{\bar{D}} + \sigma_{\bar{D}}\varepsilon_{\bar{D}},</code>
+</p>
+
+<p>such that the covariate-specific ROC curve can be expressed as
+</p>
+<p style="text-align: center;"><code class="reqn">ROC(p|\mathbf{x}) = 1 - G_{D}\{a(\mathbf{x}) + b G_{\bar{D}}^{-1}(1-p)\},</code>
+</p>
+
+<p>where <code class="reqn">a(\mathbf{x}) = \mathbf{x}^{T}\frac{\mathbf{\beta}_{\bar{D}} - \mathbf{\beta}_{D}}{\sigma_{D}}</code>, <code class="reqn">b = \frac{\sigma_{\bar{D}}}{\sigma_{D}}</code>, and <code class="reqn">G_{D}</code> and <code class="reqn">G_{\bar{D}}</code> are the distribution functions of <code class="reqn">\varepsilon_{D}</code> and <code class="reqn">\varepsilon_{\bar{D}}</code>, respectively. In line with the assumptions made about the distributions of <code class="reqn">\varepsilon_{D}</code> and <code class="reqn">\varepsilon_{\bar{D}}</code>, estimators will be referred to as: (a) "normal", where Gaussian errors are assumed, i.e., <code class="reqn">G_{D}(y) = G_{\bar{D}}(y) = \Phi(y)</code> (Faraggi, 2003); and, (b) "empirical", where no assumptios are made about the distribution (in this case, <code class="reqn">G_{D}</code> and <code class="reqn">G_{\bar{D}}</code> are empirically estimated on the basis of standardised residuals (Pepe, 1998)).
+</p>
+<p>The covariate-specific area under the curve is
+</p>
+<p style="text-align: center;"><code class="reqn">AUC(\mathbf{x})=\int_{0}^{1}ROC(p|\mathbf{x})dp.</code>
+</p>
+
+<p>When Gaussian errors are assumed, there is a closed-form expression for the covariate-specific AUC, which is used in the package. In contrast, when no assumptios are made about the distributionis of the errors, the integral is computed numerically using Simpson's rule. With regard to the partial area under the curve, when <code>focus = "FPF"</code> and assuming an upper bound <code class="reqn">u_1</code> for the FPF, what it is computed is
+</p>
+<p style="text-align: center;"><code class="reqn">pAUC_{FPF}(u_1|\mathbf{x})=\int_0^{u_1} ROC(p|\mathbf{x})dp.</code>
+</p>
+
+<p>Again, when Gaussian errors are assumed, there is a closed-form expression (Hillis and Metz, 2012). Otherwise, the integral is approximated numerically (Simpson's rule). The returned value is the normalised pAUC, <code class="reqn">pAUC_{FPF}(u_1|\mathbf{x})/u_1</code> so that it ranges from <code class="reqn">u_1/2</code> (useless test) to 1 (perfect marker). Conversely, when <code>focus = "TPF"</code>, and assuming a lower bound for the TPF of <code class="reqn">u_2</code>, the partial area corresponding to TPFs lying in the interval <code class="reqn">(u_2,1)</code> is computed as
+</p>
+<p style="text-align: center;"><code class="reqn">pAUC_{TPF}(u_2|\mathbf{x})=\int_{u_2}^{1}ROC_{TNF}(p|\mathbf{x})dp,</code>
+</p>
+
+<p>where <code class="reqn">ROC_{TNF}(p|\mathbf{x})</code> is a <code class="reqn">270^\circ</code> rotation of the ROC curve, and it can be expressed as<code class="reqn">ROC_{TNF}(p|\mathbf{x}) = F_{\bar{D}}\{F_{D}^{-1}(1-p|\mathbf{x})|\mathbf{x}\}=G_{\bar{D}}\{\frac{\mu_{D}(\mathbf{x})-\mu_{\bar{D}}(\mathbf{x})}{\sigma_{\bar{D}}(\mathbf{x})}+G_{D}^{-1}(1-p)\frac{\sigma_{D}(\mathbf{x})}{\sigma_{\bar{D}}(\mathbf{x})}\}.</code> Again, when Gaussian errors are assumed, there is a closed-form expression (Hillis and Metz, 2012). Otherwise, the integral is approximated numerically (Simpson's rule). The returned value is the normalised pAUC, <code class="reqn">pAUC_{TPF}(u_2|\mathbf{x})/(1-u_2)</code>, so that it ranges from <code class="reqn">(1-u_2)/2</code> (useless test) to 1 (perfect test).
+</p>
+
+
+<h3>Value</h3>
+
+<p>As a result, the function provides a list with the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>The matched call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newdata</code></td>
+<td>
+<p>A data frame containing the values of the covariates at which the covariate-specific ROC curve (AUC and pAUC, if required) was computed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>The original supplied data argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>missing.ind</code></td>
+<td>
+<p>A logical value indicating whether for each pair of observations (test outcomes and covariates) missing values occur.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>marker</code></td>
+<td>
+<p>The name of the diagnostic test variable in the dataframe.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group</code></td>
+<td>
+<p>The value of the argument <code>group</code> used in the call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tag.h</code></td>
+<td>
+<p>The value of the argument <code>tag.h</code> used in the call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>Named list of length two with the value of the arguments <code>formula.h</code> and <code>formula.d</code> used in the call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>est.cdf</code></td>
+<td>
+<p>The value of the argument <code>est.cdf</code> used in the call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>Set of false positive fractions (FPF) at which the covariate-specific ROC curves have been estimated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ci.level</code></td>
+<td>
+<p>The value of the argument <code>ci.level</code> used in the call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ROC</code></td>
+<td>
+<p>Estimated covariate-specific ROC curve, and <code>ci.level</code>*100% pointwise confidence intervals (if computed).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>AUC</code></td>
+<td>
+<p>Estimated area under the covariate-specific ROC curve, and <code>ci.level</code>*100% confidence interval (if computed). </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pAUC</code></td>
+<td>
+<p>If computed, estimated partial area under the covariate-adjusted ROC curve and <code>ci.level</code>*100%  confidence interval (if computed). Note that the returned values are normalised, so that the maximum value is one.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>Named list of length two, with components 'h' (healthy) and 'd' (diseased). Each component contains an object of class <code>lm</code> with the fitted regression model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coeff</code></td>
+<td>
+<p>Estimated regression coefficients (and <code>ci.level</code>*100% confidence interval if <code>B</code> greater than zero) from the fit of the linear model in the healthy and diseased population, as specified in <code>formula.h</code> and <code>formula.d</code>, respectively.</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Faraggi, D. (2003). Adjusting receiver operating characteristic curves and related indices for covariates. <em>The Statistician</em> <b>52</b>, 179–192.
+</p>
+<p>Hillis, S. L. and Metz, C.E. (2012). An Analytic Expression for the Binormal Partial Area under the ROC Curve. Academic Radiology, <b>19</b>, 1491–1498.
+</p>
+<p>Pepe, M.S. (1998). Three approaches to regression analysis of receiver operating characteristic curves for continuous test results. <em>Biometrics</em> <b>54</b>, 124–135.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>AROC.bnp</code>, <code>AROC.sp</code>, <code>AROC.kernel</code>, <code>pooledROC.BB</code>, <code>pooledROC.emp</code>, <code>pooledROC.kernel</code>, <code>pooledROC.dpm</code>, <code>cROC.bnp</code>, <code>cROC.sp</code> or <code>AROC.kernel</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(ROCnReg)
+data(psa)
+# Select the last measurement
+newpsa &lt;- psa[!duplicated(psa$id, fromLast = TRUE),]
+
+# Log-transform the biomarker
+newpsa$l_marker1 &lt;- log(newpsa$marker1)
+
+# Covariate for prediction
+agep &lt;- seq(min(newpsa$age), max(newpsa$age), length = 50)
+df.pred &lt;- data.frame(age = agep)
+
+
+cROC_sp_normal &lt;- cROC.sp(formula.h = l_marker1 ~ age,
+                          formula.d = l_marker1 ~ age,
+                          group = "status", 
+                          tag.h = 0,
+                          data = newpsa,
+                          newdata = df.pred,
+                          est.cdf = "normal",
+                          pauc = list(compute = TRUE, value = 0.5, focus = "FPF"),
+                          p = seq(0, 1, l = 101), 
+                          B = 500)
+summary(cROC_sp_normal)
+
+plot(cROC_sp_normal)
+
+
+</code></pre>
+
+
+</div>

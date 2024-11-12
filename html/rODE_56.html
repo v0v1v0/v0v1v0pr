@@ -1,0 +1,167 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>getTime</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>getTime</h2>
+
+<h3>Description</h3>
+
+<p>Get the elapsed time
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">getTime(object, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>a class object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional parameters</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R"># +++++++++++++++++++++++++++++++++++++++++++++++++++   application:  Logistic.R
+# Simulates the logistic equation
+importFromExamples("Logistic.R")
+
+# Run the application
+LogisticApp &lt;- function(verbose = FALSE) {
+    x  &lt;- 0.1
+    vx &lt;- 0
+    r  &lt;- 2        # Malthusian parameter (rate of maximum population growth)
+    K  &lt;- 10.0     # carrying capacity of the environment
+    dt   &lt;- 0.01; tol  &lt;- 1e-3; tmax &lt;- 10
+
+    population &lt;- Logistic()                # create a Logistic ODE object
+
+    # Two ways of initializing the object
+      # population &lt;- init(population, c(x, vx, 0), r, K)
+    init(population) &lt;-  list(initState = c(x, vx, 0),
+                              r = r,
+                              K = K)
+
+    odeSolver &lt;- Verlet(population)        # select the solver
+
+    # Two ways of initializing the solver
+      # odeSolver &lt;- init(odeSolver, dt)
+    init(odeSolver) &lt;-  dt
+
+    population@odeSolver &lt;- odeSolver
+    # setSolver(population) &lt;-  odeSolver
+
+    rowVector &lt;- vector("list")
+    i &lt;- 1
+    while (getTime(population) &lt;= tmax) {
+        rowVector[[i]] &lt;- list(t = getTime(population),
+                               s1 = getState(population)[1],
+                               s2 = getState(population)[2])
+        population &lt;- doStep(population)
+        i &lt;- i + 1
+    }
+    DT &lt;- data.table::rbindlist(rowVector)
+    return(DT)
+}
+# show solution
+solution &lt;- LogisticApp()
+plot(solution)
+# KeplerEnergy.R
+#
+
+setClass("KeplerEnergy", slots = c(
+    GM        = "numeric",
+    odeSolver = "Verlet",
+    counter   = "numeric"
+    ),
+    contains = c("ODE")
+)
+
+setMethod("initialize", "KeplerEnergy", function(.Object, ...) {
+    .Object@GM &lt;- 4 * pi * pi         # gravitation constant times combined mass
+    .Object@state &lt;- vector("numeric", 5)  # x, vx, y, vy, t
+    # .Object@odeSolver &lt;- Verlet(ode = .Object)
+    .Object@odeSolver &lt;- Verlet(.Object)
+    .Object@counter &lt;- 0
+    return(.Object)
+})
+
+setMethod("doStep", "KeplerEnergy", function(object, ...) {
+    object@odeSolver &lt;- step(object@odeSolver)
+    object@state &lt;- object@odeSolver@ode@state
+    object
+})
+
+setMethod("getTime", "KeplerEnergy", function(object, ...) {
+    return(object@state[5])
+})
+
+setMethod("getEnergy", "KeplerEnergy", function(object, ...) {
+    ke &lt;- 0.5 * (object@state[2] * object@state[2] +
+                     object@state[4] * object@state[4])
+    pe &lt;- -object@GM / sqrt(object@state[1] * object@state[1] +
+                                object@state[3] * object@state[3])
+    return(pe+ke)
+})
+
+
+setMethod("init", "KeplerEnergy", function(object, initState, ...) {
+    object@state &lt;- initState
+    object@odeSolver &lt;- init(object@odeSolver, getStepSize(object@odeSolver))
+    object@counter &lt;- 0
+    object
+})
+
+
+setReplaceMethod("init", "KeplerEnergy", function(object, ..., value) {
+    initState &lt;- value
+    object@state &lt;- initState
+    object@odeSolver &lt;- init(object@odeSolver, getStepSize(object@odeSolver))
+    object@counter &lt;- 0
+    object
+})
+
+setMethod("getRate", "KeplerEnergy", function(object, state, ...) {
+    # Computes the rate using the given state.
+    r2 &lt;- state[1] * state[1] + state[3] * state[3]  # distance squared
+    r3 &lt;- r2 * sqrt(r2)   # distance cubed
+    object@rate[1] &lt;- state[2]
+    object@rate[2] &lt;- (- object@GM * state[1]) / r3
+    object@rate[3] &lt;- state[4]
+    object@rate[4] &lt;- (- object@GM * state[3]) / r3
+    object@rate[5] &lt;- 1   # time derivative
+
+    object@counter &lt;- object@counter + 1
+    object@rate
+
+})
+
+
+setMethod("getState", "KeplerEnergy", function(object, ...) {
+    # Gets the state variables.
+    return(object@state)
+})
+
+# constructor
+KeplerEnergy &lt;- function() {
+    kepler &lt;- new("KeplerEnergy")
+    return(kepler)
+}
+</code></pre>
+
+
+</div>

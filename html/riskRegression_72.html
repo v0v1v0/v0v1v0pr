@@ -1,0 +1,243 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>CSC</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Cause-specific Cox proportional hazard regression</h2>
+
+<h3>Description</h3>
+
+<p>Interface for fitting cause-specific Cox proportional hazard regression
+models in competing risk.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">CSC(formula, data, cause, surv.type = "hazard", fitter = "coxph", ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>Either a single <code>Hist</code> formula or a list of formulas.
+If it is a list it must contain as many <code>Hist</code> formulas as there are
+causes when <code>surv.type="hazard"</code> and exactly two formulas when <code>surv.type="survival"</code>.
+If it is a list the first formula is used for the cause of interest specific Cox regression
+and the other formula(s) either for the other cause specific Cox regression(s) or for the
+Cox regression of the combined event where each cause counts as event. Note that when only one
+formula is given the covariates enter in exactly the same way into all Cox regression analyses.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data in which to fit the models.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cause</code></td>
+<td>
+<p>The cause of interest. Defaults to the first cause (see Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>surv.type</code></td>
+<td>
+<p>Either <code>"hazard"</code> (the default) or
+<code>"survival"</code>.  If <code>"hazard"</code> fit cause-specific Cox
+regression models for all causes.  If <code>"survival"</code> fit one
+cause-specific Cox regression model for the cause of interest and
+also a Cox regression model for event-free survival.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fitter</code></td>
+<td>
+<p>Routine to fit the Cox regression models.
+If <code>coxph</code> use <code>survival::coxph</code> else use <code>rms::cph</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Arguments given to <code>fitter</code>, e.g., <code>coxph</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The causes and their order
+are determined by <code>prodlim::getStates()</code> applied to the Hist object.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>models </code></td>
+<td>
+<p>a list with the fitted (cause-specific) Cox
+regression objects</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>response </code></td>
+<td>
+<p>the event history response </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eventTimes </code></td>
+<td>
+<p>the sorted (unique) event times </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>surv.type </code></td>
+<td>
+<p>the
+value of <code>surv.type</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>theCause </code></td>
+<td>
+<p>the cause of interest. see
+<code>cause</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>causes </code></td>
+<td>
+<p>the other causes</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Thomas A. Gerds <a href="mailto:tag@biostat.ku.dk">tag@biostat.ku.dk</a> and Ulla B. Mogensen
+</p>
+
+
+<h3>References</h3>
+
+<p>B. Ozenne, A. L. Soerensen, T.H. Scheike, C.T. Torp-Pedersen,
+and T.A. Gerds. riskregression: Predicting the risk
+of an event using Cox regression models. R Journal, 9(2):440–460, 2017.
+</p>
+<p>J Benichou and Mitchell H Gail. Estimates of absolute cause-specific risk
+in cohort studies. Biometrics, pages 813–826, 1990.
+</p>
+<p>T.A. Gerds, T.H. Scheike, and P.K. Andersen. Absolute risk regression for
+competing risks: Interpretation, link functions, and prediction. Statistics
+in Medicine, 31(29):3921–3930, 2012.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>coxph</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(prodlim)
+library(survival)
+data(Melanoma)
+## fit two cause-specific Cox models
+## different formula for the two causes
+fit1 &lt;- CSC(list(Hist(time,status)~sex+age,Hist(time,status)~invasion+epicel+log(thick)),
+            data=Melanoma)
+print(fit1)
+## Not run: 
+library(Publish)
+publish(fit1)
+
+## End(Not run)
+
+## model hazard of all cause mortality instead of hazard of type 2
+fit1a &lt;- CSC(list(Hist(time,status)~sex+age,Hist(time,status)~invasion+epicel+log(thick)),
+             data=Melanoma,
+             surv.type="surv")
+
+## the predicted probabilities are similar
+plot(predictRisk(fit1,times=500,cause=1,newdata=Melanoma),
+     predictRisk(fit1a,times=500,cause=1,newdata=Melanoma))
+
+## special case where cause 2 has no covariates
+fit1b &lt;- CSC(list(Hist(time,status)~sex+age,Hist(time,status)~1),
+             data=Melanoma)
+print(fit1b)
+predict(fit1b,cause=1,times=100,newdata=Melanoma)
+
+
+## same formula for both causes
+fit2 &lt;- CSC(Hist(time,status)~invasion+epicel+age,
+            data=Melanoma)
+print(fit2)
+
+## combine a cause-specific Cox regression model for cause 2
+## and a Cox regression model for the event-free survival:
+## different formula for cause 2 and event-free survival
+fit3 &lt;- CSC(list(Hist(time,status)~sex+invasion+epicel+age,
+                 Hist(time,status)~invasion+epicel+age),
+            surv.type="surv",
+            data=Melanoma)
+print(fit3)
+
+## same formula for both causes
+fit4 &lt;- CSC(Hist(time,status)~invasion+epicel+age,
+            data=Melanoma,
+            surv.type="surv")
+print(fit4)
+
+## strata
+fit5 &lt;- CSC(Hist(time,status)~invasion+epicel+age+strata(sex),
+            data=Melanoma,
+            surv.type="surv")
+print(fit5)
+
+## sanity checks
+
+cox1 &lt;- coxph(Surv(time,status==1)~invasion+epicel+age+strata(sex),data=Melanoma)
+cox2 &lt;- coxph(Surv(time,status!=0)~invasion+epicel+age+strata(sex),data=Melanoma)
+all.equal(coef(cox1),coef(fit5$models[[1]]))
+all.equal(coef(cox2),coef(fit5$models[[2]]))
+
+## predictions
+##
+## surv.type = "hazard": predictions for both causes can be extracted
+## from the same fit
+fit2 &lt;- CSC(Hist(time,status)~invasion+epicel+age, data=Melanoma)
+predict(fit2,cause=1,newdata=Melanoma[c(17,99,108),],times=c(100,1000,10000))
+predictRisk(fit2,cause=1,newdata=Melanoma[c(17,99,108),],times=c(100,1000,10000))
+predictRisk(fit2,cause=2,newdata=Melanoma[c(17,99,108),],times=c(100,1000,10000))
+predict(fit2,cause=1,newdata=Melanoma[c(17,99,108),],times=c(100,1000,10000))
+predict(fit2,cause=2,newdata=Melanoma[c(17,99,108),],times=c(100,1000,10000))
+
+## surv.type = "surv" we need to change the cause of interest
+library(survival)
+fit5.2 &lt;- CSC(Hist(time,status)~invasion+epicel+age+strata(sex),
+            data=Melanoma,
+            surv.type="surv",cause=2)
+## now this does not work
+try(predictRisk(fit5.2,cause=1,newdata=Melanoma,times=4))
+
+## but this does
+predictRisk(fit5.2,cause=2,newdata=Melanoma,times=100)
+predict(fit5.2,cause=2,newdata=Melanoma,times=100)
+predict(fit5.2,cause=2,newdata=Melanoma[4,],times=100)
+
+</code></pre>
+
+
+</div>

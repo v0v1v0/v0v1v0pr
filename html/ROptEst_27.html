@@ -1,0 +1,356 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>internal_interpolate_helpers</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Internal helper functions for generating interpolation grids for
+speed up in package ROptEst</h2>
+
+<h3>Description</h3>
+
+<p>These functions are used internally to generate interpolation grids,
+for Lagrange multipliers or LDEstimators in package <span class="pkg">RobExtremes</span>,
+to be stored in the
+respective ‘<span class="file">sysdata.rda</span>’ file. </p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">
+.RMXE.th(th, PFam, modifyfct, loRad = 0, upRad = Inf, z.start = NULL,
+             A.start = NULL, upper = NULL, lower = NULL,
+             OptOrIter = "iterate", maxiter = 50,
+             tol = .Machine$double.eps^0.4, loRad0 = 1e-3, ...)
+.MBRE.th(th, PFam, modifyfct,
+             z.start = NULL, A.start = NULL, upper = 1e4,
+             lower = 1e-4, OptOrIter = "iterate",
+             maxiter = 50, tol = .Machine$double.eps^0.4, ...)
+.OMSE.th(th, PFam, modifyfct, radius = 0.5,
+             z.start = NULL, A.start = NULL, upper = 1e4,
+             lower = 1e-4, OptOrIter = "iterate",
+             maxiter = 50, tol = .Machine$double.eps^0.4, ...)
+
+.getLMGrid(thGrid, PFam, optFct = .RMXE.th, modifyfct, radius = 0.5,
+           GridFileName = "LMGrid.Rdata", withPrint = FALSE,
+           upper = 1e4, lower = 1e-4, OptOrIter = "iterate",
+           maxiter = 50, tol = .Machine$double.eps^0.4,
+           loRad = 0, upRad = Inf, loRad0 = 1e-3,
+           loRad.s = 0.2, upRad.s = 1, withStartLM = TRUE, len = 13)
+
+
+.saveGridToCSV(Grid, toFileCSV, namPFam, nameInSysdata)
+
+.readGridFromCSV(fromFileCSV)
+
+.generateInterpGrid(thGrid, PFam, toFileCSV = "temp.csv",
+            getFun = .getLMGrid, ..., modifyfct, nameInSysdata,
+            GridFileName, withPrint = TRUE, len = 13)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>th</code></td>
+<td>
+<p>numeric of length 1; the grid value at which to compute LMs. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>PFam</code></td>
+<td>
+<p>an object of class <code>"ParamFamily"</code>, the parametric family
+at which to evaluate the Lagrange multipliers or LDEstimators;
+in our use case, it is a shape-scale model, hence the respective
+(main) parameter must contain <code>"scale"</code> and <code>"shape"</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>modifyfct</code></td>
+<td>
+<p>function with arguments <code>th</code> and <code>PFam</code> to move
+the parametric family to the point of the grid value; returns the
+moved parametric family.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>radius</code></td>
+<td>
+<p> [for OMSE]: positive numeric of length 1: the radius of the
+neighborhood for which the LM's are to be computed;
+defaults to 0.5. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loRad</code></td>
+<td>
+<p> the lower end point of the interval to be searched
+in the inner optimization (for the least favorable situation
+to the user-guessed radius). </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>upRad</code></td>
+<td>
+<p> the upper end point of the interval to be searched in the
+inner optimization (for the least favorable situation
+to the user-guessed radius). </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loRad.s</code></td>
+<td>
+<p> the lower end point of the interval
+to be searched in the outer optimization
+(for the user-guessed radius); if <code>NULL</code>
+set to <code>loRad</code> in the algorithm. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>upRad.s</code></td>
+<td>
+<p> the upper end point of the interval to be searched in the
+outer optimization (for the user-guessed radius); if
+<code>NULL</code> set to <code>upRad</code> in the algorithm. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>z.start</code></td>
+<td>
+<p> initial value for the centering constant. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>A.start</code></td>
+<td>
+<p> initial value for the standardizing matrix. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>upper</code></td>
+<td>
+<p> upper bound for the optimal clipping bound. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lower</code></td>
+<td>
+<p> lower bound for the optimal clipping bound. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>OptOrIter</code></td>
+<td>
+<p>character; which method to be used for determining Lagrange
+multipliers <code>A</code> and <code>a</code>: if (partially) matched to <code>"optimize"</code>,
+<code>getLagrangeMultByOptim</code> is used; otherwise: by default, or if matched to
+<code>"iterate"</code> or to <code>"doubleiterate"</code>,
+<code>getLagrangeMultByIter</code> is used. More specifically,
+when using <code>getLagrangeMultByIter</code>, and if argument <code>risk</code> is of
+class <code>"asGRisk"</code>, by default and if matched to <code>"iterate"</code>
+we use only one (inner) iteration, if matched to <code>"doubleiterate"</code>
+we use up to <code>Maxiter</code> (inner) iterations. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxiter</code></td>
+<td>
+<p> the maximum number of iterations. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p> the desired accuracy (convergence tolerance).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loRad0</code></td>
+<td>
+<p> for numerical reasons: the effective lower bound for the zero search;
+internally set to <code>max(loRad,loRad0)</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>withStartLM</code></td>
+<td>
+<p> logical of length 1: shall the LM's of the preceding grid
+value serve as starting value for the next grid value? </p>
+</td>
+</tr>
+</table>
+<table>
+<tr style="vertical-align: top;">
+<td><code>withPrint</code></td>
+<td>
+<p>logical of length 1: shall current grid value be printed out? </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thGrid</code></td>
+<td>
+<p>numeric; grid values. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optFct</code></td>
+<td>
+<p>function with arguments <code>theta</code>, <code>PFam</code>,
+and modifyfct; determines the Lagrange multipliers. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>GridFileName</code></td>
+<td>
+<p>character; if <code>GridFileName!=""</code>, the pure
+y-grid values are saved under this filename. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Grid</code></td>
+<td>
+<p>numeric; grid matrix (x- and y-values). </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>toFileCSV</code></td>
+<td>
+<p>character; name of the csv file to which the grid is written. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>namPFam</code></td>
+<td>
+<p>character; name of the parametric family for which the grid
+was generated. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nameInSysdata</code></td>
+<td>
+<p>character; grid name (e.g., 'OMSE', 'Sn') for which the grid
+was generated. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fromFileCSV</code></td>
+<td>
+<p>character; name of the csv file from which the grid is read. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>getFun</code></td>
+<td>
+<p>function with first argument <code>th</code>, second argument
+<code>PFam</code> and last arguments <code>GridFileName</code>,
+<code>withPrint</code>; produces the y-values for the
+interpolation grid. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments to be passed on, e.g., to <code>getFun</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>len</code></td>
+<td>
+<p>integer; number of Lagrange multipliers to be calibrated. </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>.MBRE.th</code> computes the Lagrange multipliers for the MBRE estimator,
+<code>.OMSE.th</code> for the OMSE estimator at radius <code>radius</code>,
+and <code>.RMXE.th</code> the RMXE estimator.
+</p>
+<p><code>.getLMGrid</code> in a large loop computes the Lagrange multipliers for
+optimally robust IFs for each element of a given grid.
+</p>
+<p><code>.saveGridToCSV</code> saves a given grid to a csv file, and in addition,
+in a file with same name but with file extension ".txt" writes the
+parametric family and the grid name.
+</p>
+<p><code>.readGridFromCSV</code> reads in a grid from a csv file together with the
+information given in the corresponding ".txt" file.
+</p>
+<p><code>.generateInterpGrid</code> by means of calls to function-argument <code>getFun</code>
+(e.g. <code>getLMGrid</code> computes the grid, if desired smoothes it, and
+then saves it to <code>.csv</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>.MBRE.th</code></td>
+<td>
+<p>A list with items <code>b</code> (a number; clipping height),
+<code>a</code> (a 2-vector; outer centering),
+<code>a.w</code> (a 2-vector; inner centering, in
+the weight), <code>A</code> (a 2x2 matrix; outer standardization),
+<code>A.w</code> (a 2x2 matrix; inner standardization, in the weight).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.OMSE.th</code></td>
+<td>
+<p>as <code>.MBRE.th</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.RMXE.th</code></td>
+<td>
+<p>as <code>.MBRE.th</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.getLMGrid</code></td>
+<td>
+<p>A grid (in form  of a matrix of x and y-values) pasted
+together by <code>cbind</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.saveGridToCSV</code></td>
+<td>
+<p><code>invisible(NULL)</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.readGridFromCSV</code></td>
+<td>
+<p> a list with the read-in items, i.e.,
+an item <code>Grid</code> with the grid, an item <code>namPFam</code> with the name of
+the parametric family, and <code>namInSysdata</code>, the name of the read in grid. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.generateInterpGrid</code></td>
+<td>
+<p><code>invisible(NULL)</code>. </p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>These functions are only meant for the developers of package
+<span class="pkg">ROptEst</span> (or respective packages).
+They can be used to speed up things by interpolation.
+Our use case is a speed up for further scale-shape families (or enhance
+existing speed-ups) such that the respective grids are stored in
+a  ‘<span class="file">sysdata.rda</span>’ file of an external package <span class="pkg">RobAStRda</span>
+—see mail exchange P.Ruckdeschel - U.Ligges on R-devel—
+<a href="https://stat.ethz.ch/pipermail/r-devel/2013-February/065794.html">https://stat.ethz.ch/pipermail/r-devel/2013-February/065794.html</a>.
+Special attention has to be paid for R-versions pre and post R-2.16
+which is why we use <code>.versionSuff</code>.
+</p>
+
+
+</div>

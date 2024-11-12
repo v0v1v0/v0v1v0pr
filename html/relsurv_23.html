@@ -1,0 +1,235 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rsadd</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fit an Additive model for Relative Survival</h2>
+
+<h3>Description</h3>
+
+<p>The function fits an additive model to the data. The methods implemented are the maximum likelihood method, the semiparametric
+method, a glm model with a <code>binomial</code> error and a glm model with a <code>poisson</code> error. 
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rsadd(formula, data=parent.frame(), ratetable = relsurv::slopop,
+      int, na.action, method, init,bwin,centered,cause,control,rmap,...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+
+<p>a formula object, with the response as a <code>Surv</code> object on the
+left of a <code>~</code> operator, and, if desired, terms separated  by
+the <code>+</code> operator on the right. <code>Surv(start,stop,event)</code> 
+outcomes are also possible for time-dependent covariates and 
+left-truncation for <code>method='EM'</code>.
+</p>
+<p>NOTE: The follow-up time must be in days.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+
+<p>a data.frame in which to interpret the variables named in
+the <code>formula</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ratetable</code></td>
+<td>
+
+<p>a table of event rates, organized as a <code>ratetable</code> object, such as <code>slopop</code>. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>int</code></td>
+<td>
+
+<p>either a single value denoting the number of follow-up years or a vector
+specifying the intervals (in years) in which the hazard is constant (the times that are
+bigger than <code>max(int)</code> are censored. If missing, only one interval (from time 0 to maximum observation time) is assumed.
+The EM method does not need the intervals,
+only the maximum time can be specified (all times are censored after this time point).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na.action</code></td>
+<td>
+<p>a missing-data filter function, applied to the model.frame,
+after any subset argument has been used.  Default is
+<code>options()$na.action</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p><code>glm.bin</code> or <code>glm.poi</code> for a glm model, <code>EM</code> for the EM algorithm and <code>max.lik</code> for the maximum likelihood model (default). </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init</code></td>
+<td>
+<p>vector of initial values of the iteration.  Default initial
+value is zero for all variables. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bwin</code></td>
+<td>
+<p>controls the bandwidth used for smoothing in the EM algorithm. The follow-up time is divided into quartiles and
+<code>bwin</code> specifies a factor by which the maximum between events time length on each interval is multiplied. The default
+<code>bwin=-1</code> lets the function find an appropriate value. If <code>bwin=0</code>, no smoothing is applied.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>centered</code></td>
+<td>
+<p>if <code>TRUE</code>, all the variables are centered before fitting and the baseline excess hazard
+is calculated accordingly. Default is <code>FALSE</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cause</code></td>
+<td>
+<p>A vector of the same length as the number of cases. <code>0</code> for population deaths, <code>1</code> for disease specific
+deaths, <code>2</code> (default) for unknown. Can only be used with the <code>EM</code> method. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>a list of parameters for controlling the fitting process. 
+See the documentation for <code>glm.control</code> for details.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rmap</code></td>
+<td>
+<p>an optional list to be used if the variables are not
+organized and named in the same way as in the <code>ratetable</code> object. See details below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>other arguments will be passed to <code>glm.control</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>NOTE: The follow-up time must be specified in days. The <code>ratetable</code> being used may have different variable names and formats than the user's data set, this is dealt with by the <code>rmap</code> argument. For example, if age is in years in the data set but in days in the <code>ratetable</code> object, age=age*365.241 should be used. The calendar year can be in any date format (date, Date and POSIXt are allowed), the date formats in the <code>ratetable</code> and in the data may differ. 
+</p>
+<p>The maximum likelihood method and both glm methods assume a fully parametric model with a piecewise constant baseline
+excess hazard function. The intervals on which the baseline is assumed constant should be passed via argument <code>int</code>. The
+EM method is semiparametric, i.e. no assumptions are made for the baseline hazard and therefore no intervals need to be specified.
+</p>
+<p>The methods using glm are methods for grouped data. The groups are formed according to the covariate values.
+This should be taken into account when fitting a model. The  glm method returns life tables for groups specified by the covariates in <code>groups</code>.
+</p>
+<p>The EM method output includes the smoothed baseline excess hazard <code>lambda0</code>, the cumulative baseline excess hazard 
+<code>Lambda0</code> and  <code>times</code> at which they are estimated. The individual probabilites of dying due to the excess risk
+are returned as <code>Nie</code>. 
+The EM method fitting procedure requires some local smoothing of the baseline excess hazard. The default <code>bwin=-1</code>
+value lets the function find an appropriate value for the 
+smoothing band width. While this ensures an unbiased estimate, the procedure time is much longer. As the value found by 
+the function is independent of the covariates in the model, the value can be read from the output (<code>bwinfac</code>) and 
+used for refitting different models to the same data to save time.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>rsadd</code>. In the case of <code>method="glm.bin"</code> and <code>method="glm.poi"</code> the class also
+inherits from <code>glm</code> which  inherits from the class <code>lm</code>.
+Objects of this class have methods for the functions <code>print</code> and <code>summary</code>.
+An object of class <code>rsadd</code> is a list containing at least the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>the data as used in the model, along with the variables defined in the rate table</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ratetable</code></td>
+<td>
+<p>the ratetable used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>int</code></td>
+<td>
+<p>the maximum time (in years) used. All the events at and after this value are censored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>the fitting method that was used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>linear.predictors</code></td>
+<td>
+<p>the vector of linear predictors, one per subject.</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Package. Pohar M., Stare J. (2006) "Relative survival analysis in R." Computer Methods and Programs in Biomedicine, <b>81</b>: 272–278
+</p>
+<p>Relative survival: Pohar, M., Stare, J. (2007) "Making relative survival analysis relatively easy."
+Computers in biology and medicine, <b>37</b>: 1741–1749.
+</p>
+<p>EM algorithm: Pohar Perme M., Henderson R., Stare, J. (2009) "An approach to estimation in relative survival regression." Biostatistics, <b>10</b>: 136–146.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>rstrans</code>,
+<code>rsmul</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(slopop)
+data(rdata)
+#fit an additive model
+#note that the variable year is given in days since 01.01.1960 and that
+#age must be multiplied by 365.241 in order to be expressed in days.
+fit &lt;- rsadd(Surv(time,cens)~sex+as.factor(agegr)+ratetable(age=age*365.241),
+	    ratetable=slopop,data=rdata,int=5)
+
+#check the goodness of fit
+rs.br(fit)
+
+#use the EM method and plot the smoothed baseline excess hazard
+fit &lt;- rsadd(Surv(time,cens)~sex+age,rmap=list(age=age*365.241),
+	 ratetable=slopop,data=rdata,int=5,method="EM")
+sm &lt;- epa(fit)
+plot(sm$times,sm$lambda,type="l")
+</code></pre>
+
+
+</div>

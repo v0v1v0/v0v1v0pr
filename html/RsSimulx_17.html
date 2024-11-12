@@ -1,0 +1,108 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>statmlx</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Summary of data</h2>
+
+<h3>Description</h3>
+
+<p>Compute statistical summaries (mean, quantile, variance, survival rate,...)
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">statmlx(r, FUN = "mean", probs = c(0.05, 0.5, 0.95), surv.time = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>r</code></td>
+<td>
+<p>a data frame</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>FUN</code></td>
+<td>
+<p>a string, or a vector of strings, with the name of the functions to apply to the result of the simulation</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>probs</code></td>
+<td>
+<p>a vector of quantiles  between 0 and 1. Only used when "quantile" has been defined in <code>FUN</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>surv.time</code></td>
+<td>
+<p>a scalar or a vector of times. Only used when "event" has been defined in <code>type</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>See http://simulx.webpopix.org/stamlx for more details.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A data frame.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+modelPK &lt;- inlineModel("
+[LONGITUDINAL] 
+input={V,Cl,alpha, beta,b}
+
+EQUATION:
+C = pkmodel(V, Cl)
+h = alpha*exp(beta*C)
+g = b*C
+
+DEFINITION:
+y = {distribution=normal, prediction=C, sd=g}
+e = {type=event, maxEventNumber=1, rightCensoringTime=30, hazard=h}
+
+[INDIVIDUAL]
+input={V_pop,Cl_pop,omega_V,omega_Cl}
+
+DEFINITION:
+V     = {distribution=lognormal,   prediction=V_pop,    sd=omega_V}
+Cl    = {distribution=lognormal,   prediction=Cl_pop,   sd=omega_Cl}
+")
+
+adm  &lt;- list(amount=100, time=0)
+p &lt;- c(V_pop=10, Cl_pop=1, omega_V=0.2, omega_Cl=0.2, alpha=0.02, beta=0.1, b=0.1)
+out.y &lt;- list(name=c('y'), time=seq(0,to=25,by=5))
+out.e &lt;- list(name=c('e'), time=0)
+out   &lt;- list(out.y, out.e)
+g &lt;- list(size=100)
+res1 &lt;- simulx(model=modelPK, treatment=adm, parameter=p, output=out, group=g)
+
+statmlx(res1$parameter, FUN = "mean", probs = c(0.05, 0.5, 0.95))
+statmlx(res1$parameter, FUN = "quantile", probs = c(0.05, 0.5, 0.95))
+statmlx(res1$parameter, FUN = c("sd", "quantile"), probs = c(0.05, 0.95))
+statmlx(res1$y, FUN = c("mean", "sd", "quantile"), probs = c(0.05, 0.95))
+statmlx(res1$e, surv.time=c(10,20))
+
+res2 &lt;- simulx(model=modelPK, treatment=adm, parameter=p, output=out, group=g, nrep=3)
+statmlx(res2$parameter, FUN = c("sd", "quantile"), probs = c(0.05, 0.95))
+statmlx(res2$y, FUN = c("mean", "sd", "quantile"), probs = c(0.05, 0.95))
+statmlx(res2$e, surv.time=c(10,20,30))
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,152 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>funkSVD</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Funk SVD for Matrices with Missing Data</h2>
+
+<h3>Description</h3>
+
+<p>Implements matrix decomposition by the stochastic gradient descent optimization popularized by Simon Funk to minimize the error on the known values.
+This function is used by the recommender method "SVDF" (see <code>Recommender</code>).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">funkSVD(x, k = 10, gamma = 0.015, lambda = 0.001,
+  min_improvement = 1e-06, min_epochs = 50, max_epochs = 200,
+  verbose = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p> a matrix, potentially containing NAs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p> number of features (i.e, rank of the approximation). </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gamma</code></td>
+<td>
+<p> regularization term. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p> learning rate. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min_improvement</code></td>
+<td>
+<p> required minimum improvement per iteration. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min_epochs</code></td>
+<td>
+<p> minimum number of iterations per feature. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_epochs</code></td>
+<td>
+<p> maximum number of iterations per feature. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p> show progress. </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Funk SVD decomposes a matrix (with missing values)
+into two components <code class="reqn">U</code> and <code class="reqn">V</code>.
+The singular values are folded into these matrices.
+The approximation
+for the original matrix can be obtained by <code class="reqn">R = UV'</code>.
+</p>
+<p>This function <code>predict</code> in this implementation folds in new data rows
+by estimating the <code class="reqn">u</code> vectors using gradient descend and then calculating
+the reconstructed complete matrix r for these users via <code class="reqn">r = uV'</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>"funkSVD"</code> with components
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>U</code></td>
+<td>
+<p> the <code class="reqn">U</code> matrix. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>V</code></td>
+<td>
+<p> the <code class="reqn">V</code> matrix. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parameters</code></td>
+<td>
+<p> a list with parameter values. </p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>The code is based on the implmentation in package <span class="pkg">rrecsys</span> by
+Ludovik Coba and Markus Zanker.
+</p>
+
+
+<h3>References</h3>
+
+<p>Y. Koren, R. Bell, and C. Volinsky. Matrix Factorization Techniques for Recommender Systems, IEEE Computer, pp. 42-49, August 2009.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># this takes a while to run!
+## Not run: 
+data("Jester5k")
+
+# helper to calculate root mean squared error
+rmse &lt;- function(pred, truth) sqrt(sum((truth-pred)^2, na.rm = TRUE))
+
+train &lt;- as(Jester5k[1:100], "matrix")
+fsvd &lt;- funkSVD(train, verbose = TRUE)
+
+# reconstruct the original rating matrix as R = UV'
+r &lt;- tcrossprod(fsvd$U, fsvd$V)
+rmse(train, r)
+
+# fold in new users for matrix completion
+test &lt;- as(Jester5k[101:105], "matrix")
+p &lt;- predict(fsvd, test, verbose = TRUE)
+rmse(test, p)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

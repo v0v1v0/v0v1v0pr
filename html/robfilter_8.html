@@ -1,0 +1,371 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>dw.filter</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Robust Double Window Filtering Methods for Univariate Time Series</h2>
+
+<h3>Description</h3>
+
+<p>Procedures for robust (online) extraction of low frequency 
+components (the <em>signal</em>) from a univariate time series 
+based on a moving window technique using two nested time windows 
+in each step.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">dw.filter(y, outer.width, inner.width, method = "all", 
+             scale = "MAD", d = 2, 
+             minNonNAs = 5, online = FALSE, extrapolate = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>a numeric vector or (univariate) time series object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outer.width</code></td>
+<td>
+<p>a positive integer specifying the window width 
+of the outer window used for determining the final estimate. <br>
+If <code>online=FALSE</code> (see below) this needs to be an odd integer.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inner.width</code></td>
+<td>
+<p>a positive integer (not larger than <code>outer.width</code>)
+specifying the window width of the inner window used for determining 
+the initial estimate and trimming features.<br>
+If <code>online=FALSE</code> (see below) this needs to be an odd integer.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>a (vector of) character string(s) containing the method(s) to be used for the estimation
+of the signal level.<br>
+It is possible to specify any combination of <code>"MED"</code>, <code>"RM"</code>, <code>"MTM"</code>, <code>"TRM"</code>, 
+<code>"MRM"</code>, <code>"DWRM"</code>, <code>"DWMTM"</code>, <code>"DWTRM"</code>, <code>"DWMRM"</code> and 
+<code>"all"</code> (for all of the above). Default is <code>method="all"</code>. 
+For a detailed description see the section ‘Methods’ below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>a character string specifying the method to be used for robust estimation of the local 
+variability (within one time window). Possible values are:
+</p>
+<dl>
+<dt><code>"MAD"</code></dt>
+<dd>
+<p>Median absolute deviation about the median (default)</p>
+</dd>
+<dt><code>"QN"</code></dt>
+<dd>
+<p>Rousseeuw's and Croux' (1993) <code class="reqn">Q_n</code> scale estimator</p>
+</dd>
+<dt><code>"SN"</code></dt>
+<dd>
+<p>Rousseeuw's and Croux' (1993) <code class="reqn">S_n</code> scale estimator</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d</code></td>
+<td>
+<p>a positive integer defining factor the current scale estimate is multiplied with for
+determining the trimming boundaries for outlier detection.<br>
+Observations deviating more than <code class="reqn">d\cdot \hat{\sigma}_t</code> 
+from the current level approximation <code class="reqn">\hat{\mu}_t</code> 
+are replaced by <code class="reqn">\hat{\mu}_t</code> where 
+<code class="reqn">\hat{\sigma}_t</code> denotes the current scale estimate.
+Default is <code>d = 2</code> meaning a <code class="reqn">2\sigma</code> rule  for outlier 
+detection.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minNonNAs</code></td>
+<td>
+<p>a positive integer defining the minimum number 
+of non-missing observations within each window which is required  
+for a ‘sensible’ estimation. Default: if windows contain
+less than <code>minNonNAs = 5</code> observations <code>NA</code>s are returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>online</code></td>
+<td>
+<p>a logical indicating whether the current level and 
+scale estimates are evaluated at the most recent time 
+within each (inner and outer) window (<code>TRUE</code>) or centred within 
+the windows (<code>FALSE</code>). Setting <code>online=FALSE</code> requires odd 
+<code>inner.width</code> and <code>outer.width</code>. Default is <code>online=FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extrapolate</code></td>
+<td>
+<p>a logical indicating whether the level 
+estimations should be extrapolated to the edges of the time series. <br>
+If <code>online=FALSE</code> the extrapolation consists of the 
+fitted values within the first half of the first window and the 
+last half of the last window; if <code>online=TRUE</code> the 
+extrapolation consists of the all fitted values within the first 
+time window. </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>dw.filter</code> is suitable for extracting low 
+frequency components (the <em>signal</em>) from a time series 
+which may be contaminated with outliers and can contain level 
+shifts. For this, moving window techniques are applied.
+</p>
+<p>A short inner window of length <code>inner.width</code> is used in each 
+step for calculating an initial level estimate (by using either 
+the median or a robust regression fit) and a robust estimate of 
+the local standard deviation. Observations deviating strongly from this 
+initial fit are trimmed from an outer time window of length 
+<code>outer.width</code>, and the signal level is estimated from the 
+remaining observations (by using either a location or regression 
+estimator). Values specified in <code>method</code> determine which 
+combination of estimation methods should be applied to the inner 
+and outer window (see section ‘Methods’ below).
+</p>
+<p>The applied <code>method</code> should be chosen based on an a-priori 
+guess of the underlying signal and the data quality: Location 
+based method (<code>MED</code> / <code>MTM</code>) are recommended in case 
+of a locally (piecewise) constant signal, regression based 
+approaches (<code>RM</code> / <code>DWRM</code> / <code>TRM</code> / <code>MRM</code>) in 
+case of locally linear, monotone trends. 
+</p>
+<p>Since no big differences have been reported between <code>TRM</code> 
+and <code>MRM</code>, the quicker and somewhat more efficient 
+<code>TRM</code> option might be preferred. <code>DWRM</code> is the quickest 
+of all regression based methods and performs better than the 
+ordinary <code>RM</code> at shifts, but it is the least robust and 
+least efficient method.
+</p>
+<p>If location based methods are used, the <code>inner.width</code> should 
+be chosen at least twice the length of expected patches of 
+subsequent outliers in the time series; if regression based 
+methods are used, the <code>inner.width</code> should be at least three 
+times that length, otherwise outlier patches can influence the 
+estimations strongly. To increase the efficiency of the final 
+estimates, <code>outer.width</code> can then be chosen rather large - 
+provided that it is smaller than the time between subsequent 
+level shifts.
+</p>
+<p>For robust scale estimation, <code>MAD</code> is the classical choice; 
+<code>SN</code> is a somewhat more efficient and almost equally robust 
+alternative, while <code>QN</code> is much more efficient if the 
+window widths are not too small, and it performs very well at the 
+occurrence of level shifts.
+</p>
+<p>The factor <code>d</code>, specifying the trimming boundaries as a 
+multiple of the estimated scale, can be chosen similarly to 
+classical rules for detecting unusual observations in a Gaussian 
+sample. Choosing <code>d=3</code> instead of <code>d=2</code> increases 
+efficiency, but decreases robustness; <code>d=2.5</code> might be seen 
+as a compromise.</p>
+
+
+<h3>Value</h3>
+
+<p><code>dw.filter</code> returns an object of class <code>dw.filter</code>.  
+An object of class <code>dw.filter</code> is a list containing the 
+following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>level</code></td>
+<td>
+<p>a data frame containing the corresponding signal level extracted by the filter(s) specified in <code>method</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>slope</code></td>
+<td>
+<p>a data frame containing the corresponding slope within each time window.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma</code></td>
+<td>
+<p>a data frame containing 
+<code>inner.loc.sigma</code>, <code>inner.reg.sigma</code>, <code>outer.loc.sigma</code> and <code>outer.reg.sigma</code>,
+the scale estimated from the observations (<code>loc</code>) or the residuals from the Repeated Median regression (<code>reg</code>) 
+within the inner window of length <code>inner.width</code> or the outer window of length <code>outer.width</code>, respectively.<br><code>MTM</code> uses <code>outer.loc.sigma</code> for trimming outliers, 
+<code>MRM</code> and <code>TRM</code> use <code>outer.reg.sigma</code> for trimming outliers,<br><code>DWMTM</code> uses <code>inner.loc.sigma</code> for trimming outliers, 
+<code>DWMRM</code> and <code>DWTRM</code> use <code>inner.reg.sigma</code> for trimming outliers;<br><code>MED</code>, <code>RM</code> and <code>RM</code> require no scale estimation.<br> 
+The function only returns values for <code>inner.loc.sigma</code>, <code>inner.reg.sigma</code>,
+<code>outer.loc.sigma</code> or <code>outer.reg.sigma</code> if any specified <code>method</code>
+requires their estimation; otherwise <code>NA</code>s are returned.</p>
+</td>
+</tr>
+</table>
+<p>In addition, the original input time series is returned as list 
+member <code>y</code>, and the settings used for the analysis are 
+returned as the list members <code>outer.width</code>, 
+<code>inner.width</code>, <code>method</code>, <code>scale</code>, <code>d</code>, 
+<code>minNonNAs</code>, <code>online</code> and <code>extrapolate</code>. 
+</p>
+<p>Application of the function <code>plot</code> to an object of class
+<code>dw.filter</code> returns a plot showing the original time series 
+with the filtered output. 
+</p>
+
+
+<h3>Methods</h3>
+
+ 
+<p>The following methods are available as <code>method</code> for signal extraction, 
+whereby the prefix <code>DW</code> denotes the fact that different 
+window widths are used in the first and second step of the 
+calculations within one window (i.e. 
+<code>inner.width</code>&lt;<code>outer.width</code>) while for the 
+methods <code>MED</code>, <code>RM</code>, <code>MTM</code>, <code>TRM</code> and <code>MRM</code>
+the first and second step take place in a window of fixed 
+length <code>outer.width</code>.
+</p>
+
+<dl>
+<dt><code>MED</code></dt>
+<dd>
+<p>ordinary running median filter. <br>
+The simple median is applied to the observations within a moving 
+time window of length <code>outer.width</code>.
+</p>
+</dd>
+<dt><code>RM</code></dt>
+<dd>
+<p>ordinary repeated median filter. <br>
+Repeated median regression is applied to the observations within 
+a moving time window of length <code>outer.width</code>.
+</p>
+</dd>
+<dt>
+<code>MTM</code>, <code>DWMTM</code>
+</dt>
+<dd>
+<p>modified trimmed mean filters. <br>
+In a first step the median is applied to (<code>MTM</code>): the whole 
+window with <code>outer.width</code> or (<code>DWMTM</code>): the inner window 
+with <code>inner.width</code>; in a second step the mean is applied to 
+the (trimmed) observations in the whole window (with 
+<code>outer.width</code>).
+</p>
+</dd>
+<dt>
+<code>TRM</code>, <code>DWTRM</code>
+</dt>
+<dd>
+<p>trimmed repeated median filters. <br>
+In a first step repeated median regression is applied to 
+(<code>TRM</code>): the whole window with <code>outer.width</code> or 
+(<code>DWTRM</code>): the inner window with <code>inner.width</code>; in a 
+second step least squares regression is applied to the (trimmed) 
+observations in the whole window (with <code>outer.width</code>).
+</p>
+</dd>
+<dt>
+<code>MRM</code>, <code>DWMRM</code>
+</dt>
+<dd>
+<p>modified repeated median filters. <br>
+In a first step repeated median regression is applied to 
+(<code>MRM</code>): the whole window with <code>outer.width</code> or 
+(<code>DWMRM</code>): the inner window with <code>inner.width</code>; in a 
+second step another repeated median regression is applied to the 
+(trimmed) observations in the whole window (with 
+<code>outer.width</code>).
+</p>
+</dd> 
+<dt><code>DWRM</code></dt>
+<dd>
+<p>double window repeated median filter. <br> 
+In a first step repeated median regression is applied to the 
+inner window with <code>inner.width</code> to determine the trend 
+(slope); in a second step the median is applied to the trend 
+corrected observations in the whole window with 
+<code>outer.width</code> (without trimming). 
+</p>
+</dd>
+</dl>
+<h3>Note</h3>
+
+<p>Missing values are treated by omitting them and thus by reducing 
+the corresponding window width. <br><code>MED</code>, <code>RM</code>, <code>MTM</code>, <code>TRM</code> and <code>MRM</code> 
+require at least <code>minNonNAs</code> non-missing observations in each 
+outer window; <code>DWRM</code>, <code>DWMTM</code>, <code>DWTRM</code> and 
+<code>DWMRM</code> require at least <code>minNonNAs</code> non-missing 
+observations in each inner window. Otherwise <code>NA</code>s are 
+returned for <code>level</code>, <code>slope</code> and <code>sigma</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Roland Fried and Karen Schettlinger</p>
+
+
+<h3>References</h3>
+
+ 
+<p>Bernholt, T., Fried, R., Gather, U., Wegener, I. (2006) 
+Modified Repeated Median Filters, 
+<em>Statistics and Computing</em> <b>16</b>, 
+177-192.<br> 
+(earlier version: <a href="http://hdl.handle.net/2003/5298">http://hdl.handle.net/2003/5298</a>)
+</p>
+<p>Schettlinger, K., Fried, R., Gather, U. (2006) 
+Robust Filters for Intensive Care Monitoring: Beyond the Running Median,
+<em>Biomedizinische Technik</em> <b>51</b>(2), 
+49-56.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>robreg.filter</code>, <code>robust.filter</code>, <code>hybrid.filter</code>, <code>wrm.filter</code>.</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# Generate random time series:
+y &lt;- cumsum(runif(500)) - .5*(1:500)
+# Add jumps:
+y[200:500] &lt;- y[200:500] + 5
+y[400:500] &lt;- y[400:500] - 7
+# Add noise:
+n &lt;- sample(1:500, 30)
+y[n] &lt;- y[n] + rnorm(30)
+
+# Filtering with all methods:
+y.dw &lt;- dw.filter(y, outer.width=31, inner.width=11, method="all")
+# Plot:
+plot(y.dw)
+
+# Filtering with trimmed RM and double window TRM only:
+y2.dw &lt;- dw.filter(y, outer.width=31, inner.width=11, method=c("TRM","DWTRM"))
+plot(y2.dw)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

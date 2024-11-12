@@ -1,0 +1,114 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rquery_apply_to_data_frame</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Execute optree in an environment where d is the only data.</h2>
+
+<h3>Description</h3>
+
+<p>Default DB uses RSQLite (so some functions are not supported).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rquery_apply_to_data_frame(
+  d,
+  optree,
+  ...,
+  limit = NULL,
+  source_limit = NULL,
+  allow_executor = TRUE,
+  env = parent.frame()
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>d</code></td>
+<td>
+<p>data.frame or named list of data.frames.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optree</code></td>
+<td>
+<p>rquery rel_op operation tree.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>force later arguments to bind by name.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>limit</code></td>
+<td>
+<p>integer, if not NULL limit result to no more than this many rows.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>source_limit</code></td>
+<td>
+<p>numeric if not NULL limit sources to this many rows.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>allow_executor</code></td>
+<td>
+<p>logical if TRUE allow any executor set as rquery.rquery_executor to be used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>env</code></td>
+<td>
+<p>environment to look to.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>data.frame result
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# WARNING: example tries to change rquery.rquery_db_executor option to RSQLite and back.
+if (requireNamespace("DBI", quietly = TRUE) &amp;&amp; requireNamespace("RSQLite", quietly = TRUE)) {
+  db &lt;- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+  RSQLite::initExtension(db)
+  old_o &lt;- options(list("rquery.rquery_db_executor" = list(db = db)))
+
+  optree &lt;- mk_td("d", c("AUC", "R2", "D")) %.&gt;%
+  	extend(., c %:=% sqrt(R2)) %.&gt;%
+    orderby(., cols = "R2", reverse = "R2")
+
+  d &lt;- data.frame(AUC = 0.6, R2 = c(0.1, 0.2), D = NA, z = 2)
+  v &lt;- rquery_apply_to_data_frame(d, optree)
+  print(v)
+
+  # now load up a table without an R2 column,
+  # want to show this is caught
+  d &lt;- data.frame(z = 1)
+  tryCatch(
+     rquery_apply_to_data_frame(d, optree),
+     error = function(e) { as.character(e) }
+    ) %.&gt;%
+    print(.)
+
+  options(old_o)
+  DBI::dbDisconnect(db)
+}
+
+</code></pre>
+
+
+</div>

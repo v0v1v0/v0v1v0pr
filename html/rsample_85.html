@@ -1,0 +1,340 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>slide-resampling</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Time-based Resampling</h2>
+
+<h3>Description</h3>
+
+<p>These resampling functions are focused on various forms of <em>time series</em>
+resampling.
+</p>
+
+<ul>
+<li> <p><code>sliding_window()</code> uses the row number when computing the resampling
+indices. It is independent of any time index, but is useful with
+completely regular series.
+</p>
+</li>
+<li> <p><code>sliding_index()</code> computes resampling indices relative to the <code>index</code>
+column. This is often a Date or POSIXct column, but doesn't have to be.
+This is useful when resampling irregular series, or for using irregular
+lookback periods such as <code>lookback = lubridate::years(1)</code> with daily
+data (where the number of days in a year may vary).
+</p>
+</li>
+<li> <p><code>sliding_period()</code> first breaks up the <code>index</code> into less granular groups
+based on <code>period</code>, and then uses that to construct the resampling indices.
+This is extremely useful for constructing rolling monthly or yearly
+windows from daily data.
+</p>
+</li>
+</ul>
+<h3>Usage</h3>
+
+<pre><code class="language-R">sliding_window(
+  data,
+  ...,
+  lookback = 0L,
+  assess_start = 1L,
+  assess_stop = 1L,
+  complete = TRUE,
+  step = 1L,
+  skip = 0L
+)
+
+sliding_index(
+  data,
+  index,
+  ...,
+  lookback = 0L,
+  assess_start = 1L,
+  assess_stop = 1L,
+  complete = TRUE,
+  step = 1L,
+  skip = 0L
+)
+
+sliding_period(
+  data,
+  index,
+  period,
+  ...,
+  lookback = 0L,
+  assess_start = 1L,
+  assess_stop = 1L,
+  complete = TRUE,
+  step = 1L,
+  skip = 0L,
+  every = 1L,
+  origin = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>These dots are for future extensions and must be empty.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lookback</code></td>
+<td>
+<p>The number of elements to look back from the current element
+when computing the resampling indices of the analysis set. The current
+row is always included in the analysis set.
+</p>
+
+<ul>
+<li>
+<p> For <code>sliding_window()</code>, a single integer defining the number of rows to
+look back from the current row.
+</p>
+</li>
+<li>
+<p> For <code>sliding_index()</code>, a single object that will be subtracted from the
+<code>index</code> as <code>index - lookback</code> to define the boundary of where to start
+searching for rows to include in the current resample. This is often
+an integer value corresponding to the number of days to look back,
+or a lubridate Period object.
+</p>
+</li>
+<li>
+<p> For <code>sliding_period()</code>, a single integer defining the number of groups
+to look back from the current group, where the groups were defined from
+breaking up the <code>index</code> according to the <code>period</code>.
+</p>
+</li>
+</ul>
+<p>In all cases, <code>Inf</code> is also allowed to force an expanding window.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>assess_start, assess_stop</code></td>
+<td>
+<p>This combination of arguments determines
+how far into the future to look when constructing the assessment set.
+Together they construct a range of
+<code style="white-space: pre;">⁠[index + assess_start, index + assess_stop]⁠</code> to search for rows to include
+in the assessment set.
+</p>
+<p>Generally, <code>assess_start</code> will always be <code>1</code> to indicate that the first
+value to potentially include in the assessment set should start one element
+after the current row, but it can be increased to a larger value to
+create "gaps" between the analysis and assessment set if you are worried
+about high levels of correlation in short term forecasting.
+</p>
+
+<ul>
+<li>
+<p> For <code>sliding_window()</code>, these are both single integers defining the
+number of rows to look forward from the current row.
+</p>
+</li>
+<li>
+<p> For <code>sliding_index()</code>, these are single objects that will be added
+to the <code>index</code> to compute the range to search for rows to include
+in the assessment set. This is often an integer value corresponding to
+the number of days to look forward, or a lubridate Period object.
+</p>
+</li>
+<li>
+<p> For <code>sliding_period()</code>, these are both single integers defining the
+number of groups to look forward from the current group, where the groups
+were defined from breaking up the <code>index</code> according to the <code>period</code>.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>complete</code></td>
+<td>
+<p>A single logical. When using <code>lookback</code> to compute the
+analysis sets, should only complete windows be considered? If set to
+<code>FALSE</code>, partial windows will be used until it is possible to create
+a complete window (based on <code>lookback</code>). This is a way to use an
+expanding window up to a certain point, and then switch to a sliding
+window.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>step</code></td>
+<td>
+<p>A single positive integer. After computing the resampling
+indices, <code>step</code> is used to thin out the results by selecting every
+<code>step</code>-th result by subsetting the indices with
+<code>seq(1L, n_indices, by = step)</code>. <code>step</code> is applied after <code>skip</code>.
+Note that <code>step</code> is independent of any time <code>index</code> used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>skip</code></td>
+<td>
+<p>A single positive integer, or zero. After computing the
+resampling indices, the first <code>skip</code> results will be dropped by subsetting
+the indices with <code>seq(skip + 1L, n_indices)</code>. This can be especially
+useful when combined with <code>lookback = Inf</code>, which creates an expanding
+window starting from the first row. By skipping forward, you can drop
+the first few windows that have very few data points. <code>skip</code> is
+applied before <code>step</code>. Note that <code>skip</code> is independent of any time
+<code>index</code> used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>index</code></td>
+<td>
+<p>The index to compute resampling indices relative to, specified
+as a bare column name. This must be an existing column in <code>data</code>.
+</p>
+
+<ul>
+<li>
+<p> For <code>sliding_index()</code>, this is commonly a date vector, but is not
+required.
+</p>
+</li>
+<li>
+<p> For <code>sliding_period()</code>, it is required that this is a Date or POSIXct
+vector.
+</p>
+</li>
+</ul>
+<p>The <code>index</code> must be an <em>increasing</em> vector, but duplicate values are
+allowed. Additionally, the index cannot contain any missing values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>period</code></td>
+<td>
+<p>The period to group the <code>index</code> by. This is specified as a
+single string, such as <code>"year"</code> or <code>"month"</code>. See the <code>.period</code> argument
+of <code>slider::slide_period()</code> for the full list of options and further
+explanation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>every</code></td>
+<td>
+<p>A single positive integer. The number of periods to group
+together.
+</p>
+<p>For example, if the <code>period</code> was set to <code>"year"</code> with an <code>every</code>
+value of 2, then the years 1970 and 1971 would be placed in the same
+group.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>origin</code></td>
+<td>
+<p>The reference date time value. The default when left
+as <code>NULL</code> is the epoch time of <code style="white-space: pre;">⁠1970-01-01 00:00:00⁠</code>,
+<em>in the time zone of the index</em>.
+</p>
+<p>This is generally used to define the anchor time to count from,
+which is relevant when the <code>every</code> value is <code style="white-space: pre;">⁠&gt; 1⁠</code>.</p>
+</td>
+</tr>
+</table>
+<h3>See Also</h3>
+
+<p><code>rolling_origin()</code>
+</p>
+<p><code>slider::slide()</code>, <code>slider::slide_index()</code>, and <code>slider::slide_period()</code>,
+which power these resamplers.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(vctrs)
+library(tibble)
+library(modeldata)
+data("Chicago")
+
+index &lt;- new_date(c(1, 3, 4, 7, 8, 9, 13, 15, 16, 17))
+df &lt;- tibble(x = 1:10, index = index)
+df
+
+# Look back two rows beyond the current row, for a total of three rows
+# in each analysis set. Each assessment set is composed of the two rows after
+# the current row.
+sliding_window(df, lookback = 2, assess_stop = 2)
+
+# Same as before, but step forward by 3 rows between each resampling slice,
+# rather than just by 1.
+rset &lt;- sliding_window(df, lookback = 2, assess_stop = 2, step = 3)
+rset
+
+analysis(rset$splits[[1]])
+analysis(rset$splits[[2]])
+
+# Now slide relative to the `index` column in `df`. This time we look back
+# 2 days from the current row's `index` value, and 2 days forward from
+# it to construct the assessment set. Note that this series is irregular,
+# so it produces different results than `sliding_window()`. Additionally,
+# note that it is entirely possible for the assessment set to contain no
+# data if you have a highly irregular series and "look forward" into a
+# date range where no data points actually exist!
+sliding_index(df, index, lookback = 2, assess_stop = 2)
+
+# With `sliding_period()`, we can break up our date index into less granular
+# chunks, and slide over them instead of the index directly. Here we'll use
+# the Chicago data, which contains daily data spanning 16 years, and we'll
+# break it up into rolling yearly chunks. Three years worth of data will
+# be used for the analysis set, and one years worth of data will be held out
+# for performance assessment.
+sliding_period(
+  Chicago,
+  date,
+  "year",
+  lookback = 2,
+  assess_stop = 1
+)
+
+# Because `lookback = 2`, three years are required to form a "complete"
+# window of data. To allow partial windows, set `complete = FALSE`.
+# Here that first constructs two expanding windows until a complete three
+# year window can be formed, at which point we switch to a sliding window.
+sliding_period(
+  Chicago,
+  date,
+  "year",
+  lookback = 2,
+  assess_stop = 1,
+  complete = FALSE
+)
+
+# Alternatively, you could break the resamples up by month. Here we'll
+# use an expanding monthly window by setting `lookback = Inf`, and each
+# assessment set will contain two months of data. To ensure that we have
+# enough data to fit our models, we'll `skip` the first 4 expanding windows.
+# Finally, to thin out the results, we'll `step` forward by 2 between
+# each resample.
+sliding_period(
+  Chicago,
+  date,
+  "month",
+  lookback = Inf,
+  assess_stop = 2,
+  skip = 4,
+  step = 2
+)
+
+</code></pre>
+
+
+</div>

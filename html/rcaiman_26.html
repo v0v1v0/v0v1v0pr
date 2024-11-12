@@ -1,0 +1,142 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>find_sky_pixels_nonnull</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Find sky pixels following the non-null criteria</h2>
+
+<h3>Description</h3>
+
+<p>Cells without sky pixels are the so-called null cells. This type of cells are
+mathematically intractable by models typically used to obtain canopy metrics.
+This function find sky pixels using increase in number of null cells as the
+stopping criteria.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">find_sky_pixels_nonnull(r, sky, g, intercept = 0, slope = 1, w = 0.5)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>r</code></td>
+<td>
+<p>SpatRaster. A normalized greyscale image. Typically, the
+blue channel extracted from a canopy photograph. Please see <code>read_caim()</code>
+and <code>normalize()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sky</code></td>
+<td>
+<p>An object of class SpatRaster produced with
+<code>fit_coneshaped_model()</code>, <code>fit_trend_surface()</code>, <code>fit_cie_sky_model()</code>, or
+<code>ootb_sky_reconstruction()</code>. It also support a numeric vector of length
+one. For instance, it could be a value obtained with a combination of
+<code>extract_sky_points()</code> and <code>extract_dn()</code>. The latter can be understood as
+modelling the sky with a plane.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g</code></td>
+<td>
+<p>SpatRaster built with <code>sky_grid_segmentation()</code> or
+<code>chessboard()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intercept, slope</code></td>
+<td>
+<p>Numeric vector of length one. These are linear
+function coefficients.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w</code></td>
+<td>
+<p>Numeric vector of length one. Weighting parameter from
+Díaz and Lencinas (2018)'s Equation 1. See <code>thr_mblt()</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The arguments <code>sky</code>, <code>intercept</code>, <code>slope</code>, and <code>w</code> are passed to <code>thr_mblt()</code>
+whose output is in turn passed to <code>apply_thr()</code> along with <code>r</code>. As a result,
+<code>r</code> is binarized and used along with <code>g</code> to compute the number of null cells.
+The process is repeated but increasing <code>w</code> in steps of 0.05 as long as
+the number of null cells remains constant.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class SpatRaster with values <code>0</code> and <code>1</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Tool Functions: 
+<code>colorfulness()</code>,
+<code>correct_vignetting()</code>,
+<code>defuzzify()</code>,
+<code>extract_dn()</code>,
+<code>extract_feature()</code>,
+<code>extract_rl()</code>,
+<code>extract_sky_points_simple()</code>,
+<code>extract_sky_points()</code>,
+<code>extract_sun_coord()</code>,
+<code>find_sky_pixels()</code>,
+<code>masking()</code>,
+<code>optim_normalize()</code>,
+<code>percentage_of_clipped_highlights()</code>,
+<code>read_bin()</code>,
+<code>read_caim_raw()</code>,
+<code>read_caim()</code>,
+<code>write_bin()</code>,
+<code>write_caim()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+caim &lt;- read_caim()
+r &lt;- caim$Blue %&gt;% normalize()
+caim &lt;- normalize(caim, 0, 20847, TRUE)
+z &lt;- zenith_image(ncol(caim), lens())
+a &lt;- azimuth_image(z)
+m &lt;- !is.na(z)
+bin &lt;- ootb_obia(caim, z, a, m, HSV(239, 0.85, 0.5), gamma = NULL)
+g &lt;- sky_grid_segmentation(z, a, 3)
+sky_points &lt;- extract_sky_points(r, bin, g,
+                                 dist_to_plant = 5,
+                                 min_raster_dist = 5)
+rl &lt;- extract_rl(r, z, a, sky_points)
+model &lt;- fit_coneshaped_model(rl$sky_points)
+summary(model$model)
+
+sky &lt;- model$fun(z, a)
+sky &lt;- fit_trend_surface(sky, z, a, !is.na(z))$image
+plot(r/sky)
+
+x &lt;- predict(model$model)
+y &lt;- predict(model$model) + model$model$residuals
+mblt &lt;- coefficients(lm(x~y))
+
+g &lt;- sky_grid_segmentation(z, a, 10)
+bin &lt;- find_sky_pixels_nonnull(r, sky, g, mblt[1], mblt[2], w = 0.1)
+plot(bin)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

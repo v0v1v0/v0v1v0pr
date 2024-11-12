@@ -1,0 +1,333 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>tslars</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>(Robust) least angle regression for time series data</h2>
+
+<h3>Description</h3>
+
+<p>(Robustly) sequence groups of candidate predictors and their respective
+lagged values according to their predictive content and find the optimal
+model along the sequence.  Note that lagged values of the response are
+included as a predictor group as well.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">tslars(x, ...)
+
+## S3 method for class 'formula'
+tslars(formula, data, ...)
+
+## Default S3 method:
+tslars(
+  x,
+  y,
+  h = 1,
+  pMax = 3,
+  sMax = NA,
+  fit = TRUE,
+  s = c(0, sMax),
+  crit = "BIC",
+  ncores = 1,
+  cl = NULL,
+  model = TRUE,
+  ...
+)
+
+rtslars(x, ...)
+
+## S3 method for class 'formula'
+rtslars(formula, data, ...)
+
+## Default S3 method:
+rtslars(
+  x,
+  y,
+  h = 1,
+  pMax = 3,
+  sMax = NA,
+  centerFun = median,
+  scaleFun = mad,
+  regFun = lmrob,
+  regArgs = list(),
+  combine = c("min", "euclidean", "mahalanobis"),
+  winsorize = FALSE,
+  const = 2,
+  prob = 0.95,
+  fit = TRUE,
+  s = c(0, sMax),
+  crit = "BIC",
+  ncores = 1,
+  cl = NULL,
+  seed = NULL,
+  model = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a numeric matrix or data frame containing the candidate predictor
+series.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments to be passed down.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a formula describing the full model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>an optional data frame, list or environment (or object coercible
+to a data frame by <code>as.data.frame</code>) containing the variables in
+the model.  If not found in data, the variables are taken from
+<code>environment(formula)</code>, typically the environment from which
+<code>tslars</code> or <code>rtslars</code> is called.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>a numeric vector containing the response series.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>h</code></td>
+<td>
+<p>an integer giving the forecast horizon (defaults to 1).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pMax</code></td>
+<td>
+<p>an integer giving the maximum number of lags in the model
+(defaults to 3).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sMax</code></td>
+<td>
+<p>an integer giving the number of predictor series to be
+sequenced.  If it is <code>NA</code> (the default), predictor groups are sequenced
+as long as there are twice as many observations as predictor variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>a logical indicating whether to fit submodels along the sequence
+(<code>TRUE</code>, the default) or to simply return the sequence (<code>FALSE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s</code></td>
+<td>
+<p>an integer vector of length two giving the first and last
+step along the sequence for which to compute submodels.  The default
+is to start with a model containing only an intercept (step 0) and
+iteratively add all series along the sequence (step <code>sMax</code>).  If
+the second element is <code>NA</code>, predictor groups are added to the
+model as long as there are twice as many observations as predictor
+variables.  If only one value is supplied, it is recycled.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>crit</code></td>
+<td>
+<p>a character string specifying the optimality criterion to be
+used for selecting the final model.  Currently, only <code>"BIC"</code> for the
+Bayes information criterion is implemented.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncores</code></td>
+<td>
+<p>a positive integer giving the number of processor cores to be
+used for parallel computing (the default is 1 for no parallelization).  If
+this is set to <code>NA</code>, all available processor cores are used.  For
+each lag length, parallel computing for obtaining the data cleaning weights
+and for fitting models along the sequence is implemented on the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> level
+using package <span class="pkg">parallel</span>.  Otherwise parallel computing for some of of
+the more computer-intensive computations in the sequencing step is
+implemented on the C++ level via OpenMP (<a href="https://www.openmp.org/">https://www.openmp.org/</a>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cl</code></td>
+<td>
+<p>a <span class="pkg">parallel</span> cluster for parallel computing as generated by
+<code>makeCluster</code>.  This is preferred over <code>ncores</code>
+for tasks that are parallelized on the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> level, in which case <code>ncores</code>
+is only used for tasks that are parallelized on the C++ level.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>a logical indicating whether the model data should be included
+in the returned object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>centerFun</code></td>
+<td>
+<p>a function to compute a robust estimate for the center
+(defaults to <code>median</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scaleFun</code></td>
+<td>
+<p>a function to compute a robust estimate for the scale
+(defaults to <code>mad</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>regFun</code></td>
+<td>
+<p>a function to compute robust linear regressions that can be
+interpreted as weighted least squares (defaults to
+<code>lmrob</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>regArgs</code></td>
+<td>
+<p>a list of arguments to be passed to <code>regFun</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>combine</code></td>
+<td>
+<p>a character string specifying how to combine the data
+cleaning weights from the robust regressions with each predictor group.
+Possible values are <code>"min"</code> for taking the minimum weight for each
+observation, <code>"euclidean"</code> for weights based on Euclidean distances
+of the multivariate set of standardized residuals (i.e., multivariate
+winsorization of the standardized residuals assuming independence), or
+<code>"mahalanobis"</code> for weights based on Mahalanobis distances of the
+multivariate set of standardized residuals (i.e., multivariate winsorization
+of the standardized residuals).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>winsorize</code></td>
+<td>
+<p>a logical indicating whether to clean the data by
+multivariate winsorization.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>const</code></td>
+<td>
+<p>numeric; tuning constant for multivariate winsorization to be
+used in the initial corralation estimates based on adjusted univariate
+winsorization (defaults to 2).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prob</code></td>
+<td>
+<p>numeric; probability for the quantile of the
+<code class="reqn">\chi^{2}</code> distribution to be used in multivariate
+winsorization (defaults to 0.95).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>optional initial seed for the random number generator
+(see <code>.Random.seed</code>), which is useful because many robust
+regression functions (including <code>lmrob</code>) involve
+randomness.  On parallel <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> worker processes, random number streams are
+used and the seed is set via <code>clusterSetRNGStream</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>If <code>fit</code> is <code>FALSE</code>, an integer matrix in which each column
+contains the indices of the sequenced predictor series for the corresponding
+lag length.
+</p>
+<p>Otherwise an object of class <code>"tslars"</code> with the following components:
+</p>
+
+<dl>
+<dt><code>pFit</code></dt>
+<dd>
+<p>a list containing the fits for the respective lag
+lengths (see <code>tslarsP</code>).</p>
+</dd>
+<dt><code>pOpt</code></dt>
+<dd>
+<p>an integer giving the optimal number of lags.</p>
+</dd>
+<dt><code>pMax</code></dt>
+<dd>
+<p>the maximum number of lags considered.</p>
+</dd>
+<dt><code>x</code></dt>
+<dd>
+<p>the matrix of candidate predictor series (if <code>model</code>
+is <code>TRUE</code>).</p>
+</dd>
+<dt><code>y</code></dt>
+<dd>
+<p>the response series (if <code>model</code> is <code>TRUE</code>).</p>
+</dd>
+<dt><code>call</code></dt>
+<dd>
+<p>the matched function call.</p>
+</dd>
+</dl>
+<h3>Note</h3>
+
+<p>The predictor group of lagged values of the response is indicated by
+the index 0.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Andreas Alfons, based on code by Sarah Gelper
+</p>
+
+
+<h3>References</h3>
+
+<p>Alfons, A., Croux, C. and Gelper, S. (2016) Robust groupwise least angle
+regression. <em>Computational Statistics &amp; Data Analysis</em>, <b>93</b>,
+421–435. <a href="https://doi.org/10.1016/j.csda.2015.02.007">doi:10.1016/j.csda.2015.02.007</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>coef</code>,
+<code>fitted</code>,
+<code>plot</code>,
+<code>predict</code>,
+<code>residuals</code>,
+<code>tslarsP</code>, <code>lmrob</code>
+</p>
+
+
+</div>

@@ -1,0 +1,302 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>lf.vd</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Construct a VDFR regression term</h2>
+
+<h3>Description</h3>
+
+<p>This function defines the a variable-domain functional regression term
+for inclusion in an <code>[mgcv]{gam}</code>-formula (or <code>[mgcv]{bam}</code> or
+<code>[mgcv]{gamm}</code> or <code>gamm4::gamm</code> as constructed by
+<code>{pfr}</code>. These are functional predictors for which each function is
+observed over a domain of different width.
+The default is the term <code class="reqn">1/T_i\int_0^{T_i}X_i(t)\beta(t,T_i)dt</code>,
+where <code class="reqn">X_i(t)</code> is a functional predictor of length <code class="reqn">T_i</code> and <code class="reqn">\beta(t,T_i)</code>
+is an unknown bivariate coefficient function. Various domain transformations
+are available, such as lagging or domain-standardizing the coordinates, or
+parameterizing the interactions; these often result in improved model fit.
+Basis choice is fully customizable using the options of
+<code>[mgcv]{s}</code> and <code>[mgcv]{te}</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">lf.vd(
+  X,
+  argvals = seq(0, 1, l = ncol(X)),
+  vd = NULL,
+  integration = c("simpson", "trapezoidal", "riemann"),
+  L = NULL,
+  basistype = c("s", "te", "t2"),
+  transform = NULL,
+  mp = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>matrix containing variable-domain functions. Should be <code class="reqn">N x J</code>,
+where <code class="reqn">N</code> is the number of subjects and <code class="reqn">J</code> is the maximum number of time
+points per subject. Most rows will have <code>NA</code> values in the right-most
+columns, corresponding to unobserved time points.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>argvals</code></td>
+<td>
+<p>indices of evaluation of <code>X</code>, i.e. <code class="reqn">(t_{i1},.,t_{iJ})</code> for
+subject <code class="reqn">i</code>. May be entered as either a length-<code>J</code> vector, or as
+an <code>N</code> by <code>J</code> matrix. Indices may be unequally spaced. Entering
+as a matrix allows for different observations times for each subject.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vd</code></td>
+<td>
+<p>vector of values of containing the variable-domain width (<code class="reqn">T_i</code>
+above). Defaults to the <code>argvals</code> value corresponding to the last
+non-<code>NA</code> element of <code class="reqn">X_i(t)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>integration</code></td>
+<td>
+<p>method used for numerical integration. Defaults to <code>"simpson"</code>'s rule
+for calculating entries in <code>L</code>. Alternatively and for non-equidistant grids,
+<code>"trapezoidal"</code> or <code>"riemann"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>L</code></td>
+<td>
+<p>an optional <code>N</code> by <code>ncol(argvals)</code> matrix giving the weights for the numerical
+integration over <code>t</code>. If present, overrides <code>integration</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>basistype</code></td>
+<td>
+<p>character string indicating type of bivariate basis used.
+Options include <code>"s"</code> (the default), <code>"te"</code>, and <code>"t2"</code>,
+which correspond to <code>mgcv::s</code>, <code>mgcv::te</code>, and <code>mgcv::t2</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>transform</code></td>
+<td>
+<p>character string indicating an optional basis transformation;
+see Details for options.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mp</code></td>
+<td>
+<p>for <code>transform=="linear"</code> or <code>transform=="quadratic"</code>,
+<code>TRUE</code> to use multiple penalties for the smooth (one for each marginal
+basis). If <code>FALSE</code>, penalties are concatonated into a single
+block-diagonal penalty matrix (with one smoothing parameter).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>optional arguments for basis and penalization to be passed to the
+function indicated by <code>basistype</code>. These could include, for example,
+<code>"bs"</code>, <code>"k"</code>, <code>"m"</code>, etc. See <code>{te}</code> or
+<code>{s}</code> for details.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The variable-domain functional regression model uses the term
+<code class="reqn">\frac1{T_i}\int_0^{T_i}X_i(t)\beta(t,T_i)dt</code> to incorporate a
+functional predictor with subject-specific domain width. This term imposes
+a smooth (nonparametric) interaction between <code class="reqn">t</code> and <code class="reqn">T_i</code>. The domain
+of the coefficient function is the triangular (or trapezoidal) surface
+defined by <code class="reqn">{t,T_i: 0\le t\le T_i}</code>. The default basis uses
+bivariate thin-plate regression splines.
+</p>
+<p>Different basis transformations can result in different properties; see
+Gellar, et al. (2014) for a more complete description. We make five basis
+transformations easily accessible using the <code>transform</code> argument.
+This argument is a character string that can take one of the following
+values:
+</p>
+
+<ol>
+<li> <p><code>"lagged"</code>: transforms <code>argvals</code> to <code>argvals - vd</code>
+</p>
+</li>
+<li> <p><code>"standardized"</code>: transforms <code>argvals</code> to <code>argvals/vd</code>,
+and then rescales <code>vd</code> linearly so it ranges from 0 to 1
+</p>
+</li>
+<li> <p><code>"linear"</code>: first transforms the domain as in
+<code>"standardized"</code>, then parameterizes the interaction with
+<code>"vd"</code> to be linear
+</p>
+</li>
+<li> <p><code>"quadratic"</code>: first transforms the domain as in
+<code>"standardized"</code>, then parameterizes the interaction with
+<code>"vd"</code> to be quadratic
+</p>
+</li>
+<li> <p><code>"noInteraction"</code>: first transforms the domain as in
+<code>"standardized"</code>, then reduces the bivariate basis to univariate
+with no effect of <code>vd</code>. This would be equivalent to using
+<code>{lf}</code> on the domain-standardized predictor functions.
+</p>
+</li>
+</ol>
+<p>The practical effect of using the <code>"lagged"</code> basis is to increase
+smoothness along the right (diagonal) edge of the resultant estimate.
+The practical effect of using a <code>"standardized"</code> basis is to allow
+for greater smoothness at high values of <code class="reqn">T_i</code> compared to lower
+values.
+</p>
+<p>These basis transformations rely on the basis constructors
+available in the <code>mgcvTrans</code> package. For more specific control over
+the transformations, you can use <code>bs="dt"</code> and/or <code>bs="pi"</code>;
+see <code>{smooth.construct.dt.smooth.spec}</code> or
+<code>{smooth.construct.pi.smooth.spec}</code> for an explanation of the
+options (entered through the <code>xt</code> argument of <code>lf.vd</code>/<code>s</code>).
+</p>
+<p>Note that tensor product bases are only recommended when a standardized
+transformation is used. Without this transformation, just under half of
+the "knots" used to define the basis will fall outside the range of the
+data and have no data available to estimate them. The penalty allows
+the corresponding coefficients to be estimated, but results may be
+unstable.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a list with the following entries
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>a <code>call</code> to <code>s</code> or <code>te</code>, using the appropriately constructed
+weight matrices</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>data used by the <code>call</code>, which includes the matrices indicated
+by <code>argname</code>, <code>Tindname</code>, and <code>LXname</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>L</code></td>
+<td>
+<p>the matrix of weights used for the integration</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>argname</code></td>
+<td>
+<p>the name used for the <code>argvals</code> variable in the <code>formula</code>
+used by <code>mgcv::gam</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Tindname</code></td>
+<td>
+<p>the name used for the <code>Tind</code> variable in the <code>formula</code>
+used by <code>mgcv::gam</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>LXname</code></td>
+<td>
+<p>the name of the <code>by</code> variable used by <code>s</code> or <code>te</code>
+in the <code>formula</code> for <code>mgcv::gam</code></p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Jonathan E. Gellar &lt;JGellar@mathematica-mpr.com&gt;
+</p>
+
+
+<h3>References</h3>
+
+<p>Gellar, Jonathan E., Elizabeth Colantuoni, Dale M. Needham, and
+Ciprian M. Crainiceanu. Variable-Domain Functional Regression for Modeling
+ICU Data. Journal of the American Statistical Association,
+109(508):1425-1439, 2014.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>{pfr}</code>, <code>{lf}</code>, mgcv's
+<code>{linear.functional.terms}</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+  data(sofa)
+  fit.vd1 &lt;- pfr(death ~ lf.vd(SOFA) + age + los,
+                 family="binomial", data=sofa)
+  fit.vd2 &lt;- pfr(death ~ lf.vd(SOFA, transform="lagged") + age + los,
+                 family="binomial", data=sofa)
+  fit.vd3 &lt;- pfr(death ~ lf.vd(SOFA, transform="standardized") + age + los,
+                 family="binomial", data=sofa)
+  fit.vd4 &lt;- pfr(death ~ lf.vd(SOFA, transform="standardized",
+                               basistype="te") + age + los,
+                 family="binomial", data=sofa)
+  fit.vd5 &lt;- pfr(death ~ lf.vd(SOFA, transform="linear", bs="ps") + age + los,
+                 family="binomial", data=sofa)
+  fit.vd6 &lt;- pfr(death ~ lf.vd(SOFA, transform="quadratic", bs="ps") + age + los,
+                 family="binomial", data=sofa)
+  fit.vd7 &lt;- pfr(death ~ lf.vd(SOFA, transform="noInteraction", bs="ps") + age + los,
+                 family="binomial", data=sofa)
+
+  ests &lt;- lapply(1:7, function(i) {
+    c.i &lt;- coef(get(paste0("fit.vd", i)), n=173, n2=173)
+    c.i[(c.i$SOFA.arg &lt;= c.i$SOFA.vd),]
+  })
+
+  # Try plotting for each i
+  i &lt;- 1
+  lims &lt;- c(-2,8)
+  if (requireNamespace("ggplot2", quietly = TRUE) &amp;
+      requireNamespace("RColorBrewer", quietly = TRUE)) {
+        est &lt;- ests[[i]]
+        est$value[est$value&lt;lims[1]] &lt;- lims[1]
+        est$value[est$value&gt;lims[2]] &lt;- lims[2]
+        ggplot2::ggplot(est, ggplot2::aes(SOFA.arg, SOFA.vd)) +
+          ggplot2::geom_tile(ggplot2::aes(colour=value, fill=value)) +
+          ggplot2::scale_fill_gradientn(  name="", limits=lims,
+                    colours=rev(RColorBrewer::brewer.pal(11,"Spectral"))) +
+          ggplot2::scale_colour_gradientn(name="", limits=lims,
+                    colours=rev(RColorBrewer::brewer.pal(11,"Spectral"))) +
+          ggplot2::scale_y_continuous(expand = c(0,0)) +
+          ggplot2::scale_x_continuous(expand = c(0,0)) +
+          ggplot2::theme_bw()
+  }
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

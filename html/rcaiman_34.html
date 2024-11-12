@@ -1,0 +1,148 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>interpolate_sky_points</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Interpolate sky points</h2>
+
+<h3>Description</h3>
+
+<p>Interpolate values from canopy photographs.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">interpolate_sky_points(sky_points, r, k = 3, p = 2, rmax = 200, col_id = "rl")
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>sky_points</code></td>
+<td>
+<p>An object of class <em>data.frame</em>. The data.frame returned by
+<code>extract_rl()</code> or <code>extract_dn()</code>, or a
+<em>data.frame</em> with same basic structure and names.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>r</code></td>
+<td>
+<p>SpatRaster. The image from which <code>sky_points</code>
+was obtained.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>Numeric vector of length one. Number of k-nearest neighbors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>Numeric vector of length one. Power for inverse-distance weighting.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rmax</code></td>
+<td>
+<p>Numeric vector of length one. Maximum radius where to search for
+<em>knn</em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>col_id</code></td>
+<td>
+<p>Numeric vector of length one. ID of the column with the values
+to interpolate.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function use <code>lidR::knnidw()</code> as workhorse function, so
+arguments <code>k</code>, <code>p</code>, and <code>rmax</code> are passed to it.
+</p>
+<p>This function is based on Lang et al. (2010). In theory,
+the best result would be obtained with data showing a linear relation between
+digital numbers and the amount of light reaching the sensor. See
+<code>extract_radiometry()</code> and <code>read_caim_raw()</code> for further details. As a
+compromise solution, <code>gbc()</code> can be used.
+</p>
+<p>Default parameters are the ones used by
+Lang et al. (2010). The argument <code>rmax</code> should
+account for between 15 to 20 degrees, but it is expressed in pixels units.
+So, image resolution and lens projections should be taken into account to set
+this argument properly.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class SpatRaster.
+</p>
+
+
+<h3>References</h3>
+
+<p>Lang M, Kuusk A, M~ottus M, Rautiainen M, Nilson T (2010).
+“Canopy gap fraction estimation from digital hemispherical images using sky radiance models and a linear conversion method.”
+<em>Agricultural and Forest Meteorology</em>, <b>150</b>(1), 20–29.
+<a href="https://doi.org/10.1016/j.agrformet.2009.08.001">doi:10.1016/j.agrformet.2009.08.001</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Sky Reconstruction Functions: 
+<code>cie_sky_model_raster()</code>,
+<code>fit_cie_sky_model()</code>,
+<code>fit_coneshaped_model()</code>,
+<code>fit_trend_surface()</code>,
+<code>fix_reconstructed_sky()</code>,
+<code>ootb_sky_reconstruction()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+caim &lt;- read_caim()
+r &lt;- caim$Blue
+caim &lt;- normalize(caim, 0, 20847, TRUE)
+z &lt;- zenith_image(ncol(caim), lens())
+a &lt;- azimuth_image(z)
+m &lt;- !is.na(z)
+
+bin &lt;- ootb_obia(caim, z, a, m, HSV(239, 0.85, 0.5), gamma = NULL)
+
+g &lt;- sky_grid_segmentation(z, a, 10)
+sky_points &lt;- extract_sky_points(r, bin, g, dist_to_plant = 3)
+plot(bin)
+points(sky_points$col, nrow(caim) - sky_points$row, col = 2, pch = 10)
+sky_points &lt;- extract_dn(r, sky_points)
+
+sky &lt;- interpolate_sky_points(sky_points, r, col_id = 3)
+plot(sky)
+plot(r/sky)
+
+# A quick demonstration of how to use trend surface fitting to smooth the
+# interpolation
+persp(terra::aggregate(sky, 10), theta = 45, phi = 30)
+sky_s &lt;- fit_trend_surface(sky, z, a, !is.na(z))
+persp(terra::aggregate(sky_s$image, 10), theta = 45, phi = 30)
+plot(sky_s$image)
+plot(r)
+plot(r/sky_s$image)
+plot(apply_thr(r/sky_s$image, 0.5))
+
+## End(Not run)
+</code></pre>
+
+
+</div>

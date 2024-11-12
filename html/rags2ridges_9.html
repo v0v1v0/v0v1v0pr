@@ -1,0 +1,259 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>.armaRidgeP</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Core ridge precision estimators</h2>
+
+<h3>Description</h3>
+
+<p>This is the interface to the <code>C++</code> implementations of the ridge
+precision estimators. They perform core computations for many other
+functions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">.armaRidgeP(S, target, lambda, invert = 2L)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>S</code></td>
+<td>
+<p>A sample covariance <code>matrix</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target</code></td>
+<td>
+<p>A <code>numeric</code> symmetric positive definite target
+<code>matrix</code> of the same size as <code>S</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>The ridge penalty. A <code>double</code> of length 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>invert</code></td>
+<td>
+<p>An <code>integer</code>. Should the estimate be computed using
+inversion?  Permitted values are <code>0L</code>, <code>1L</code>, and <code>2L</code> meaning
+"no", "yes", and "automatic" (default).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The functions are R-interfaces to low-level <code>C++</code> implementations
+of the ridge estimators in the reference below
+(cf. Lemma 1, Remark 6, Remark 7, and section 4.1 therein).
+</p>
+<p><code>.armaRidgeP</code> is simply a wrapper (on the C++ side) for
+<code>.armaRidgePAnyTarget</code> and <code>.armaRidgePScalarTarget</code> which are
+the estimators for arbitrary and scalar targets, respectively.
+The <code>invert</code> argument of the functions indicates if the computation
+uses matrix inversion or not.
+</p>
+<p>Essentially, the functions compute
+</p>
+<p style="text-align: center;"><code class="reqn">
+      \hat{\mathbf{\Omega}}^{\mathrm{I}a}(\lambda_{a}) =
+        \left\{\left[\lambda_{a}\mathbf{I}_{p} + \frac{1}{4}(\mathbf{S} -
+        \lambda_{a}\mathbf{T})^{2}\right]^{1/2} + \frac{1}{2}(\mathbf{S} -
+        \lambda_{a}\mathbf{T})\right\}^{-1},
+    </code>
+</p>
+
+<p>if <code>invert == 1</code> or
+</p>
+<p style="text-align: center;"><code class="reqn">
+      \hat{\mathbf{\Omega}}^{\mathrm{I}a}(\lambda_{a}) =
+        \frac{1}{\lambda}\left\{\left[\lambda_{a}\mathbf{I}_{p} + \frac{1}{4}(\mathbf{S} -
+                 \lambda_{a}\mathbf{T})^{2}\right]^{1/2} - \frac{1}{2}(\mathbf{S} -
+        \lambda_{a}\mathbf{T})\right\}
+    </code>
+</p>
+
+<p>if <code>invert == 0</code> using appropriate eigenvalue decompositions.
+See the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> implementations in the example section below.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns a symmetric positive definite <code>matrix</code> of the same size
+as <code>S</code>.
+</p>
+
+
+<h3>Warning</h3>
+
+<p>The functions themselves perform no checks on the input.
+Correct input should be ensured by wrappers.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Anders Ellern Bilgrau, Carel F.W. Peeters &lt;cf.peeters@vumc.nl&gt;
+</p>
+
+
+<h3>References</h3>
+
+<p>van Wieringen, W.N. &amp; Peeters, C.F.W. (2016).  Ridge Estimation
+of Inverse Covariance Matrices from High-Dimensional Data, Computational
+Statistics &amp; Data Analysis, vol. 103: 284-303.  Also available as
+arXiv:1403.0904v3 [stat.ME].
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Used as a backbone in <code>ridgeP</code>,
+<code>ridgeP.fused</code>, etc.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+S &lt;- createS(n = 3, p = 4)
+tgt &lt;- diag(4)
+rags2ridges:::.armaRidgeP(S, tgt, 1.2)
+
+rags2ridges:::.armaRidgePAnyTarget(S, tgt, 1.2)
+rags2ridges:::.armaRidgePScalarTarget(S, 1, 1.2)
+
+
+################################################################################
+# The C++ estimators essentially amount to the following functions.
+################################################################################
+
+rev_eig &lt;- function(evalues, evectors) { # "Reverse" eigen decomposition
+  evectors %*% diag(evalues) %*% t(evectors)
+}
+
+# R implementations
+
+# As armaRidgePScalarTarget Inv
+rRidgePScalarTarget &lt;- function(S, a, l, invert = 2) {
+  ED &lt;- eigen(S, symmetric = TRUE)
+  eigvals &lt;- 0.5*(ED$values - l*a)
+  sqroot &lt;- sqrt(l + eigvals^2)
+
+  if (l &gt; 1e6 &amp;&amp; (any(!is.finite(eigvals)) || any(!is.finite(sqroot)))) {
+    return(diag(a, nrow(S)))
+  }
+
+  D_inv &lt;- 1.0/(sqroot + eigvals)
+  D_noinv &lt;- (sqroot - eigvals)/l
+
+  if (invert == 2) {   # Determine to invert or not
+    if (l &gt; 1) {  # Generally, use inversion for "small" lambda
+      invert = 0;
+    } else {
+      invert &lt;- ifelse(any(!is.finite(D_inv)), 0, 1)
+    }
+  }
+
+  if (invert) {
+    eigvals &lt;- D_inv
+  } else {
+    eigvals &lt;- D_noinv
+  }
+  return(rev_eig(eigvals, ED$vectors))
+}
+
+# As armaRidgePAnyTarget
+rRidgePAnyTarget &lt;- function(S, tgt, l, invert = 2) {
+  ED &lt;- eigen(S - l*tgt, symmetric = TRUE)
+  eigvals &lt;- 0.5*ED$values
+  sqroot &lt;- sqrt(l + eigvals^2)
+
+  if (l &gt; 1e6 &amp;&amp; (any(!is.finite(eigvals)) || any(!is.finite(sqroot)))) {
+    return(tgt)
+  }
+
+  D_inv &lt;- 1.0/(sqroot + eigvals)
+  D_noinv &lt;- (sqroot - eigvals)/l
+
+  if (invert == 2) {   # Determine to invert or not
+    if (l &gt; 1) {  # Generally, use inversion for "small" lambda
+      invert = 0;
+    } else {
+      invert &lt;- ifelse(any(!is.finite(D_inv)), 0, 1)
+    }
+  }
+
+  if (invert == 1) {
+    eigvals &lt;- D_inv
+  } else {
+    eigvals &lt;- D_noinv
+  }
+  return(rev_eig(eigvals, ED$vectors))
+}
+
+rRidgeP &lt;- function(S, tgt, l, invert = 2) {
+  if (l == Inf) {
+    return(tgt)
+  }
+  a &lt;- tgt[1,1]
+  if (tgt == diag(a, nrow(tgt))) {
+    rRidgePScalarTarget(S, tgt, l, invert)
+  } else {
+    rRidgePAnyTarget(S, tgt, l, invert)
+  }
+
+}
+
+# Contrasted to the straight forward implementations:
+sqrtm &lt;- function(X) { # Matrix square root
+  ed &lt;- eigen(X, symmetric = TRUE)
+  rev_eig(sqrt(ed$values), ed$vectors)
+}
+
+# Straight forward (Lemma 1)
+ridgeP1 &lt;- function(S, tgt, l) {
+  solve(sqrtm( l*diag(nrow(S)) + 0.25*crossprod(S - l*tgt) ) + 0.5*(S - l*tgt))
+}
+
+# Straight forward  (Lemma 1 + remark 6 + 7)
+ridgeP2 &lt;- function(S, tgt, l) {
+  1.0/l*(sqrtm(l*diag(nrow(S)) + 0.25*crossprod(S - l*tgt)) - 0.5*(S - l*tgt))
+}
+
+set.seed(1)
+n &lt;- 3
+p &lt;- 6
+S &lt;- covML(matrix(rnorm(p*n), n, p))
+a &lt;- 2.2
+tgt &lt;- diag(a, p)
+l &lt;- 1.21
+
+(A &lt;- ridgeP1(S, tgt, l))
+(B &lt;- ridgeP2(S, tgt, l))
+
+(C  &lt;- rags2ridges:::.armaRidgePAnyTarget(S, tgt, l))
+(CR &lt;-                   rRidgePAnyTarget(S, tgt, l))
+(D  &lt;- rags2ridges:::.armaRidgePScalarTarget(S, a, l))
+(DR &lt;-                   rRidgePScalarTarget(S, a, l))
+(E  &lt;- rags2ridges:::.armaRidgeP(S, tgt, l))
+
+# Check
+equal &lt;- function(x, y) {isTRUE(all.equal(x, y))}
+stopifnot(equal(A, B) &amp; equal(A, C) &amp; equal(A, D) &amp; equal(A, E))
+stopifnot(equal(C, CR) &amp; equal(D, DR))
+</code></pre>
+
+
+</div>

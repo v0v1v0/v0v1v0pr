@@ -1,0 +1,171 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rnnd_query</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Query an index for approximate nearest neighbors</h2>
+
+<h3>Description</h3>
+
+<p>Takes a nearest neighbor index produced by <code>rnnd_build()</code> and uses it to
+find the nearest neighbors of a query set of observations, using a
+back-tracking search with the search size determined by the method of
+Iwasaki and Miyazaki (2018). For further control over the search effort, the
+total number of distance calculations can also be bounded, similar to the
+method of Harwood and Drummond (2016).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rnnd_query(
+  index,
+  query,
+  k = 30,
+  epsilon = 0.1,
+  max_search_fraction = 1,
+  init = NULL,
+  n_threads = 0,
+  verbose = FALSE,
+  obs = "R"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>index</code></td>
+<td>
+<p>A nearest neighbor index produced by <code>rnnd_build()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>query</code></td>
+<td>
+<p>Matrix of <code>n</code> query items, with observations in the rows and
+features in the columns. Optionally, the data may be passed with the
+observations in the columns, by setting <code>obs = "C"</code>, which should be more
+efficient. Possible formats are <code>base::data.frame()</code>, <code>base::matrix()</code>
+or <code>Matrix::sparseMatrix()</code>. Sparse matrices should be in <code>dgCMatrix</code>
+format. Dataframes will be converted to <code>numerical</code> matrix format
+internally, so if your data columns are <code>logical</code> and intended to be used
+with the specialized binary <code>metric</code>s, you should convert it to a logical
+matrix first (otherwise you will get the slower dense numerical version).
+Sparse and non-sparse data cannot be mixed, so if the data used to build
+index was sparse, the <code>query</code> data must also be sparse. and vice versa.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>Number of nearest neighbors to return.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>epsilon</code></td>
+<td>
+<p>Controls trade-off between accuracy and search cost, as
+described by Iwasaki and Miyazaki (2018). Setting <code>epsilon</code> to a positive
+value specifies a distance tolerance on whether to explore the neighbors of
+candidate points. The larger the value, the more neighbors will be
+searched. A value of 0.1 allows query-candidate distances to be 10% larger
+than the current most-distant neighbor of the query point, 0.2 means 20%,
+and so on. Suggested values are between 0-0.5, although this value is
+highly dependent on the distribution of distances in the dataset (higher
+dimensional data should choose a smaller cutoff). Too large a value of
+<code>epsilon</code> will result in the query search approaching brute force
+comparison. Use this parameter in conjunction with <code>max_search_fraction</code> to
+prevent excessive run time. Default is 0.1. If you set <code>verbose = TRUE</code>,
+statistics of the number of distance calculations will be logged which can
+help you tune <code>epsilon</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_search_fraction</code></td>
+<td>
+<p>Maximum fraction of the reference data to search.
+This is a value between 0 (search none of the reference data) and 1 (search
+all of the data if necessary). This works in conjunction with <code>epsilon</code> and
+will terminate the search early if the specified fraction of the reference
+data has been searched. Default is 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init</code></td>
+<td>
+<p>An optional matrix of <code>k</code> initial nearest neighbors for each
+query point.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_threads</code></td>
+<td>
+<p>Number of threads to use.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>If <code>TRUE</code>, log information to the console.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>obs</code></td>
+<td>
+<p>set to <code>"C"</code> to indicate that the input <code>data</code> orientation stores
+each observation as a column. The default <code>"R"</code> means that observations are
+stored in each row. Storing the data by row is usually more convenient, but
+internally your data will be converted to column storage. Passing it
+already column-oriented will save some memory and (a small amount of) CPU
+usage.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>the approximate nearest neighbor index, a list containing:
+</p>
+
+<ul>
+<li> <p><code>idx</code> an n by k matrix containing the nearest neighbor indices.
+</p>
+</li>
+<li> <p><code>dist</code> an n by k matrix containing the nearest neighbor distances.
+</p>
+</li>
+</ul>
+<h3>References</h3>
+
+<p>Harwood, B., &amp; Drummond, T. (2016).
+Fanng: Fast approximate nearest neighbour graphs.
+In <em>Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition</em>
+(pp. 5713-5722).
+</p>
+<p>Iwasaki, M., &amp; Miyazaki, D. (2018).
+Optimization of indexing based on k-nearest neighbor graph for proximity search in high-dimensional data.
+<em>arXiv preprint</em> <em>arXiv:1810.07355</em>.
+<a href="https://arxiv.org/abs/1810.07355">https://arxiv.org/abs/1810.07355</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>rnnd_query()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">iris_even &lt;- iris[seq_len(nrow(iris)) %% 2 == 0, ]
+iris_odd &lt;- iris[seq_len(nrow(iris)) %% 2 == 1, ]
+
+iris_even_index &lt;- rnnd_build(iris_even, k = 4)
+iris_odd_nbrs &lt;- rnnd_query(index = iris_even_index, query = iris_odd, k = 4)
+
+</code></pre>
+
+
+</div>

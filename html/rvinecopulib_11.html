@@ -1,0 +1,245 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>bicop</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fit and select bivariate copula models</h2>
+
+<h3>Description</h3>
+
+<p>Fit a bivariate copula model for continuous or discrete data. The family
+can be selected automatically from a vector of options.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">bicop(
+  data,
+  var_types = c("c", "c"),
+  family_set = "all",
+  par_method = "mle",
+  nonpar_method = "quadratic",
+  mult = 1,
+  selcrit = "aic",
+  weights = numeric(),
+  psi0 = 0.9,
+  presel = TRUE,
+  keep_data = FALSE,
+  cores = 1
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a matrix or data.frame with at least two columns, containing the
+(pseudo-)observations for the two variables (copula data should have
+approximately uniform margins). More columns are required for discrete
+models, see <em>Details</em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>var_types</code></td>
+<td>
+<p>variable types, a length 2 vector; e.g., <code>c("c", "c")</code> for
+both continuous (default), or <code>c("c", "d")</code> for first variable continuous
+and second discrete.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family_set</code></td>
+<td>
+<p>a character vector of families; see <em>Details</em> for
+additional options.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>par_method</code></td>
+<td>
+<p>the estimation method for parametric models, either <code>"mle"</code>
+for maximum likelihood or <code>"itau"</code> for inversion of Kendall's tau (only
+available for one-parameter families and <code>"t"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nonpar_method</code></td>
+<td>
+<p>the estimation method for nonparametric models, either
+<code>"constant"</code> for the standard transformation estimator, or
+<code>"linear"</code>/<code>"quadratic"</code> for the local-likelihood approximations of order
+one/two.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mult</code></td>
+<td>
+<p>multiplier for the smoothing parameters of nonparametric
+families. Values larger than 1 make the estimate more smooth, values less
+than 1 less smooth.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>selcrit</code></td>
+<td>
+<p>criterion for family selection, either <code>"loglik"</code>, <code>"aic"</code>,
+<code>"bic"</code>, <code>"mbic"</code>. For <code>vinecop()</code> there is the additional option
+<code>"mbicv"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>optional vector of weights for each observation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>psi0</code></td>
+<td>
+<p>see <code>mBICV()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>presel</code></td>
+<td>
+<p>whether the family set should be thinned out according to
+symmetry characteristics of the data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep_data</code></td>
+<td>
+<p>whether the data should be stored (necessary for using
+<code>fitted()</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cores</code></td>
+<td>
+<p>number of cores to use; if more than 1, estimation for multiple
+families is done in parallel.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>If there are missing data (i.e., <code>NA</code> entries), incomplete observations are
+discarded before fitting the copula.
+</p>
+
+
+<h4>Discrete variables</h4>
+
+<p>When at least one variable is discrete, more than two columns are required
+for <code>data</code>: the first <code class="reqn">n \times 2</code> block contains realizations of
+<code class="reqn">F_{X_1}(x_1), F_{X_2}(x_2)</code>. The second <code class="reqn">n \times 2</code> block contains
+realizations of <code class="reqn">F_{X_1}(x_1^-), F_{X_1}(x_1^-)</code>. The minus indicates a
+left-sided limit of the cdf. For, e.g., an integer-valued variable, it holds
+<code class="reqn">F_{X_1}(x_1^-) = F_{X_1}(x_1 - 1)</code>. For continuous variables the left
+limit and the cdf itself coincide. Respective columns can be omitted in the
+second block.
+</p>
+
+
+
+<h4>Family collections</h4>
+
+<p>The <code>family_set</code> argument accepts all families in <code>bicop_dist()</code> plus the
+following convenience definitions:
+</p>
+
+<ul>
+<li> <p><code>"all"</code> contains all the families,
+</p>
+</li>
+<li> <p><code>"parametric"</code> contains the parametric families (all except <code>"tll"</code>),
+</p>
+</li>
+<li> <p><code>"nonparametric"</code> contains the nonparametric families (<code>"indep"</code> and
+<code>"tll"</code>)
+</p>
+</li>
+<li> <p><code>"onepar"</code> contains the parametric families with a single parameter,
+</p>
+</li>
+</ul>
+<p>(<code>"gaussian"</code>, <code>"clayton"</code>, <code>"gumbel"</code>, <code>"frank"</code>, and <code>"joe"</code>),
+</p>
+
+<ul>
+<li> <p><code>"twopar"</code> contains the parametric families with two parameters
+(<code>"t"</code>, <code>"bb1"</code>, <code>"bb6"</code>, <code>"bb7"</code>, and <code>"bb8"</code>),
+</p>
+</li>
+<li> <p><code>"elliptical"</code> contains the elliptical families,
+</p>
+</li>
+<li> <p><code>"archimedean"</code> contains the archimedean families,
+</p>
+</li>
+<li> <p><code>"BB"</code> contains the BB families,
+</p>
+</li>
+<li> <p><code>"itau"</code> families for which estimation by Kendall's tau inversion is
+available (<code>"indep"</code>,<code>"gaussian"</code>, <code>"t"</code>,<code>"clayton"</code>, <code>"gumbel"</code>,
+<code>"frank"</code>, <code>"joe"</code>).
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>An object inheriting from classes <code>bicop</code> and  <code>bicop_dist</code> . In addition to
+the entries contained in <code>bicop_dist()</code>, objects from the <code>bicop</code> class
+contain:
+</p>
+
+<ul>
+<li> <p><code>data</code> (optionally, if <code>keep_data = TRUE</code> was used), the dataset that was
+passed to <code>bicop()</code>.
+</p>
+</li>
+<li> <p><code>controls</code>, a <code>list</code> with the set of fit controls that was passed to
+<code>bicop()</code>.
+</p>
+</li>
+<li> <p><code>loglik</code> the log-likelihood.
+</p>
+</li>
+<li> <p><code>nobs</code>, an <code>integer</code> with the number of observations that was used to fit
+the model.
+</p>
+</li>
+</ul>
+<h3>See Also</h3>
+
+<p><code>bicop_dist()</code>, <code>plot.bicop()</code>, <code>contour.bicop()</code>, <code>dbicop()</code>,
+<code>pbicop()</code>, <code>hbicop()</code>, <code>rbicop()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## fitting a continuous model from simulated data
+u &lt;- rbicop(100, "clayton", 90, 3)
+fit &lt;- bicop(u, family_set = "par")
+summary(fit)
+
+## compare fit with true model
+contour(fit)
+contour(bicop_dist("clayton", 90, 3), col = 2, add = TRUE)
+
+## fit a model from discrete data
+x_disc &lt;- qpois(u, 1)  # transform to Poisson margins
+plot(x_disc)
+udisc &lt;- cbind(ppois(x_disc, 1), ppois(x_disc - 1, 1))
+fit_disc &lt;- bicop(udisc, var_types = c("d", "d"))
+summary(fit_disc)
+</code></pre>
+
+
+</div>

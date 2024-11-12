@@ -1,0 +1,200 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ray_source</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate the Rossby waves ray paths over a source region</h2>
+
+<h3>Description</h3>
+
+<p><code>ray_source</code> returns the Rossby wave ray paths (lat/lon) triggered from
+one or more initial source/position (x0, y0), one or more total
+wavenumber (K), and one or more direction set up when invoking the function.
+<code>ray_source</code> must ingest the meridional gradient of the absolute
+vorticity in mercator coordinates<strong>betam</strong>, the zonal mean wind
+<strong>u</strong>, and the latitude vector (<strong>lat</strong>). Those variables can be
+obtained (recommended) using <code>betaks</code> function. The zonal means
+of the basic state will be calculated along the <strong>ray</strong> program, as well
+as the conversion to mercator coordinates of <strong>u</strong>.
+The resultant output is a spatial feature object from a combination of
+initial and final positions/sources, total wavenumbers (K), and directions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ray_source(
+  betam,
+  u,
+  lat,
+  x0,
+  y0,
+  K,
+  cx,
+  dt,
+  itime,
+  direction,
+  interpolation = "trin",
+  tl = 1,
+  a = 6371000,
+  verbose = FALSE,
+  ofile
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>betam</code></td>
+<td>
+<p>matrix (longitude = rows x latitude from minor to
+major = columns) obtained with <code>betaks</code>. <strong>betam</strong> is the
+meridional gradient of the absolute vorticity in mercator coordinates</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>u</code></td>
+<td>
+<p>matrix (longitude = rows x latitude from minor to
+major = columns) obtained with <code>betaks</code>. Is the zonal wind speed
+in the appropriate format for the <code>ray</code>. It will be converted in mercator
+coordinates inside the <code>ray</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lat</code></td>
+<td>
+<p>Numeric vector of latitudes from minor to major
+(ex: -90 to 90). Obtained with <code>betaks</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x0</code></td>
+<td>
+<p>Vector with the initial longitudes (choose between -180 to 180)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y0</code></td>
+<td>
+<p>Vector with the initial latitudes</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K</code></td>
+<td>
+<p>Vector; Total Rossby wavenumber</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cx</code></td>
+<td>
+<p>numeric. Indicates the zonal phase speed. The program is designed
+for eastward propagation (cx &gt; 0) and stationary waves (cx = 0, the default).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dt</code></td>
+<td>
+<p>Numeric value; Timestep for integration (hours)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>itime</code></td>
+<td>
+<p>Numeric value; total integration time. For instance, 10 days
+times 4 times per day</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>direction</code></td>
+<td>
+<p>Vector with two possibilities: 1 or -1
+It controls the wave displacement:
+If 1, the wave goes to the north of the source;
+If -1, the wave goes to the south of the source.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interpolation</code></td>
+<td>
+<p>Character. Set the interpolation method to be used:
+<code>trin</code> or <code>ypos</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tl</code></td>
+<td>
+<p>Numeric value; Turning latitude. Do not change this!
+It will always start with a positive tl (1) and automatically
+change to negative (-1) after the turning latitude.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>a</code></td>
+<td>
+<p>Earth's radio (m)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Boolean; if TRUE (default) return messages
+during compilation</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ofile</code></td>
+<td>
+<p>Character;  Output file name with .csv extension,
+for instance, "/user/ray.csv"</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>sf data.frame
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+#do not run
+input &lt;- system.file("extdata",
+                     "uwnd.mon.mean_200hPa_2014JFM.nc",
+                      package = "raytracing")
+b &lt;- betaks(u = input)
+rt &lt;- ray_source(betam = b$betam,
+                 u = b$u,
+                 lat = b$lat,
+                 K = 3,
+                 itime = 10*4,
+                 cx = 0,
+                 x0 = -c(130, 135),
+                 y0 = -30,
+                 dt = 6,
+                 direction = -1,
+                 interpolation = "trin")
+
+# Plot:
+data(coastlines)
+plot(coastlines,
+     reset = FALSE,
+     axes = TRUE,
+     graticule = TRUE,
+     col = "grey",
+     main = "Coelho et al. (2015): JFM/2014")
+plot(rt[sf::st_is(rt, "LINESTRING"),]["lon_ini"],
+     add = TRUE,
+     lwd = 2,
+     pal = colorRampPalette(c("black", "blue")))
+
+## End(Not run)
+</code></pre>
+
+
+</div>

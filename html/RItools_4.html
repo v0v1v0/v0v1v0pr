@@ -1,0 +1,286 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>balanceTest</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Standardized Differences for Stratified Comparisons</h2>
+
+<h3>Description</h3>
+
+<p>Covariate balance, with treatment/covariate association tests
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">balanceTest(
+  fmla,
+  data,
+  strata = NULL,
+  unit.weights,
+  stratum.weights = harmonic_times_mean_weight,
+  subset,
+  include.NA.flags = TRUE,
+  covariate.scales = setNames(numeric(0), character(0)),
+  post.alignment.transform = NULL,
+  inferentials.calculator = HB08,
+  p.adjust.method = "holm"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>fmla</code></td>
+<td>
+<p>A formula containing an indicator of treatment
+assignment on the left hand side and covariates at right.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame in which <code>fmla</code> and <code>strata</code>
+are to be evaluated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>strata</code></td>
+<td>
+<p>A list of right-hand-side-only formulas containing
+the factor(s) identifying the strata, with <code>NULL</code> entries
+interpreted as no stratification; or a factor with length equal
+to the number of rows in data; or a data frame of such
+factors. See below for examples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>unit.weights</code></td>
+<td>
+<p>Per-unit weight, or 0 if unit does not meet condition specified by subset argument. If there are clusters, the cluster weight is the sum of unit weights of elements within the cluster.  Within each stratum, unit weights will be normalized to sum to the number of clusters in the stratum.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stratum.weights</code></td>
+<td>
+<p>Function returning non-negative weight for each stratum; see details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subset</code></td>
+<td>
+<p>Optional: condition or vector specifying a subset of observations to be permitted to have positive unit weights.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>include.NA.flags</code></td>
+<td>
+<p>Present item missingness comparisons as well as covariates themselves?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covariate.scales</code></td>
+<td>
+<p>covariate dispersion estimates to use
+as denominators of<code>std.diffs</code> (optional).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>post.alignment.transform</code></td>
+<td>
+<p>Optional transformation applied to
+covariates just after their stratum means are subtracted off.
+Should accept a vector of weights as its second argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inferentials.calculator</code></td>
+<td>
+<p>Function; calculates ‘inferential’ statistics. (Not currently intended for use by end-users.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p.adjust.method</code></td>
+<td>
+<p>Method of p-value adjustment for the univariate tests. See the <code>p.adjust</code> function for available methods. By default the "holm" method is used.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Given a grouping variable (treatment assignment, exposure status, etc)
+and variables on which to compare the groups, compare averages across groups
+and test hypothesis of no selection into groups on the basis of that variable.
+The multivariate test is the method of combined differences discussed by
+Hansen and Bowers (2008, Statist. Sci.), a variant of Hotelling's T-squared
+test; the univariate tests are presented with multiplicity adjustments, the
+details of which can be controlled by the user. Clustering, weighting and/or
+stratification variables can be provided, and are addressed by the tests.
+</p>
+<p>The function assembles various univariate descriptive statistics
+for the groups to be compared: (weighted) means of treatment and
+control groups; differences of these (adjusted differences); and
+adjusted differences as multiples of a pooled s.d. of the variable
+in the treatment and control groups (standard differences). Pooled
+s.d.s are calculated with weights but without attention to clustering,
+and ordinarily without attention to stratification.  (If the user does
+not request unstratified comparisons, overriding the default setting,
+then pooled s.d.s are calculated with weights corresponding to the first
+stratification for which comparison is requested.  In this case as
+in the default setting, the same pooled s.d.s are used for standardization
+under each stratification considered. This facilitates comparison of
+standard differences across stratification schemes.)  Means
+are contrasted separately for each provided stratifying factor and, by
+default, for the unstratified comparison, in each case with weights
+reflecting a standardization appropriate to the designated (post-)
+stratification of the sample.  In the case without stratification
+or clustering, the only weighting used to calculate treatment and
+control group means is that provided by the user as
+<code>unit.weights</code>; in the absence of such an argument, these
+means are unweighted.  When there are strata, within-stratum means
+of treatment or of control observations are calculated using
+<code>unit.weights</code>, if provided, and then these are combined
+across strata according to a ‘effect of treatment on
+treated’-type weighting scheme. (The function's
+<code>stratum.weights</code> argument figures in the function's
+inferential calculations but not these descriptive calculations.)
+To figure a stratum's effect of treatment on treated weight, the
+sum of all <code>unit.weights</code> associated with treatment or
+control group observations within the stratum is multiplied by the
+fraction of clusters in that stratum that are associated with the
+treatment rather than the control condition.  (Unless this
+fraction is 0 or 1, in which case the stratum is downweighted to
+0.)
+</p>
+<p>The function also calculates univariate and multivariate inferential
+statistics, targeting the hypothesis that assignment was random within strata. These
+calculations also pool <code>unit.weights</code>-weighted, within-stratum group means across strata,
+but the default weighting of strata differs from that of the descriptive calculations.
+With <code>stratum.weights=harmonic_times_mean_weight</code> (the default), each stratum
+is weighted in proportion to the product of the stratum mean of <code>unit.weights</code>
+and the harmonic mean <code class="reqn">1/[(1/a + 1/b)/2]=2*a*b/(a+b)</code> of the number of
+treated units (a) and control units (b) in the stratum; this weighting is optimal
+under certain modeling assumptions (discussed in Kalton 1968 and Hansen and
+Bowers 2008, Sections 3.2 and 5).  The multivariate assessment is based on a Mahalanobis-type
+distance that combines each of the univariate mean differences while accounting
+for correlations among them. It's similar to the Hotelling's T-squared statistic,
+except standardized using a permutation covariance.  See Hansen and Bowers (2008).
+</p>
+<p>In contrast to the earlier function <code>xBalance</code> that it is intended to replace,
+<code>balanceTest</code> accepts only binary assignment variables (for now).
+</p>
+<p><code>stratum.weights</code> must be a function of a single argument,
+a data frame containing the variables in <code>data</code> and
+additionally <code>Tx.grp</code>, <code>stratum.code</code>, and <code>unit.weights</code>,
+returning a named numeric vector of non-negative weights identified by stratum.
+(For an example, enter <code>getFromNamespace("harmonic", "RItools")</code>.)
+the data  <code>stratum.weights</code> function.
+</p>
+<p>If the stratifying factor has NAs, these cases are dropped.  On the other
+hand, if NAs in a covariate are found then those observations are dropped for descriptive
+calculations and "imputed" to the stratum mean of the variable for inferential calculations.
+When covariate values are dropped due to missingness, proportions of observations not missing on
+that variable are recorded and returned.  The printed output presents non-missing proportions alongside of
+the variables themselves, distinguishing the former by placing them at the bottom of the list and enclosing the
+variable's name in parentheses.  If a variable shares a missingness pattern with other another variable,
+its missingness information may be labeled with the name of the other variable in the output.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>c("balancetest", "xbal", "list")</code>. Several
+methods are inherited from the "xbal" class returned by
+<code>xBalance</code> function.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Evidence pertaining to the hypothesis that a treatment
+variable is not associated with differences in covariate values
+is assessed by comparing the differences of means, without standardization, to their distributions
+under hypothetical shuffles of the treatment variable, a
+permutation or randomization distribution.  For the unstratified
+comparison, this reference distribution consists of differences
+as the treatment
+assignments of clusters are freely permuted.  For
+stratified comparisons, the reference distributions describes re-randomizations of
+this type performed separately in each stratum. Significance
+assessments are based on large-sample approximations
+to these reference distributions.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Ben Hansen and Jake Bowers and Mark Fredrickson
+</p>
+
+
+<h3>References</h3>
+
+<p>Hansen, B.B. and Bowers, J. (2008), “Covariate
+Balance in Simple, Stratified and Clustered Comparative
+Studies,” <em>Statistical Science</em> <b>23</b>.
+</p>
+<p>Kalton, G. (1968), “Standardization: A technique to control for
+extraneous variables,” <em>Applied Statistics</em> <b>17</b>,
+118–136.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>HB08</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(nuclearplants)
+## No strata
+balanceTest(pr ~ date + t1 + t2 + cap + ne + ct + bw + cum.n,
+         data=nuclearplants)
+
+## Stratified
+## Note use of the `. - cost` to use all columns except `cost`
+balanceTest(pr ~ . - cost + strata(pt),
+         data=nuclearplants)
+
+##Missing data handling.
+testdata &lt;- nuclearplants
+testdata$date[testdata$date &lt; 68] &lt;- NA
+balanceTest(pr ~ . - cost + strata(pt),
+            data = testdata)
+
+## Variable-by-variable Wilcoxon rank sum tests, with an omnibus test
+## of multivariate differences on rank scale.
+balanceTest(pr ~ date + t1 + t2 + cap + ne + ct + bw + cum.n,
+         data = nuclearplants,
+	       post.alignment.transform = function(x, weights) rank(x))
+
+## (Note that the post alignment transform is expected to be a function
+## accepting a second argument, even if the argument is not used.
+## The unit weights vector will be provided as this second argument,
+## enabling use of e.g. `post.alignment.transform=Hmisc::wtd.rank`
+## to furnish a version of the Wilcoxon test even when there are clusters and/or weights.)
+
+## An experiment where clusters of individuals are assigned to treatment within strata
+## assessing balance of cluster level treatment on both cluster
+## and individual level baseline attributes
+data(ym_long)
+## Look at balance on teriles of cluster size as well as other variables
+teriles &lt;- quantile(ym_long$n_practice, seq(1/3,1,by=1/3))
+teriles &lt;- c(0, teriles)
+
+balanceTest(trt ~ cut(n_practice, teriles)+assessed+hypo+lipid+
+            aspirin+strata(assess_strata)+cluster(practice),
+            data=ym_long)
+</code></pre>
+
+
+</div>

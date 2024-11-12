@@ -1,0 +1,236 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rwd_agg</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Class to specify how to aggregate RiverWare data</h2>
+
+<h3>Description</h3>
+
+<p><code>rwd_agg()</code> creates a RiverWare data aggregator (<code>rwd_agg</code>) object, which
+lets users specify how specific RiverWare slots should be aggregated.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rwd_agg(x = NULL, rdfs = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A data.frame with required column names and valid entries; see
+<em>Details</em> and <em>Aggregation Specification</em> sections.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rdfs</code></td>
+<td>
+<p>A vector of rdf names; see <em>Details</em> and
+<em>Aggregation Specification</em> sections.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>rwd_agg</code> objects can be created in three ways:
+</p>
+
+<ol>
+<li>
+<p> By providing a data.frame, with the following expected columns <code>file</code>,
+<code>slot</code>, <code>period</code>, <code>summary</code>, <code>eval</code>, <code>t_s</code>, and <code>variable</code>. Each row in the
+data.frame should include all of the information for how each individual
+slot will be aggregated. See the <em>Aggregation Specification</em> section below
+for details on how to specify each column.
+</p>
+</li>
+<li>
+<p> By providing a vector of rdf files. If specified in this manor, all of the
+slots in each rdf file will be read in to a <code>rwtbl</code>, but will not be
+aggregated/summarized.
+</p>
+<p>In this case, the <code>variable</code> names are automatically constructed from the
+<code>ObjectSlot</code> names. The variable names are constructed as the all lower
+case version of the object_slot name. If the slot name is "Pool Elevation",
+it is shortened to "pe", otherwise the full object and slot name are used.
+If there are any spaces, they are replaced with underscores.
+</p>
+</li>
+<li>
+<p> By reading in a csv file with <code>read_rwd_agg()</code>. This csv file must have
+the correct column names and meet other requirements described below. To
+ensure it has the correct column names, <code>rwd_agg_template()</code> can be used
+to create a blank csv file for the user to fill in.
+</p>
+</li>
+</ol>
+<h3>Aggregation Specification</h3>
+
+<p>In order to specify how each slot should be aggregated, each column should
+include specific keywords, which are described below. It is up to the user
+to specify which rdf file contains each slot. In a general case, the user
+specifies the <code>slot</code> that is found in a specific rdf file (<code>file</code>). A
+<code>summary</code> function is applied to a subset <code>period</code> of the <code>slot</code>, and then
+compared (<code>eval</code>) to a threshold (<code>t_s</code>) and saved as the <code>variable</code>.
+</p>
+
+<ul>
+<li> <p><em>file:</em> specifies the rdf file that contains the slot.
+</p>
+</li>
+<li> <p><em>slot:</em> the full RiverWare slot name, i.e., "Object.Slot".
+</p>
+</li>
+<li> <p><em>period:</em> the period that the slot should be summarized over. This should
+either be a function name, a full month name (found in month.name), or
+the keyword "asis".
+</p>
+
+<ul>
+<li> <p><em>function name:</em> Specifying a function name allows for pre-specified
+or custom functions to group together several months in the <em>period</em>.
+This package provides the following functions: <code>cy()</code>, <code>wy()</code>,
+<code>eocy()</code>, and <code>eowy()</code>. <code>cy()</code> indicates the data will be summarized
+over the calendar year, i.e., January - December, while <code>wy()</code>
+summarizes over the water year, i.e., October - September. <code>eocy()</code>
+selects the end of the calendar year, and <code>eowy()</code> selects the end of
+the water year. When specified in the <code>slot_agg</code> object, leave off the
+parenthesis, i.e., only specify the function name. If <code>wy()</code> is
+specified, the function will remove data for any water years that have
+less than 7 months of data. This "tolerance" is specified by the
+<code>rwdataplyr.wy_month_tol</code> option, and can be modified by updating this
+option to another number. For standard monthly data that starts in
+January and ends in December, this results in keeping the first water
+year, since it includes 9 months of data, and removing the final water
+year, since it includes only three months of data. Setting this option
+to 0 will result in keeping any water year data that has at least one
+month of data; setting this option to 11, ensures that there must be
+a full water year of data for that year to be kept.
+</p>
+<p>This can also be a user specified custom function; see the
+<em>Custom Period Functions</em> section for details on constructing the custom
+functions.
+</p>
+</li>
+<li> <p><em>full month name:</em> When the full month name is specified, data will
+be filtered to only include data for that particular month. To select
+multiple months of data, use a function as described above. If the
+month specified is not found in month.name, an error will occur.
+</p>
+</li>
+<li> <p><em>asis:</em> If the keyword "asis" is specified, the data is returned for
+its native timestep, i.e, monthly data will return monthly data and
+annual data will return annual.
+</p>
+</li>
+</ul>
+</li>
+<li> <p><em>summary:</em> the summary function that should be applied to the period
+specified as a function name, or <code>NA</code>. If the <code>period</code> specified is "asis"
+or returns only one month, e.g., <code>eocy()</code>, then the summary should be <code>NA</code>.
+The summary function should only return one value; for that reason, most
+of the <code>Summary</code> S4groupGenerics work. Notably, <code>range()</code> will not
+since it returns two values. There is no reason that a custom function
+will not work here, but it has not been tested.
+</p>
+</li>
+<li> <p><em>eval:</em> the comparison operator to use (see the <code>Compare</code>
+S4groupGenerics). If no comparison is desired, then <code>NA</code> should be used.
+If <code>eval</code> is specified the value returned from applying the <code>summary</code> to
+the <code>period</code> will be compared to the threshold specified by <code>t_s</code>. The
+results of the comparison are returned as 0 and 1 instead of <code>TRUE</code> and
+<code>FALSE</code>.
+</p>
+</li>
+<li> <p><em>t_s:</em> either the threshold to be compared to if <code>eval</code> is not <code>NA</code> or a
+value to scale the result by, e.g,. 0.001 to convert from acre-ft to
+thousand acre-ft. <code>NA</code> can also be specified to not scale the data.
+</p>
+</li>
+<li> <p><em>variable:</em> the variable name that will be used to identify the results
+of applying the period, summary, comparison/scaling to. All variable names
+should be unique.
+</p>
+</li>
+</ul>
+<p>For example, to determine if the minimum water year elevation at Lake Powell
+is below elevation 3550 feet, the following would be specified:</p>
+<pre>data.frame(
+  file = "KeySlots.rdf",
+  slot = "Powell.Pool Elevation",
+  period = "wy",
+  summary = "min",
+  eval = "&lt;",
+  t_s = 3550,
+  variable = "powellLt3550",
+  stringsAsFactors = FALSE
+)
+</pre>
+
+
+<h3>Custom Period Functions</h3>
+
+<p>Users can specify custom period functions to make it easier to group months
+together in custom ways. For example a function could return all of the
+summer months, or the more complicated case groups months across different
+calendar years together. In fact, <code>wy()</code> is an example of a function that
+does this; another example might be grouping December - February together
+for winter months.
+</p>
+<p>The custom period function should return a list with three elements:
+</p>
+
+<ul>
+<li> <p><code>fun</code> - a function that will modify a rwtbl and properly determine the
+new <code>Year</code>s based on the custom period.
+</p>
+</li>
+<li> <p><code>filter_months</code> - the months that should be grouped together.
+</p>
+</li>
+<li> <p><code>group_tbl</code> - how to group the returned rwtbl; likely either <code>c("Year")</code> or
+<code>c("Year", "Month")</code>
+</p>
+</li>
+</ul>
+<p>See the "RWDataPlyr Workflow" vignette for example implementations of both
+the summer and winter custom functions described above.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>rwd_agg_template()</code>, <code>read_rwd_agg()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># determine if Powell's minimum water year elevation is &lt; 3550'
+rwd_agg(
+  data.frame(
+    file = "KeySlots.rdf",
+    slot = "Powell.Pool Elevation",
+    period = "wy",
+    summary = "min",
+    eval = "&lt;",
+    t_s = 3550,
+    variable = "powellLt3550",
+    stringsAsFactors = FALSE
+  )
+)
+
+# get all the monthly slots in KeySlots.rdf
+rwd_agg(rdfs = "KeySlots.rdf")
+
+</code></pre>
+
+
+</div>

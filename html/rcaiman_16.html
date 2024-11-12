@@ -1,0 +1,212 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>enhance_caim</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Enhance canopy image</h2>
+
+<h3>Description</h3>
+
+<p>This function was first proposed in Díaz and Lencinas (2015).
+It uses the color perceptual attributes (hue, lightness, and chroma) to
+enhance the contrast between the sky and plants through fuzzy classification.
+It applies the next classification rules (here expressed in natural
+language): clear sky is blue and clouds decrease its chroma; if clouds are
+highly dense, then the sky is achromatic, and, in such cases, it can be light
+or dark; everything that does not match this description is not sky. These
+linguistic rules were translated to math language by means of fuzzy logic.
+This translation was thoughtfully explained in the aforementioned article.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">enhance_caim(
+  caim,
+  m = NULL,
+  sky_blue = NULL,
+  sigma = NULL,
+  w_red = 0,
+  thr = NULL,
+  fuzziness = NULL,
+  gamma = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>caim</code></td>
+<td>
+<p>SpatRaster. The return of a call to <code>read_caim()</code> or
+<code>read_caim_raw()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m</code></td>
+<td>
+<p>SpatRaster. A mask. For hemispherical photographs, check
+<code>mask_hs()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sky_blue</code></td>
+<td>
+<p>color. Is the <code>target_color</code> argument to be passed to
+<code>membership_to_color()</code>. Default (<code>NULL</code>) is the equivalent to enter
+<code>sRGB(0.1, 0.4, 0.8)</code>–the HEX color code is #1A66CC, it can be entered
+into a search engine (such as Mozilla Firefox) to see a color swatch.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma</code></td>
+<td>
+<p>Numeric vector of length one. Use <code>NULL</code> (default) to estimate
+it automatically as the euclidean distance between <code>target_color</code> and grey
+in the <em>CIE LAB</em> color space.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w_red</code></td>
+<td>
+<p>Numeric vector of length one. Weight of the red channel. A
+single layer image is calculated as a weighted average of the blue and red
+channels. This layer is used as lightness information. The weight of the
+blue is the complement of <code>w_red</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thr</code></td>
+<td>
+<p>Numeric vector of length one. Location parameter of the logistic
+membership function. Use <code>NULL</code> to estimate it automatically with
+<code>thr_isodata()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fuzziness</code></td>
+<td>
+<p>Numeric vector of length one. This number is a constant
+value that scales <code>mem</code>. Use <code>NULL</code> to estimate it automatically as the
+midpoint between the maximum and minimum values of <code>lightness</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gamma</code></td>
+<td>
+<p>Numeric vector of length one. This is for applying a gamma back
+correction to the lightness information (see Details and argument <code>w_red</code>).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This is a pixel-wise methodology that evaluates the possibility for a pixel
+to be member of the class <em>Gap</em>. High score could mean either high membership
+to <code>sky_blue</code> or, in the case of achromatic pixels, a high membership to
+values above <code>thr</code>. The algorithm internally uses <code>membership_to_color()</code> and
+<code>local_fuzzy_thresholding()</code>. The argument <code>sky_blue</code> is the <code>target_color</code>
+of the former function and its output is the argument <code>mem</code> of the latter
+function.
+</p>
+<p>The argument <code>sky_blue</code> can be obtained from a photograph that clearly shows
+the sky. Then, it can be used to process all the others photograph taken with
+the same equipment, configuration, and protocol.
+</p>
+<p>Via the <code>gamma</code> argument, <code>gbc()</code> can be internally used to back-correct the
+values passed to <code>local_fuzzy_thresholding()</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class SpatRaster (with same pixel dimensions
+than <code>caim</code>) that should show more contrast between the sky and plant
+pixels than any of the individual bands from <code>caim</code>; if not, different
+parameters should be tested.
+</p>
+
+
+<h3>Note</h3>
+
+<p>If you use this function in your research, please cite
+Díaz and Lencinas (2015) in addition to this package
+(<code style="white-space: pre;">⁠citation("rcaiman"⁠</code>).
+</p>
+<p>The default value of argument <code>m</code> is the equivalent to enter
+<code>!is.na(caim$Red)</code>. See the Details section in <code>local_fuzzy_thresholding()</code>
+to understand how this argument can modify the output.
+</p>
+
+
+<h3>References</h3>
+
+<p>Díaz GM, Lencinas JD (2015).
+“Enhanced gap fraction extraction from hemispherical photography.”
+<em>IEEE Geoscience and Remote Sensing Letters</em>, <b>12</b>(8), 1785–1789.
+<a href="https://doi.org/10.1109/lgrs.2015.2425931">doi:10.1109/lgrs.2015.2425931</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Pre-processing Functions: 
+<code>gbc()</code>,
+<code>local_fuzzy_thresholding()</code>,
+<code>membership_to_color()</code>,
+<code>normalize()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+caim &lt;- read_caim()
+z &lt;- zenith_image(ncol(caim), lens())
+a &lt;- azimuth_image(z)
+m &lt;- !is.na(z)
+
+mn &lt;- quantile(caim$Blue[m], 0.01)
+mx &lt;- quantile(caim$Blue[m], 0.99)
+r &lt;- normalize(caim$Blue, mn, mx, TRUE)
+
+bin &lt;- find_sky_pixels(r, z, a)
+mblt &lt;- ootb_mblt(r, z, a, bin)
+
+mx &lt;- optim_normalize(caim, mblt$bin)
+mn &lt;- min(caim[m])
+
+sky_blue_sample &lt;- crop_caim(caim, c(327, 239), 41, 89)
+plotRGB(normalize(sky_blue_sample, mn, mx, TRUE)*255)
+sky_blue &lt;- apply(sky_blue_sample[], 2, median) %&gt;%
+  normalize(., mn, mx) %&gt;%
+  as.numeric() %&gt;%
+  matrix(., ncol = 3) %&gt;%
+  sRGB()
+hex(sky_blue)
+# Use hex() to obtain the HEX color code. To see a color swatch, enter the
+# HEX code into a search engine (such as Mozilla Firefox).
+# NOTE: see extract_dn() for an alternative method to obtain sky_blue
+
+as(sky_blue, "HSV") #saturatio (S) is low
+# To obtain same hue (H) but greater saturation
+sky_blue &lt;- HSV(239, 0.85, 0.5) %&gt;% as(., "sRGB") %&gt;% as(., "LAB")
+hex(sky_blue)
+
+caim &lt;- normalize(caim, mx = mx, force_range = TRUE)
+ecaim &lt;- enhance_caim(caim, m, sky_blue = sky_blue)
+plot(ecaim)
+plot(caim$Blue)
+
+## to compare
+plot(apply_thr(ecaim, thr_isodata(ecaim[m])))
+plot(apply_thr(caim$Blue, thr_isodata(caim$Blue[m])))
+
+## End(Not run)
+</code></pre>
+
+
+</div>

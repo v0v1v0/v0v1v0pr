@@ -1,0 +1,176 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>robincar_glm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Covariate adjustment using generalized linear working model</h2>
+
+<h3>Description</h3>
+
+<p>Estimate treatment-group-specific response means and (optionally)
+treatment group contrasts using a generalized linear working model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">robincar_glm(
+  df,
+  treat_col,
+  response_col,
+  formula = NULL,
+  car_strata_cols = NULL,
+  car_scheme = "simple",
+  g_family = stats::gaussian,
+  g_accuracy = 7,
+  contrast_h = NULL,
+  contrast_dh = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>df</code></td>
+<td>
+<p>A data.frame with the required columns</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>treat_col</code></td>
+<td>
+<p>Name of column in df with treatment variable</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>response_col</code></td>
+<td>
+<p>Name of the column in df with response variable</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>The formula to use for adjustment specified using as.formula("..."). This overrides car_strata_cols and covariate_cols.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>car_strata_cols</code></td>
+<td>
+<p>Names of columns in df with car_strata variables</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>car_scheme</code></td>
+<td>
+<p>Name of the type of covariate-adaptive randomization scheme. One of: "simple", "pocock-simon", "biased-coin", "permuted-block".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g_family</code></td>
+<td>
+<p>Family that would be supplied to glm(...), e.g., binomial. If no link specified, will use default link, like behavior in glm.
+If you wish to use a negative binomial working model with an unknown dispersion parameter, then use 'g_family="nb"'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g_accuracy</code></td>
+<td>
+<p>Level of accuracy to check prediction un-biasedness.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>contrast_h</code></td>
+<td>
+<p>An optional function to specify a desired contrast</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>contrast_dh</code></td>
+<td>
+<p>An optional jacobian function for the contrast (otherwise use numerical derivative)</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The output is the AIPW estimator given by (for each treatment group <code class="reqn">a</code>):
+</p>
+<p style="text-align: center;"><code class="reqn">\frac{1}{n} \sum_{i=1}^{n} \hat{\mu}_a(X_i) + \frac{1}{n_a} \sum_{i:A_i=a} \{Y_i - \hat{\mu}(X_i)\}</code>
+</p>
+
+<p>where <code class="reqn">Y_i</code> is the outcome, <code class="reqn">A_i</code> is the treatment assignment, <code class="reqn">X_i</code> are the covariates, <code class="reqn">n_a = \sum_{i=1}^{n} A_i=a</code>,
+and <code class="reqn">\hat{\mu}_a</code> is the estimated conditional mean function based on the GLM working model.
+This working model has treatment <code class="reqn">a</code>-specific coefficients if 'adj_method' is "heterogeneous". Otherwise, they are shared across the treatment arms.
+Alternatively, if 'formula' is used, the working model can be specified according to the user.
+</p>
+<p>Importantly, the estimated variance accounts for misspecification of the working model, and for covariate-adaptive randomization.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If 'contrast_h' argument is used, outputs a 'main' and a 'contrast' object. The 'main' object has the following structure:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>result</code></td>
+<td>
+<p>A dplyr::tibble() with the treatment label, treatment mean estimate using AIPW, estimated SE, and p-value based on a z-test with estimate and SE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>varcov</code></td>
+<td>
+<p>The variance-covariance matrix for the treatment mean estimates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>settings</code></td>
+<td>
+<p>List of model settings used in covariate adjustment.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>original_df</code></td>
+<td>
+<p>The original dataset provided by the user.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mod</code></td>
+<td>
+<p>The fit from the glm() working model used for covariate adjustment.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mu_a</code></td>
+<td>
+<p>Predicted potential outcomes for each treatment category (columns) and individual (rows). These are the <code class="reqn">\hat{\mu}_a</code></p>
+</td>
+</tr>
+</table>
+<p>.
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>g.estimate</code></td>
+<td>
+<p>The G-computation estimate based only on <code class="reqn">\frac{1}{n} \sum_{i=1}^{n} \hat{\mu}_a(X_i)</code>. This is equivalent to the AIPW estimate when a canonical link function is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>Attributes about the dataset.</p>
+</td>
+</tr>
+</table>
+<p>The 'contrast' object has a structure that is documented in RobinCar::robincar_contrast().
+</p>
+
+
+</div>

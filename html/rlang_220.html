@@ -1,0 +1,138 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>injection-operator</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Injection operator <code style="white-space: pre;">⁠!!⁠</code>
+</h2>
+
+<h3>Description</h3>
+
+<p>The injection operator <code style="white-space: pre;">⁠!!⁠</code> injects a value or
+expression inside another expression. In other words, it modifies a
+piece of code before R evaluates it.
+</p>
+<p>There are two main cases for injection. You can inject constant
+values to work around issues of scoping ambiguity, and you can inject defused expressions like symbolised column names.
+</p>
+
+
+<h3>Where does <code style="white-space: pre;">⁠!!⁠</code> work?</h3>
+
+<p><code style="white-space: pre;">⁠!!⁠</code> does not work everywhere, you can only use it within certain
+special functions:
+</p>
+
+<ul>
+<li>
+<p> Functions taking defused and
+data-masked arguments.
+</p>
+<p>Technically, this means function arguments defused with
+<code>{{</code> or <code>en</code>-prefixed operators like
+<code>enquo()</code>, <code>enexpr()</code>, etc.
+</p>
+</li>
+<li>
+<p> Inside <code>inject()</code>.
+</p>
+</li>
+</ul>
+<p>All data-masking verbs in the tidyverse support injection operators
+out of the box. With base functions, you need to use <code>inject()</code> to
+enable <code style="white-space: pre;">⁠!!⁠</code>. Using <code style="white-space: pre;">⁠!!⁠</code> out of context may lead to incorrect
+results, see What happens if I use injection operators out of context?.
+</p>
+<p>The examples below are built around the base function <code>with()</code>.
+Since it's not a tidyverse function we will use <code>inject()</code> to enable
+<code style="white-space: pre;">⁠!!⁠</code> usage.
+</p>
+
+
+<h3>Injecting values</h3>
+
+<p>Data-masking functions like <code>with()</code> are handy because you can
+refer to column names in your computations. This comes at the price
+of data mask ambiguity: if you have defined an env-variable of the
+same name as a data-variable, you get a name collisions. This
+collision is always resolved by giving precedence to the
+data-variable (it masks the env-variable):
+</p>
+<div class="sourceCode r"><pre>cyl &lt;- c(100, 110)
+with(mtcars, mean(cyl))
+#&gt; [1] 6.1875
+</pre></div>
+<p>The injection operator offers one way of solving this. Use it to
+inject the env-variable inside the data-masked expression:
+</p>
+<div class="sourceCode r"><pre>inject(
+  with(mtcars, mean(!!cyl))
+)
+#&gt; [1] 105
+</pre></div>
+<p>Note that the <code>.env</code> pronoun is a simpler way of solving the
+ambiguity. See The data mask ambiguity for more about
+this.
+</p>
+
+
+<h3>Injecting expressions</h3>
+
+<p>Injection is also useful for modifying parts of a defused expression. In the following example we use the
+symbolise-and-inject pattern to
+inject a column name inside a data-masked expression.
+</p>
+<div class="sourceCode r"><pre>var &lt;- sym("cyl")
+inject(
+  with(mtcars, mean(!!var))
+)
+#&gt; [1] 6.1875
+</pre></div>
+<p>Since <code>with()</code> is a base function, you can't inject
+quosures, only naked symbols and calls. This
+isn't a problem here because we're injecting the name of a data
+frame column. If the environment is important, try injecting a
+pre-computed value instead.
+</p>
+
+
+<h3>When do I need <code style="white-space: pre;">⁠!!⁠</code>?</h3>
+
+<p>With tidyverse APIs, injecting expressions with <code style="white-space: pre;">⁠!!⁠</code> is no longer a
+common pattern. First, the <code>.env</code> pronoun solves the
+ambiguity problem in a more intuitive way:
+</p>
+<div class="sourceCode r"><pre>cyl &lt;- 100
+mtcars %&gt;% dplyr::mutate(cyl = cyl * .env$cyl)
+</pre></div>
+<p>Second, the embrace operator <code>{{</code> makes the
+defuse-and-inject pattern easier to
+learn and use.
+</p>
+<div class="sourceCode r"><pre>my_mean &lt;- function(data, var) {
+  data %&gt;% dplyr::summarise(mean({{ var }}))
+}
+
+# Equivalent to
+my_mean &lt;- function(data, var) {
+  data %&gt;% dplyr::summarise(mean(!!enquo(var)))
+}
+</pre></div>
+<p><code style="white-space: pre;">⁠!!⁠</code> is a good tool to learn for advanced applications but our
+hope is that it isn't needed for common data analysis cases.
+</p>
+
+
+<h3>See Also</h3>
+
+
+<ul>
+<li> <p>Injecting with !!, !!!, and glue syntax
+</p>
+</li>
+<li> <p>Metaprogramming patterns
+</p>
+</li>
+</ul>
+</div>

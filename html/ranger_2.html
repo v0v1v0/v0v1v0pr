@@ -1,0 +1,112 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>deforest</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Deforesting a random forest</h2>
+
+<h3>Description</h3>
+
+<p>The main purpose of this function is to allow for post-processing of 
+ensembles via L2 regularized regression (i.e., the LASSO), as described in 
+Friedman and Popescu (2003). The basic idea is to use the LASSO to 
+post-process the predictions from the individual base learners in an ensemble 
+(i.e., decision trees) in the hopes of producing a much smaller model without 
+sacrificing much in the way of accuracy, and in some cases, improving it. 
+Friedman and Popescu (2003) describe conditions under which tree-based 
+ensembles, like random forest, can potentially benefit from such 
+post-processing (e.g., using shallower trees trained on much smaller samples 
+of the training data without replacement). However, the computational 
+benefits of such post-processing can only be realized if the base learners 
+"zeroed out" by the LASSO can actually be removed from the original ensemble, 
+hence the purpose of this function. A complete example using 
+<code>ranger</code> can be found at 
+<a href="https://github.com/imbs-hl/ranger/issues/568">https://github.com/imbs-hl/ranger/issues/568</a>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">deforest(object, which.trees = NULL, ...)
+
+## S3 method for class 'ranger'
+deforest(object, which.trees = NULL, warn = TRUE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>A fitted random forest (e.g., a <code>ranger</code>
+object).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>which.trees</code></td>
+<td>
+<p>Vector giving the indices of the trees to remove.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional (optional) arguments. (Currently ignored.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>warn</code></td>
+<td>
+<p>Logical indicating whether or not to warn users that some of the 
+standard output of a typical <code>ranger</code> object or no longer 
+available after deforestation. Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An object of class <code>"deforest.ranger"</code>; essentially, a 
+<code>ranger</code> object with certain components replaced with 
+<code>NA</code>s (e.g., out-of-bag (OOB) predictions, variable importance scores 
+(if requested), and OOB-based error metrics).
+</p>
+
+
+<h3>Note</h3>
+
+<p>This function is a generic and can be extended by other packages.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Brandon M. Greenwell
+</p>
+
+
+<h3>References</h3>
+
+<p>Friedman, J. and Popescu, B. (2003). Importance sampled learning ensembles, 
+Technical report, Stanford University, Department of Statistics.
+<a href="https://jerryfriedman.su.domains/ftp/isle.pdf">https://jerryfriedman.su.domains/ftp/isle.pdf</a>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Example of deforesting a random forest
+rfo &lt;- ranger(Species ~ ., data = iris, probability = TRUE, num.trees = 100)
+dfo &lt;- deforest(rfo, which.trees = c(1, 3, 5))
+dfo  # same as `rfo` but with trees 1, 3, and 5 removed
+
+## Sanity check
+preds.rfo &lt;- predict(rfo, data = iris, predict.all = TRUE)$predictions
+preds.dfo &lt;- predict(dfo, data = iris, predict.all = TRUE)$predictions
+identical(preds.rfo[, , -c(1, 3, 5)], y = preds.dfo)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,184 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>gapfill</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Perform SSA gapfilling via forecast</h2>
+
+<h3>Description</h3>
+
+<p>Perform SSA gapfilling of the series.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class '1d.ssa'
+gapfill(x, groups, base = c("original", "reconstructed"),
+        method = c("sequential", "simultaneous"),
+        alpha = function(len) seq.int(0, 1, length.out = len), ...,
+        drop = TRUE, drop.attributes = FALSE, cache = TRUE)
+## S3 method for class 'mssa'
+gapfill(x, groups, base = c("original", "reconstructed"),
+        alpha = function(len) seq.int(0, 1, length.out = len), ...,
+        drop = TRUE, drop.attributes = FALSE, cache = TRUE)
+## S3 method for class 'cssa'
+gapfill(x, groups, base = c("original", "reconstructed"),
+        method = c("sequential", "simultaneous"),
+        alpha = function(len) seq.int(0, 1, length.out = len), ...,
+        drop = TRUE, drop.attributes = FALSE, cache = TRUE)
+## S3 method for class 'toeplitz.ssa'
+gapfill(x, groups, base = c("original", "reconstructed"),
+        method = c("sequential", "simultaneous"),
+        alpha = function(len) seq.int(0, 1, length.out = len), ...,
+        drop = TRUE, drop.attributes = FALSE, cache = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Shaped SSA object holding the decomposition</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>groups</code></td>
+<td>
+<p>list, the grouping of eigentriples to be used in the forecast</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>base</code></td>
+<td>
+<p>series used as a 'seed' for gapfilling: original or
+reconstructed according to the value of <code>groups</code> argument</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>method used for gapfilling, "sequential" means to
+filling by a recurrent forecast from complete parts; "simultaneous"
+tries to build a projections onto the signal subspace. See
+'References' for more info.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>weight used for combining forecasts from left and right
+when method = "sequential"; 0.5 means that the forecasts are averaged,
+0 (1) means that only forecast from the left (right correspondingly)
+is used, arbitrary function could be specified; by default linear
+weights are used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments passed to <code>reconstruct</code>
+routines</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drop</code></td>
+<td>
+<p>logical, if 'TRUE' then the result is coerced to series
+itself, when possible (length of 'groups' is one)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drop.attributes</code></td>
+<td>
+<p>logical, if 'TRUE' then the attributes of the input series
+are not copied to the reconstructed ones.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cache</code></td>
+<td>
+<p>logical, if 'TRUE' then intermediate results will be
+cached in the SSA object.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The function fills in the missed entries in the series. Both methods
+described in Golyandina and Osipov (2007) are implemented:
+</p>
+
+<ul>
+<li>
+<p> method = "sequential" performs forecast from complete chunks
+onto incomplete. For internal gaps forecast is performed from both
+sides of the gap and average is taken in order to reduce the
+forecast error. For gaps in the beginning or end of the series the
+method coincides with ordinary recurrent forecast;
+</p>
+</li>
+<li>
+<p> method = "simultaneous" performs gap filling via projections
+onto signal subspace. The method may fail if insufficient complete
+observations are provided.
+</p>
+</li>
+</ul>
+<p>Details of the used algorithms see in Golyandina et al (2018), 
+Algorithms 3.8 and 3.9 respectively.
+</p>
+
+
+<h3>Value</h3>
+
+<p>List of objects with gaps filled in. Elements of the list have the
+same names as elements of <code>groups</code>. If group is unnamed,
+corresponding component gets name ‘Fn’, where ‘n’ is its index in
+<code>groups</code> list.
+</p>
+<p>Or, the forecasted object itself, if length of groups is one and 'drop = TRUE'.
+</p>
+
+
+<h3>References</h3>
+
+<p>Golyandina N., Korobeynikov A., Zhigljavsky A. (2018):
+<em>Singular Spectrum Analysis with R.</em>  Use R!.
+Springer, Berlin, Heidelberg.
+</p>
+<p>N. Golyandina, E. Osipov (2007): <em>The "Caterpillar"-SSA method
+for analysis of time series with missing values</em>. Journal of
+Statistical Planning and Inference, Vol. 137, No. 8, Pp 2642–2653
+<a href="https://www.gistatgroup.com/cat/mvssa1en.pdf">https://www.gistatgroup.com/cat/mvssa1en.pdf</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>Rssa</code> for an overview of the package, as well as,
+<code>rforecast</code>,
+<code>igapfill</code>,
+<code>clplot</code>,
+<code>summarize.gaps</code>,
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Produce series with gaps
+F &lt;- co2; F[100:200] &lt;- NA
+# Perform shaped SSA
+s &lt;- ssa(F, L = 72)
+# Fill in gaps using the trend and 2 periodicty components
+g &lt;- gapfill(s, groups = list(1:6))
+# Compare the result
+plot(g)
+lines(co2, col = "red")
+</code></pre>
+
+
+</div>

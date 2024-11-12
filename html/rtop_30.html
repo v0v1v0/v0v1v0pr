@@ -1,0 +1,256 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rtopKrige</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Spatial interpolation of data with spatial support</h2>
+
+<h3>Description</h3>
+
+<p>rtopKrige perform spatial interpolation or cross validation of data with areal support.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'rtop'
+rtopKrige(object, varMatUpdate = FALSE, params = list(), ...) 
+## S3 method for class 'SpatialPolygonsDataFrame'
+rtopKrige(object, predictionLocations = NULL,
+    varMatObs, varMatPredObs, varMat, params = list(), 
+    formulaString, sel, ...) 
+## S3 method for class 'STSDF'
+rtopKrige(object, predictionLocations = NULL,
+    varMatObs, varMatPredObs, varMat, params = list(), 
+    formulaString, sel, olags = NULL, plags = NULL, 
+    lagExact = TRUE, ...) 
+## Default S3 method:
+rtopKrige(object, predictionLocations = NULL,
+    varMatObs,  varMatPredObs, varMat, params = list(),
+    formulaString, sel, wret = FALSE, ...) 
+
+
+
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>object of class <code>rtop</code> or <code>SpatialPolygonsDataFrame</code> or <code>STSDF</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>varMatUpdate</code></td>
+<td>
+<p>logical; if TRUE, also existing variance matrices will 
+be recomputed, if FALSE, only missing variance matrices will be computed,
+see also <code>varMat</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predictionLocations</code></td>
+<td>
+<p><code>SpatialPolygons</code> or <code>SpatialPolygonsDataFrame</code> or 
+<code>STSDF</code> 
+with prediction locations. NULL if cross validation is to be performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>varMatObs</code></td>
+<td>
+<p>covariance matrix of observations, where diagonal must consist 
+of internal variance, typically generated from call
+to <code>varMat</code> </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>varMatPredObs</code></td>
+<td>
+<p>covariance matrix between observation locations and 
+prediction locations, typically generated from call
+to <code>varMat</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>varMat</code></td>
+<td>
+<p>list covariance matrices including the two above</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>params</code></td>
+<td>
+<p>a set of parameters, used to modify the default parameters for 
+the <code>rtop</code> package, set in <code>getRtopParams</code>. Additionally,
+it is possible overrule some of the parameters in <code>object$params</code> by passing
+them as separate arguments.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formulaString</code></td>
+<td>
+<p>formula that defines the dependent variable as a linear model 
+of independent variables, see e.g. <code>createRtopObject</code> for more details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sel</code></td>
+<td>
+<p>array of prediction location numbers, if only a limited number of locations are to be
+interpolated/crossvalidated</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>wret</code></td>
+<td>
+<p>logical; if TRUE, return a matrix of weights instead of the predictions,
+useful for batch processing of time series, see also details</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>olags</code></td>
+<td>
+<p>A vector describing the relative lag which should be applied for the observation locations. See also details</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plags</code></td>
+<td>
+<p>A vector describing the relative lag which should be applied for the predicitonLocations. See also details</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lagExact</code></td>
+<td>
+<p>logical; whether differences in lagtime should be computed exactly or approximate</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>from <code>rtopKrige.rtop</code>, arguments to be passed to 
+<code>rtopKrige.default</code>. In <code>rtopKrige.default</code>,
+parameters for modification of the object parameters or default parameters.
+Of particular interest are <code>cv</code>, a logical for doing cross-validation,
+<code>nmax</code>, and <code>maxdist</code> for maximum number of neighbours and
+maximum distance to neighbours, respectively, and <code>wlim</code>, the limit for
+the absolute values of the weights. It can also be useful to set <code>singularSolve</code> if some of the areas are almost similar, see also details below.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function is the interpolation routine of the rtop-package.
+The simplest way of calling the function is with an rtop-object that 
+contains the fitted variogram model and all the other necessary data (see
+<code>createRtopObject</code> or <code>rtop-package</code>). 
+</p>
+<p>The function will, if called with covariance matrices between observations
+and between observations and prediction locations, use these for the interpolation.
+If the function is called without these matrices, <code>varMat</code> will be
+called to create them. These matrices can therefore be reused if necessary,
+an advantage as it is computationally expensive to create them.
+</p>
+<p>The interpolation that takes part within <code>rtopKrige.default</code> is based on 
+the semivariance matrices between observations and between observations and prediction
+locations. It is therefore possible to use this function also to interpolate
+data where the matrices have been created in other ways, e.g. based on distances
+in physiographical space or distances along a stream.
+</p>
+<p>The function returns the weights rather than the predictions if <code>wret = TRUE</code>.
+This is useful for batch processing of time series, e.g. once the weights are 
+created, they can be used to compute the interpolated values for each time step.
+</p>
+<p>rtop is able to take some advantage of multiple CPUs, which can be invoked with the 
+parameter <code>nclus</code>. When it gets a number larger than one, <code>rtopKrige</code> will start a cluster with <code>nclus</code> workers,
+if the <code>parallel</code>-package has been installed. 
+</p>
+<p>The parameter <code>singularSolve</code> can be used when some areas are almost completely overlapping. In this case, the discretization of them might be equal, and the covariances to other areas will also be equal. The kriging matrix will in this case be singular. When <code>singularSolve = TRUE</code>, <code>rtopKrige</code> will remove one of the neighbours, and instead work with the mean of the two observations. An overview of removed neighbours can be seen in the resulting object, under the name <code>removed</code>.
+</p>
+<p>Kriging of time series is possible when <code>observations</code> and <code>predictionLocations</code>
+are spatiotemporal objects of type <code>STSDF</code>. The interpolation is 
+still spatial, in the sense that the regularisation of the variograms are just done
+using the spatial extent of the observations, not a possible temporal extent, such as
+done by Skoien and Bloschl (2007). However, it is possible to make predictions based on observations 
+from different time steps, through the use of the lag-vectors. These vectors describe a typical "delay"
+for each observation and prediction location. This delay could for runoff related variables be similar
+to travel time to each gauging location. For a certain prediction location, earlier time steps would be picked for neighbours with shorter travel time and later time steps for neighbours with slower travel times.
+</p>
+<p>The lagExact parameter indicates whether to use a weighted average of two time steps, or just the time step which is closest to the difference in lag times. 
+</p>
+<p>The use of lag times should in theory increase the computation time, but might, due to different computation methods, even speed up the computation when the number of neighbours to be used (parameter nmax) is small compared to the number of observations. If computation is slow, it can be useful to test olags = rep(0, dim(observations)[1]) and similar for predictionLocations.
+</p>
+
+
+<h3>Value</h3>
+
+ 
+<p>If called with <code>SpatialPolygonsDataFrame</code>, the function returns a <br><code>SpatialPolygonsDataFrame</code> with predictions, either at the 
+locations defined in <br><code>predictionLocations</code>, or as leave-one-out
+cross-validation predicitons at the same locations as in object if 
+<code>cv = TRUE</code>
+</p>
+<p>If called with an rtop-object, the function returns the same object with the
+predictions added to the object.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p> Jon Olav Skoien </p>
+
+
+<h3>References</h3>
+
+ 
+<p>Skoien J. O., R. Merz, and G. Bloschl. Top-kriging - geostatistics on stream networks.
+Hydrology and Earth System Sciences, 10:277-287, 2006.
+</p>
+<p>Skoien, J. O. and G. Bloschl. Spatio-Temporal Top-Kriging of Runoff Time Series. Water Resources Research 43:W09419, 2007.
+</p>
+<p>Skoien, J. O., Bloschl, G., Laaha, G., Pebesma, E., Parajka, J., Viglione, A., 2014. Rtop: An R package for interpolation of data with a variable spatial support, with an example from river networks. Computers &amp; Geosciences, 67.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# The following command will download  the complete example data set
+# downloadRtopExampleData() 
+# observations$obs = observations$QSUMMER_OB/observations$AREASQKM
+
+rpath = system.file("extdata",package="rtop")
+library(sf)
+observations = st_read(rpath, "observations")
+predictionLocations = st_read(rpath,"predictionLocations")
+
+# Setting some parameters; nclus &gt; 1 will start a cluster with nclus 
+# workers for parallel processing
+params = list(gDist = TRUE, cloud = FALSE, nclus = 1, rresol = 25)
+
+# Create a column with the specific runoff:
+observations$obs = observations$QSUMMER_OB/observations$AREASQKM
+
+# Build an object
+rtopObj = createRtopObject(observations, predictionLocations, 
+           params = params)
+
+# Fit a variogram (function also creates it)
+rtopObj = rtopFitVariogram(rtopObj)
+
+# Predicting at prediction locations
+rtopObj = rtopKrige(rtopObj)
+
+# Cross-validation
+rtopObj = rtopKrige(rtopObj,cv=TRUE)
+cor(rtopObj$predictions$observed,rtopObj$predictions$var1.pred)
+
+</code></pre>
+
+
+</div>

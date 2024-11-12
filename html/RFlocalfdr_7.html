@@ -1,0 +1,138 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fit.to.data.set.wrapper</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>fit.to.data.set.wrapper</h2>
+
+<h3>Description</h3>
+
+<p>This function allows you to express your love of cats.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fit.to.data.set.wrapper(
+  df,
+  imp,
+  debug.flag = 0,
+  plot.string = "",
+  temp.dir = temp.dir,
+  return.all = TRUE,
+  try.counter = 3
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>df, </code></td>
+<td>
+<p>contains x and y, midpoints and counts from a histogram of imp</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>imp</code></td>
+<td>
+<p>importances</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>debug.flag</code></td>
+<td>
+<p>debug flag</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot.string, </code></td>
+<td>
+<p>file name for a debugging plot, passed on to fit.to.data.set</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>temp.dir, </code></td>
+<td>
+<p>directory for debugging output, passed on to fit.to.data.set</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return.all</code></td>
+<td>
+<p>passed to fit.to.data.set. If TRUE then the full output of minpack.lm::nlsLM is returned. Otherwise
+just the matrix of coefficients and t-values is returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>try.counter, </code></td>
+<td>
+<p>passed on to fit.to.data.set
+try.counter=1 my.dsn xi=  1
+try.counter=2  xi=  mean(x)
+try.counter=3 start xi, omega, lambda from the parameters retuned by fitdistrplus::fitdist</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>If the skew-normal fitting routine is succesful, then the matrix of parmaters and standard errors is returned.
+– othewise a "try-error" message is returned
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(imp20000)                                      
+imp&lt;-log(imp20000$importances)                               
+t2&lt;-imp20000$counts
+temp&lt;-imp[t2 &gt; 1]   #see                          
+temp&lt;-temp[temp != -Inf]                         
+temp &lt;- temp - min(temp) + .Machine$double.eps   
+f_fit &lt;- f.fit(temp)                             
+y &lt;- f_fit$zh$density                            
+x &lt;- f_fit$midpoints                             
+df &lt;- data.frame(x, y)                           
+fitted_parameters &lt;- fit.to.data.set.wrapper(df, temp, try.counter = 3,return.all=FALSE)           
+fitted_parameters
+
+hist(temp, breaks = 200, freq = FALSE)
+lines(df$x, df$y, type = "l", col = "green", lwd = 2, 
+      xlim = c(0, max(df$x) + 0.5))
+curve(sn::dsn(x, xi = fitted_parameters$Estimate[1], omega = fitted_parameters$Estimate[2], 
+              alpha = fitted_parameters$Estimate[3]), add = TRUE, 
+                col = "purple", lwd = 3, xlim = c(0, 16))
+curve(my.dsn(x, xi = fitted_parameters$Estimate[1], omega = fitted_parameters$Estimate[2],  
+                lambda = fitted_parameters$Estimate[3]), add = TRUE, 
+                col = "orange", lwd = 3)
+
+
+library(RFlocalfdr.data)
+data(ch22)
+t2 &lt;-ch22$C
+imp&lt;-log(ch22$imp)
+imp&lt;-imp[t2 &gt; 30]
+imp &lt;- imp[imp != -Inf]
+imp &lt;- imp - min(imp) + .Machine$double.eps
+f_fit &lt;- f.fit(imp )
+y &lt;- f_fit$zh$density
+x &lt;- f_fit$midpoints
+C &lt;- quantile(imp,probs=0.75)
+df2 &lt;- data.frame(x[x &lt; C], y[x &lt; C])
+initial.estimates &lt;- fit.to.data.set.wrapper(df2, imp)
+#Nonlinear regression model                                            
+#  model: y ~ my.dsn(x, xi = xi, omega = omega, lambda = lambda)       
+#   data: df                                                           
+#       xi.xi  omega.omega lambda.alpha                                
+#       1.163        1.193        1.574                                
+# residual sum-of-squares: 0.06269                                     
+#                                                                      
+#Number of iterations to convergence: 23                               
+#Achieved convergence tolerance: 1.49e-08
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,547 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>bayesx</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Estimate STAR Models with BayesX
+</h2>
+
+<h3>Description</h3>
+
+<p>This is the documentation of the main model fitting function of the interface. Within function
+<code>bayesx</code>, three inferential concepts are available for estimation: Markov chain Monte Carlo 
+simulation (MCMC), estimation based on mixed model technology and restricted maximum likelihood 
+(REML), and a penalized least squares (respectively penalized likelihood) approach for 
+estimating models using model selection tools (STEP).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">  
+bayesx(formula, data, weights = NULL, subset = NULL, 
+  offset = NULL, na.action = NULL, contrasts = NULL, 
+  control = bayesx.control(...), model = TRUE,
+  chains = NULL, cores = NULL, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>symbolic description of the model (of type <code>y ~ x</code>), also see 
+<code>sx</code>, <code>formula.gam</code> and <code>s</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a <code>data.frame</code> or <code>list</code> containing the model response 
+variable and covariates required by the formula. By default the variables are taken from 
+<code>environment(formula)</code>: typically the environment from which <code>bayesx</code> is called. 
+Argument <code>data</code> may also be a character string defining the directory the data is stored, 
+where the first row in the data set must contain the variable names and columns should be tab
+separated. Using this option will avoid loading the complete data into <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>, only the <span class="pkg">BayesX</span>
+output files will be imported, which might be helpful using large datasets.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>prior weights on the data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subset</code></td>
+<td>
+<p>an optional vector specifying a subset of observations to be used in the fitting 
+process.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>offset</code></td>
+<td>
+<p>can be used to supply a model offset for use in fitting.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na.action</code></td>
+<td>
+<p>a function which indicates what should happen when the data contain <code>NA</code>'s.
+The default is set by the <code>na.action</code> setting of <code>options</code>, and is
+<code>na.omit</code> if set to <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>contrasts</code></td>
+<td>
+<p>an optional list. See the <code>contrasts.arg</code> of 
+<code>model.matrix.default</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>specify several global control parameters for <code>bayesx</code>, see 
+<code>bayesx.control</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>a logical value indicating whether <code>model.frame</code> should be
+included as a component of the returned value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chains</code></td>
+<td>
+<p>integer. The number of sequential chains that should be run, the default is one
+chain if <code>chains = NULL</code>. For each chain a separate seed for the random number generator is
+used. The return value of <code>bayesx</code> is a list of class <code>"bayesx"</code>, i.e. each list
+element represents a seperate model, for which the user can e.g. apply all plotting methods or
+extractor functions. Convergence diagnostics can then be computed using function
+<code>GRstats</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cores</code></td>
+<td>
+<p>integer. How many cores should be used? The default is one core if
+<code>cores = NULL</code>. The return value is again a list of class <code>"bayesx"</code>, for which all
+plotting and extractor functions can be applied, see argument <code>chains</code>. Note that this
+option is not available on Windows systems, see the documentation of function
+<code>mclapply</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>arguments passed to <code>bayesx.control</code>, e.g. <code>family</code> and 
+<code>method</code>, defaults are <code>family = "gaussian"</code>, <code>method = "MCMC"</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+  
+<p>In <span class="pkg">BayesX</span>, estimation of regression parameters is based on three inferential concepts: 
+</p>
+<p><b>Full Bayesian inference via MCMC</b>: 
+A fully Bayesian interpretation of structured additive regression models is obtained by specifying 
+prior distributions for all unknown parameters. Estimation can be facilitated using Markov chain 
+Monte Carlo simulation techniques. <span class="pkg">BayesX</span> provides numerically efficient implementations of MCMC 
+schemes for structured additive regression models. Suitable proposal densities have been developed 
+to obtain rapidly mixing, well-behaved sampling schemes without the need for manual tuning. 
+</p>
+<p><b>Inference via a mixed model representation</b>:
+The other concept used for estimation is based on mixed model methodology. Within <span class="pkg">BayesX</span>
+this concept has been extended to structured additive regression models and several types of 
+non-standard regression situations. The general idea is to take advantage of the close connection 
+between penalty concepts and corresponding random effects distributions. The smoothing parameters 
+of the penalties then transform to variance components in the random effects (mixed) model. While 
+the selection of smoothing parameters has been a difficult task for a long time, several 
+estimation procedures for variance components in mixed models are already available since the 
+1970's. The most popular one is restricted maximum likelihood in Gaussian mixed models with 
+marginal likelihood as the non-Gaussian counterpart. While regression coefficients are estimated 
+based on penalized likelihood, restricted maximum likelihood or marginal likelihood estimation 
+forms the basis for the determination of smoothing parameters. From a Bayesian perspective, this 
+yields empirical Bayes/posterior mode estimates for the structured additive regression models. 
+However, estimates can also merely be interpreted as penalized likelihood estimates from a 
+frequentist perspective. 
+</p>
+<p><b>Penalized likelihood including variable selection</b>:
+As a third alternative <span class="pkg">BayesX</span> provides a penalized least squares (respectively penalized 
+likelihood) approach for estimating structured additive regression models. In addition, a powerful 
+variable and model selection tool is included. Model choice and estimation of the parameters is 
+done simultaneously. The algorithms are able to
+</p>
+
+<ul>
+<li>
+<p> decide whether a particular covariate enters the model,
+</p>
+</li>
+<li>
+<p> decide whether a continuous covariate enters the model linearly or nonlinearly,
+</p>
+</li>
+<li>
+<p> decide whether a spatial effect enters the model,
+</p>
+</li>
+<li>
+<p> decide whether a unit- or cluster specific heterogeneity effect enters the model
+</p>
+</li>
+<li>
+<p> select complex interaction effects (two dimensional surfaces, varying coefficient terms)
+</p>
+</li>
+<li>
+<p> select the degree of smoothness of nonlinear covariate, spatial or cluster specific
+heterogeneity effects.
+</p>
+</li>
+</ul>
+<p>Inference is based on penalized likelihood in combination with fast algorithms for selecting 
+relevant covariates and model terms. Different models are compared via various goodness of fit 
+criteria, e.g. AIC, BIC, GCV and 5 or 10 fold cross validation. 
+</p>
+<p>Within the model fitting function <code>bayesx</code>, the different inferential concepts may be chosen 
+by argument <code>method</code> of function <code>bayesx.control</code>. Options are <code>"MCMC"</code>, 
+<code>"REML"</code> and <code>"STEP"</code>.
+</p>
+<p>The wrapper function <code>bayesx</code> basically starts by setting up the necessary <span class="pkg">BayesX</span>
+program file using function <code>bayesx.construct</code>, <code>parse.bayesx.input</code> and 
+<code>write.bayesx.input</code>. Afterwards the generated program file is send to the 
+command-line binary executable version of <span class="pkg">BayesX</span> with <code>run.bayesx</code>.
+As a last step, function <code>read.bayesx.output</code> will read the estimated model object
+returned from <span class="pkg">BayesX</span> back into <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.
+</p>
+<p>For estimation of STAR models, function <code>bayesx</code> uses formula syntax as provided in package 
+<code>mgcv</code> (see <code>formula.gam</code>), i.e., models may be specified using
+the <code>R2BayesX</code> main model term constructor functions <code>sx</code> or the
+<code>mgcv</code> constructor functions <code>s</code>. For a detailed description
+of the model formula syntax used within <code>bayesx</code> models see also
+<code>bayesx.construct</code> and <code>bayesx.term.options</code>.
+</p>
+<p>After the <span class="pkg">BayesX</span> binary has successfully finished processing an object of class <code>"bayesx"</code> is
+returned, wherefore a set of standard extractor functions and methods is available, including 
+methods to the generic functions <code>print</code>, <code>summary</code>, 
+<code>plot</code>, <code>residuals</code> and <code>fitted</code>.
+</p>
+<p>See <code>fitted.bayesx</code>, <code>plot.bayesx</code>, and <code>summary.bayesx</code> for 
+more details on these methods.
+</p>
+
+
+<h3>Value</h3>
+
+ 
+<p>A list of class <code>"bayesx"</code>, see function <code>read.bayesx.output</code>.
+</p>
+
+
+<h3>WARNINGS</h3>
+
+<p>For geographical effects, note that <span class="pkg">BayesX</span> may crash if the region identification covariate
+is a <code>factor</code>, it is recommended to code these variables as <code>integer</code>,
+please see the example below.
+</p>
+
+
+<h3>Note</h3>
+
+<p>If a model is specified with a structured and an unstructured spatial effect, e.g. the model 
+formula is something like <code>y ~ sx(id, bs = "mrf", map = MapBnd) + sx(id, bs = "re")</code>, the
+model output contains of one additional total spatial effect, named with <code>"sx(id):total"</code>.
+Also see the last example.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Nikolaus Umlauf, Thomas Kneib, Stefan Lang, Achim Zeileis.
+</p>
+
+
+<h3>References</h3>
+
+<p>Belitz C, Brezger A, Kneib T, Lang S (2011). <span class="pkg">BayesX</span> - Software for Bayesian Inference in 
+Structured Additive Regression Models. Version 2.0.1. 
+URL <a href="https://www.uni-goettingen.de/de/bayesx/550513.html">https://www.uni-goettingen.de/de/bayesx/550513.html</a>.
+</p>
+<p>Belitz C, Lang S (2008). Simultaneous selection of variables and smoothing parameters in 
+structured additive regression models. <em>Computational Statistics &amp; Data Analysis</em>, 
+<b>53</b>, 61–81.
+</p>
+<p>Brezger A, Kneib T, Lang S (2005). <span class="pkg">BayesX</span>: Analyzing Bayesian Structured Additive Regression 
+Models. <em>Journal of Statistical Software</em>, <b>14</b>(11), 1–22. 
+URL <a href="https://www.jstatsoft.org/v14/i11/">https://www.jstatsoft.org/v14/i11/</a>.
+</p>
+<p>Brezger A, Lang S (2006). Generalized Structured Additive Regression Based on Bayesian P-Splines.
+<em>Computational Statistics &amp; Data Analysis</em>, <b>50</b>, 947–991.
+</p>
+<p>Fahrmeir L, Kneib T, Lang S (2004). Penalized Structured Additive Regression for Space Time Data: 
+A Bayesian Perspective. <em>Statistica Sinica</em>, <b>14</b>, 731–761.
+</p>
+<p>Umlauf N, Adler D, Kneib T, Lang S, Zeileis A (2015).
+Structured Additive Regression Models: An R Interface to BayesX.
+<em>Journal of Statistical Software</em>, <b>63</b>(21), 1–46.
+<a href="https://www.jstatsoft.org/v63/i21/">https://www.jstatsoft.org/v63/i21/</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>parse.bayesx.input</code>, <code>write.bayesx.input</code>,
+<code>run.bayesx</code>, <code>read.bayesx.output</code>,
+<code>summary.bayesx</code>, <code>plot.bayesx</code>,
+<code>fitted.bayesx</code>, <code>bayesx.construct</code>, <code>bayesx.term.options</code>,
+<code>sx</code>, <code>formula.gam</code>, <code>s</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## generate some data
+set.seed(111)
+n &lt;- 200
+
+## regressor
+dat &lt;- data.frame(x = runif(n, -3, 3))
+
+## response
+dat$y &lt;- with(dat, 1.5 + sin(x) + rnorm(n, sd = 0.6))
+
+## estimate models with
+## bayesx REML and MCMC
+b1 &lt;- bayesx(y ~ sx(x), method = "REML", data = dat)
+
+## same using mgcv syntax
+b1 &lt;- bayesx(y ~ s(x, bs = "ps", k = 20), method = "REML", data = dat)
+
+## now with MCMC
+b2 &lt;- bayesx(y ~ sx(x), method = "MCMC", 
+  iter = 1200, burnin = 200, data = dat)
+
+## compare reported output
+summary(c(b1, b2))
+
+## plot the effect for both models
+plot(c(b1, b2), residuals = TRUE)
+
+## use confint
+confint(b1, level = 0.99)
+confint(b2, level = 0.99)
+
+## Not run: 
+## more examples
+set.seed(111)
+n &lt;- 500
+
+## regressors
+dat &lt;- data.frame(x = runif(n, -3, 3), z = runif(n, -3, 3),
+  w = runif(n, 0, 6), fac = factor(rep(1:10, n/10)))
+
+## response
+dat$y &lt;- with(dat, 1.5 + sin(x) + cos(z) * sin(w) +
+  c(2.67, 5, 6, 3, 4, 2, 6, 7, 9, 7.5)[fac] + rnorm(n, sd = 0.6))
+
+## estimate models with
+## bayesx MCMC and REML
+## and compare with
+## mgcv gam()
+b1 &lt;- bayesx(y ~ sx(x) + sx(z, w, bs = "te") + fac,
+  data = dat, method = "MCMC")
+b2 &lt;- bayesx(y ~ sx(x) + sx(z, w, bs = "te") + fac,
+  data = dat, method = "REML")
+b3 &lt;- gam(y ~ s(x, bs = "ps") + te(z, w, bs = "ps") + fac, 
+  data = dat)
+
+## summary statistics
+summary(b1)
+summary(b2)
+summary(b3)
+
+## plot the effects
+op &lt;- par(no.readonly = TRUE)
+par(mfrow = c(3, 2))
+plot(b1, term = "sx(x)")
+plot(b1, term = "sx(z,w)")
+plot(b2, term = "sx(x)")
+plot(b2, term = "sx(z,w)")
+plot(b3, select = 1)
+vis.gam(b3, c("z","w"), theta = 40, phi = 40)
+par(op)
+
+## combine models b1 and b2
+b &lt;- c(b1, b2)
+
+## summary
+summary(b)
+
+## only plot effect 2 of both models
+plot(b, term = "sx(z,w)") 
+
+## with residuals
+plot(b, term = "sx(z,w)", residuals = TRUE) 
+
+## same model with kriging
+b &lt;- bayesx(y ~ sx(x) + sx(z, w, bs = "kr") + fac, 
+  method = "REML", data = dat)
+plot(b)
+
+
+## now a mrf example
+## note: the regional identification
+## covariate and the map regionnames
+## should be coded as integer
+set.seed(333)
+     
+## simulate some geographical data
+data("MunichBnd")
+N &lt;- length(MunichBnd); n &lt;- N*5
+     
+## regressors
+dat &lt;- data.frame(x1 = runif(n, -3, 3),
+  id = as.factor(rep(names(MunichBnd), length.out = n)))
+dat$sp &lt;- with(dat, sort(runif(N, -2, 2), decreasing = TRUE)[id])
+     
+## response
+dat$y &lt;- with(dat, 1.5 + sin(x1) + sp + rnorm(n, sd = 1.2))
+
+## estimate models with
+## bayesx MCMC and REML
+b1 &lt;- bayesx(y ~ sx(x1) + sx(id, bs = "mrf", map = MunichBnd), 
+  method = "MCMC", data = dat)
+b2 &lt;- bayesx(y ~ sx(x1) + sx(id, bs = "mrf", map = MunichBnd), 
+  method = "REML", data = dat)
+
+## summary statistics
+summary(b1)
+summary(b2)
+
+## plot the spatial effects
+plot(b1, term = "sx(id)", map = MunichBnd, 
+  main = "bayesx() MCMC estimate")
+plot(b2, term = "sx(id)", map = MunichBnd, 
+  main = "bayesx() REML estimate")
+plotmap(MunichBnd, x = dat$sp, id = dat$id, 
+  main = "Truth")
+
+## try geosplines instead
+b &lt;- bayesx(y ~ sx(id, bs = "gs", map = MunichBnd) + sx(x1), data = dat)
+summary(b)
+plot(b, term = "sx(id)", map = MunichBnd)
+
+## geokriging
+b &lt;- bayesx(y ~ sx(id, bs = "gk", map = MunichBnd) + sx(x1), 
+  method = "REML", data = dat)
+summary(b)
+plot(b, term = "sx(id)", map = MunichBnd)
+
+## perspective plot of the effect
+plot(b, term = "sx(id)")
+
+## image and contour plot 
+plot(b, term = "sx(id)", image = TRUE, 
+  contour = TRUE, grid = 200)
+
+
+## model with random effects
+set.seed(333)
+N &lt;- 30
+n &lt;- N*10
+
+## regressors
+dat &lt;- data.frame(id = sort(rep(1:N, n/N)), x1 = runif(n, -3, 3))
+dat$re &lt;- with(dat, rnorm(N, sd = 0.6)[id])
+
+## response
+dat$y &lt;- with(dat, 1.5 + sin(x1) + re + rnorm(n, sd = 0.6))
+
+## estimate model
+b &lt;- bayesx(y ~ sx(x1) + sx(id, bs = "re"), data = dat)
+summary(b)
+plot(b)
+
+## extract estimated random effects
+## and compare with true effects
+plot(fitted(b, term = "sx(id)")$Mean ~ unique(dat$re))
+
+
+## now a spatial example
+## with structured and
+## unstructered spatial 
+## effect
+set.seed(333)
+
+## simulate some geographical data
+data("MunichBnd")
+N &lt;- length(MunichBnd); names(MunichBnd) &lt;- 1:N
+n &lt;- N*5
+
+## regressors
+dat &lt;- data.frame(id = rep(1:N, n/N), x1 = runif(n, -3, 3))
+dat$sp &lt;- with(dat, sort(runif(N, -2, 2), decreasing = TRUE)[id])
+dat$re &lt;- with(dat, rnorm(N, sd = 0.6)[id])
+
+## response
+dat$y &lt;- with(dat, 1.5 + sin(x1) + sp + re + rnorm(n, sd = 0.6))
+
+## estimate model
+b &lt;- bayesx(y ~ sx(x1) + 
+  sx(id, bs = "mrf", map = MunichBnd) +
+  sx(id, bs = "re"), method = "MCMC", data = dat)
+summary(b)
+
+## plot all spatial effects
+plot(b, term = "sx(id):mrf", map = MunichBnd, 
+  main = "Structured spatial effect")
+plot(b, term = "sx(id):re", map = MunichBnd, 
+  main = "Unstructured spatial effect")
+plot(b, term = "sx(id):total", map = MunichBnd, 
+  main = "Total spatial effect", digits = 4)
+
+
+## some experiments with the
+## stepwise algorithm
+## generate some data
+set.seed(321)
+n &lt;- 1000
+
+## regressors
+dat &lt;- data.frame(x1 = runif(n, -3, 3), x2 = runif(n),
+  x3 = runif(n, 3, 6), x4 = runif(n, 0, 1))
+
+## response
+dat$y &lt;- with(dat, 1.5 + sin(x1) + 0.6 * x2 + rnorm(n, sd = 0.6))
+
+## estimate model with STEP
+b &lt;- bayesx(y ~ sx(x1) + sx(x2) + sx(x3) + sx(x4), 
+  method = "STEP", algorithm = "cdescent1", CI = "MCMCselect", 
+  iter = 10000, step = 10, data = dat)
+summary(b)
+plot(b)
+
+
+## a probit example
+set.seed(111)
+n &lt;- 1000
+dat &lt;- data.frame(x &lt;- runif(n, -3, 3))
+
+dat$z &lt;- with(dat, sin(x) + rnorm(n))
+dat$y &lt;- rep(0, n)
+dat$y[dat$z &gt; 0] &lt;- 1
+
+b &lt;- bayesx(y ~ sx(x), family = "binomialprobit", data = dat)
+summary(b)
+plot(b)
+
+
+## estimate varying coefficient models
+set.seed(333)
+n &lt;- 1000
+dat &lt;- data.frame(x = runif(n, -3, 3), id = factor(rep(1:4, n/4)))
+
+## response
+dat$y &lt;- with(dat, 1.5 + sin(x) * c(-1, 0.2, 1, 5)[id] + rnorm(n, sd = 0.6))
+
+## estimate model
+b &lt;- bayesx(y ~ sx(x, by = id, center = TRUE),
+  method = "REML", data = dat)
+summary(b)
+plot(b, resid = TRUE, cex.resid = 0.1)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

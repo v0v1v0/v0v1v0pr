@@ -1,0 +1,326 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rq.pen</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fit a quantile regression model using a penalized quantile loss function.</h2>
+
+<h3>Description</h3>
+
+<p>Let q index the Q quantiles of interest. Let <code class="reqn">\rho_\tau(a) = a[\tau-I(a&lt;0)]</code>. Fits quantile regression models by minimizing the penalized objective function of
+</p>
+<p style="text-align: center;"><code class="reqn">\frac{1}{n} \sum_{q=1}^Q \sum_{i=1}^n m_i \rho_\tau(y_i-x_i^\top\beta^q) + \sum_{q=1}^Q  \sum_{j=1}^p P(\beta^q_p,w_q*v_j*\lambda,a).</code>
+</p>
+
+<p>Where <code class="reqn">w_q</code> and <code class="reqn">v_j</code> are designated by penalty.factor and tau.penalty.factor respectively, and <code class="reqn">m_i</code> is designated by weights. Value of <code class="reqn">P()</code> depends on the penalty. See references or vignette for more details,
+</p>
+
+<dl>
+<dt>LASSO:</dt>
+<dd> <p><code class="reqn">P(\beta,\lambda,a)=\lambda|\beta|</code></p>
+</dd>
+<dt>SCAD:</dt>
+<dd> <p><code class="reqn">P(\beta,\lambda,a)=SCAD(\beta,\lambda,a)</code></p>
+</dd>
+<dt>MCP:</dt>
+<dd> <p><code class="reqn">P(\beta,\lambda,a)=MCP(\beta,\lambda,a)</code></p>
+</dd>
+<dt>Ridge:</dt>
+<dd> <p><code class="reqn">P(\beta,\lambda,a)=\lambda\beta^2</code></p>
+</dd>
+<dt>Elastic Net:</dt>
+<dd> <p><code class="reqn">P(\beta,\lambda,a)=a*\lambda|\beta|+(1-a)*\lambda*\beta^2</code></p>
+</dd>
+<dt>Adaptive LASSO:</dt>
+<dd> <p><code class="reqn">P(\beta,\lambda,a)=\frac{\lambda |\beta|}{|\beta_0|^a}</code></p>
+</dd>
+</dl>
+<p>For Adaptive LASSO the values of <code class="reqn">\beta_0</code> come from a Ridge solution with the same value of <code class="reqn">\lambda</code>. Three different algorithms are implemented
+</p>
+
+<dl>
+<dt>huber:</dt>
+<dd>
+<p> Uses a Huber approximation of the quantile loss function. See Yi and Huang 2017 for more details.</p>
+</dd>
+<dt>br:</dt>
+<dd>
+<p> Solution is found by re-formulating the problem so it can be solved with the rq() function from quantreg with the br algorithm.</p>
+</dd> 
+</dl>
+<p>The huber algorithm offers substantial speed advantages without much, if any, loss in performance. However, it should be noted that it solves an approximation of the quantile loss function.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rq.pen(
+  x,
+  y,
+  tau = 0.5,
+  lambda = NULL,
+  penalty = c("LASSO", "Ridge", "ENet", "aLASSO", "SCAD", "MCP"),
+  a = NULL,
+  nlambda = 100,
+  eps = ifelse(nrow(x) &lt; ncol(x), 0.05, 0.01),
+  penalty.factor = rep(1, ncol(x)),
+  alg = c("huber", "br", "QICD", "fn"),
+  scalex = TRUE,
+  tau.penalty.factor = rep(1, length(tau)),
+  coef.cutoff = 1e-08,
+  max.iter = 10000,
+  converge.eps = 1e-07,
+  lambda.discard = TRUE,
+  weights = NULL,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>matrix of predictors</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>vector of responses</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tau</code></td>
+<td>
+<p>vector of quantiles</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>vector of lambda, if not set will be generated automatically</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>penalty</code></td>
+<td>
+<p>choice of penalty</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>a</code></td>
+<td>
+<p>Additional tuning parameter, not used for lasso or ridge penalties. However, will be set to the elastic net values of 1 and 0 respectively. Defaults are ENet(0), aLASSO(1), SCAD(3.7) and MCP(3).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nlambda</code></td>
+<td>
+<p>number of lambda, ignored if lambda is set</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eps</code></td>
+<td>
+<p>If not pre-specified the lambda vector will be from lambda_max to lambda_max times eps</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>penalty.factor</code></td>
+<td>
+<p>penalty factor for the predictors</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alg</code></td>
+<td>
+<p>Algorithm used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scalex</code></td>
+<td>
+<p>Whether x should be scaled before fitting the model. Coefficients are returned on the original scale.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tau.penalty.factor</code></td>
+<td>
+<p>A penalty factor for each quantile.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coef.cutoff</code></td>
+<td>
+<p>Some of the linear programs will provide very small, but not sparse solutions. Estimates below this number will be set to zero. This is ignored if a non-linear programming algorithm is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.iter</code></td>
+<td>
+<p>Maximum number of iterations of non-linear programming algorithms.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>converge.eps</code></td>
+<td>
+<p>Convergence threshold for non-linear programming algorithms.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda.discard</code></td>
+<td>
+<p>Algorithm may stop for small values of lambda if the coefficient estimates are not changing drastically. One example of this is it is possible for the LLA weights of the non-convex functions to all become zero and smaller values of lambda are extremely likely to produce the same zero weights.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>Weights for the quantile objective function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Extra parameters.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An rq.pen.seq object. 
+</p>
+
+<dl>
+<dt>models: </dt>
+<dd>
+<p> A list of each model fit for each tau and a combination.</p>
+</dd>
+<dt>n:</dt>
+<dd>
+<p> Sample size.</p>
+</dd>
+<dt>p:</dt>
+<dd>
+<p> Number of predictors.</p>
+</dd>
+<dt>alg:</dt>
+<dd>
+<p> Algorithm used. Options are "huber" or any method implemented in rq(), such as "br". </p>
+</dd>
+<dt>tau:</dt>
+<dd>
+<p> Quantiles modeled.</p>
+</dd>
+<dt>a:</dt>
+<dd>
+<p> Tuning parameters a used.</p>
+</dd>
+<dt>modelsInfo:</dt>
+<dd>
+<p> Information about the quantile and a value for each model.</p>
+</dd>
+<dt>lambda:</dt>
+<dd>
+<p> Lambda values used for all models. If a model has fewer coefficients than lambda, say k. Then it used the first k values of lambda. Setting lambda.discard to TRUE will gurantee all values use the same lambdas, but may increase computational time noticeably and for little gain.</p>
+</dd>
+<dt>penalty:</dt>
+<dd>
+<p> Penalty used.</p>
+</dd>
+<dt>call:</dt>
+<dd>
+<p> Original call.</p>
+</dd>
+</dl>
+<p>Each model in the models list has the following values. 
+</p>
+
+<dl>
+<dt>coefficients:</dt>
+<dd>
+<p> Coefficients for each value of lambda.</p>
+</dd>
+<dt>rho:</dt>
+<dd>
+<p> The unpenalized objective function for each value of lambda.</p>
+</dd>
+<dt>PenRho:</dt>
+<dd>
+<p> The penalized objective function for each value of lambda.</p>
+</dd>
+<dt>nzero:</dt>
+<dd>
+<p> The number of nonzero coefficients for each value of lambda.</p>
+</dd>
+<dt>tau:</dt>
+<dd>
+<p> Quantile of the model.</p>
+</dd>
+<dt>a:</dt>
+<dd>
+<p> Value of a for the penalized loss function.</p>
+</dd>
+</dl>
+<p>If the Huber algorithm is used than <code class="reqn">\rho_\tau(y_i-x_i^\top\beta)</code> is replaced by a Huber-type approximation. Specifically, it is replaced by <code class="reqn">h^\tau_\gamma(y_i-x_i^\top\beta)/2</code> where 
+</p>
+<p style="text-align: center;"><code class="reqn">h^\tau_\gamma(a) = a^2/(2\gamma)I(|a| \leq \gamma) + (|a|-\gamma/2)I(|a|&gt;\gamma)+(2\tau-1)a.</code>
+</p>
+
+<p>Where if <code class="reqn">\tau=.5</code>, we get the usual Huber loss function. The Huber implementation calls the package hqreg which implements the methods of Yi and Huang (2017) 
+for Huber loss with elastic net penalties. For non-elastic net penalties the LLA algorithm of Zou and Li (2008) is used to approximate those loss functions
+with a lasso penalty with different weights for each predictor.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Ben Sherwood, <a href="mailto:ben.sherwood@ku.edu">ben.sherwood@ku.edu</a>, Shaobo Li, and Adam Maidman
+</p>
+
+
+<h3>References</h3>
+
+<p>Zou H, Li R (2008).
+“One-step sparse estimates in nonconcave penalized likelihood models.”
+<em>Ann. Statist.</em>, <b>36</b>(4), 1509-1533.
+</p>
+<p>Yi C, Huang J (2017).
+“Semismooth Newton Coordinate Descent Algorithm for Elastic-Net Penalized Huber Loss Regression and Quantile Regression.”
+<em>J. Comput. Graph. Statist.</em>, <b>26</b>(3), 547-557.
+</p>
+<p>Belloni A, Chernozhukov V (2011).
+“L1-Penalized quantile regression in high-dimensional sparse models.”
+<em>Ann. Statist.</em>, <b>39</b>(1), 82-130.
+</p>
+<p>Peng B, Wang L (2015).
+“An iterative coordinate descent algorithm for high-dimensional nonconvex penalized quantile regression.”
+<em>J. Comput. Graph. Statist.</em>, <b>24</b>(3), 676-694.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">n &lt;- 200
+p &lt;- 8
+x &lt;- matrix(runif(n*p),ncol=p)
+y &lt;- 1 + x[,1] + x[,8] + (1+.5*x[,3])*rnorm(n)
+r1 &lt;- rq.pen(x,y) #Lasso fit for median
+# Lasso for multiple quantiles
+r2 &lt;- rq.pen(x,y,tau=c(.25,.5,.75))
+# Elastic net fit for multiple quantiles, which must use Huber algorithm
+r3 &lt;- rq.pen(x,y,penalty="ENet",a=c(0,.5,1),alg="huber")
+# First variable is not penalized
+r4 &lt;- rq.pen(x,y,penalty.factor=c(0,rep(1,7)))
+tvals &lt;- c(.1,.2,.3,.4,.5)
+#Similar to penalty proposed by Belloni and Chernouzhukov. 
+#To be exact you would divide the tau.penalty.factor by n. 
+r5 &lt;- rq.pen(x,y,tau=tvals, tau.penalty.factor=sqrt(tvals*(1-tvals)))
+</code></pre>
+
+
+</div>

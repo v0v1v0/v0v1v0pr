@@ -1,0 +1,183 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>sensitivity_min_SSU2</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Sensitivity analysis for choosing minimum number of SSUs per PSU (no sampling frame available)
+</h2>
+
+<h3>Description</h3>
+
+<p>This function is similar to the function sensitivity_min_SSU, as it allows to analyse the different results in terms 
+of first stage size (number of PSUs) and second stage size (number of SSUs),
+when varying the values of the minimum number of SSU per single PSU)
+The name of the parameter has to be given, together with the minimum and
+maximum value. Differently from sensitivity_min_SSU, it requires in input all the outputs already prepared by prepareInputToAllocation1 or prepareInputToAllocation2.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">sensitivity_min_SSU2 (strata, 
+                      des_file,
+                      psu_file,
+                      rho,
+                      effst,
+                      errors, 
+                      min, 
+                      max, 
+                      plot) 
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>strata</code></td>
+<td>
+<p>Data frame of survey strata, for more details see, e.g.,strata.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>des_file</code></td>
+<td>
+<p>Data frame containing information on sampling design variables, for more details see, e.g.,design.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>psu_file</code></td>
+<td>
+<p>Data frame containing information on primary stage units stratification, for more details see, e.g.,PSU_strat.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rho</code></td>
+<td>
+<p>Data frame of survey strata, for more details see, e.g.,rho.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>effst</code></td>
+<td>
+<p>Data frame of survey strata, for taking into account the estimator effect on each variable, for more details see, e.g.,effst.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>errors</code></td>
+<td>
+<p>Data frame of coefficients of variation for each domain, for more details see, e.g.,errors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min</code></td>
+<td>
+<p>starting value for the minimum value of SSUs per PSU.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max</code></td>
+<td>
+<p>ending value for the minimum value of SSUs per PSU.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>plot (TRUE/FALSE) the final result.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list containing the (i) vector of allocated PSUs in the iterations and (ii) the vector of allocated SSUs in the iterations
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Giulio Barcaroli</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+library(readr)
+samp &lt;- read_rds("https://github.com/barcaroli/R2BEAT_workflows/blob/master/sample.rds?raw=true")
+pop &lt;- read_rds("https://github.com/barcaroli/R2BEAT_workflows/blob/master/pop.RDS?raw=true")
+library(R2BEAT)
+str(samp)
+## Sample design description
+library(ReGenesees)
+samp$stratum_2 &lt;- as.factor(samp$stratum_2)
+sample.des &lt;- e.svydesign(samp, 
+                          ids= ~ municipality + id_hh, 
+                          strata = ~ stratum_2, 
+                          weights = ~ weight,
+                          self.rep.str = ~ SR,
+                          check.data = TRUE)
+## Find and collapse lonely strata
+ls &lt;- find.lon.strata(sample.des)
+if (!is.null(ls)) sample.des &lt;- collapse.strata(sample.des)
+## Calibration with known totals
+totals &lt;- pop.template(sample.des,
+             calmodel = ~ sex : cl_age, 
+             partition = ~ region)
+totals &lt;- fill.template(pop, totals, mem.frac = 10)
+sample.cal &lt;- e.calibrate(sample.des, 
+                          totals,
+                          calmodel = ~ sex : cl_age, 
+                          partition = ~ region,
+                          calfun = "logit",
+                          bounds = c(0.3, 2.6), 
+                          aggregate.stage = 2,
+                          force = FALSE)
+samp_frame &lt;- pop
+RGdes &lt;- sample.des
+RGcal &lt;- sample.cal
+strata_var &lt;- c("stratum")      
+target_vars &lt;- c("income_hh",
+                 "active",
+                 "inactive",
+                 "unemployed")   
+weight_var &lt;- "weight"
+deff_var &lt;- "stratum"            
+id_PSU &lt;- c("municipality")      
+id_SSU &lt;- c("id_hh")             
+domain_var &lt;- c("region") 
+delta &lt;- 1                   
+minimum &lt;- 50     
+inp &lt;- prepareInputToAllocation2 ( 
+  samp_frame,
+  RGdes, 
+  RGcal, 
+  id_PSU, 
+  id_SSU, 
+  strata_var, 
+  target_vars, 
+  deff_var, 
+  domain_var,
+  delta,
+  minimum) 
+cv &lt;- as.data.frame(list(DOM=c("DOM1","DOM2"),
+                         CV1=c(0.02,0.03),
+                         CV2=c(0.03,0.06),
+                         CV3=c(0.03,0.06),
+                         CV4=c(0.05,0.08)))
+sens &lt;- sensitivity_min_SSU2 (strata = inp$strata, 
+                         des_file = inp$des_file,
+                         psu_file = inp$psu_file,
+                         rho = inp$rho,
+                         effst = inp$effst,
+                         errors = cv, 
+                         min = 15, 
+                         max = 25, 
+                         plot = TRUE) 
+
+## End(Not run)
+</code></pre>
+
+
+</div>

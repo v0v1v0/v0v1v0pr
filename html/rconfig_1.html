@@ -1,0 +1,295 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rconfig</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Manage R Configuration at the Command Line</h2>
+
+<h3>Description</h3>
+
+<p>Manage R configuration using files (YAML, JSON, INI, TXT)
+JSON strings and command line arguments. Command line arguments
+can be used to provide commands and to override configuration.
+Period-separated command line flags are parsed as hierarchical
+lists.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rconfig(
+  file = NULL,
+  list = NULL,
+  eval = NULL,
+  flatten = NULL,
+  debug = NULL,
+  sep = NULL,
+  sub = NULL,
+  ...
+)
+
+value(x, ...)
+
+## Default S3 method:
+value(x, default = NULL, coerce = TRUE, ...)
+
+command(x, ...)
+
+## Default S3 method:
+command(x, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>file</code></td>
+<td>
+<p>Configuration file name or URL (<code>NULL</code> to not use
+this configuration file to override the default behavior).
+Can be a vector, in which case each element will be treated
+as a configuration file, and these will be parsed and applied
+in the order they appear.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>list</code></td>
+<td>
+<p>A list to override other configs (<code>NULL</code> to not use
+this list to override the default behavior). This argument is treated
+as a single configuration (as opposed to <code>file</code>). List names need
+to be unique.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eval</code></td>
+<td>
+<p>Logical, evaluate <code>!expr</code> R expressions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flatten</code></td>
+<td>
+<p>Logical, should config contain nested lists or should
+results be flat, i.e. <code>a$b$c</code> to flattened into the key <code>a.b.c</code>;
+like <code>unlist()</code> but returning a list and preserving the value types.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>debug</code></td>
+<td>
+<p>Logical, when debug mode is on the configuration
+source information are attached as the <code>"trace"</code> attribute.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sep</code></td>
+<td>
+<p>Character, separator for text files.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sub</code></td>
+<td>
+<p>Logical, substitute environment variables (see Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Other arguments passed to file parsers:
+<code>yaml::yaml.load_file()</code> for YAML,
+<code>jsonlite::fromJSON()</code> for JSON, and
+<code>utils::read.table()</code> for text files.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A list, e.g. the <code>rconfig()</code> output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>default</code></td>
+<td>
+<p>A default value to be used when a configuration
+entry is not set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coerce</code></td>
+<td>
+<p>Logical, should values of <code>x</code> coerced to the same
+type as <code style="white-space: pre;">⁠storage.mode(default).⁠</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Merges configuration after parsing files, JSON strings,
+and command line arguments. Note that rconfig only considers
+trailing command line arguments from Rscript.
+rconfig differentiates verb/noun syntax, where
+verbs are sub-commands following the R script file name
+and preceding the command line flags (starting with <code>-</code> or <code style="white-space: pre;">⁠--⁠</code>).
+Configurations are merged in the following order
+(key-values from last element override previous values for the same key):
+</p>
+
+<ol>
+<li> <p><code>R_RCONFIG_FILE</code> value or <code>"rconfig.yml"</code> from working directory
+</p>
+</li>
+<li>
+<p> JSON strings (following <code>-j</code> and <code>--json</code> flags)
+and files (following <code>-f</code> and <code>--file</code> flags)
+provided as command line arguments are parsed and applied
+in the order they appear (key-value pairs are separated by space,
+only atomic values considered, i.e. file name or string)
+for each flag, but multiple file/JSON flags are accepted in sequence
+</p>
+</li>
+<li>
+<p> the remaining other command line arguments, that can be
+sub-commands or command line flags
+(starting with <code>-</code> or <code style="white-space: pre;">⁠--⁠</code>), period-separated
+command line flags are parsed as hierarchical lists
+(key-value pairs are separated by space, flags must begin
+with <code style="white-space: pre;">⁠--⁠</code>, values are treated as vectors when contain spaces,
+i.e. <code style="white-space: pre;">⁠--key 1 2 3⁠</code>)
+</p>
+</li>
+<li>
+<p> configuration from the <code>file</code> argument (one or multiple files,
+parsed and applied in the order they appear)
+</p>
+</li>
+<li>
+<p> configuration from the <code>list</code> argument
+</p>
+</li>
+</ol>
+<p>The following environment variables and options can be set to
+modify the default behavior:
+</p>
+
+<ul>
+<li> <p><code>R_RCONFIG_FILE</code>: location of the default configuration file,
+it is assumed to be <code>rconfig.yml</code> in the current working directory.
+The file name can be an URL or it can can be missing.
+</p>
+</li>
+<li> <p><code>R_RCONFIG_EVAL</code>: coerced to logical, indicating whether
+R expressions starting with <code>!expr</code> should be evaluated in the
+namespace environment for the base package
+(overrides the value of <code>getOption("rconfig.eval")</code>).
+When not set the value assumed is <code>TRUE</code>.
+</p>
+</li>
+<li> <p><code>R_RCONFIG_SUB</code>: coerced to logical, indicating whether
+environment variables should be substituted
+(overrides the value of <code>getOption("rconfig.sub")</code>).
+When not set the value assumed is <code>TRUE</code>.
+</p>
+</li>
+<li> <p><code>R_RCONFIG_FLATTEN</code>: coerced to logical, flatten nested lists,
+i.e. <code>a$b$c</code> becomes the key <code>a.b.c</code>
+(overrides the value of <code>getOption("rconfig.flatten")</code>).
+When not set the value assumed is <code>FALSE</code>.
+</p>
+</li>
+<li> <p><code>R_RCONFIG_DEBUG</code>: coerced to logical, to turn on debug mode
+(overrides the value of <code>getOption("rconfig.debug")</code>).
+When not set the value assumed is <code>FALSE</code>.
+</p>
+</li>
+<li> <p><code>R_RCONFIG_SEP</code>: separator for text file parser,
+(overrides the value of <code>getOption("rconfig.sep")</code>).
+When not set the value assumed is <code>"="</code>.
+</p>
+</li>
+</ul>
+<p>When the configuration is a file (file name can also be a URL),
+it can be nested structure in JSON or YAML format.
+Other text files are parsed using the
+separator (<code>R_RCONFIG_SEP</code> or <code>getOption("rconfig.sep")</code>) and
+period-separated keys are parsed as hierarchical lists
+(i.e. <code>a.b.c=12</code> is treated as <code>a$b$c = 12</code>) by default.
+</p>
+<p>When the configuration is a file or a JSON string,
+values starting with <code>!expr</code> will be evaluated depending on the
+settings <code>R_RCONFIG_EVAL</code> and <code>getOption("rconfig.eval")</code>.
+E.g. <code style="white-space: pre;">⁠cores: !expr getOption("mc.cores")⁠</code>, etc.
+</p>
+<p>The rconfig package interprets 3 kinds of substitution patterns:
+</p>
+
+<ul>
+<li>
+<p> environment variables (<code style="white-space: pre;">⁠${VALUE}⁠</code>): these variables are already present when the configurations is read from the calling environment or from <code>.Renviron</code> file in the project specific or home folder, set variables can be null or not-null
+</p>
+</li>
+<li>
+<p> R global variables (<code style="white-space: pre;">⁠@{VALUE}⁠</code>): the rconfig package looks for variables in the global environment at the time of configuration evaluation, however, expressions are not evaluated (unlike the <code>!expr</code> option for values)
+</p>
+</li>
+<li>
+<p> configuration values (<code style="white-space: pre;">⁠#{VALUE}⁠</code>): the configuration level variables are evaluated last, thus these values can refer to existing keys that are already substituted
+</p>
+</li>
+</ul>
+<p>For additional details see the package website at
+<a href="https://github.com/analythium/rconfig">https://github.com/analythium/rconfig</a>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The configuration value (a named list, or an empty list).
+When debug mode is on, the <code>"trace"</code> attribute traces the
+merged configurations. The <code>value()</code> method returns the value
+of a given argument or the default value when it is not found
+(i.e. <code>NULL</code>). The <code>command()</code> method returns a character vector
+with command line sub-commands (can be of length 0).
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>utils::modifyList()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">cfile &lt;- function(file) {
+    system.file("examples", file, package = "rconfig")
+}
+
+rconfig::rconfig()
+
+rconfig::rconfig(
+    file = cfile("rconfig.yml"))
+
+rconfig::rconfig(
+    file = c(cfile("rconfig.json"),
+             cfile("rconfig-prod.txt")),
+    list = list(user = list(name = "Jack")))
+
+rconfig::rconfig(
+    file = c(cfile("rconfig.json"),
+             cfile("rconfig-prod.txt")),
+    list = list(user = list(name = "Jack")),
+    flatten = TRUE)
+
+CONFIG &lt;- rconfig::rconfig(
+    file = cfile("rconfig.yml"))
+value(CONFIG$cores, 2L)   # set to 1L
+value(CONFIG$test, FALSE) # unset
+
+</code></pre>
+
+
+</div>

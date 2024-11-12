@@ -1,0 +1,165 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>calcPredictionAccuracy</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Calculate the Prediction Error for a Recommendation
+</h2>
+
+<h3>Description</h3>
+
+<p>Calculate prediction accuracy. For predicted ratings
+MAE (mean average error), MSE (means squared error)
+and RMSE (root means squared error) are calculated. For topNLists
+various binary classification metrics are returned (e.g., precision, recall, TPR, FPR).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">calcPredictionAccuracy(x, data, ...)
+
+## S4 method for signature 'realRatingMatrix,realRatingMatrix'
+calcPredictionAccuracy(x, data, byUser = FALSE, ...)
+
+## S4 method for signature 'topNList,realRatingMatrix'
+calcPredictionAccuracy(x, data, byUser = FALSE,
+  given = NULL, goodRating = NA, ...)
+
+## S4 method for signature 'topNList,binaryRatingMatrix'
+calcPredictionAccuracy(x, data, byUser = FALSE,
+  given = NULL, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p> Predicted items in a "topNList" or predicted ratings as a "realRatingMatrix"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p> Observed true ratings for the users as a "RatingMatrix". The users have to be in the same order as in <code>x</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>byUser</code></td>
+<td>
+<p> logical; Should the accuracy measures be reported for each user individually instead of being averaged over all users?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>given</code></td>
+<td>
+<p> how many items were given to create the predictions. If the data comes from an evaluation scheme that usses all-but-x (i.e., a negative value for <code>give</code>), then a vector with the number of items actually given for each prediction needs to be supplied.
+This can be optained from the evaluation scheme <code>es</code> via <code>getData(es, "given")</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>goodRating</code></td>
+<td>
+<p> If <code>x</code> is a "topNList" and <code>data</code> is a "realRatingMatrix" then <code>goodRating</code> is used as the threshold for determining what rating in <code>data</code> is considered a good rating.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p> further arguments.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The function calculates the accuracy of predictions compared to the observed true ratings (<code>data</code>) averaged over the users. Use <code>byUser = TRUE</code> to get the results for each user.
+</p>
+<p>If both, the predictions are numeric ratings (i.e. a "realRatingMatrix"),
+then the error measures RMSE, MSE and MAE are calculated.
+</p>
+<p>If the predictions are a "topNList", then the entries of the confusion matrix (true positives TP, false positives FP, false negatives FN and true negatives TN) and binary classification measures like precision, recall, TPR and FPR are calculated. If data is a "realRatingMatrix", then
+<code>goodRating</code> has to be specified to identify items that should be recommended (i.e., have a rating of goodRating or more).
+Note that you need to specify the number of items given to the recommender to create predictions.
+The number of predictions by user (N) is the total number of items in the data minus the number of given items. The number of TP is limited by the size of the top-N list. Also, since the counts for TP, FP, FN and TN are averaged over the users (unless <code>byUser = TRUE</code> is used),
+they will not be whole numbers.
+</p>
+<p>If the ratings are a "topNList" and the observed data is a "realRatingMatrix" then <code>goodRating</code> is used
+to determine what rating in <code>data</code> is considered a good rating for calculating binary classification measures. This means that an item in the topNList is considered a true positive if it has a rating of <code>goodRating</code> or better in the observed data.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns a vector with the appropriate measures averaged over all users.
+For <code>byUser=TRUE</code>, a matrix with a row for each user is returned.
+</p>
+
+
+<h3>References</h3>
+
+<p>Asela Gunawardana and Guy Shani (2009). A Survey of Accuracy Evaluation Metrics of
+Recommendation Tasks, Journal of Machine Learning Research 10, 2935-2962.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>topNList</code>,
+<code>binaryRatingMatrix</code>,
+<code>realRatingMatrix</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">### recommender for real-valued ratings
+data(Jester5k)
+
+## create 90/10 split (known/unknown) for the first 500 users in Jester5k
+e &lt;- evaluationScheme(Jester5k[1:500, ], method = "split", train = 0.9,
+    k = 1, given = 15)
+e
+
+## create a user-based CF recommender using training data
+r &lt;- Recommender(getData(e, "train"), "UBCF")
+
+## create predictions for the test data using known ratings (see given above)
+p &lt;- predict(r, getData(e, "known"), type = "ratings")
+p
+
+## compute error metrics averaged per user and then averaged over all
+## recommendations
+calcPredictionAccuracy(p, getData(e, "unknown"))
+head(calcPredictionAccuracy(p, getData(e, "unknown"), byUser = TRUE))
+
+## evaluate topNLists instead (you need to specify given and goodRating!)
+p &lt;- predict(r, getData(e, "known"), type = "topNList")
+p
+calcPredictionAccuracy(p, getData(e, "unknown"), given = 15, goodRating = 5)
+
+## evaluate a binary recommender
+data(MSWeb)
+MSWeb10 &lt;- sample(MSWeb[rowCounts(MSWeb) &gt;10,], 50)
+
+e &lt;- evaluationScheme(MSWeb10, method="split", train = 0.9,
+    k = 1, given = 3)
+e
+
+## create a user-based CF recommender using training data
+r &lt;- Recommender(getData(e, "train"), "UBCF")
+
+## create predictions for the test data using known ratings (see given above)
+p &lt;- predict(r, getData(e, "known"), type="topNList", n = 10)
+p
+
+calcPredictionAccuracy(p, getData(e, "unknown"), given = 3)
+calcPredictionAccuracy(p, getData(e, "unknown"), given = 3, byUser = TRUE)
+</code></pre>
+
+
+</div>

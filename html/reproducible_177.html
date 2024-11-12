@@ -1,0 +1,502 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>prepInputs</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Download and optionally post-process files</h2>
+
+<h3>Description</h3>
+
+<p><img src="../help/figures/lifecycle-maturing.svg" alt="maturing"></p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">prepInputs(
+  targetFile = NULL,
+  url = NULL,
+  archive = NULL,
+  alsoExtract = NULL,
+  destinationPath = getOption("reproducible.destinationPath", "."),
+  fun = NULL,
+  quick = getOption("reproducible.quick"),
+  overwrite = getOption("reproducible.overwrite", FALSE),
+  purge = FALSE,
+  useCache = getOption("reproducible.useCache", 2),
+  .tempPath,
+  verbose = getOption("reproducible.verbose", 1),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>targetFile</code></td>
+<td>
+<p>Character string giving the filename (without relative or
+absolute path) to the eventual file
+(raster, shapefile, csv, etc.) after downloading and extracting from a zip
+or tar archive. This is the file <em>before</em> it is passed to
+<code>postProcess</code>. The internal checksumming does not checksum
+the file after it is <code>postProcess</code>ed (e.g., cropped/reprojected/masked).
+Using <code>Cache</code> around <code>prepInputs</code> will do a sufficient job in these cases.
+See table in <code>preProcess()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>url</code></td>
+<td>
+<p>Optional character string indicating the URL to download from.
+If not specified, then no download will be attempted. If not entry
+exists in the <code>CHECKSUMS.txt</code> (in <code>destinationPath</code>), an entry
+will be created or appended to. This <code>CHECKSUMS.txt</code> entry will be used
+in subsequent calls to
+<code>prepInputs</code> or <code>preProcess</code>, comparing the file on hand with the ad hoc
+<code>CHECKSUMS.txt</code>. See table in <code>preProcess()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>archive</code></td>
+<td>
+<p>Optional character string giving the path of an archive
+containing <code>targetFile</code>, or a vector giving a set of nested archives
+(e.g., <code>c("xxx.tar", "inner.zip", "inner.rar")</code>). If there is/are (an) inner
+archive(s), but they are unknown, the function will try all until it finds
+the <code>targetFile</code>. See table in <code>preProcess()</code>. If it is <code>NA</code>,
+then it will <em>not</em> attempt to see it as an archive, even if it has archive-like
+file extension (e.g., <code>.zip</code>). This may be useful when an R function
+is expecting an archive directly.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alsoExtract</code></td>
+<td>
+<p>Optional character string naming files other than
+<code>targetFile</code> that must be extracted from the <code>archive</code>. If
+<code>NULL</code>, the default, then it will extract all files. Other options:
+<code>"similar"</code> will extract all files with the same filename without
+file extension as <code>targetFile</code>. <code>NA</code> will extract nothing other
+than <code>targetFile</code>. A character string of specific file names will cause
+only those to be extracted. See table in <code>preProcess()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>destinationPath</code></td>
+<td>
+<p>Character string of a directory in which to download
+and save the file that comes from <code>url</code> and is also where the function
+will look for <code>archive</code> or <code>targetFile</code>. NOTE (still experimental):
+To prevent repeated downloads in different locations, the user can also set
+<code>options("reproducible.inputPaths")</code> to one or more local file paths to
+search for the file before attempting to download. Default for that option is
+<code>NULL</code> meaning do not search locally.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fun</code></td>
+<td>
+<p>Optional. If specified, this will attempt to load whatever
+file was downloaded during <code>preProcess</code> via <code>dlFun</code>. This can be either a
+function (e.g., sf::st_read), character string (e.g., "base::load"),
+NA (for no loading, useful if <code>dlFun</code> already loaded the file) or
+if extra arguments are required
+in the function call, it must be a call naming
+<code>targetFile</code> (e.g., <code>sf::st_read(targetFile, quiet = TRUE)</code>)
+as the file path to the file to load. See details and examples below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quick</code></td>
+<td>
+<p>Logical. This is passed internally to <code>Checksums()</code>
+(the quickCheck argument), and to
+<code>Cache()</code> (the quick argument). This results in faster, though
+less robust checking of inputs. See the respective functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite</code></td>
+<td>
+<p>Logical. Should downloading and all the other actions occur
+even if they pass the checksums or the files are all there.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>purge</code></td>
+<td>
+<p>Logical or Integer. <code>0/FALSE</code> (default) keeps existing
+<code>CHECKSUMS.txt</code> file and
+<code>prepInputs</code> will write or append to it. <code>1/TRUE</code> will deleted the entire
+<code>CHECKSUMS.txt</code> file. Other options, see details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>useCache</code></td>
+<td>
+<p>Passed to <code>Cache</code> in various places.
+Defaults to <code>getOption("reproducible.useCache", 2L)</code> in <code>prepInputs</code>, and
+<code>getOption("reproducible.useCache", FALSE)</code> if calling any of the inner
+functions manually. For <code>prepInputs</code>, this mean it will use <code>Cache</code>
+only up to 2 nested levels, which includes <code>preProcess</code>. <code>postProcess</code> and
+its nested <code style="white-space: pre;">⁠*Input⁠</code> functions (e.g., <code>cropInputs</code>, <code>projectInputs</code>,
+<code>maskInputs</code>) are no longer internally cached, as <code>terra</code> processing speeds
+mean internal caching is more time consuming. We recommend caching the full
+<code>prepInputs</code> call instead (e.g. <code>prepInputs(...) |&gt; Cache()</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.tempPath</code></td>
+<td>
+<p>Optional temporary path for internal file intermediate steps.
+Will be cleared on.exit from this function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Numeric, -1 silent (where possible), 0 being very quiet,
+1 showing more messaging, 2 being more messaging, etc.
+Default is 1. Above 3 will output much more information about the internals of
+Caching, which may help diagnose Caching challenges. Can set globally with an
+option, e.g., <code style="white-space: pre;">⁠options('reproducible.verbose' = 0) to reduce to minimal⁠</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments passed to
+<code>postProcess()</code> and <code>Cache()</code>.
+Since <code>...</code> is passed to <code>postProcess()</code>, these will
+<code>...</code> will also be passed into the inner
+functions, e.g., <code>cropInputs()</code>. Possibly useful other arguments include
+<code>dlFun</code> which is passed to <code>preProcess</code>. See details and examples.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function can be used to prepare R objects from remote or local data sources.
+The object of this function is to provide a reproducible version of
+a series of commonly used steps for getting, loading, and processing data.
+This function has two stages: Getting data (download, extracting from archives,
+loading into R) and post-processing (for <code style="white-space: pre;">⁠Spatial*⁠</code> and <code style="white-space: pre;">⁠Raster*⁠</code>
+objects, this is crop, reproject, mask/intersect).
+To trigger the first stage, provide <code>url</code> or <code>archive</code>.
+To trigger the second stage, provide <code>studyArea</code> or <code>rasterToMatch</code>.
+See examples.
+</p>
+
+
+<h3>Value</h3>
+
+<p>This is an omnibus function that will return an R object that will have resulted from
+the running of <code>preProcess()</code> and <code>postProcess()</code> or <code>postProcessTo()</code>. Thus,
+if it is a GIS object, it may have been cropped, reprojected, "fixed", masked, and
+written to disk.
+</p>
+
+
+<h3>Stage 1 - Getting data</h3>
+
+<p>See <code>preProcess()</code> for combinations of arguments.
+</p>
+
+<ol>
+<li>
+<p> Download from the web via either <code>googledrive::drive_download()</code>,
+<code>utils::download.file()</code>;
+</p>
+</li>
+<li>
+<p> Extract from archive using <code>unzip()</code> or <code>untar()</code>;
+</p>
+</li>
+<li>
+<p> Load into R using <code>terra::rast</code>,
+<code>sf::st_read</code>, or any other function passed in with <code>fun</code>;
+</p>
+</li>
+<li>
+<p> Checksumming of all files during this process. This is put into a
+‘<span class="file">CHECKSUMS.txt</span>’ file in the <code>destinationPath</code>, appending if it is
+already there, overwriting the entries for same files if entries already exist.
+</p>
+</li>
+</ol>
+<h3>Stage 2 - Post processing</h3>
+
+<p>This will be triggered if either <code>rasterToMatch</code> or <code>studyArea</code>
+is supplied.
+</p>
+
+<ol>
+<li>
+<p> Fix errors. Currently only errors fixed are for <code>SpatialPolygons</code>
+using <code>buffer(..., width = 0)</code>;
+</p>
+</li>
+<li>
+<p> Crop using <code>cropTo()</code>;
+</p>
+</li>
+<li>
+<p> Project using <code>projectTo()</code>;
+</p>
+</li>
+<li>
+<p> Mask using <code>maskTo()</code>;
+</p>
+</li>
+<li>
+<p> Determine file name <code>determineFilename()</code> via <code>filename2</code>;
+</p>
+</li>
+<li>
+<p> Optionally, write that file name to disk via <code>writeTo()</code>.
+</p>
+</li>
+</ol>
+<p>NOTE: checksumming does not occur during the post-processing stage, as
+there are no file downloads. To achieve fast results, wrap
+<code>prepInputs</code> with <code>Cache</code>.
+</p>
+<p>NOTE: <code>sf</code> objects are still very experimental.
+</p>
+
+
+<h4>postProcessing of <code style="white-space: pre;">⁠Spat*⁠</code>, <code>sf</code>, <code style="white-space: pre;">⁠Raster*⁠</code> and <code style="white-space: pre;">⁠Spatial*⁠</code> objects:</h4>
+
+<p>The following has been DEPRECATED because there are a sufficient number of
+ambiguities that this has been changed in favour of <code>from</code> and the <code style="white-space: pre;">⁠*to⁠</code> family.
+See <code>postProcessTo()</code>.
+</p>
+<p>DEPRECATED: If <code>rasterToMatch</code> or <code>studyArea</code> are used, then this will
+trigger several subsequent functions, specifically the sequence,
+<em>Crop, reproject, mask</em>, which appears to be a common sequence while
+preparing spatial data from diverse sources.
+See <code>postProcess()</code> documentation section on
+<em>Backwards compatibility with <code>rasterToMatch</code> and/or <code>studyArea</code> arguments</em>
+to understand various combinations of <code>rasterToMatch</code> and/or <code>studyArea</code>.
+</p>
+
+
+
+<h3><code>fun</code></h3>
+
+<p><code>fun</code> offers the ability to pass any custom function with which to load
+the file obtained by <code>preProcess</code> into the session. There are two cases that are
+dealt with: when the <code>preProcess</code> downloads a file (including via <code>dlFun</code>),
+<code>fun</code> must deal with a file; and, when <code>preProcess</code> creates an R object
+(e.g., raster::getData returns an object), <code>fun</code> must deal with an object.
+</p>
+<p><code>fun</code> can be supplied in three ways: a function, a character string
+(i.e., a function name as a string), or an expression.
+If a character string or function, is should have the package name e.g.,
+<code>"terra::rast"</code> or as an actual function, e.g., <code>base::readRDS</code>.
+In these cases, it will evaluate this function call while passing <code>targetFile</code>
+as the first argument. These will only work in the simplest of cases.
+</p>
+<p>When more precision is required, the full call can be written and where the
+filename can be referred to as <code>targetFile</code> if the function
+is loading a file. If <code>preProcess</code> returns an object, <code>fun</code> should be set to
+<code>fun = NA</code>.
+</p>
+<p>If there is a custom function call, is not in a package, <code>prepInputs</code> may not find it. In such
+cases, simply pass the function as a named argument (with same name as function) to <code>prepInputs</code>.
+See examples.
+NOTE: passing <code>fun = NA</code> will skip loading object into R. Note this will essentially
+replicate the functionality of simply calling <code>preProcess</code> directly.
+</p>
+
+
+<h3><code>purge</code></h3>
+
+<p>In options for control of purging the <code>CHECKSUMS.txt</code> file are:
+</p>
+
+<dl>
+<dt><code>0</code></dt>
+<dd>
+<p>keep file</p>
+</dd>
+<dt><code>1</code></dt>
+<dd>
+<p>delete file in <code>destinationPath</code>, all records of downloads need to be rebuilt</p>
+</dd>
+<dt><code>2</code></dt>
+<dd>
+<p>delete entry with same <code>targetFile</code></p>
+</dd>
+<dt><code>4</code></dt>
+<dd>
+<p>delete entry with same <code>alsoExtract</code></p>
+</dd>
+<dt><code>3</code></dt>
+<dd>
+<p>delete entry with same <code>archive</code></p>
+</dd>
+<dt><code>5</code></dt>
+<dd>
+<p>delete entry with same <code>targetFile</code> &amp; <code>alsoExtract</code></p>
+</dd>
+<dt><code>6</code></dt>
+<dd>
+<p>delete entry with same <code>targetFile</code>, <code>alsoExtract</code> &amp; <code>archive</code></p>
+</dd>
+<dt><code>7</code></dt>
+<dd>
+<p>delete entry that same <code>targetFile</code>, <code>alsoExtract</code> &amp; <code>archive</code> &amp; <code>url</code></p>
+</dd>
+</dl>
+<p>will only remove entries in the <code>CHECKSUMS.txt</code> that are associated with
+<code>targetFile</code>, <code>alsoExtract</code> or <code>archive</code> When <code>prepInputs</code> is called,
+it will write or append to a (if already exists) <code>CHECKSUMS.txt</code> file.
+If the <code>CHECKSUMS.txt</code> is not correct, use this argument to remove it.
+</p>
+
+
+<h3>Note</h3>
+
+<p>This function is still experimental: use with caution.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Eliot McIntire, Jean Marchal, and Tati Micheletti
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>postProcessTo()</code>, <code>downloadFile()</code>, <code>extractFromArchive()</code>,
+<code>postProcess()</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+if (requireNamespace("terra", quietly = TRUE) &amp;&amp;
+  requireNamespace("sf", quietly = TRUE)) {
+  library(reproducible)
+  # Make a dummy study area map -- user would supply this normally
+  coords &lt;- structure(c(-122.9, -116.1, -99.2, -106, -122.9, 59.9, 65.7, 63.6, 54.8, 59.9),
+    .Dim = c(5L, 2L)
+  )
+  studyArea &lt;- terra::vect(coords, "polygons")
+  terra::crs(studyArea) &lt;- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+  # Make dummy "large" map that must be cropped to the study area
+  outerSA &lt;- terra::buffer(studyArea, 50000)
+  terra::crs(outerSA) &lt;- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+  tf &lt;- normPath(file.path(tempdir2("prepInputsEx"), "prepInputs2.shp"))
+  terra::writeVector(outerSA, tf, overwrite = TRUE)
+
+  # run prepInputs -- load file, postProcess it to the studyArea
+
+  studyArea2 &lt;- prepInputs(
+    targetFile = tf, to = studyArea,
+    fun = "terra::vect",
+    destinationPath = tempdir2()
+  ) |&gt;
+    suppressWarnings() # not relevant warning here
+
+  # clean up
+  unlink("CHECKSUMS.txt")
+
+  ##########################################
+  # Remote file using `url`
+  ##########################################
+  if (internetExists()) {
+    data.table::setDTthreads(2)
+    origDir &lt;- getwd()
+    # download a zip file from internet, unzip all files, load as shapefile, Cache the call
+    # First time: don't know all files - prepInputs will guess, if download file is an archive,
+    #   then extract all files, then if there is a .shp, it will load with sf::st_read
+    dPath &lt;- file.path(tempdir(), "ecozones")
+    shpUrl &lt;- "http://sis.agr.gc.ca/cansis/nsdb/ecostrat/zone/ecozone_shp.zip"
+
+    # Wrapped in a try because this particular url can be flaky
+    shpEcozone &lt;- try(prepInputs(
+      destinationPath = dPath,
+      url = shpUrl
+    ))
+    if (!is(shpEcozone, "try-error")) {
+      # Robust to partial file deletions:
+      unlink(dir(dPath, full.names = TRUE)[1:3])
+      shpEcozone &lt;- prepInputs(
+        destinationPath = dPath,
+        url = shpUrl
+      )
+      unlink(dPath, recursive = TRUE)
+
+      # Once this is done, can be more precise in operational code:
+      #  specify targetFile, alsoExtract, and fun, wrap with Cache
+      ecozoneFilename &lt;- file.path(dPath, "ecozones.shp")
+      ecozoneFiles &lt;- c(
+        "ecozones.dbf", "ecozones.prj",
+        "ecozones.sbn", "ecozones.sbx", "ecozones.shp", "ecozones.shx"
+      )
+      shpEcozone &lt;- prepInputs(
+        targetFile = ecozoneFilename,
+        url = shpUrl,
+        fun = "terra::vect",
+        alsoExtract = ecozoneFiles,
+        destinationPath = dPath
+      )
+      unlink(dPath, recursive = TRUE)
+
+      # Add a study area to Crop and Mask to
+      # Create a "study area"
+      coords &lt;- structure(c(-122.98, -116.1, -99.2, -106, -122.98, 59.9, 65.73, 63.58, 54.79, 59.9),
+        .Dim = c(5L, 2L)
+      )
+      studyArea &lt;- terra::vect(coords, "polygons")
+      terra::crs(studyArea) &lt;- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+
+      #  specify targetFile, alsoExtract, and fun, wrap with Cache
+      ecozoneFilename &lt;- file.path(dPath, "ecozones.shp")
+      # Note, you don't need to "alsoExtract" the archive... if the archive is not there, but the
+      #   targetFile is there, it will not redownload the archive.
+      ecozoneFiles &lt;- c(
+        "ecozones.dbf", "ecozones.prj",
+        "ecozones.sbn", "ecozones.sbx", "ecozones.shp", "ecozones.shx"
+      )
+      shpEcozoneSm &lt;- Cache(prepInputs,
+        url = shpUrl,
+        targetFile = reproducible::asPath(ecozoneFilename),
+        alsoExtract = reproducible::asPath(ecozoneFiles),
+        studyArea = studyArea,
+        fun = "terra::vect",
+        destinationPath = dPath,
+        filename2 = "EcozoneFile.shp"
+      ) # passed to determineFilename
+
+      terra::plot(shpEcozone[, 1])
+      terra::plot(shpEcozoneSm[, 1], add = TRUE, col = "red")
+      unlink(dPath)
+    }
+  }
+}
+
+
+## Using quoted dlFun and fun -- this is not intended to be run but used as a template
+## prepInputs(..., fun = customFun(x = targetFile), customFun = customFun)
+##   # or more complex
+##  test5 &lt;- prepInputs(
+##   targetFile = targetFileLuxRDS,
+##   dlFun =
+##     getDataFn(name = "GADM", country = "LUX", level = 0) # preProcess keeps file from this!
+##   ,
+##   fun = {
+##     out &lt;- readRDS(targetFile)
+##     sf::st_as_sf(out)}
+##  )
+</code></pre>
+
+
+</div>

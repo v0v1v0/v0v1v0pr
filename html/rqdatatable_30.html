@@ -1,0 +1,130 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rq_df_grouped_funciton_node</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Helper to build data.table capable non-sql nodes.</h2>
+
+<h3>Description</h3>
+
+<p>Helper to build data.table capable non-sql nodes.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rq_df_grouped_funciton_node(
+  .,
+  f,
+  ...,
+  f_db = NULL,
+  columns_produced,
+  group_col,
+  display_form
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>.</code></td>
+<td>
+<p>or data.frame input.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>f</code></td>
+<td>
+<p>function that takes a data.table to a data.frame (or data.table).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>force later arguments to bind by name.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>f_db</code></td>
+<td>
+<p>implementation signature: f_db(db, incoming_table_name, outgoing_table_name) (db being a database handle). NULL defaults to using f.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>columns_produced</code></td>
+<td>
+<p>character columns produces by f.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group_col</code></td>
+<td>
+<p>character, column to split by.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>display_form</code></td>
+<td>
+<p>display form for node.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>relop non-sql node implementation.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>ex_data_table_step.relop_non_sql</code>, <code>rq_df_funciton_node</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# a node generator is something an expert can
+# write and part-time R users can use.
+grouped_regression_node &lt;- function(., group_col = "group", xvar = "x", yvar = "y") {
+  force(group_col)
+  formula_str &lt;- paste(yvar, "~", xvar)
+  f &lt;- function(di) {
+    mi &lt;- lm(as.formula(formula_str), data = di)
+    ci &lt;- as.data.frame(summary(mi)$coefficients)
+    ci$Variable &lt;- rownames(ci)
+    rownames(ci) &lt;- NULL
+    colnames(ci) &lt;- c("Estimate", "Std_Error", "t_value", "p_value", "Variable")
+    ci
+  }
+  columns_produced =
+    c("Estimate", "Std_Error", "t_value", "p_value", "Variable", group_col)
+  rq_df_grouped_funciton_node(
+    ., f,
+    columns_produced = columns_produced,
+    group_col = group_col,
+    display_form = paste0(yvar, "~", xvar, " grouped by ", group_col))
+}
+
+# work an example
+set.seed(3265)
+d &lt;- data.frame(x = rnorm(1000),
+                y = rnorm(1000),
+                group = sample(letters[1:5], 1000, replace = TRUE),
+                stringsAsFactors = FALSE)
+
+rquery_pipeline &lt;- local_td(d) %.&gt;%
+  grouped_regression_node(.)
+
+cat(format(rquery_pipeline))
+
+d %.&gt;% rquery_pipeline
+
+
+</code></pre>
+
+
+</div>

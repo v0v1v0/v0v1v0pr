@@ -1,0 +1,273 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>cluster_groups</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Move data points into clusters</h2>
+
+<h3>Description</h3>
+
+<p><a href="https://lifecycle.r-lib.org/articles/stages.html#experimental"><img src="../help/figures/lifecycle-experimental.svg" alt="[Experimental]"></a>
+</p>
+<p>Transform values such that the elements in each group move closer to their centroid.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">cluster_groups(
+  data,
+  cols,
+  group_cols = NULL,
+  scale_min_fn = function(x) {
+     quantile(x, 0.025)
+ },
+  scale_max_fn = function(x) {
+     quantile(x, 0.975)
+ },
+  keep_centroids = FALSE,
+  multiplier = 0.05,
+  suffix = "_clustered",
+  keep_original = TRUE,
+  overwrite = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p><code>data.frame</code>. If <code>`group_cols`</code> is <code>NULL</code>, it must be grouped with
+<code>dplyr::group_by()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cols</code></td>
+<td>
+<p>Names of columns in <code>`data`</code> to mutate.
+Each column is considered a dimension to contract distances in.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group_cols</code></td>
+<td>
+<p>Names of grouping columns in <code>`data`</code>. Must be distinct from the names in <code>`cols`</code>.
+</p>
+<p>If <code>NULL</code> and <code>`data`</code> is grouped, those groups are used instead.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale_min_fn, scale_max_fn</code></td>
+<td>
+<p>Function to find the minimum/maximum value in
+the original data when rescaling the contracted data.
+</p>
+<p><strong>Input</strong>: A <code>numeric vector</code>.
+</p>
+<p><strong>Output</strong>: A <code>numeric scalar</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep_centroids</code></td>
+<td>
+<p>Whether to ensure the clusters have their original centroids. (Logical)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>multiplier</code></td>
+<td>
+<p>Numeric constant to multiply the distance to the group centroid by. A smaller value
+makes the clusters more compact and vice versa.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>suffix</code></td>
+<td>
+<p>Suffix to add to the names of the generated columns.
+</p>
+<p>Use an empty string (i.e. <code>""</code>) to overwrite the original columns.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep_original</code></td>
+<td>
+<p>Whether to keep the original columns. (Logical)
+</p>
+<p>Some columns may have been overwritten, in which case only the newest versions are returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite</code></td>
+<td>
+<p>Whether to allow overwriting of existing columns. (Logical)</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+
+<ul>
+<li>
+<p>Contracts the distance from each data point to the centroid of its group.
+</p>
+</li>
+<li>
+<p>Performs MinMax scaling such that the scale of the data points is <em>similar</em> to the original data.
+</p>
+</li>
+<li>
+<p>If enabled (not default), the centroids are moved to the original centroids.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p><code>data.frame</code> (<code>tibble</code>) with the clustered columns.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Ludvig Renbo Olsen, <a href="mailto:r-pkgs@ludvigolsen.dk">r-pkgs@ludvigolsen.dk</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other mutate functions: 
+<code>apply_transformation_matrix()</code>,
+<code>dim_values()</code>,
+<code>expand_distances()</code>,
+<code>expand_distances_each()</code>,
+<code>flip_values()</code>,
+<code>roll_values()</code>,
+<code>rotate_2d()</code>,
+<code>rotate_3d()</code>,
+<code>shear_2d()</code>,
+<code>shear_3d()</code>,
+<code>swirl_2d()</code>,
+<code>swirl_3d()</code>
+</p>
+<p>Other clustering functions: 
+<code>generate_clusters()</code>,
+<code>transfer_centroids()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Attach packages
+library(rearrr)
+library(dplyr)
+has_ggplot &lt;- require(ggplot2)  # Attach if installed
+
+# Set seed
+set.seed(2)
+
+# Create a data frame
+df &lt;- data.frame(
+  "x" = runif(50),
+  "y" = runif(50),
+  "z" = runif(50),
+  "g" = rep(c(1, 2, 3, 4, 5), each = 10)
+)
+
+# Move the data points into clusters
+cluster_groups(df,
+  cols = c("x", "y"),
+  group_col = "g"
+)
+cluster_groups(df,
+  cols = c("x", "y"),
+  group_col = "g",
+  multiplier = 0.1
+)
+cluster_groups(df,
+  cols = c("x"),
+  group_col = "g",
+  multiplier = 0.1
+)
+
+#
+# Plotting clusters
+#
+
+# Cluster x and y for each group in g
+df_clustered &lt;- cluster_groups(
+  data = df,
+  cols = c("x", "y"),
+  group_col = "g"
+)
+
+# Plot the clusters over the original data points
+# As we work with random data, the cluster might overlap
+if (has_ggplot){
+  ggplot(
+    df_clustered,
+    aes(x = x_clustered, y = y_clustered, color = factor(g))
+  ) +
+    # Original data
+    geom_point(aes(x = x, y = y), alpha = 0.3, size = 0.8) +
+    # Clustered data
+    geom_point() +
+    theme_minimal() +
+    labs(x = "x", y = "y", color = "g")
+}
+
+#
+# Maintain original group centroids
+#
+
+df_clustered &lt;- cluster_groups(
+  data = df,
+  cols = c("x", "y"),
+  group_col = "g",
+  keep_centroids = TRUE
+)
+
+# Plot the clusters over the original data points
+# As we work with random data, the cluster might overlap
+if (has_ggplot){
+  ggplot(
+    df_clustered,
+    aes(x = x_clustered, y = y_clustered, color = factor(g))
+  ) +
+    # Original data
+    geom_point(aes(x = x, y = y), alpha = 0.3, size = 0.8) +
+    # Clustered data
+    geom_point() +
+    theme_minimal() +
+    labs(x = "x", y = "y", color = "g")
+}
+
+#
+# Three dimensions
+#
+
+# Cluster in 3d
+df_clustered &lt;- cluster_groups(
+  data = df,
+  cols = c("x", "y", "z"),
+  group_col = "g"
+)
+
+## Not run: 
+# Plot 3d with plotly
+plotly::plot_ly(
+  x = df_clustered$x_clustered,
+  y = df_clustered$y_clustered,
+  z = df_clustered$z_clustered,
+  type = "scatter3d",
+  mode = "markers",
+  color = df_clustered$g
+)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,685 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>siena07</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Function to estimate parameters in a Siena model</h2>
+
+<h3>Description</h3>
+
+<p>Estimates parameters in a Siena model using Method of Moments,
+based on direct simulation, conditional or otherwise;
+or using Generalized Method of Moments;
+or using Maximum Likelihood by MCMC simulation.
+Estimation is done using a Robbins-Monro algorithm.
+Note that the data and particular model to be used
+must be passed in using named arguments as the <code>...</code>,
+and the specification for the algorithm must be passed on
+as <code>x</code>,
+which is a <code>sienaAlgorithm</code> object as produced by
+<code>sienaAlgorithmCreate</code> (see examples).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">siena07(x, batch=FALSE, verbose=FALSE, silent=FALSE,
+        useCluster=FALSE, nbrNodes=2,
+        thetaValues = NULL,
+        returnThetas = FALSE,
+        targets = NULL,
+        initC=TRUE,
+        clusterString=rep("localhost", nbrNodes), tt=NULL,
+        parallelTesting=FALSE, clusterIter=!x$maxlike,
+        clusterType=c("PSOCK", "FORK"), cl=NULL, ...)
+      </code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A control object, of class <code>sienaAlgorithm. </code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>batch</code></td>
+<td>
+<p> Desired interface: <code>FALSE</code> gives a gui
+(graphical user interface implemented as a tcl/tk screen),
+<code>TRUE</code> gives a small (if <code>verbose=FALSE</code>) amount of printout
+to the console.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Produces various output to the console if <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>silent</code></td>
+<td>
+<p>Produces no output to the console if <code>TRUE</code>,
+even if batch mode.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>useCluster</code></td>
+<td>
+<p>Boolean: whether to use a cluster of processes (useful if
+multiple processors are available).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nbrNodes</code></td>
+<td>
+<p>Number of processes to use if useCluster is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thetaValues</code></td>
+<td>
+<p>If not <code>NULL</code>, this should be a matrix with parameter
+values to be used in Phase 3. The number of columns must be equal to the
+number of estimated parameters in the effects object (if conditional
+estimation is used, without the rate parameters for the conditioning
+dependent variable). Can only be used if <code>x$simOnly=TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>returnThetas</code></td>
+<td>
+<p>Boolean: whether to return theta values
+and generated estimation statistics of Phase 2 runs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>targets</code></td>
+<td>
+<p>Numeric vector of length equal to the number of estimated
+parameters, meant to supersede the targets calculated from the data set;
+see "Details". Not for regular use.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>initC</code></td>
+<td>
+<p>Boolean: set to <code>TRUE</code> if the simulation will use C
+routines (currently always needed). Only for use if using
+multiple processors, to ensure all copies are initialised
+correctly. Ignored otherwise, so is set to <code>TRUE</code> by default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>clusterString</code></td>
+<td>
+<p>Definitions of clusters. Default set up to use
+the local machine only.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tt</code></td>
+<td>
+<p>A <code>tcltk</code> toplevel window. Used if called from the
+model options screen, if <code>tcltk</code> is available.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallelTesting</code></td>
+<td>
+<p>Boolean. If <code>TRUE</code>, sets up random numbers to
+parallel those in Siena 3.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>clusterIter</code></td>
+<td>
+<p>Boolean. If <code>TRUE</code>, multiple processes execute
+complete iterations at each call.
+If <code>FALSE</code>, multiple processes execute a single wave at each call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>clusterType</code></td>
+<td>
+<p>Either "PSOCK" or "FORK". On Windows, must be
+"PSOCK". On a single non-Windows machine may be "FORK", and
+subprocesses will be formed by forking. If "PSOCK", subprocesses are
+formed using <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> scripts.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cl</code></td>
+<td>
+<p>An object of class c("SOCKcluster", "cluster") (see Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Arguments for the simulation function, see
+<code>simstats0c</code>:
+in any case, <code>data</code> and <code>effects</code>, as in the examples below;<br>
+possibly also <code>prevAns</code> if a previous reasonable
+provisional estimate was obtained for a similar model;<br>
+possibly also <code>returnDeps</code> if the simulated dependent variables
+(networks, behaviour) should be returned;<br>
+possibly also <code>returnChains</code> if the simulated sequences (chains)
+of ministeps should be returned; this may produce a very big file.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This is the main function and workhorse of RSiena.
+</p>
+<p>For use of <code>siena07</code>, it is necessary to specify parameters <code>data</code>
+(RSiena data set) and <code>effects</code> (effects object), which are
+required parameters in function <code>simstats0c</code>.
+(These parameters are inserted through '...'.) See the examples.
+</p>
+<p><code>siena07</code> runs a Robbins-Monro algorithm for parameter estimation
+using the three-phase implementation described in Snijders (2001, 2017),
+with (if <code>x$findiff=FALSE</code>)
+derivative estimation as in Schweinberger and Snijders (2007).
+The default is estimation according to the Method of Moments
+as in Snijders, Steglich and Schweinberger (2007).<br>
+If  <code>x$gmm=TRUE</code> and <code>myeff</code> contains one or more
+<code>gmm</code> statistics as included by function
+<code>includeGMoMStatistics</code>, the algorithm employs the
+Generalized Method of Moments as defined in Amati, Schoenenberger, and
+Snijders (2015, 2019).<br>
+For continuous behavior variables defined with <code>type="continuous"</code> in
+<code>sienaDependent</code>, estimation is done as
+described in Niezink and Snijders (2017).<br>
+If  <code>x$maxlike=TRUE</code>, estimation is done by Maximum Likelihood
+implemented as in Snijders, Koskinen and Schweinberger (2010).<br>
+Phase 1 does a few iterations to
+estimate the derivative matrix of the targets with respect to the
+parameter vector. Phase 2 does the estimation. Phase 3 runs a
+simulation to estimate standard errors and check convergence of the model.
+The simulation function is called once for each iteration in these phases
+and also once to initialise the model fitting and once to complete it.
+Unless in batch mode, a tcl/tk screen is displayed to allow interruption
+and to show progress.
+</p>
+<p>If <code>targets</code> is specified (which should be done only in special cases),
+and provided that estimation is by the Method of Moments, the data
+is not a multi-group data set and has exactly 2 waves,
+and if the length of the vector <code>targets</code> is equal to the number
+of estimated parameters (not counting the rate parameters estimated
+by conditional estimation), then the vector <code>targets</code> supersedes the
+targets calculated from the data set.
+</p>
+<p>It is necessary to check that convergence has been achieved.
+The rule of thumb is that the all t-ratios for convergence should be
+in absolute value less than 0.1 and
+the overall maximum convergence ratio should be less than 0.25.
+If this was not achieved, the result can be used to start
+another estimation run from the estimate obtained, using
+the parameter <code>prevAns</code> as illustrated in the example below.
+(This parameter is inserted through '...' into the function
+<code>initializeFRAN</code>.)
+</p>
+<p>For good estimation of standard errors, it is necessary that <code>x$n3</code> is
+large enough. More about this is in the manual. The default value <code>x$n3</code>
+set in <code>sienaAlgorithmCreate</code> is adequate for most explorative use,
+but for presentation in publications larger values are necessary, depending
+on the data set and model; e.g., <code>x$n3=3000</code> or larger.
+</p>
+<p>Parameters can be tested against zero by dividing the estimate by its
+standard error and using an approximate standard normal null distribution.
+Further, functions <code>Wald.RSiena</code> and
+<code>Multipar.RSiena</code> are available for multi-parameter testing.<br>
+Parameters specified in <code>includeEffects</code> or
+<code>setEffect</code> with <code>fix=TRUE, test=TRUE</code> will not be estimated;
+score tests of their hypothesized values are reported in the output file
+specified in the control (algorithm) object.
+These tests can be obtained also using <code>score.Test</code>.
+</p>
+<p>If <code>x$simOnly</code> is <code>TRUE</code>, which is meant to go together with
+<code>x$nsub=0</code>, the calculation of the standard errors and covariance
+matrix at the end of Pase 3 is skipped. No estimation is performed.
+If <code>thetaValues</code> is not <code>NULL</code>, the parameter values in
+the rows of this matrix will be used in the consecutive runs of Phase 3.
+If <code>x$n3</code> is larger than the number of rows times <code>nbrNodes</code>
+(see below), the last row of <code>thetaValues</code> will continue to be used.
+The parameter values actually used will be stored in the
+output matrix <code>thetaUsed</code>.
+</p>
+<p>Multiple processors are used for estimation by MoM to distribute each iteration
+in each subphase over the cluster of nodes. The number of iterations
+accordingly will be divided (approximately) by the number of nodes;
+for phase 2, unless <code>n2start</code> is specified.
+This implies that if multiple processors are used, think of dividing
+<code>n2start</code> by <code>nbrNodes</code>.<br>
+For estimation by ML, multiple processing is done per period. Therefore,
+for one period (two waves) and one group, this will have no effect.
+</p>
+<p>In the case of using multiple processors, there are two options for telling
+<code>siena07</code> to use them. By specifying the options <code>useCluster</code>,
+<code>nbrNodes</code>, <code>clusterString</code> and <code>initC</code>, <code>siena07</code>
+will create a <code>cluster object</code> that will be used by the
+<code>parallel</code> package. After finishing the estimation procedure,
+<code>siena07</code> will automatically stop the cluster. Alternatively, instead of
+having the function to create a cluster, the user may provide its own by
+specifying the option <code>cl</code>, similar to what the boot function does in
+the <a href="https://CRAN.R-project.org/package=boot"><span class="pkg">boot</span></a> package. By using the option <code>cl</code> the user may be
+able to create more complex clusters (see examples below).
+</p>
+<p>If <code>thetaValues</code> is not <code>NULL</code> and <code>nbrNodes &gt;= 2</code>, parameters
+in Phase 3 will be constant for each set of <code>nbrNodes</code> consecutive
+simulations. This must be noted in the interpretation, and will be visible
+in <code>thetaUsed</code> (see below).
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns an object of class <code>sienaFit</code>, some parts of which are:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>OK</code></td>
+<td>
+<p>Boolean indicating successful termination</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>termination </code></td>
+<td>
+<p>Character string, values: "OK", "Error", or
+"UserInterrupt". "UserInterrupt" indicates that the user asked for early
+termination before phase 3. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>f</code></td>
+<td>
+<p>Various characteristics of the data and model definition.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>requestedEffects</code></td>
+<td>
+<p>The included effects in the effects object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>effects</code></td>
+<td>
+<p>The included effects in the effects object to which are added
+the main effects of the requested interaction effects, if any.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>theta</code></td>
+<td>
+<p>Estimated value of theta, if <code>x$simOnly=FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thetas</code></td>
+<td>
+<p>Matrix, returned if <code>returnThetas</code> and <code>x$nsub &gt;= 1</code>.
+First column is subphase; further columns are values of theta as generated
+during this subphase of Phase 2.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sfs</code></td>
+<td>
+<p>Matrix, returned if <code>returnThetas</code> and <code>x$nsub &gt;= 1</code>.
+First column is subphase; further columns are deviations from targets
+generated during this subphase of Phase 2.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covtheta</code></td>
+<td>
+<p>Estimated covariance matrix of theta; this is not available
+if <code>x$simOnly=TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>se</code></td>
+<td>
+<p>Vector of standard errors of estimated theta,
+if <code>x$simOnly=FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dfra</code></td>
+<td>
+<p>Matrix of estimated derivatives.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sf</code></td>
+<td>
+<p>Matrix of simulated deviations from targets in phase 3.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sf2</code></td>
+<td>
+<p>Array of periodwise deviations from simulations in phase 3.
+Not included if <code>x$lessMem=TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tconv</code></td>
+<td>
+<p>t-statistics for convergence.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tmax</code></td>
+<td>
+<p>maximum absolute t-statistic for convergence for
+non-fixed parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tconv.max</code></td>
+<td>
+<p>overall maximum convergence ratio.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ac3</code></td>
+<td>
+<p>If <code>x$maxlike=TRUE</code>:
+autocorrelations of statistics in Phase 3.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>targets</code></td>
+<td>
+<p>Observed statistics; for ML, zero vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>targets2</code></td>
+<td>
+<p>Observed statistics by wave,
+starting with second wave; for ML, zero matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ssc</code></td>
+<td>
+<p>Score function contributions for each wave for each
+simulation in phase 3. Not included if finite difference method is used
+or if <code>x$lessMem=TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scores</code></td>
+<td>
+<p>Score functions, added over waves, for each
+simulation in phase 3. Only included
+if <code>x$lessMem=FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>regrCoef</code></td>
+<td>
+<p>If <code>x$dolby</code> and not <code>x$maxlike</code>:
+regression coefficients of estimation statistics on score functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>regrCor</code></td>
+<td>
+<p>If <code>x$dolby</code> and not <code>x$maxlike</code>:
+correlations between estimation statistics and score functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estMeans</code></td>
+<td>
+<p>Estimated means of estimation statistics.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estMeans.sem</code></td>
+<td>
+<p>If <code>x$simOnly</code>: Standard errors of the
+estimated means of estimation statistics.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sims</code></td>
+<td>
+<p>If <code>returnDeps=TRUE</code>:
+list of simulated dependent variables (networks, behaviour).
+Networks are given as a list of edgelists, one for each period.<br>
+The structure of sims is a nested list:
+<code>sims[[run]][[group]][[dependent variable]][[period]]</code>.
+If <code>x$maxlike=TRUE</code> and there is only one group and one period,
+the structure is <code>[[run]][[dependent variable]]</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chain</code></td>
+<td>
+<p>If <code>returnChains = TRUE</code>:
+list, or data frame, of simulated chains of ministeps.
+The chain has the structure
+<code>chain[[run]][[depvar]][[period]][[ministep]]</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Phase3nits</code></td>
+<td>
+<p>Number of iterations actually performed in phase 3.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thetaUsed</code></td>
+<td>
+<p>If <code>thetaValues</code> is not <code>NULL</code>, the matrix
+of parameter values actually used in the simulations of Phase 3.</p>
+</td>
+</tr>
+</table>
+<p>Writes text output to the file named "projname.txt", where projname
+is defined in the <code>sienaAlgorithm</code> object <code>x</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Ruth Ripley, Tom Snijders, Viviana Amati, Felix Schoenenberger,
+Nynke Niezink</p>
+
+
+<h3>References</h3>
+
+<p>Amati, V., Schoenenberger, F., and Snijders, T.A.B. (2015),
+Estimation of stochastic actor-oriented models for the evolution of
+networks by generalized method of moments.
+<em>Journal de la Societe Francaise de Statistique</em> <b>156</b>, 140–165.
+</p>
+<p>Amati, V., Schoenenberger, F., and Snijders, T.A.B. (2019),
+Contemporaneous statistics for estimation in stochastic actor-oriented
+co-evolution models. <em>Psychometrika</em> <b>84</b>, 1068–1096.
+</p>
+<p>Greenan, C. (2015),
+<em>Evolving Social Network Analysis: developments in statistical
+methodology for dynamic stochastic actor-oriented models</em>.
+DPhil dissertation, University of Oxford.
+</p>
+<p>Niezink, N.M.D., and Snijders, T.A.B. (2017),
+Co-evolution of Social Networks and Continuous Actor Attributes.
+<em>The Annals of Applied Statistics</em> <b>11</b>, 1948–1973.
+</p>
+<p>Schweinberger, M., and Snijders, T.A.B. (2007),
+Markov models for digraph panel data:
+Monte Carlo based derivative estimation.
+<em>Computational Statistics and Data Analysis</em> <b>51</b>, 4465–4483.
+</p>
+<p>Snijders, T.A.B. (2001),
+The statistical evaluation of social network dynamics.
+<em>Sociological Methodology</em> <b>31</b>, 361–395.
+</p>
+<p>Snijders, T.A.B. (2017), Stochastic Actor-Oriented Models for Network
+Dynamics. <em>Annual Review of Statistics and Its Application</em>
+<b>4</b>, 343–363.
+</p>
+<p>Snijders, T.A.B., Koskinen, J., and Schweinberger, M. (2010).
+Maximum likelihood estimation for social network dynamics.
+<em>Annals of Applied Statistics</em> <b>4</b>, 567–588.
+</p>
+<p>Snijders, T.A.B., Steglich, C.E.G., and Schweinberger, Michael (2007),
+Modeling the co-evolution of networks and behavior.
+Pp. 41–71 in <em>Longitudinal models in the behavioral
+and related sciences</em>,
+edited by van Montfort, K., Oud, H., and Satorra, A.; Lawrence Erlbaum.
+</p>
+<p>Steglich, C.E.G., Snijders, T.A.B., and Pearson, M.A. (2010),
+Dynamic networks and behavior:     Separating selection from influence.
+<em>Sociological Methodology</em> <b>40</b>, 329–393.
+Information about the implementation of the algorithm is in
+<a href="https://www.stats.ox.ac.uk/~snijders/siena/Siena_algorithms.pdf">https://www.stats.ox.ac.uk/~snijders/siena/Siena_algorithms.pdf</a>.
+Further see <a href="https://www.stats.ox.ac.uk/~snijders/siena/">https://www.stats.ox.ac.uk/~snijders/siena/</a> .
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>siena</code>, <code>sienaAlgorithmCreate</code>,
+<code>sienaEffects</code>,
+<code>Wald.RSiena</code>, <code>Multipar.RSiena</code>,
+<code>score.Test</code>.
+</p>
+<p>There are print, summary and xtable methods for <code>sienaFit</code>
+objects: <code>xtable</code>, <code>print.sienaFit</code>.</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">myalgorithm &lt;- sienaAlgorithmCreate(nsub=2, n3=100, seed=1293)
+# nsub=2, n3=100 is used here for having a brief computation, not for practice.
+mynet1 &lt;- sienaDependent(array(c(tmp3, tmp4), dim=c(32, 32, 2)))
+mydata &lt;- sienaDataCreate(mynet1)
+myeff &lt;- getEffects(mydata)
+ans &lt;- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE)
+
+# or for non-conditional estimation --------------------------------------------
+## Not run: 
+model &lt;- sienaAlgorithmCreate(nsub=2, n3=100, cond=FALSE, seed=1283)
+ans &lt;- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE)
+        
+## End(Not run)
+
+# or if a previous "on track" result ans was obtained --------------------------
+## Not run: 
+ans1 &lt;- siena07(myalgorithm, data=mydata, effects=myeff, prevAns=ans)
+         
+## End(Not run)
+
+# Running in multiple processors -----------------------------------------------
+## Not run: 
+# Not tested because dependent on presence of processors
+# Find out how many processors there are
+library(parallel)
+(n.clus &lt;- detectCores() - 1)
+n.clus &lt;- min(n.clus, 4)  # keep time for other processes
+ans2 &lt;- siena07(myalgorithm, data=mydata, effects=myeff,
+                useCluster=TRUE, nbrNodes=n.clus, initC=TRUE)
+
+# Suppose 8 processors are going to be used.
+# Loading the parallel package and creating a cluster
+# with 8 processors (this should be equivalent)
+
+library(parallel)
+cl &lt;- makeCluster(n.clus)
+
+ans3 &lt;- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE, cl = cl)
+
+# Notice that now -siena07- perhaps won't stop the cluster for you.
+# stopCluster(cl)
+
+# You can create even more complex clusters using several computers. In this
+# example we are creating a cluster with 3*8 = 24 processors on three
+# different machines.
+#cl &lt;- makePSOCKcluster(
+#    rep(c('localhost', 'machine2.website.com' , 'machine3.website.com'), 8),
+#    user='myusername', rshcmd='ssh -p PORTNUMBER')
+
+#ans4 &lt;- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE, cl = cl)
+#stopCluster(cl)
+
+## End(Not run)
+
+# for a continuous behavior variable -------------------------------------------
+# simulate behavior data according to dZ(t) = [-0.1 Z + 1] dt + 1 dW(t)
+set.seed(123)
+y1 &lt;- rnorm(50, 0,3)
+y2 &lt;- exp(-0.1) * y1 + (1-exp(-0.1)) * 1/ -0.1 + rnorm(50, 0, (exp(-0.2)- 1) / -0.2 * 1^2)
+friend &lt;- sienaDependent(array(c(s501, s502), dim = c(50,50,2)))
+behavior &lt;- sienaDependent(matrix(c(y1,y2), 50,2), type = "continuous")
+(mydata &lt;- sienaDataCreate(friend, behavior))
+(myeff &lt;- getEffects(mydata, onePeriodSde = TRUE))
+algorithmMoM &lt;- sienaAlgorithmCreate(nsub=1, n3=20, seed=321)
+(ans &lt;- siena07(myalgorithm, data = mydata, effects = myeff, batch=TRUE))
+
+# Accessing simulated networks for ML ------------------------------------------
+# The following is an example for accessing the simulated networks for ML,
+# which makes sense only if there are some missing tie variables;
+# observed tie variables are identically simulated
+# at the moment of observation,
+# missing tie variable are imputed in a model-based way.
+mat1 &lt;- matrix(c(0,0,1,1,
+                 1,0,0,0,
+                 0,0,0,1,
+                 0,1,0,0),4,4, byrow=TRUE)
+mat2 &lt;- matrix(c(0,1,1,1,
+                 1,0,0,0,
+                 0,0,0,1,
+                 0,0,1,0),4,4, byrow=TRUE)
+mat3 &lt;- matrix(c(0,1,0,1,
+                 1,0,0,0,
+                 0,0,0,0,
+                 NA,1,1,0),4,4, byrow=TRUE)
+mats &lt;- array(c(mat1,mat2,mat3), dim=c(4,4,3))
+net &lt;- sienaDependent(mats, allowOnly=FALSE)
+sdat &lt;- sienaDataCreate(net)
+alg &lt;- sienaAlgorithmCreate(maxlike=TRUE, nsub=3, n3=100, seed=12534)
+effs &lt;- getEffects(sdat)
+(ans &lt;- siena07(alg, data=sdat, effects=effs, returnDeps=TRUE, batch=TRUE))
+# See manual Section 9.1 for information about the following functions
+edges.to.adj &lt;- function(x,n){
+# create empty adjacency matrix
+    adj &lt;- matrix(0, n, n)
+# put edge values in desired places
+    adj[x[, 1:2]] &lt;- x[, 3]
+    adj
+}
+the.edge &lt;- function(x,n,h,k){
+    edges.to.adj(x,n)[h,k]
+}
+# Now show the results
+n &lt;- 4
+ego &lt;- rep.int(1:n,n)
+alter &lt;- rep(1:n, each=n)
+# Get the average simulated adjacency matrices for wave 3 (period 2):
+ones &lt;- sapply(1:n^2, function(i)
+    {mean(sapply(ans$sims,
+           function(x){the.edge(x[[1]][[2]][[1]],n,ego[i],alter[i])}))})
+# Note that for maximum likelihood estimation,
+# if there is one group and one period,
+# the nesting levels for group and period are dropped from ans$sims.
+cbind(ego,alter,ones)
+matrix(ones,n,n)
+</code></pre>
+
+
+</div>

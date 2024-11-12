@@ -1,0 +1,432 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>inspect.ft</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Explore and visualise flowthrough respirometry data and check for errors</h2>
+
+<h3>Description</h3>
+
+<p><code>inspect.ft</code> is a data exploration and preparation function that visualises
+flowthrough respirometry data, checks it for common issues, and prepares it
+for use in later functions in <code>respR</code>, such as <code>calc_rate.ft()</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">inspect.ft(
+  x,
+  time = NULL,
+  out.oxy = NULL,
+  in.oxy = NULL,
+  in.oxy.value = NULL,
+  delta.oxy = NULL,
+  plot = TRUE,
+  add.data = NULL,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><code>data.frame</code> containing columns of <code>time</code> and <code>out.oxy</code> or
+<code>delta.oxy</code> concentrations, and optionally <code>in.oxy</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time</code></td>
+<td>
+<p>integer or string. Defaults to <code>1</code>. Specifies the column of the
+Time data as either a column number or the name.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>out.oxy</code></td>
+<td>
+<p>integer(s) or string(s). Defaults to <code>NULL</code>. Specifies the
+column(s) of the outflow oxygen data as either column numbers or names.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>in.oxy</code></td>
+<td>
+<p>integer(s) or string(s). Defaults to <code>NULL</code>. Specifies the
+column(s) of the inflow oxygen data as either column numbers or names.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>in.oxy.value</code></td>
+<td>
+<p>numeric value. Defaults to <code>NULL</code>. If there is no
+continuous <code>in.oxy</code> data, this specifies a fixed value of oxygen
+concentration for inflowing water in same units as <code>out.oxy</code>, and is used
+with <code>out.oxy</code> to calculate a <code>delta.oxy</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>delta.oxy</code></td>
+<td>
+<p>integer(s) or string(s). Defaults to all non-time columns if
+no other inputs given. Specifies the column number(s) or name(s) of delta
+oxygen data, for when the user has already calculated the difference
+between outflow and inflow oxygen (should be negative values for oxygen
+uptake). If this is used, <code>out.oxy</code> and <code>in.oxy</code> should be NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>logical. Defaults to TRUE. Plots the data. See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>add.data</code></td>
+<td>
+<p>integer or string. Defaults to <code>NULL</code>. Specifies the column
+number or name of an optional additional data source that will be plotted
+in blue alongside the full oxygen timeseries.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Allows additional plotting controls to be passed, such as <code>legend = FALSE</code>, <code>quiet = TRUE</code>, <code>rate.rev = FALSE</code> and <code>pos</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>inspect.ft</code> is intended to be specific to <em>flowthrough</em> respirometry data.
+In flowthrough respirometry (also known as 'open flow' or 'continuous flow'
+respirometry) rather than calculating a rate from a changing oxygen
+concentration recording in a sealed chamber, instead the difference (i.e.
+'oxygen delta') between the inflowing and outflowing oxygen concentrations of
+a respirometer receiving water at a constant flow rate is used to calculate
+an oxygen consumption or production rate, typically after it has reached a
+steady state. Therefore, in general, regions of stable oxygen delta values
+(difference between outflow and inflow oxygen) are of interest. <code>inspect.ft</code>
+visualises and prepares the data for use in <code>calc_rate.ft()</code>. By specifying
+data types in this function and saving the output, they do not need to be
+specified in later functions.
+</p>
+
+
+<h4>Inputs</h4>
+
+<p>Given an input data frame <code>x</code>, the function scans the columns specified via
+the <code>time</code>, <code>out.oxy</code>, <code>in.oxy</code> or <code>delta.oxy</code> inputs. Columns are specified
+by using the column number (e.g. <code>time = 1</code>), or by name (e.g. <code>time = "Time.Hrs"</code>). If no columns are specified, by default the function assumes
+the first column is <code>time</code>, and all others are <code>delta.oxy</code> oxygen data.
+However, best practice is to use the inputs to specify particular columns.
+</p>
+<p>The <code>x</code> input must contain at least two data types; a single column of
+numeric <code>time</code> data, with <em>either</em> a column of paired <code>out.oxy</code>
+concentrations (i.e. the exhalent or 'downstream' concentrations), <em>or</em> a
+column of already calculated <code>delta.oxy</code> values, that is the difference
+between outflow and inflow concentrations, or the outflow concentration
+corrected by a background recording from a 'blank' or empty chamber.
+</p>
+<p><strong>out.oxy input option</strong>: If an <code>out.oxy</code> column has been specified, in order
+to calculate the oxygen delta (and therefore a rate in <code>calc_rate.ft()</code>)
+there must also be an inflow oxygen concentration input (i.e. the inhalent or
+'upstream' concentration). This will generally be a column of paired <code>in.oxy</code>
+concentrations, in which case the paired values of <code>out.oxy</code> and <code>in.oxy</code> are
+used to calculate the oxygen <code>delta.oxy</code>, which is saved in the output and
+used to determine a rate in <code>calc_rate.ft()</code>. Alternatively, if the inflow
+oxygen concentration is a known, generally unvarying value (such as fully
+air-saturated water from a header tank) this can be entered as a single value
+via <code>in.oxy.value</code> and this is used to calculate the <code>delta.oxy</code>.
+</p>
+<p><strong>delta.oxy input option</strong>: If delta oxygen values have already been
+calculated, these can be entered via the <code>delta.oxy</code> input, and these are
+prepared and saved for rate calculations in <code>calc_rate.ft</code>.
+</p>
+
+
+
+<h4>Check for numeric data</h4>
+
+<p><code>respR</code> requires data be in the form of paired values of numeric time and
+oxygen. All columns are checked that they contain numeric data before any
+other checks are performed. If any of the inspected columns do not contain
+numeric data the remaining checks for that column are skipped, and the
+function exits returning <code>NULL</code>, printing the summary of the checks. No plot
+is produced. Only when all inspected columns pass this numeric check can the
+resulting output object be saved and passed to other <code>respR</code> functions.
+</p>
+
+
+
+<h4>Other checks</h4>
+
+<p>The <code>time</code> column is checked for missing (<code>NA/NaN</code>) values, infinite values
+both positive and negative (<code>Inf/-Inf</code>), that values are sequential, that
+there are no duplicate times, and that it is numerically evenly-spaced.
+Oxygen columns are checked for missing (<code>NA/NaN</code>) and infinite values
+(<code>Inf/-Inf</code>). See <strong>Failed Checks</strong> section for what it means for analyses if
+these checks result in warnings. If the output is assigned, the specified
+columns are saved to a <code>list</code> object for use in later functions such as
+<code>calc_rate.ft()</code>. A plot is also produced.
+</p>
+
+
+
+<h4>Plot</h4>
+
+<p>If <code>plot = TRUE</code>, entered data is plotted against both time (bottom, blue
+axis) and row index (top, red axis), depending on the inputs:
+</p>
+
+<ul>
+<li>
+<p> a single <code>out.oxy</code> column with either a paired <code>in.oxy</code> column or
+<code>in.oxy.value</code>: a two panel plot. The top plot is both outflow (green points)
+and inflow (turquoise points) oxygen. The bottom plot is the oxygen delta
+(black points) between outflow and inflow oxygen, essentially a unitless
+oxygen uptake or production rate.
+</p>
+</li>
+<li>
+<p> a single <code>delta.oxy</code> column: a one panel plot of oxygen delta values.
+</p>
+</li>
+<li>
+<p> multiple <code>out.oxy</code> or <code>delta.oxy</code> columns: a grid plot of all <code>delta.oxy</code>
+data (either as entered or calculated from <code>out.oxy</code> and <code>in.oxy</code>). Specific
+delta plots can be examined individually by using the <code>pos</code> input (e.g.
+<code>plot(x, pos = 2)</code>). Y-axes are not equal.
+</p>
+</li>
+<li>
+<p> unspecified columns: all columns are plotted assuming <code>time</code> is in column
+1, and all others are oxygen <code>delta.oxy</code> data. Y-axes are not equal.
+</p>
+</li>
+</ul>
+<p>In delta plots, that is those plotting <code>delta.oxy</code> values, either directly
+entered or calculated, consistent oxygen uptake or production rates will be
+represented by flat or level regions. The <code>width</code> input may help with
+selecting regions from which to extract rates, and can be passed in the main
+function call or using <code>plot()</code> on the output object. This smooths delta
+oxygen values by calculating a rolling mean across the data. See <strong>Additional
+plotting options</strong> below.
+</p>
+<p><em><strong>Note:</strong></em> Since <code>respR</code> is primarily used to examine oxygen consumption,
+the delta oxygen and rate plots are by default plotted on a reverse y-axis.
+In <code>respR</code> oxygen uptake rates are negative since they represent a negative
+slope of oxygen against time. In these plots the axis is reversed so that
+higher uptake rates (i.e. more negative) will be higher on these plots. If
+you are interested instead in oxygen production rates, which are positive,
+the <code>rate.rev = FALSE</code> input can be passed in either the <code>inspect.ft</code> call,
+or when using <code>plot()</code> on the output object. In this case, the delta and rate
+values will be plotted numerically, and higher oxygen <em>production</em> rates will
+be higher on the plot.
+</p>
+
+
+
+<h4>Plot an additional data source</h4>
+
+<p>Using the <code>add.data</code> input an additional data source, for example
+temperature, can be plotted alongside the oxygen timeseries. This should be
+either a column number (e.g. <code>add.data = 3</code>) or name (e.g. <code>add.data = "Temperature"</code>) indicating a column in the input <code>x</code> data frame sharing the
+same time data. None of the data checks are performed on this column; it is
+simply to give a basic visual aid in the plot to, for example, help decide if
+regions of the data should be used or not used because this parameter was
+variable. Values are saved in the output as a vector under <code style="white-space: pre;">⁠$add.data⁠</code>. It is
+plotted in blue on a separate y-axis on the main timeseries plot. It is <em>not</em>
+plotted if multiple oxygen columns are inspected. See examples.
+</p>
+
+
+
+<h4>Additional plotting options</h4>
+
+<p>The <code>width</code> input may help with selecting regions from which to extract
+rates. This smooths delta oxygen values by calculating a rolling mean across
+the data, and should be a value between 0 and 1 representing a proportion of
+the total data width. If left as the default <code>NULL</code> no smoothing is
+performed. This is a visual aid which only affects plotted values and does
+not alter output delta oxygen values.
+</p>
+<p>If the legend or labels obscure part of the plot, they can be suppressed via
+<code>legend = FALSE</code> in either the <code>inspect.ft</code> call, or when using <code>plot()</code> on
+the output object. Suppress console output messages with <code>quiet = TRUE</code>. If
+multiple columns have been inspected, the <code>pos</code> input can be used to examine
+each <code>out.oxy</code>~<code>in.oxy</code>~<code>del.oxy</code> dataset. If axis labels (particularly
+y-axis) are difficult to read, <code>las = 2</code> can be passed to make axis labels
+horizontal. In addition, <code>oma</code> (outer margins, default <code>oma = c(0.4, 1, 1.5, 0.4)</code>), and <code>mai</code> (inner margins, default <code>mai = c(0.3, 0.15, 0.35, 0.15)</code>)
+can be used to adjust plot margins.
+</p>
+
+
+
+<h4>Multiple data columns</h4>
+
+<p>For a quick overview of larger experiments, multiple columns of <code>out.oxy</code>,
+<code>in.oxy</code> and <code>delta.oxy</code> can be inspected, but must share the same numeric
+time data column specified by the <code>time</code> input. Note, multiple column
+inspection is chiefly intended to be exploratory functionality to provide a
+quick overview of larger datasets. While the output will contain all data
+columns in <code style="white-space: pre;">⁠$dataframe⁠</code> and <code style="white-space: pre;">⁠$data⁠</code>, subsequent functions such as
+<code>calc_rate.ft()</code> will use only the first <code>delta.oxy</code> column for calculating
+rates. Best practice is to inspect and assign each individual experiment or
+column pair as separate <code>inspect.ft</code> objects. See Examples.
+</p>
+<p>If multiple <code>out.oxy</code> columns are specified, <code>in.oxy</code> can be a single column
+(if for example all chambers are supplied from the same header tank), in
+which case it is used to calculate an oxygen delta for all <code>out.oxy</code> columns.
+A single <code>in.oxy.value</code> in the same units as <code>out.oxy</code> can also be specified.
+There can also be multiple <code>in.oxy</code> columns, in which case it is assumed each
+<code>out.oxy</code> column is paired with each <code>in.oxy</code> at the same position, and used
+to calculate the oxygen <code>delta.oxy</code>. In this case, <code>out.oxy</code> and <code>in.oxy</code>
+must have equal numbers of columns.
+</p>
+
+
+
+<h4>Failed Checks</h4>
+
+<p>The most important data check in <code>inspect.ft</code> is that all data columns are
+numeric. If any column fails this check, the function skips the remaining
+checks for that column, the function exits returning <code>NULL</code>, and no output
+object or plot is produced.
+</p>
+<p>The other failed check that requires action is the check for infinite values
+(<code>Inf/-Inf</code>). Some oxygen sensing systems add these in error when
+interference or data dropouts occur. Infinite values will cause problems when
+it comes to calculating rates, so need to be removed. If found, locations of
+these are printed and can be found in the output object under <code style="white-space: pre;">⁠$locs⁠</code>. Note,
+these values are not plotted, so special note should be taken of the warnings
+and console printout.
+</p>
+<p>The remaining data checks in <code>inspect.ft</code> are mainly exploratory and help
+diagnose and flag potential issues with the data that might affect rate
+calculations. For instance, long experiments may have had sensor dropouts the
+user is unaware of. Some might not be major issues. For instance, an uneven
+time warning can result from using decimalised minutes, which is a completely
+valid time metric, but happens to be numerically unevenly spaced. As an
+additional check, if uneven time is found, the minimum and maximum intervals
+in the time data are in the console output, so a user can see immediately if
+there are large gaps in the data.
+</p>
+<p>If some of these checks produce warnings, it should <em>generally</em> not hinder
+analysis of the data. <code>respR</code> has been coded to rely on linear regressions on
+exact data values, and not make assumptions about data spacing or order.
+Therefore issues such as missing or NA/NaN values, duplicate or
+non-sequential time values, or uneven time spacing should not cause any
+erroneous results, as long as they do not occur over large regions of the
+data. <code>inspect.ft</code> however outputs locations (row numbers) of where these
+issues occur (located in the <code style="white-space: pre;">⁠$locs⁠</code> element of the output), allowing users
+to amend them before analysis. We would recommend that to be completely
+confident in any results from analysis of such data, and avoid obscure
+errors, these issues be addressed before proceeding.
+</p>
+
+
+
+<h4>Background control or "blank" experiments</h4>
+
+<p>For experiments in which the specimen data is to be background corrected by a
+concurrently-run control experiment, <code>inspect.ft</code> can be used by specifying
+the specimen experiment as <code>out.oxy</code>, and the "blank" as the <code>in.oxy</code> input.
+In this way, any variations in oxygen in the specimen data due to background
+microbial activity, or for any other reason such as fluctuations in inflow
+oxygen, are accounted for in the delta oxygen calculations, and therefore in
+the rate calculated in <code>calc_rate.ft()</code>. See the vignettes on the website
+for examples.
+</p>
+<p>If the background recordings are experiments with their own outflow and
+inflow recordings, which show a generally consistent oxygen delta due to
+microbial activity, this can be saved as a separate <code>inspect.ft</code> object, a
+background rate calculated in <code>calc_rate.ft()</code>, and this used in
+<code>adjust_rate.ft()</code> as the <code>by</code> input to perform background adjustments to
+specimen rates.
+</p>
+<p><strong>Note</strong>: All background calculations should be from experiments done at the
+<em>same flow rate</em> as the specimen experiments to be corrected.
+</p>
+
+
+
+<h4>S3 Generic Functions</h4>
+
+<p>Saved output objects can be used in the generic S3 functions <code>plot()</code>,
+<code>print()</code> and <code>summary()</code>.
+</p>
+
+<ul>
+<li> <p><code>plot()</code>: plots the result.
+</p>
+</li>
+<li> <p><code>print()</code>: prints a summary of the checks performed on the data. If issues
+are found, locations (row numbers) are printed (up to first 20 occurrences).
+</p>
+</li>
+<li> <p><code>summary()</code>: simple wrapper for <code>print()</code> function. See above.
+</p>
+</li>
+</ul>
+<h4>More</h4>
+
+<p>For additional help, documentation, vignettes, and more visit the <code>respR</code>
+website at <a href="https://januarharianto.github.io/respR/">https://januarharianto.github.io/respR/</a>
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>Output is a <code>list</code> object of class <code>inspect.ft</code> containing input
+parameters and data, data check summaries, and metadata, which can be
+passed to <code>calc_rate.ft()</code> to determine rates. If there are failed checks
+or warnings, the row locations of the potentially problematic data can be
+found in <code style="white-space: pre;">⁠$locs⁠</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Inspect outflow and inflow oxygen data
+x &lt;- inspect.ft(flowthrough.rd, time = 1, out.oxy = 2,
+                in.oxy = 3)
+print(x)
+plot(x)
+
+# Inspect outflow oxygen data with inflow oxygen as a known value in
+# the same units
+x &lt;- inspect.ft(flowthrough.rd, time = 1, out.oxy = 2,
+                in.oxy.value = 8.90)
+
+# Inspect already calculated delta oxygen data
+inspect.ft(flowthrough.rd, time = 1, delta.oxy = 4)
+
+# inspect multiple columns for a quick overview
+inspect.ft(flowthrough_mult.rd, time = 1, delta.oxy = 10:12)
+
+# Inspect outflow and use a blank control chamber as background
+# correction
+#
+# This experiment has increasing background respiration over time.
+# Inspecting outflow oxygen with inflow header tank concentrations
+# suggests specimen rates (bottom delta.oxy plot) are increasing.
+inspect.ft(flowthrough_sim.rd, time = 1,
+           out.oxy = 2, in.oxy = 4)
+
+# However, inspecting with recordings from a concurrent blank
+# control accounts for this and shows specimen rates are level
+# when background is taken into account.
+inspect.ft(flowthrough_sim.rd, time = 1,
+           out.oxy = 2, in.oxy = 3)
+</code></pre>
+
+
+</div>

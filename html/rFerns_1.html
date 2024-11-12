@@ -1,0 +1,176 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>merge.rFerns</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Merge two random ferns models</h2>
+
+<h3>Description</h3>
+
+<p>This function combines two compatible (same decision, same training data structure and same depth) models into a single ensemble.
+It can be used to distribute model training, perform it on batches of data, save checkouts or precisely investigate its course.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'rFerns'
+merge(
+  x,
+  y,
+  dropModel = FALSE,
+  ignoreObjectConsistency = FALSE,
+  trueY = NULL,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Object of a class <code>rFerns</code>; a first model to be merged.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Object of a class <code>rFerns</code>; a second model to be merged.
+Can also be <code>NULL</code>, <code>x</code> is immediately returned in that case.
+Has to have be built on the same kind of training data as <code>x</code>, with the same depth.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dropModel</code></td>
+<td>
+<p>If <code>TRUE</code>, model structure will be dropped to save size.
+This disallows prediction using the merged model, but retains importance and OOB approximations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ignoreObjectConsistency</code></td>
+<td>
+<p>If <code>TRUE</code>, merge will be done even if both models were built on a different sets of objects.
+This drops OOB approximations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trueY</code></td>
+<td>
+<p>Copy of the training decision, used to re-construct OOB error and confusion matrix.
+Can be omitted, OOB error and confusion matrix will disappear in that case; ignored when <code>ignoreObjectConsistency</code> is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Ignored, for S3 gerneric/method consistency.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An object of class <code>rFerns</code>, which is a list with the  following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>The merged model in case both <code>x</code> and <code>y</code> had model structures included and <code>dropModel</code> was <code>FALSE</code>.
+Otherwise <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>oobErr</code></td>
+<td>
+<p>OOB approximation of accuracy, if can be computed.
+Namely, when <code>oobScores</code> could be and <code>trueY</code> is provided.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>importance</code></td>
+<td>
+<p>The merged importance scores in case both <code>x</code> and <code>y</code> had importance calculated.
+Shadow importance appears only if both models had it enabled.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>oobScores</code></td>
+<td>
+<p>OOB scores, if can be computed; namely if both models had it calculated and <code>ignoreObjectConsistency</code> was not used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>oobPreds</code></td>
+<td>
+<p>A vector of OOB predictions of class for each object in training set, if can be computed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>oobConfusionMatrix</code></td>
+<td>
+<p>OOB confusion matrix, if can be computed.
+Namely, when <code>oobScores</code> could be and <code>trueY</code> is provided.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>timeTaken</code></td>
+<td>
+<p>Time used to train the model, calculated as a sum of training times of <code>x</code> and <code>y</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parameters</code></td>
+<td>
+<p>Numerical vector of three elements: <code>classes</code>, <code>depth</code> and <code>ferns</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>classLabels</code></td>
+<td>
+<p>Copy of <code>levels(Y)</code> after purging unused levels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>isStruct</code></td>
+<td>
+<p>Copy of the train set structure.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>merged</code></td>
+<td>
+<p>Set to <code>TRUE</code> to mark that merging was done.</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>In case of different training object sets were used to build the merged models, merged importance is calculated but mileage may vary; for substantially different sets it may become biased.
+Your have been warned.
+</p>
+<p>Shadow importance is only merged when both models have shadow importance and the same <code>consistentSeed</code> value; otherwise shadow importance would be biased down.
+</p>
+<p>The order of objects in <code>x</code> and <code>y</code> is not important; the only exception is merging with <code>NULL</code>, in which case <code>x</code> must be an <code>rFerns</code> object for R to use proper merge method.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">set.seed(77)
+#Fetch Iris data
+data(iris)
+#Build models
+rFerns(Species~.,data=iris)-&gt;modelA
+rFerns(Species~.,data=iris)-&gt;modelB
+modelAB&lt;-merge(modelA,modelB)
+print(modelA)
+print(modelAB)
+</code></pre>
+
+
+</div>

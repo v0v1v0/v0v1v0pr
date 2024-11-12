@@ -1,0 +1,213 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ootb_obia</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Out-of-the-box object-based image analysis of canopy photographs</h2>
+
+<h3>Description</h3>
+
+<p>Out-of-the-box version of methods first presented in
+Díaz and Lencinas (2015).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ootb_obia(
+  caim,
+  z = NULL,
+  a = NULL,
+  m = NULL,
+  sky_blue = NULL,
+  w_red = 0,
+  gamma = 2.2
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>caim</code></td>
+<td>
+<p>SpatRaster. The return of a call to <code>read_caim()</code> or
+<code>read_caim_raw()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>z</code></td>
+<td>
+<p>SpatRaster built with <code>zenith_image()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>a</code></td>
+<td>
+<p>SpatRaster built with <code>azimuth_image()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m</code></td>
+<td>
+<p>SpatRaster. Default (<code>NULL</code>) is the equivalent to enter
+<code>!is.na(z)</code> for hemispherical photography, or enter <code>!is.na(caim$Red)</code> for
+restricted view photography.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sky_blue</code></td>
+<td>
+<p>color. Is the <code>target_color</code> argument to be passed to
+<code>membership_to_color()</code>. Default (<code>NULL</code>) is the equivalent to enter
+<code>sRGB(0.1, 0.4, 0.8)</code>–the HEX color code is #1A66CC, it can be entered
+into a search engine (such as Mozilla Firefox) to see a color swatch.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w_red</code></td>
+<td>
+<p>Numeric vector of length one. Weight of the red channel. A
+single layer image is calculated as a weighted average of the blue and red
+channels. This layer is used as lightness information. The weight of the
+blue is the complement of <code>w_red</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gamma</code></td>
+<td>
+<p>Numeric vector of length one. This is for applying a gamma back
+correction to the lightness information (see Details and argument <code>w_red</code>).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function is a hard-coded version of a pipeline that combines these main
+functions <code>mask_sunlit_canopy()</code>, <code>enhance_caim()</code>,
+<code>polar_qtree()</code>/<code>qtree()</code>, and <code>obia()</code>. The code can be easily inspected by
+calling <code>ootb_obia</code> –no parenthesis. Advanced users can use that code as a
+template.
+</p>
+<p>Pixels from the synthetic layer returned by <code>obia()</code> that lay between <code>0</code> and
+<code>1</code> are assigned to the class <em>plant</em> only if they comply with the following
+conditions:
+</p>
+
+<ul>
+<li>
+<p> Their values are equal to <code>0</code> after <code>defuzzify()</code> with a
+sky grid segmentation of <code>10</code> degrees.
+</p>
+</li>
+<li>
+<p> Their values are equal to <code>0</code> after <code>apply_thr()</code> with a
+threshold computed with <code>thr_isodata()</code>.
+</p>
+</li>
+<li>
+<p> They are not exclusively surrounded by sky pixels.
+</p>
+</li>
+</ul>
+<p>Use the default values of <code>z</code> and <code>a</code> to process restricted view photographs.
+</p>
+<p>If you use this function in your research, please cite
+Díaz and Lencinas (2015) or
+Díaz (2023) in addition to this package
+(<code style="white-space: pre;">⁠citation("rcaiman"⁠</code>).
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class SpatRaster with values <code>0</code> and <code>1</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Díaz GM (2023).
+“Optimizing forest canopy structure retrieval from smartphone-based hemispherical photography.”
+<em>Methods in Ecology and Evolution</em>, <b>14</b>(3), 875–884.
+<a href="https://doi.org/10.1111/2041-210x.14059">doi:10.1111/2041-210x.14059</a>.<br><br> Díaz GM, Lencinas JD (2015).
+“Enhanced gap fraction extraction from hemispherical photography.”
+<em>IEEE Geoscience and Remote Sensing Letters</em>, <b>12</b>(8), 1785–1789.
+<a href="https://doi.org/10.1109/lgrs.2015.2425931">doi:10.1109/lgrs.2015.2425931</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Binarization Functions: 
+<code>apply_thr()</code>,
+<code>obia()</code>,
+<code>ootb_mblt()</code>,
+<code>regional_thresholding()</code>,
+<code>thr_isodata()</code>,
+<code>thr_mblt()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# ==============================================
+# Circular Hemispherical Photo (from a raw file)
+# ==============================================
+
+caim &lt;- read_caim()
+z &lt;- zenith_image(ncol(caim), lens())
+a &lt;- azimuth_image(z)
+m &lt;- !is.na(z)
+
+mn &lt;- quantile(caim$Blue[m], 0.01)
+mx &lt;- quantile(caim$Blue[m], 0.99)
+r &lt;- normalize(caim$Blue, mn, mx, TRUE)
+
+bin &lt;- find_sky_pixels(r, z, a)
+mblt &lt;- ootb_mblt(r, z, a, bin)
+plot(mblt$bin)
+
+mx &lt;- optim_normalize(caim, mblt$bin)
+ncaim &lt;- normalize(caim, mx = mx, force_range = TRUE)
+plotRGB(ncaim*255)
+plotRGB(normalize(caim)*255)
+percentage_of_clipped_highlights(ncaim$Blue, m)
+
+bin2 &lt;- ootb_obia(ncaim, z, a, gamma = NULL)
+plot(bin2)
+
+# =====================================
+# Hemispherical Photo from a Smartphone
+# =====================================
+
+path &lt;- system.file("external/APC_0581.jpg", package = "rcaiman")
+caim &lt;- read_caim(path) %&gt;% normalize()
+z &lt;- zenith_image(2132/2, c(0.7836, 0.1512, -0.1558))
+a &lt;- azimuth_image(z)
+zenith_colrow &lt;- c(1063, 771)/2
+caim &lt;- expand_noncircular(caim, z, zenith_colrow) %&gt;% normalize()
+m &lt;- !is.na(caim$Red) &amp; !is.na(z)
+caim[!m] &lt;- 0
+
+bin &lt;- ootb_obia(caim, z, a)
+plot(bin)
+
+# ============================
+# Restricted View Canopy Photo
+# ============================
+
+path &lt;- system.file("external/APC_0020.jpg", package = "rcaiman")
+caim &lt;- read_caim(path) %&gt;% normalize()
+
+bin &lt;- ootb_obia(caim)
+plot(bin)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

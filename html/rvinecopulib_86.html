@@ -1,0 +1,302 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>vinecop</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fitting vine copula models</h2>
+
+<h3>Description</h3>
+
+<p>Automated fitting and model selection for vine copula models with continuous
+or discrete data. Selection of the structure is performed using the algorithm
+of Dissmann et al. (2013).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">vinecop(
+  data,
+  var_types = rep("c", NCOL(data)),
+  family_set = "all",
+  structure = NA,
+  par_method = "mle",
+  nonpar_method = "constant",
+  mult = 1,
+  selcrit = "aic",
+  weights = numeric(),
+  psi0 = 0.9,
+  presel = TRUE,
+  trunc_lvl = Inf,
+  tree_crit = "tau",
+  threshold = 0,
+  keep_data = FALSE,
+  show_trace = FALSE,
+  cores = 1
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a matrix or data.frame with at least two columns, containing the
+(pseudo-)observations for the two variables (copula data should have
+approximately uniform margins). More columns are required for discrete
+models, see <em>Details</em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>var_types</code></td>
+<td>
+<p>variable types, a length d vector; e.g., <code>c("c", "c")</code> for
+two continuous variables, or <code>c("c", "d")</code> for first variable continuous
+and second discrete.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family_set</code></td>
+<td>
+<p>a character vector of families; see <code>bicop()</code> for
+additional options.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>structure</code></td>
+<td>
+<p>an <code>rvine_structure</code> object, namely a compressed
+representation of the vine structure, or an object that can be coerced into
+one (see <code>rvine_structure()</code> and <code>as_rvine_structure()</code>). The dimension
+must be <code>length(pair_copulas[[1]]) + 1</code>; <code>structure = NA</code> performs
+automatic selection based on Dissman's algorithm. See <em>Details</em> for partial
+selection of the structure.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>par_method</code></td>
+<td>
+<p>the estimation method for parametric models, either <code>"mle"</code>
+for maximum likelihood or <code>"itau"</code> for inversion of Kendall's tau (only
+available for one-parameter families and <code>"t"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nonpar_method</code></td>
+<td>
+<p>the estimation method for nonparametric models, either
+<code>"constant"</code> for the standard transformation estimator, or
+<code>"linear"</code>/<code>"quadratic"</code> for the local-likelihood approximations of order
+one/two.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mult</code></td>
+<td>
+<p>multiplier for the smoothing parameters of nonparametric
+families. Values larger than 1 make the estimate more smooth, values less
+than 1 less smooth.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>selcrit</code></td>
+<td>
+<p>criterion for family selection, either <code>"loglik"</code>, <code>"aic"</code>,
+<code>"bic"</code>, <code>"mbic"</code>. For <code>vinecop()</code> there is the additional option
+<code>"mbicv"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>optional vector of weights for each observation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>psi0</code></td>
+<td>
+<p>prior probability of a non-independence copula (only used for
+<code>selcrit = "mbic"</code> and <code>selcrit = "mbicv"</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>presel</code></td>
+<td>
+<p>whether the family set should be thinned out according to
+symmetry characteristics of the data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trunc_lvl</code></td>
+<td>
+<p>the truncation level of the vine copula; <code>Inf</code> means no
+truncation, <code>NA</code> indicates that the truncation level should be selected
+automatically by <code>mBICV()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tree_crit</code></td>
+<td>
+<p>the criterion for tree selection, one of <code>"tau"</code>, <code>"rho"</code>,
+<code>"hoeffd"</code>, <code>"mcor"</code>, or <code>"joe"</code> for Kendall's <code class="reqn">\tau</code>, Spearman's
+<code class="reqn">\rho</code>, Hoeffding's <code class="reqn">D</code>, maximum correlation, or logarithm of
+the partial correlation, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threshold</code></td>
+<td>
+<p>for thresholded vine copulas; <code>NA</code> indicates that the
+threshold should be selected automatically by <code>mBICV()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep_data</code></td>
+<td>
+<p>whether the data should be stored (necessary for using
+<code>fitted()</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>show_trace</code></td>
+<td>
+<p>logical; whether a trace of the fitting progress should be
+printed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cores</code></td>
+<td>
+<p>number of cores to use; if more than 1, estimation of pair
+copulas within a tree is done in parallel.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+
+
+<h4>Missing data</h4>
+
+<p>If there are missing data (i.e., <code>NA</code> entries), incomplete observations are
+discarded before fitting a pair-copula. This is done on a pair-by-pair basis
+so that the maximal available information is used.
+</p>
+
+
+
+<h4>Discrete variables</h4>
+
+<p>The dependence measures used to select trees (default: Kendall's tau) are
+corrected for ties (see wdm::wdm).
+</p>
+<p>Let <code>n</code> be the number of observations and <code>d</code> the number of variables.
+When at least one variable is discrete, two types of
+"observations" are required in <code>data</code>: the first <code style="white-space: pre;">⁠n  x  d⁠</code> block
+contains realizations of <code class="reqn">F_{X_j}(X_j)</code>. The second <code style="white-space: pre;">⁠n  x  d⁠</code>
+block contains realizations of <code class="reqn">F_{X_j}(X_j^-)</code>. The minus indicates a
+left-sided limit of the cdf. For, e.g., an integer-valued variable, it holds
+<code class="reqn">F_{X_j}(X_j^-) = F_{X_j}(X_j - 1)</code>. For continuous variables the left
+limit and the cdf itself coincide. Respective columns can be omitted in the
+second block.
+</p>
+
+
+
+<h4>Partial structure selection</h4>
+
+<p>It is possible to fix the vine structure only in the first trees and select
+the remaining ones automatically. To specify only the first <code>k</code> trees, supply
+a <code>k</code>-truncated <code>rvine_structure()</code> or <code>rvine_matrix()</code>. All trees up to
+<code>trunc_lvl</code> will then be selected automatically.
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>Objects inheriting from <code>vinecop</code> and <code>vinecop_dist</code> for <code>vinecop()</code>. In
+addition to the entries provided by <code>vinecop_dist()</code>, there are:
+</p>
+
+<ul>
+<li> <p><code>threshold</code>, the (set or estimated) threshold used for thresholding the
+vine.
+</p>
+</li>
+<li> <p><code>data</code> (optionally, if <code>keep_data = TRUE</code> was used), the dataset that was
+passed to <code>vinecop()</code>.
+</p>
+</li>
+<li> <p><code>controls</code>, a <code>list</code> with fit controls that was passed to <code>vinecop()</code>.
+</p>
+</li>
+<li> <p><code>nobs</code>, the number of observations that were used to fit the model.
+</p>
+</li>
+</ul>
+<h3>References</h3>
+
+<p>Dissmann, J. F., E. C. Brechmann, C. Czado, and D. Kurowicka (2013).
+<em>Selecting and estimating regular vine copulae and application to
+financial returns.</em> Computational Statistics &amp; Data Analysis, 59 (1),
+52-69.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>vinecop()</code>, <code>dvinecop()</code>, <code>pvinecop()</code>, <code>rvinecop()</code>,
+<code>plot.vinecop()</code>, <code>contour.vinecop()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## simulate dummy data
+x &lt;- rnorm(30) * matrix(1, 30, 5) + 0.5 * matrix(rnorm(30 * 5), 30, 5)
+u &lt;- pseudo_obs(x)
+
+## fit and select the model structure, family and parameters
+fit &lt;- vinecop(u)
+summary(fit)
+plot(fit)
+contour(fit)
+
+## select by log-likelihood criterion from one-paramter families
+fit &lt;- vinecop(u, family_set = "onepar", selcrit = "bic")
+summary(fit)
+
+## Gaussian D-vine
+fit &lt;- vinecop(u, structure = dvine_structure(1:5), family = "gauss")
+plot(fit)
+contour(fit)
+
+## Partial structure selection with only first tree specified
+structure &lt;- rvine_structure(order = 1:5, list(rep(5, 4)))
+structure
+fit &lt;- vinecop(u, structure = structure, family = "gauss")
+plot(fit)
+
+## 1-truncated model with random structure
+fit &lt;- vinecop(u, structure = rvine_structure_sim(5), trunc_lvl = 1)
+contour(fit)
+
+## Model for discrete data
+x &lt;- qpois(u, 1)  # transform to Poisson margins
+# we require two types of observations (see Details)
+u_disc &lt;- cbind(ppois(x, 1), ppois(x - 1, 1))
+fit &lt;- vinecop(u_disc, var_types = rep("d", 5))
+
+## Model for mixed data
+x &lt;- qpois(u[, 1], 1)  # transform first variable to Poisson margin
+# we require two types of observations (see Details)
+u_disc &lt;- cbind(ppois(x, 1), u[, 2:5], ppois(x - 1, 1))
+fit &lt;- vinecop(u_disc, var_types = c("d", rep("c", 4)))
+</code></pre>
+
+
+</div>

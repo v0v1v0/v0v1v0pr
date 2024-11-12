@@ -1,0 +1,314 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>gfpca_twoStep</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Generalized functional principal component analysis</h2>
+
+<h3>Description</h3>
+
+<p>Function for applying FPCA to different exponential family distributions.
+Used in the FPCA step for registering functional data,
+called by <code>register_fpca</code> when <code>fpca_type = "two-step"</code>. <br><br>
+The method implements the 'two-step approach' of Gertheiss et al. (2017)
+and is based on the approach of Hall et al. (2008) to estimate functional
+principal components. <br><br>
+The number of functional principal components (FPCs) can either be specified
+directly (argument <code>npc</code>) or chosen based on the explained share of
+variance (<code>npc_criterion</code>). Using the latter, we approximate the overall
+variance in the data <code>Y</code> with the variance represented by the smoothed
+covariance surface estimated with <code>cov_hall</code>.
+Note that the Eigenvalue decomposition of this covariance surface
+sometimes leads to a long tail of subordinate FPCs with small eigenvalues.
+Such subordinate dimensions seem to often represent phase rather than
+amplitude variation, and can be cut off by specifying the second element of
+argument <code>npc_criterion</code>. <br><br>
+This function is an adaptation of the implementation of Jan
+Gertheiss for Gertheiss et al. (2017), with focus on higher (RAM) efficiency
+for large data settings.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">gfpca_twoStep(
+  Y,
+  family = "gaussian",
+  npc = NULL,
+  npc_criterion = NULL,
+  Kt = 8,
+  t_min = NULL,
+  t_max = NULL,
+  row_obj = NULL,
+  index_significantDigits = 4L,
+  estimation_accuracy = "high",
+  start_params = NULL,
+  periodic = FALSE,
+  verbose = 1,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>Dataframe. Should have values id, value, index.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>One of <code>c("gaussian","binomial","gamma","poisson")</code>.
+Poisson data are rounded before performing
+the GFPCA to ensure integer data, see Details section below.
+Defaults to <code>"gaussian"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>npc, npc_criterion</code></td>
+<td>
+<p>The number of functional principal components (FPCs)
+has to be specified either directly as <code>npc</code> or based on their explained
+share of variance. In the latter case, <code>npc_criterion</code> can either be set
+to (i) a share between 0 and 1, or (ii) a vector with two elements comprising
+the targeted explained share of variance and a cut-off scree plot criterion,
+both between 0 and 1. As an example for the latter,
+<code>npc_criterion = c(0.9,0.02)</code> tries to choose a number of FPCs that
+explains at least 90% of variation, but only includes FPCs that explain at
+least 2% of variation (even if this means 90% explained variation is not reached).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Kt</code></td>
+<td>
+<p>Number of B-spline basis functions used to estimate mean functions
+and functional principal components. Default is 8.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>t_min</code></td>
+<td>
+<p>Minimum value to be evaluated on the time domain.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>t_max</code></td>
+<td>
+<p>Maximum value to be evaluated on the time domain.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>row_obj</code></td>
+<td>
+<p>If NULL, the function cleans the data and calculates row indices. 
+Keep this NULL if you are using standalone <code>register</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>index_significantDigits</code></td>
+<td>
+<p>Positive integer <code>&gt;= 2</code>, stating the number
+of significant digits to which the index grid should be rounded. Coarsening the
+index grid is necessary since otherwise the covariance surface matrix
+explodes in size in the presence of too many unique index values (which is
+always the case after some registration step). Defaults to 4. Set to
+<code>NULL</code> to prevent rounding.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estimation_accuracy</code></td>
+<td>
+<p>One of <code>c("high","low")</code>. When set to <code>"low"</code>,
+the mixed model estimation step in <code>lme4</code> is performed with lower
+accuracy, reducing computation time. Defaults to <code>"high"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start_params</code></td>
+<td>
+<p>Optional start values for gamm4. Not used if
+<code>npc_criterion</code> is specified.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>periodic</code></td>
+<td>
+<p>Only contained for full consistency with <code>fpca_gauss</code>
+and <code>bfpca</code>. If TRUE, returns the knots vector for periodic b-spline
+basis functions. Defaults to FALSE. This parameter does not change the
+results of the two-step GFPCA.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Can be set to integers between 0 and 4 to control the level of
+detail of the printed diagnostic messages. Higher numbers lead to more detailed
+messages. Defaults to 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments passed to <code>cov_hall</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For <code>family = "poisson"</code> the values in <code>Y</code> are rounded before
+performing the GFPCA to ensure integer data. This is done to ensure reasonable
+computation times. Computation times tend to explode when estimating the
+underlying high-dimensional mixed model with continuous Poisson data based
+on the <code>gamm4</code> package.
+</p>
+<p>If negative eigenvalues are present, the respective eigenfunctions are dropped
+and not considered further.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>fpca</code> containing:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>fpca_type</code></td>
+<td>
+<p>Information that FPCA was performed with the 'two-step' approach,
+in contrast to registr::fpca_gauss or registr::bfpca.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>t_vec</code></td>
+<td>
+<p>Time vector over which the mean <code>mu</code> was evaluated.
+The resolution is can be specified by setting <code>index_significantDigits</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>knots</code></td>
+<td>
+<p>Cutpoints for B-spline basis used to rebuild <code>alpha</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>efunctions</code></td>
+<td>
+<p><code class="reqn">D \times npc</code> matrix of estimated FPC basis functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>evalues</code></td>
+<td>
+<p>Estimated variance of the FPC scores.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>evalues_sum</code></td>
+<td>
+<p>Sum of all (nonnegative) eigenvalues of the smoothed
+covariance surface estimated with <code>cov_hall</code>. Can be used as an
+approximation for the total variance present in <code>Y</code> to compute the
+shares of explained variance of the FPC scores.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>npc</code></td>
+<td>
+<p>number of FPCs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scores</code></td>
+<td>
+<p><code class="reqn">I \times npc</code> matrix of estimated FPC scores.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>Estimated population-level mean.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mu</code></td>
+<td>
+<p>Estimated population-level mean. Same value as <code>alpha</code> but included for compatibility
+with <code>refund.shiny</code> package.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subject_coefs</code></td>
+<td>
+<p>Always <code>NA</code> but included for full consistency
+with <code>fpca_gauss</code> and <code>bfpca</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Yhat</code></td>
+<td>
+<p>FPC approximation of subject-specific means, before applying the
+response function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>The observed data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p><code>binomial</code>, for compatibility with <code>refund.shiny</code> package.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gamm4_theta</code></td>
+<td>
+<p>Estimated parameters of the mixed model.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Alexander Bauer <a href="mailto:alexander.bauer@stat.uni-muenchen.de">alexander.bauer@stat.uni-muenchen.de</a>,
+based on work of Jan Gertheiss
+</p>
+
+
+<h3>References</h3>
+
+<p>Gertheiss, J., Goldsmith, J., &amp; Staicu, A. M. (2017). A note on
+modeling sparse exponential-family functional response curves.
+<em>Computational statistics &amp; data analysis</em>, 105, 46–52.
+</p>
+<p>Hall, P., Müller, H. G., &amp; Yao, F. (2008). Modelling sparse
+generalized longitudinal observations with latent Gaussian processes.
+<em>Journal of the Royal Statistical Society: Series B (Statistical Methodology)</em>,
+70(4), 703–723.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(growth_incomplete)
+
+# estimate 2 FPCs
+fpca_obj = gfpca_twoStep(Y = growth_incomplete, npc = 2, family = "gaussian")
+plot(fpca_obj)
+
+# estimate npc adaptively, to explain 90% of the overall variation
+fpca_obj2 = gfpca_twoStep(Y = growth_incomplete, npc_criterion = 0.9, family = "gaussian")
+plot(fpca_obj2, plot_FPCs = 1:2)
+
+</code></pre>
+
+
+</div>

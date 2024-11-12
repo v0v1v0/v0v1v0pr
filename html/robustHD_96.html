@@ -1,0 +1,449 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>grplars</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>(Robust) groupwise least angle regression</h2>
+
+<h3>Description</h3>
+
+<p>(Robustly) sequence groups of candidate predictors according to their
+predictive content and find the optimal model along the sequence.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">grplars(x, ...)
+
+## S3 method for class 'formula'
+grplars(formula, data, ...)
+
+## S3 method for class 'data.frame'
+grplars(x, y, ...)
+
+## Default S3 method:
+grplars(
+  x,
+  y,
+  sMax = NA,
+  assign,
+  fit = TRUE,
+  s = c(0, sMax),
+  crit = c("BIC", "PE"),
+  splits = foldControl(),
+  cost = rmspe,
+  costArgs = list(),
+  selectBest = c("hastie", "min"),
+  seFactor = 1,
+  ncores = 1,
+  cl = NULL,
+  seed = NULL,
+  model = TRUE,
+  ...
+)
+
+rgrplars(x, ...)
+
+## S3 method for class 'formula'
+rgrplars(formula, data, ...)
+
+## S3 method for class 'data.frame'
+rgrplars(x, y, ...)
+
+## Default S3 method:
+rgrplars(
+  x,
+  y,
+  sMax = NA,
+  assign,
+  centerFun = median,
+  scaleFun = mad,
+  regFun = lmrob,
+  regArgs = list(),
+  combine = c("min", "euclidean", "mahalanobis"),
+  const = 2,
+  prob = 0.95,
+  fit = TRUE,
+  s = c(0, sMax),
+  crit = c("BIC", "PE"),
+  splits = foldControl(),
+  cost = rtmspe,
+  costArgs = list(),
+  selectBest = c("hastie", "min"),
+  seFactor = 1,
+  ncores = 1,
+  cl = NULL,
+  seed = NULL,
+  model = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a matrix or data frame containing the candidate predictors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments to be passed down.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a formula describing the full model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>an optional data frame, list or environment (or object coercible
+to a data frame by <code>as.data.frame</code>) containing the variables in
+the model.  If not found in data, the variables are taken from
+<code>environment(formula)</code>, typically the environment from which
+<code>grplars</code> or <code>rgrplars</code> is called.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>a numeric vector containing the response.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sMax</code></td>
+<td>
+<p>an integer giving the number of predictor groups to be
+sequenced.  If it is <code>NA</code> (the default), predictor groups are sequenced
+as long as there are twice as many observations as expected predictor
+variables (number of predictor groups times the average number of predictor
+variables per group).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>assign</code></td>
+<td>
+<p>an integer vector giving the predictor group to which
+each predictor variable belongs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>a logical indicating whether to fit submodels along the sequence
+(<code>TRUE</code>, the default) or to simply return the sequence (<code>FALSE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s</code></td>
+<td>
+<p>an integer vector of length two giving the first and last
+step along the sequence for which to compute submodels.  The default
+is to start with a model containing only an intercept (step 0) and
+iteratively add all groups along the sequence (step <code>sMax</code>).  If
+the second element is <code>NA</code>, predictor groups are added to the
+model as long as there are twice as many observations as predictor
+variables.  If only one value is supplied, it is recycled.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>crit</code></td>
+<td>
+<p>a character string specifying the optimality criterion to be
+used for selecting the final model.  Possible values are <code>"BIC"</code> for
+the Bayes information criterion and <code>"PE"</code> for resampling-based
+prediction error estimation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>splits</code></td>
+<td>
+<p>an object giving data splits to be used for prediction error
+estimation (see <code>perry</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cost</code></td>
+<td>
+<p>a cost function measuring prediction loss (see
+<code>perry</code> for some requirements).  The
+default is to use the root trimmed mean squared prediction error for a
+robust fit and the root mean squared prediction error otherwise (see
+<code>cost</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>costArgs</code></td>
+<td>
+<p>a list of additional arguments to be passed to the
+prediction loss function <code>cost</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>selectBest, seFactor</code></td>
+<td>
+<p>arguments specifying a criterion for selecting
+the best model (see <code>perrySelect</code>).  The default is to
+use a one-standard-error rule.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncores</code></td>
+<td>
+<p>a positive integer giving the number of processor cores to be
+used for parallel computing (the default is 1 for no parallelization).  If
+this is set to <code>NA</code>, all available processor cores are used.  For
+obtaining the data cleaning weights, for fitting models along the sequence
+and for prediction error estimation, parallel computing is implemented on
+the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> level using package <span class="pkg">parallel</span>.  Otherwise parallel computing for
+some of of the more computer-intensive computations in the sequencing step
+is implemented on the C++ level via OpenMP (<a href="https://www.openmp.org/">https://www.openmp.org/</a>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cl</code></td>
+<td>
+<p>a <span class="pkg">parallel</span> cluster for parallel computing as generated by
+<code>makeCluster</code>.  This is preferred over <code>ncores</code>
+for tasks that are parallelized on the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> level, in which case <code>ncores</code>
+is only used for tasks that are parallelized on the C++ level.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>optional initial seed for the random number generator (see
+<code>.Random.seed</code>).  This is useful because many robust regression
+functions (including <code>lmrob</code>) involve randomness,
+or for prediction error estimation.  On parallel <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> worker processes, random
+number streams are used and the seed is set via
+<code>clusterSetRNGStream</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>a logical indicating whether the model data should be included
+in the returned object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>centerFun</code></td>
+<td>
+<p>a function to compute a robust estimate for the center
+(defaults to <code>median</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scaleFun</code></td>
+<td>
+<p>a function to compute a robust estimate for the scale
+(defaults to <code>mad</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>regFun</code></td>
+<td>
+<p>a function to compute robust linear regressions that can be
+interpreted as weighted least squares (defaults to
+<code>lmrob</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>regArgs</code></td>
+<td>
+<p>a list of arguments to be passed to <code>regFun</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>combine</code></td>
+<td>
+<p>a character string specifying how to combine the data
+cleaning weights from the robust regressions with each predictor group.
+Possible values are <code>"min"</code> for taking the minimum weight for each
+observation, <code>"euclidean"</code> for weights based on Euclidean distances
+of the multivariate set of standardized residuals (i.e., multivariate
+winsorization of the standardized residuals assuming independence), or
+<code>"mahalanobis"</code> for weights based on Mahalanobis distances of the
+multivariate set of standardized residuals (i.e., multivariate winsorization
+of the standardized residuals).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>const</code></td>
+<td>
+<p>numeric; tuning constant for multivariate winsorization to be
+used in the initial corralation estimates based on adjusted univariate
+winsorization (defaults to 2).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prob</code></td>
+<td>
+<p>numeric; probability for the quantile of the
+<code class="reqn">\chi^{2}</code> distribution to be used in multivariate
+winsorization (defaults to 0.95).</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>If <code>fit</code> is <code>FALSE</code>, an integer vector containing the indices of
+the sequenced predictor groups.
+</p>
+<p>Else if <code>crit</code> is <code>"PE"</code>, an object of class
+<code>"perrySeqModel"</code> (inheriting from classes <code>"perryTuning"</code>,
+see <code>perryTuning</code>).  It contains information on the
+prediction error criterion, and includes the final model as component
+<code>finalModel</code>.
+</p>
+<p>Otherwise an object of class <code>"grplars"</code> (inheriting from class
+<code>"seqModel"</code>) with the following components:
+</p>
+
+<dl>
+<dt><code>active</code></dt>
+<dd>
+<p>an integer vector containing the sequence of
+predictor groups.</p>
+</dd>
+<dt><code>s</code></dt>
+<dd>
+<p>an integer vector containing the steps for which submodels
+along the sequence have been computed.</p>
+</dd>
+<dt><code>coefficients</code></dt>
+<dd>
+<p>a numeric matrix in which each column contains
+the regression coefficients of the corresponding submodel along the
+sequence.</p>
+</dd>
+<dt><code>fitted.values</code></dt>
+<dd>
+<p>a numeric matrix in which each column contains
+the fitted values of the corresponding submodel along the sequence.</p>
+</dd>
+<dt><code>residuals</code></dt>
+<dd>
+<p>a numeric matrix in which each column contains
+the residuals of the corresponding submodel along the sequence.</p>
+</dd>
+<dt><code>df</code></dt>
+<dd>
+<p>an integer vector containing the degrees of freedom of
+the submodels along the sequence (i.e., the number of estimated
+coefficients).</p>
+</dd>
+<dt><code>robust</code></dt>
+<dd>
+<p>a logical indicating whether a robust fit was
+computed.</p>
+</dd>
+<dt><code>scale</code></dt>
+<dd>
+<p>a numeric vector giving the robust residual scale
+estimates for the submodels along the sequence (only returned for a robust
+fit).</p>
+</dd>
+<dt><code>crit</code></dt>
+<dd>
+<p>an object of class <code>"bicSelect"</code> containing the
+BIC values and indicating the final model (only returned if argument
+<code>crit</code> is <code>"BIC"</code> and argument <code>s</code> indicates more than one
+step along the sequence).</p>
+</dd>
+<dt><code>muX</code></dt>
+<dd>
+<p>a numeric vector containing the center estimates of the
+predictor variables.</p>
+</dd>
+<dt><code>sigmaX</code></dt>
+<dd>
+<p>a numeric vector containing the scale estimates of
+the predictor variables.</p>
+</dd>
+<dt><code>muY</code></dt>
+<dd>
+<p>numeric; the center estimate of the response.</p>
+</dd>
+<dt><code>sigmaY</code></dt>
+<dd>
+<p>numeric; the scale estimate of the response.</p>
+</dd>
+<dt><code>x</code></dt>
+<dd>
+<p>the matrix of candidate predictors (if <code>model</code> is
+<code>TRUE</code>).</p>
+</dd>
+<dt><code>y</code></dt>
+<dd>
+<p>the response (if <code>model</code> is <code>TRUE</code>).</p>
+</dd>
+<dt><code>assign</code></dt>
+<dd>
+<p>an integer vector giving the predictor group to which
+each predictor variable belongs.</p>
+</dd>
+<dt><code>w</code></dt>
+<dd>
+<p>a numeric vector giving the data cleaning weights (only
+returned for a robust fit).</p>
+</dd>
+<dt><code>call</code></dt>
+<dd>
+<p>the matched function call.</p>
+</dd>
+</dl>
+<h3>Author(s)</h3>
+
+<p>Andreas Alfons
+</p>
+
+
+<h3>References</h3>
+
+<p>Alfons, A., Croux, C. and Gelper, S. (2016) Robust groupwise least angle
+regression. <em>Computational Statistics &amp; Data Analysis</em>, <b>93</b>,
+421–435. <a href="https://doi.org/10.1016/j.csda.2015.02.007">doi:10.1016/j.csda.2015.02.007</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>coef</code>,
+<code>fitted</code>,
+<code>plot</code>,
+<code>predict</code>,
+<code>residuals</code>,
+<code>rstandard</code>,
+<code>lmrob</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data("TopGear")
+# keep complete observations
+keep &lt;- complete.cases(TopGear)
+TopGear &lt;- TopGear[keep, ]
+# remove information on car model
+info &lt;- TopGear[, 1:3]
+TopGear &lt;- TopGear[, -(1:3)]
+# log-transform price
+TopGear$Price &lt;- log(TopGear$Price)
+
+# robust groupwise LARS
+rgrplars(MPG ~ ., data = TopGear, sMax = 15)
+</code></pre>
+
+
+</div>

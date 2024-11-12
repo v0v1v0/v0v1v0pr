@@ -1,0 +1,744 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Score</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Score risk predictions</h2>
+
+<h3>Description</h3>
+
+<p>Methods to score the predictive performance of risk markers and risk prediction models
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">Score(object, ...)
+
+## S3 method for class 'list'
+Score(
+  object,
+  formula,
+  data,
+  metrics = c("auc", "brier"),
+  summary = NULL,
+  plots = NULL,
+  cause,
+  times,
+  landmarks,
+  use.event.times = FALSE,
+  null.model = TRUE,
+  se.fit = TRUE,
+  conservative = FALSE,
+  multi.split.test = FALSE,
+  conf.int = 0.95,
+  contrasts = TRUE,
+  probs = c(0, 0.25, 0.5, 0.75, 1),
+  cens.method = "ipcw",
+  cens.model = "cox",
+  split.method,
+  B,
+  M,
+  seed,
+  trainseeds,
+  parallel = c("no", "multicore", "snow", "as.registered"),
+  ncpus = 1,
+  cl = NULL,
+  progress.bar = 3,
+  errorhandling = "pass",
+  keep,
+  predictRisk.args,
+  debug = 0L,
+  censoring.save.memory = FALSE,
+  breaks = seq(0, 1, 0.01),
+  roc.method = "vertical",
+  roc.grid = switch(roc.method, vertical = seq(0, 1, 0.01), horizontal = seq(1, 0,
+    -0.01)),
+  cutpoints = NULL,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>List of risk predictions (see details and examples).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Named list containing additional arguments that are passed on to the <code>predictRisk</code> methods corresponding to object. See examples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>A formula which identifies the outcome (left hand
+side). E.g., <code>Y ~ 1</code> for binary and <code>Hist(time,status) ~ 1</code> for time-to-event outcome.
+In right censored data, the right hand side of the
+formula is used to estimate the inverse probability of censoring weights (IPCW) model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p><code>data.frame</code> or <code>data.table</code> in which the formula can be
+interpreted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>metrics</code></td>
+<td>
+<p>Character vector specifying which metrics to
+apply. Case does not matter. Choices are <code>"AUC"</code> and <code>"Brier"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>summary</code></td>
+<td>
+<p>Character vector specifying which summary
+statistics to apply to the predicted risks. Choices are <code>"risks"</code>, <code>"IPA"</code>,
+<code>"riskQuantile"</code> and <code>"ibs"</code>. Can be all <code>c("risks","IPA","riskQuantile","ibs")</code> or a subset thereof.
+</p>
+
+<ul>
+<li> <p><code>"risks"</code> adds the predicted risks to the output.
+</p>
+</li>
+<li> <p><code>"ipa"</code> computes the index of prediction accuracy (AKA R-squared) based on Brier scores for model vs null model
+</p>
+</li>
+<li> <p><code>"riskQuantile"</code> calculates
+time-point specific boxplots for the
+predicted risks (or biomarker values) conditional on the outcome at the time-point.
+</p>
+</li>
+<li> <p><code>"ibs"</code> calculates integrated Brier scores across the time points at which the Brier score is computed. This works only with
+time-to-event outcome and the results depend on the argument <code>times</code>.
+</p>
+</li>
+</ul>
+<p>Set to <code>NULL</code> to avoid estimation of summary statistics.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plots</code></td>
+<td>
+<p>Character vector specifying for which plots to put data into the result.
+Currently implemented are <code>"ROC"</code>, <code>"Calibration"</code> and <code>"boxplot"</code>.
+In addition, one can plot AUC and Brier score as function of time as soon as
+<code>times</code> has at least two different values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cause</code></td>
+<td>
+<p>Event of interest. Used for binary outcome <code>Y</code>
+to specify that risks are risks of the event <code>Y=event</code>
+and for competing risks outcome to specify the cause of
+interest.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>times</code></td>
+<td>
+<p>For survival and competing risks outcome: list of
+prediction horizons. All times which are greater than the
+maximal observed time in the data set are automatically removed.
+Note that the object returned by the function may become huge when
+the prediction performance is estimated at many prediction horizons.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>landmarks</code></td>
+<td>
+<p>Not yet implemented.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use.event.times</code></td>
+<td>
+<p>If <code>TRUE</code> merge all unique event times with
+the vector given by argument <code>times</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>null.model</code></td>
+<td>
+<p>If <code>TRUE</code> fit a risk prediction model which ignores
+the covariates and predicts the same value for all subjects. The model is fitted using <code>data</code>
+and the left hand side of <code>formula</code>. For binary outcome this is just the empirical prevalence. For (right censored) time to event outcome, the null models are
+equal to the Kaplan-Meier estimator (no competing risks) and the Aalen-Johansen estimator (with competing risks).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>se.fit</code></td>
+<td>
+<p>Logical or <code>0</code> or <code>1</code>. If <code>FALSE</code> or <code>0</code> do not calculate standard errors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>conservative</code></td>
+<td>
+<p>Logical, only relevant in right censored data. If <code>TRUE</code> ignore
+variability of the estimate of the inverse probability of censoring weights when calculating standard
+errors for prediction performance parameters. This can potentially reduce computation time and memory usage
+at a usually very small expense of a slightly higher standard error.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>multi.split.test</code></td>
+<td>
+<p>Logical or <code>0</code> or <code>1</code>. If <code>FALSE</code> or <code>0</code> do not calculate multi-split tests. This argument is ignored when <code>split.method</code> is "none".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>conf.int</code></td>
+<td>
+<p>Either logical or a numeric value between 0 and 1. In right censored data,
+confidence intervals are based on Blanche et al (see references). Setting <code>FALSE</code> prevents the
+computation of confidence intervals. <code>TRUE</code> computes 95 percent confidence
+intervals and corresponding p-values for AUC and Brier score. If set to 0.87, the
+level of significance is 13 percent. So, do not set it to 0.87.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>contrasts</code></td>
+<td>
+<p>Either logical or a list of contrasts. A list of contrasts defines which risk prediction models (markers)
+should be contrasted with respect to their prediction performance.
+If <code>TRUE</code> do all possible comparisons. For
+example, when <code>object</code> is a list with two risk prediction models and
+<code>null.model=TRUE</code> setting <code>TRUE</code> is equivalent to
+<code>list(c(0,1,2),c(1,2))</code> where <code>c(0,1,2)</code> codes for the
+two comparisons: 1 vs 0 and 2 vs 0 (positive integers refer to
+elements of <code>object</code>, 0 refers to the benchmark null
+model which ignores the covariates).  This again is equivalent
+to explicitly setting <code>list(c(0,1),c(0,2),c(1,2))</code>. A
+more complex example: Suppose <code>object</code> has 7 elements and you
+want to do the following 3 comparisons: 6 vs 3, 2 vs 5 and 2
+vs 3, you should set <code>contrasts=c(6,3),c(2,5,3)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>probs</code></td>
+<td>
+<p>Quantiles for retrospective summary statistics of the
+predicted risks. This affects the result of the function <code>boxplot.Score</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cens.method</code></td>
+<td>
+<p>Method for dealing with right censored
+data. Either <code>"ipcw"</code> or <code>"pseudo"</code>.
+Here IPCW refers to inverse probability of censoring weights and <code>pseudo</code> for jackknife pseudo values.
+Right now pseudo values  are only used for calibration curves.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cens.model</code></td>
+<td>
+<p>Model for estimating inverse probability of
+censored weights (IPCW). Implemented are the Kaplan-Meier method (<code>"km"</code>) and
+Cox regression (<code>"cox"</code>) both applied to the censored times. If the right hand side of <code>formula</code> does not specify covariates,
+the Kaplan-Meier method is used even if this argument is set to <code>"cox"</code>. Also implemented is a template for users specifying other models to estimate the IPCW. Here the user
+should be supply a function, taking as input a <code>"formula"</code> and <code>"data"</code>. This does come at the cost of only being able to calculate conservative confidence intervals.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>split.method</code></td>
+<td>
+<p>Method for cross-validation. Right now the only choices are <code>bootcv</code>, <code>cvk</code> and <code>loob</code>. In the first case, bootstrap learning sets
+are drawn with our without replacement (argument <code>M</code>) from <code>data</code>. The data not included in the current bootstrap learning
+set are used as validation set to compute the prediction performance. In the second case, k-fold cross-validation is performed. Note that k has to be an explicit number, e.g. 5 or 10,
+when passing this as an argument. In the third case, leave-one-out bootstrap cross-validation is performed for the Brier score and leave-pair-out bootstrap cross-validation is performed for the AUC.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B</code></td>
+<td>
+<p>Number of bootstrap sets for cross-validation. <code>B</code> should be set to 1, when k-fold cross-validation is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>M</code></td>
+<td>
+<p>Size of subsamples for bootstrap cross-validation. If specified it
+has to be an integer smaller than the size of <code>data</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>Super seed for setting training data seeds when
+randomly splitting (bootstrapping) the data during cross-validation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trainseeds</code></td>
+<td>
+<p>Seeds for training models during cross-validation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel</code></td>
+<td>
+<p>The type of parallel operation to be used (if any). If missing, the default is <code>"no"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncpus</code></td>
+<td>
+<p>integer: number of processes to be used in parallel operation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cl</code></td>
+<td>
+<p>An optional <code>parallel</code> or <code>snow</code> cluster for use if <code>parallel = "snow"</code>. If not supplied, a cluster on the local machine is created for the duration of the <code>Score</code> call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>progress.bar</code></td>
+<td>
+<p>Style for <code>txtProgressBar</code>. Can be 1,2,3 see <code>help(txtProgressBar)</code> or NULL to avoid the progress bar.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>errorhandling</code></td>
+<td>
+<p>Argument passed as <code>.errorhandling</code> to foreach. Default is <code>"pass"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep</code></td>
+<td>
+<p>list of characters (not case sensitive) which determines additional output.
+<code>"residuals"</code> provides Brier score residuals and
+<code>"splitindex"</code> provides sampling index used to split the data into training and validation sets. It is a function, whose argument is the bootstrap sample, which one wishes to look at.
+<code>"vcov"</code> provides the variance-covariance matrix for the estimates.
+<code>"iid"</code> provides the estimated influence function of the estimates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predictRisk.args</code></td>
+<td>
+<p>A list of argument-lists to control how risks are predicted.
+The names of the lists should be the S3-classes of the <code>object</code>.
+The argument-lists are then passed on to the S3-class specific predictRisk method.
+For example, if your object contains one or several random forest model fitted with the function randomForestSRC::rfsrc then you can
+specify additional arguments for the function riskRegression::predictRisk.rfsrc which will pass
+these on to the function randomForestSRC::predict.rfsrc. A specific example in this case would be
+<code>list(rfsrc=list(na.action="na.impute"))</code>.
+</p>
+<p>A more flexible approach is to write a new predictRisk S3-method. See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>debug</code></td>
+<td>
+<p>Logical. If <code>TRUE</code> indicate landmarks in progress of the program.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>censoring.save.memory</code></td>
+<td>
+<p>Only relevant in censored data where censoring weigths are obtained with
+Cox regression and argument <code>conservative</code> is set to <code>FALSE</code>. If <code>TRUE</code>, save memory by not storing the influence function
+of the cumulative hazard of the censoring as a matrix when calculating standard errors
+with Cox censoring. This can allow one to use <code>Score</code> on larger test data sets,
+but may be slower.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>breaks</code></td>
+<td>
+<p>Break points for computing the Roc curve. Defaults to
+<code>seq(0,1,.01)</code> when some form of crossvalidation is applied, otherwise
+to all unique values of the predictive marker.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>roc.method</code></td>
+<td>
+<p>Method for averaging ROC curves across data splits.
+If <code>'horizontal'</code> average crossvalidated specificities for fixed sensitivity values,
+specified in <code>roc.grid</code>, otherwise, if  <code>'vertical'</code>,
+average crossvalidated specificities for fixed sensitivity values.
+See Fawcett, T. (2006) for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>roc.grid</code></td>
+<td>
+<p>Grid points for the averaging of ROC curves.
+A sequence of values at which to compute averages across the ROC curves
+obtained for different data splits during crossvalidation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cutpoints</code></td>
+<td>
+<p>If not <code>NULL</code>, estimates and standard errors of the TPR (True Positive Rate), 
+FPR (False Positive Rate), PPV (Positive Predictive Value), and NPV (Negative Predictive Value) 
+are given at the <code>cutpoints</code>. These values are saved in <code>object$AUC$res.cut</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The function implements a toolbox for the risk prediction modeller:
+all tools work for the three outcomes: (1) binary (uncensored),
+(2) right censored time to event without competing risks,
+(3) right censored time to event with competing risks
+</p>
+<p>Computed are the (time-dependent) Brier score and the (time-dependent)
+area under the ROC curve for a list of risk prediction models either in
+external validation data or in the learning data using bootstrap
+cross-validation. The function optionally provides results for plotting (time-point specific)
+ROC curves, for (time-point specific) calibration curves and for (time-point specific) retrospective boxplots.
+</p>
+<p>For uncensored binary outcome the Delong-Delong test is used to contrast AUC of rival models.
+In right censored survival data (with and without competing risks)
+the p-values correspond to Wald tests based on standard errors obtained with an estimate of the influence function
+as described in detail in the appendix of Blanche et al. (2015).
+</p>
+<p>This function works with one or multiple models that predict the risk of an event R(t|X) for a subject
+characterized by predictors X at time t.
+With binary endpoints (outcome 0/1 without time component) the risk is simply R(X).
+In case of a survival object
+without competing risks the function still works with predicted event probabilities, i.e., R(t|X)=1-S(t|X) where
+S(t|X) is the predicted survival chance for subject X at time t.
+</p>
+<p>The already existing predictRisk methods (see methods(predictRisk)) may not cover all models and methods
+for predicting risks. But users can quickly extend the package as explained in detail in Mogensen et al. (2012) for
+the predecessors <code>pec::predictSurvProb</code> and <code>pec::predictEventProb</code> which have been unified as
+<code>riskRegression::predictRisk</code>.
+</p>
+<p>Bootstrap Crossvalidation (see also Gerds &amp; Schumacher 2007 and Mogensen et al. 2012)
+</p>
+<p>B=10, M (not specified or M=NROW(data))
+Training of each of the models in each of 10 bootstrap data sets (learning data sets).
+Learning data sets are obtained by sampling <code>NROW(data)</code> subjects of the data set
+with replacement. There are roughly <code>.632*NROW(data)</code> subjects in the learning data (inbag)
+and <code>.368*NROW(data)</code> subjects not in the validation data sets (out-of-bag).
+</p>
+<p>These are used to estimate the scores: AUC, Brier, etc. Reported are averages across the 10 splits.
+</p>
+<p>## Bootstrap with replacement
+<code>
+set.seed(13)
+N=17
+data = data.frame(id=1:N, y=rbinom(N,1,.3),x=rnorm(N))
+boot.index = sample(1:N,size=N,replace=TRUE)
+boot.index
+inbag = 1:N 
+outofbag = !inbag
+learn.data = data[inbag]
+val.data = data[outofbag]
+riskRegression:::getSplitMethod("bootcv",B=10,N=17)$index
+</code>
+NOTE: the number .632 is the expected probability to draw one subject (for example subject 1) with
+replacement from the data, which does not depend on the sample size:
+<code>B=10000</code>
+<code>N=137</code>
+<code>mean(sapply(1:B, function(b){match(1,sample(1:N,size=N,replace=TRUE),nomatch=0)}))</code>
+<code>N=30</code>
+<code>mean(sapply(1:B, function(b){match(1,sample(1:N,size=N,replace=TRUE),nomatch=0)}))</code>
+<code>N=300</code>
+<code>mean(sapply(1:B, function(b){match(1,sample(1:N,size=N,replace=TRUE),nomatch=0)}))</code>
+</p>
+<p>## Bootstrap without replacement (training size set to be 70 percent of data)
+B=10, M=.7
+</p>
+<p>Training of each of the models in each of 10 bootstrap data sets (learning data sets).
+Learning data sets are obtained by sampling <code>round(.8*NROW(data))</code> subjects of the data set
+without replacement. There are <code>NROW(data)-round(.8*NROW(data))</code> subjects not in the learning data sets.
+These are used to estimate the scores: AUC, Brier, etc. Reported are averages across the 10 splits.
+<code>
+set.seed(13)
+N=17
+data = data.frame(id=1:N, y=rbinom(N,1,.3),x=rnorm(N))
+boot.index = sample(1:N,size=M,replace=FALSE)
+boot.index
+inbag = 1:N 
+outofbag = !inbag
+learn.data = data[inbag]
+val.data = data[outofbag]
+riskRegression:::getSplitMethod("bootcv",B=10,N=17,M=.7)$index
+</code>
+</p>
+
+
+<h3>Value</h3>
+
+<p>List with scores and assessments of contrasts, i.e.,
+tests and confidence limits for performance and difference in performance (AUC and Brier),
+summaries and plots. Most elements are in<code>data.table</code> format.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Thomas A Gerds <a href="mailto:tag@biostat.ku.dk">tag@biostat.ku.dk</a> and Paul Blanche <a href="mailto:paul.blanche@univ-ubs.fr">paul.blanche@univ-ubs.fr</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>Thomas A. Gerds and Michael W. Kattan (2021).
+Medical Risk Prediction Models: With Ties to Machine Learning (1st ed.)
+Chapman and Hall/CRC
+https://doi.org/10.1201/9781138384484
+</p>
+<p>Ulla B. Mogensen, Hemant Ishwaran, Thomas A. Gerds (2012).
+Evaluating Random Forests for Survival Analysis Using Prediction Error
+Curves. Journal of Statistical Software, 50(11), 1-23. URL
+http://www.jstatsoft.org/v50/i11/.
+</p>
+<p>Paul Blanche, Cecile Proust-Lima, Lucie Loubere, Claudine Berr, Jean- Francois Dartigues, and
+Helene Jacqmin-Gadda. Quantifying and comparing dynamic predictive accuracy of joint models
+for longitudinal marker and time-to-event in presence of censoring and competing risks.
+Biometrics, 71 (1):102–113, 2015.
+</p>
+<p>P. Blanche, J-F Dartigues, and H. Jacqmin-Gadda. Estimating and comparing
+time-dependent areas under receiver operating characteristic curves for
+censored event times with competing risks. Statistics in Medicine,
+32(30):5381–5397, 2013.
+</p>
+<p>E. Graf et al.  (1999), Assessment and comparison of prognostic
+classification schemes for survival data. Statistics in Medicine, vol 18,
+pp= 2529–2545.
+</p>
+<p>Efron, Tibshirani (1997) Journal of the American Statistical Association 92,
+548–560 Improvement On Cross-Validation: The .632+ Bootstrap Method.
+</p>
+<p>Gerds, Schumacher (2006), Consistent estimation of the expected Brier score
+in general survival models with right-censored event times. Biometrical
+Journal, vol 48, 1029–1040.
+</p>
+<p>Thomas A. Gerds, Martin Schumacher (2007) Efron-Type Measures of Prediction
+Error for Survival Analysis Biometrics, 63(4), 1283–1287
+doi:10.1111/j.1541-0420.2007.00832.x
+</p>
+<p>Martin Schumacher, Harald Binder, and Thomas Gerds. Assessment of survival
+prediction models based on microarray data. Bioinformatics, 23(14):1768-74,
+2007.
+</p>
+<p>Mark A. van de Wiel, Johannes Berkhof, and Wessel N. van Wieringen Testing
+the prediction error difference between 2 predictors Biostatistics (2009)
+10(3): 550-560 doi:10.1093/biostatistics/kxp011
+</p>
+<p>Michael W Kattan and Thomas A Gerds. The index of prediction accuracy: an
+intuitive measure useful for evaluating risk prediction models. Diagnostic
+and Prognostic Research, 2(1):7, 2018.
+</p>
+<p>Fawcett, T. (2006). An introduction to ROC analysis. Pattern
+Recognition Letters, 27, 861-874.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># binary outcome
+library(lava)
+set.seed(18)
+learndat &lt;- sampleData(48,outcome="binary")
+testdat &lt;- sampleData(40,outcome="binary")
+
+## score logistic regression models
+lr1 = glm(Y~X1+X2+X7+X9,data=learndat,family=binomial)
+lr2 = glm(Y~X3+X5,data=learndat,family=binomial)
+Score(list("LR(X1+X2+X7+X9)"=lr1,"LR(X3+X5)"=lr2),formula=Y~1,data=testdat)
+
+## ROC curve and calibration plot
+xb=Score(list("LR(X1+X2+X7+X9)"=lr1,"LR(X3+X5+X6)"=lr2),formula=Y~1,
+         data=testdat,plots=c("calibration","ROC"))
+## Not run: plotROC(xb)
+plotCalibration(xb)
+
+## End(Not run)
+
+## compute AUC for a list of continuous markers
+markers = as.list(testdat[,.(X6,X7,X8,X9,X10)])
+Score(markers,formula=Y~1,data=testdat,metrics=c("auc"))
+
+# cross-validation
+## Not run: 
+    set.seed(10)
+    learndat=sampleData(400,outcome="binary")
+    lr1a = glm(Y~X6,data=learndat,family=binomial)
+    lr2a = glm(Y~X7+X8+X9,data=learndat,family=binomial)
+    ## bootstrap cross-validation
+    x1=Score(list("LR1"=lr1a,"LR2"=lr2a),formula=Y~1,data=learndat,split.method="bootcv",B=100)
+    x1
+    ## leave-one-out and leave-pair-out bootstrap
+    x2=Score(list("LR1"=lr1a,"LR2"=lr2a),formula=Y~1,data=learndat,
+             split.method="loob",
+             B=100,plots="calibration")
+    x2
+    ## 5-fold cross-validation
+    x3=Score(list("LR1"=lr1a,"LR2"=lr2a),formula=Y~1,data=learndat,
+             split.method="cv5",
+             B=1,plots="calibration")
+    x3
+
+## End(Not run)
+# survival outcome
+
+# Score Cox regression models
+## Not run: library(survival)
+library(rms)
+library(prodlim)
+set.seed(18)
+trainSurv &lt;- sampleData(100,outcome="survival")
+testSurv &lt;- sampleData(40,outcome="survival")
+cox1 = coxph(Surv(time,event)~X1+X2+X7+X9,data=trainSurv, y=TRUE, x = TRUE)
+cox2 = coxph(Surv(time,event)~X3+X5+X6,data=trainSurv, y=TRUE, x = TRUE)
+x=Score(list("Cox(X1+X2+X7+X9)"=cox1,"Cox(X3+X5+X6)"=cox2),
+         formula=Surv(time,event)~1,data=testSurv,conf.int=FALSE,times=c(5,8))
+## Use Cox to estimate censoring weights
+y=Score(list("Cox(X1+X2+X7+X9)"=cox1,"Cox(X3+X5+X6)"=cox2),
+         formula=Surv(time,event)~X1+X8,data=testSurv,conf.int=FALSE,times=c(5,8)) 
+## Use GLMnet to estimate censoring weights
+z=Score(list("Cox(X1+X2+X7+X9)"=cox1,"Cox(X3+X5+X6)"=cox2),
+         formula=Surv(time,event)~X1+X8,cens.model = "GLMnet",data=testSurv,
+         conf.int=FALSE,times=c(5,8)) 
+## Use hal9001 to estimate censoring weights
+w=Score(list("Cox(X1+X2+X7+X9)"=cox1,"Cox(X3+X5+X6)"=cox2),
+         formula=Surv(time,event)~X1+X8,cens.model = "Hal9001",data=testSurv,
+         conf.int=FALSE,times=c(5,8)) 
+x
+y
+z
+w
+
+## End(Not run)
+
+## Not run: library(survival)
+library(rms)
+library(prodlim)
+set.seed(18)
+trainSurv &lt;- sampleData(100,outcome="survival")
+testSurv &lt;- sampleData(40,outcome="survival")
+cox1 = coxph(Surv(time,event)~X1+X2+X7+X9,data=trainSurv, y=TRUE, x = TRUE)
+cox2 = coxph(Surv(time,event)~X3+X5+X6,data=trainSurv, y=TRUE, x = TRUE)
+xs=Score(list("Cox(X1+X2+X7+X9)"=cox1,"Cox(X3+X5+X6)"=cox2),
+         formula=Surv(time,event)~1,data=testSurv,conf.int=FALSE,times=c(5,8))
+xs
+
+## End(Not run)
+# Integrated Brier score
+## Not run: 
+xs=Score(list("Cox(X1+X2+X7+X9)"=cox1,"Cox(X3+X5+X6)"=cox2),
+         formula=Surv(time,event)~1,data=testSurv,conf.int=FALSE,
+         summary="ibs",
+         times=sort(unique(testSurv$time)))
+
+## End(Not run)
+
+# time-dependent AUC for list of markers
+## Not run: survmarkers = as.list(testSurv[,.(X6,X7,X8,X9,X10)])
+Score(survmarkers,
+      formula=Surv(time,event)~1,metrics="auc",data=testSurv,
+      conf.int=TRUE,times=c(5,8))
+
+# compare models on test data
+Score(list("Cox(X1+X2+X7+X9)"=cox1,"Cox(X3+X5+X6)"=cox2),
+      formula=Surv(time,event)~1,data=testSurv,conf.int=TRUE,times=c(5,8))
+
+## End(Not run)
+# crossvalidation models in traindata
+## Not run: 
+    library(survival)
+    set.seed(18)
+    trainSurv &lt;- sampleData(400,outcome="survival")
+    cox1 = coxph(Surv(time,event)~X1+X2+X7+X9,data=trainSurv, y=TRUE, x = TRUE)
+    cox2 = coxph(Surv(time,event)~X3+X5+X6,data=trainSurv, y=TRUE, x = TRUE)
+    x1 = Score(list("Cox(X1+X2+X7+X9)"=cox1,"Cox(X3+X5+X6)"=cox2),
+               formula=Surv(time,event)~1,data=trainSurv,conf.int=TRUE,times=c(5,8),
+               split.method="loob",B=100,plots="calibration")
+
+    x2= Score(list("Cox(X1+X2+X7+X9)"=cox1,"Cox(X3+X5+X6)"=cox2),
+              formula=Surv(time,event)~1,data=trainSurv,conf.int=TRUE,times=c(5,8),
+              split.method="bootcv",B=100)
+
+## End(Not run)
+
+# restrict number of comparisons
+## Not run: 
+    Score(list("Cox(X1+X2+X7+X9)"=cox1,"Cox(X3+X5+X6)"=cox2),
+          formula=Surv(time,event)~1,data=trainSurv,contrasts=TRUE,
+          null.model=FALSE,conf.int=TRUE,times=c(5,8),split.method="bootcv",B=3)
+
+    # competing risks outcome
+    set.seed(18)
+    trainCR &lt;- sampleData(400,outcome="competing.risks")
+    testCR &lt;- sampleData(400,outcome="competing.risks")
+    library(riskRegression)
+    library(cmprsk)
+    # Cause-specific Cox regression
+    csc1 = CSC(Hist(time,event)~X1+X2+X7+X9,data=trainCR)
+    csc2 = CSC(Hist(time,event)~X3+X5+X6,data=trainCR)
+    # Fine-Gray regression
+    fgr1 = FGR(Hist(time,event)~X1+X2+X7+X9,data=trainCR,cause=1)
+    fgr2 = FGR(Hist(time,event)~X3+X5+X6,data=trainCR,cause=1)
+    Score(list("CSC(X1+X2+X7+X9)"=csc1,"CSC(X3+X5+X6)"=csc2,
+               "FGR(X1+X2+X7+X9)"=fgr1,"FGR(X3+X5+X6)"=fgr2),
+          formula=Hist(time,event)~1,data=testCR,se.fit=1L,times=c(5,8))
+
+## End(Not run)
+
+
+
+## Not run: 
+    # reproduce some results of Table IV of Blanche et al. Stat Med 2013
+    data(Paquid)
+    ResPaquid &lt;- Score(list("DSST"=-Paquid$DSST,"MMSE"=-Paquid$MMSE),
+                       formula=Hist(time,status)~1,
+                       data=Paquid,
+                       null.model = FALSE,
+                       conf.int=TRUE,
+                       metrics=c("auc"),
+                       times=c(3,5,10),
+                       plots="ROC")
+    ResPaquid
+    plotROC(ResPaquid,time=5)
+
+## End(Not run)
+## Not run: 
+# parallel options
+# by erikvona: Here is a generic example of using future
+# and doFuture, works great with the current version:
+library(riskRegression)
+library(future)
+library(foreach)
+library(doFuture)
+library(survival)
+# Register all available cores for parallel operation
+plan(multiprocess, workers = availableCores())
+registerDoFuture()
+set.seed(10)
+trainSurv &lt;- sampleData(400,outcome="survival")
+cox1 = coxph(Surv(time,event)~X1+X2+X7+X9,data=trainSurv,
+             y=TRUE, x = TRUE)
+# Bootstrapping on multiple cores
+x1 = Score(list("Cox(X1+X2+X7+X9)"=cox1),
+     formula=Surv(time,event)~1,data=trainSurv, times=c(5,8),
+     parallel = "as.registered", split.method="bootcv",B=100)
+
+## End(Not run)
+
+
+
+</code></pre>
+
+
+</div>

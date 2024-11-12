@@ -1,0 +1,150 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>project</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Project a linear factor model</h2>
+
+<h3>Description</h3>
+
+<p>Solves the equation <code class="reqn">A = wh</code> for either <code class="reqn">h</code> or <code class="reqn">w</code> given either <code class="reqn">w</code> or <code class="reqn">h</code> and <code class="reqn">A</code>
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">project(A, w = NULL, h = NULL, nonneg = TRUE, L1 = 0, mask_zeros = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>A</code></td>
+<td>
+<p>matrix of features-by-samples in dense or sparse format (preferred classes are "matrix" or "Matrix::dgCMatrix", respectively). Prefer sparse storage when more than half of all values are zero.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w</code></td>
+<td>
+<p>dense matrix of factors x features giving the linear model to be projected (if <code>h = NULL</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>h</code></td>
+<td>
+<p>dense matrix of factors x samples giving the linear model to be projected (if <code>w = NULL</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nonneg</code></td>
+<td>
+<p>enforce non-negativity</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>L1</code></td>
+<td>
+<p>L1/LASSO penalty to be applied. No scaling is performed. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mask_zeros</code></td>
+<td>
+<p>handle zeros as missing values, available only when <code>A</code> is sparse</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For the classical alternating least squares matrix factorization update problem <code class="reqn">A = wh</code>, the updates
+(or projection) of <code class="reqn">h</code> is given by the equation: </p>
+<p style="text-align: center;"><code class="reqn">w^Twh = wA_j</code>
+</p>
+
+<p>which is in the form <code class="reqn">ax = b</code> where <code class="reqn">a = w^Tw</code> <code class="reqn">x = h</code> and <code class="reqn">b = wA_j</code> for all columns <code class="reqn">j</code> in <code class="reqn">A</code>.
+</p>
+<p>Given <code class="reqn">A</code>, <code>project</code> can solve for either <code class="reqn">w</code> or <code class="reqn">h</code> given the other:
+</p>
+
+<ul>
+<li>
+<p> When given <code class="reqn">A</code> and <code class="reqn">w</code>, <code class="reqn">h</code> is found using a highly efficient parallelization scheme.
+</p>
+</li>
+<li>
+<p> When given <code class="reqn">A</code> and <code class="reqn">h</code>, <code class="reqn">w</code> is found without transposition of <code class="reqn">A</code> (as would be the case in traditional block-pivoting matrix factorization) by accumulating the right-hand sides of linear systems in-place in <code class="reqn">A</code>, then solving the systems. Note that <code class="reqn">w</code> may also be found by inputting the transpose of <code class="reqn">A</code> and <code class="reqn">h</code> in place of <code class="reqn">w</code>, (i.e. <code>A = t(A), w = h, h = NULL</code>). However, for most applications, the cost of a single projection in-place is less than transposition of <code class="reqn">A</code>. However, for matrix factorization, it is desirable to transpose <code class="reqn">A</code> if possible because many projections are needed.
+</p>
+</li>
+</ul>
+<p><strong>Parallelization.</strong> Least squares projections in factorizations of rank-3 and greater are parallelized using the number of threads set by <code>setRcppMLthreads</code>.
+By default, all available threads are used, see <code>getRcppMLthreads</code>. The overhead of parallization is too great for rank-1 and -2 factorization.
+</p>
+<p><strong>L1 Regularization.</strong> Any L1 penalty is subtracted from <code class="reqn">b</code> and should generally be scaled to <code>max(b)</code>, where <code class="reqn">b = WA_j</code> for all columns <code class="reqn">j</code> in <code class="reqn">A</code>. An easy way to properly scale an L1 penalty is to normalize all columns in <code class="reqn">w</code> to sum to 1. No scaling is applied in this function. Such scaling guarantees that <code>L1 = 1</code> gives a completely sparse solution.
+</p>
+<p><strong>Specializations.</strong> There are specializations for symmetric input matrices, and for rank-1 and rank-2 projections. See documentation for <code>nmf</code> for theoretical details and guidance.
+</p>
+<p><strong>Publication reference.</strong> For theoretical and practical considerations, please see our manuscript: "DeBruine ZJ, Melcher K, Triche TJ (2021)
+High-performance non-negative matrix factorization for large single cell data." on BioRXiv.
+</p>
+
+
+<h3>Value</h3>
+
+<p>matrix <code class="reqn">h</code> or <code class="reqn">w</code>
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Zach DeBruine
+</p>
+
+
+<h3>References</h3>
+
+<p>DeBruine, ZJ, Melcher, K, and Triche, TJ. (2021). "High-performance non-negative matrix factorization for large single-cell data." BioRXiv.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>nnls</code>, <code>nmf</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+library(Matrix)
+w &lt;- matrix(runif(1000 * 10), 1000, 10)
+h_true &lt;- matrix(runif(10 * 100), 10, 100)
+# A is the crossproduct of "w" and "h" with 10% signal dropout
+A &lt;- (w %*% h_true) * (rsparsematrix(1000, 100, 0.9) &gt; 0)
+h &lt;- project(A, w)
+cor(as.vector(h_true), as.vector(h))
+
+# alternating projections refine solution (like NMF)
+mse_bad &lt;- mse(A, w, rep(1, ncol(w)), h) # mse before alternating updates
+h &lt;- project(A, w = w)
+w &lt;- project(A, h = h)
+h &lt;- project(A, w)
+w &lt;- project(A, h = h)
+h &lt;- project(A, w)
+w &lt;- t(project(A, h = h))
+mse_better &lt;- mse(A, w, rep(1, ncol(w)), h) # mse after alternating updates
+mse_better &lt; mse_bad
+
+# two ways to solve for "w" that give the same solution
+w &lt;- project(A, h = h)
+w2 &lt;- project(t(A), w = t(h))
+all.equal(w, w2)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

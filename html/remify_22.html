@@ -1,0 +1,194 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>remify</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Process a Relational Event History</h2>
+
+<h3>Description</h3>
+
+<p>A function that processes raw relational event history data and returns a S3 object of class 'remify' which is used as input in other functions inside 'remverse'.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">remify(
+  edgelist,
+  directed = TRUE,
+  ordinal = FALSE,
+  model = c("tie", "actor"),
+  actors = NULL,
+  types = NULL,
+  riskset = c("full", "active", "manual"),
+  origin = NULL,
+  omit_dyad = NULL,
+  ncores = 1L
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>edgelist</code></td>
+<td>
+<p>the relational event history. An object of class <code>data.frame</code> with first three columns corresponding to time, and actors forming the dyad. The first three columns will be re-named "time", "actor1", "actor2" (where, for directed networks, "actor1" corresponds to the sender and "actor2" to the receiver of the relational event). Optional columns that can be supplied are: 'type' and 'weight'. If one or both exist in <code>edgelist</code>, they have to be named accordingly.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>directed</code></td>
+<td>
+<p>logical value indicating whether events are directed (<code>TRUE</code>) or undirected (<code>FALSE</code>). (default value is <code>TRUE</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ordinal</code></td>
+<td>
+<p>logical value indicating whether only the order of events matters in the model (<code>TRUE</code>) or also the waiting time must be considered in the model (<code>FALSE</code>). (default value is <code>FALSE</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>can be "tie" or "actor" oriented modeling. This argument plays a fundamental role when <code>omit_dyad</code> is supplied. Indeed, when actor-oriented modeling, the dynamic risk set will consist of two risk sets objects (senders' and dyads' risk sets). In the tie-oriented model the function will return a dynamic risk set referred at a dyad-level.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>actors</code></td>
+<td>
+<p>[<em>optional</em>] character vector of actors' names that may be observed interacting in the network. If <code>NULL</code> (default), actors' names will be taken from the input edgelist.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>types</code></td>
+<td>
+<p>[<em>optional</em>] character vector of event types that may occur in the network. If <code>NULL</code> (default), types' names will be taken from the input edgelist.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>riskset</code></td>
+<td>
+<p>[<em>optional</em>] character value indicating the type of risk set to process: <code>riskset = "full"</code> (default) consists of all the possible dyadic events given the number of actors (and the number of event types) and it mantains the same structure over time. <code>riskset = "active"</code> considers at risk only the observed dyads and it mantains the same structure over time. <code>riskset = "manual"</code>, allows the risk set to have a structure that is user-defined, and it is based on the instructions supplied via the argument <code>omit_dyad</code>. This type of risk set allows for time-varying risk set, in which, for instance, subset of actors can interact only at specific time windows, or events of a specific type (sentiment) can't be observed within time intervals that are defined by the user.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>origin</code></td>
+<td>
+<p>[<em>optional</em>] starting time point of the observaton period (default is <code>NULL</code>). If it is supplied, it must have the same class of the 'time' column in the input <code>edgelist</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>omit_dyad</code></td>
+<td>
+<p>[<em>optional</em>] list of lists. Each list refers to one risk set modification and must have two objects: a first object named 'time', that is a vector of two values defining the first and last time point of the time window where to apply the change to the risk set and a second object, named 'dyad', which is a <code>data.frame</code> where dyads to be removed are supplied in the format <code>actor1,actor2,type</code> (by row). The <code>NA</code> value can be used to remove multiple objects from the risk set at once with one risk set modification list (see Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncores</code></td>
+<td>
+<p>[<em>optional</em>] number of cores used in the parallelization of the processing functions. (default is <code>1</code>).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>In <code>omit_dyad</code>, the <code>NA</code> value can be used to remove multiple objects from the risk set at once with one risk set modification list. For example, to remove all events with sender equal to actor “A” add a list with two objects <code>time = c(NA, NA)</code> and <code>dyad = data.frame(actor1 = A, actor2 = NA, type = NA)</code> to the <code>omit_dyad</code> list. For more details about
+</p>
+
+
+<h3>Value</h3>
+
+<p>'remify' S3 object, list of: number of events ('M'), number of actors ('N'), number of event types (if present, 'C'), number of dyads ('D', and also 'activeD' if 'riskset="active"'), vector of inter-event times (waiting times between two subsequent events), processed input edgelist as 'data.frame', processed 'omit_dyad' object as 'list'. The function returns also several attributes that make efficient the processing of the data for future analysis. For more details about the function, input arguments, output, attributes and methods, please read <code>vignette(package="remify",topic="remify")</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# load package and random network 'randomREH'
+library(remify)
+data(randomREH)
+
+# first events in the sequence
+head(randomREH$edgelist)
+
+# actor's names
+randomREH$actors
+
+# event type's names
+randomREH$types
+
+# start time of the study (origin)
+randomREH$origin
+
+# list of changes of the risk set: each one is a list of:
+# 'time' (indicating the time window where to apply the risk set reduction)
+# 'dyad' (a data.frame describing the dyads to remove from the risk set 
+# during the time window specified in 'time')
+str(randomREH$omit_dyad)
+
+# -------------------------------------- #
+#  processing for tie-oriented modeling  #
+# -------------------------------------- #
+
+tie_randomREH &lt;- remify(edgelist = randomREH$edgelist,
+       directed = TRUE,
+       ordinal = FALSE,
+       model = "tie",
+       actors = randomREH$actors,
+       types = randomREH$types,
+       riskset = "manual",
+       origin = randomREH$origin,
+       omit_dyad = randomREH$omit_dyad)
+
+# summary
+summary(tie_randomREH)
+
+# dimensions of the processed network
+dim(tie_randomREH)
+
+# Which ID is assigned to the actors with names "Francesca" and "Kayla"?
+getActorID(x = tie_randomREH, actorName = c("Francesca","Kayla"))
+
+# Which ID is assigned to the event type "conflict"?
+getTypeID(x = tie_randomREH, typeName = "conflict")
+
+# Find dyad composition (names of actor1, actor2 and type) from the dyad ID: c(1,380,760,1140)
+getDyad(x = tie_randomREH, dyadID = c(1,380,760,1140))
+
+# visualize descriptive measures of relational event data
+# plot(x = tie_randomREH)
+
+# -------------------------------------- #
+# processing for actor-oriented modeling #
+# -------------------------------------- #
+
+# loading network 'randomREHsmall'
+data(randomREHsmall)
+
+# processing small random network
+actor_randomREH &lt;- remify(edgelist = randomREHsmall$edgelist,
+       directed = TRUE,
+       ordinal = FALSE,
+       model = "actor",
+       actors = randomREHsmall$actors,
+       origin = randomREHsmall$origin)
+       
+# summary
+summary(actor_randomREH)
+
+# dimensions of the processed network
+dim(actor_randomREH)
+
+# ------------------------------------ #
+# for more information about remify()  #
+# check: vignette(package="remify")    #
+# ------------------------------------ #
+ 
+</code></pre>
+
+
+</div>

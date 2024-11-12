@@ -1,0 +1,271 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rpt</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Repeatability Estimation for Gaussian and Non-Gaussian Data</h2>
+
+<h3>Description</h3>
+
+<p>A wrapper function for (adjusted) repeatability estimation from generalized linear mixed-effects 
+models fitted by restricted maximum likelihood (REML). Calls 
+specialised functions depending of the choice of datatype and method.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rpt(formula, grname, data, datatype = c("Gaussian", "Binary",
+  "Proportion", "Poisson"), link = c("logit", "probit", "log", "sqrt"),
+  CI = 0.95, nboot = 1000, npermut = 0, parallel = FALSE,
+  ncores = NULL, ratio = TRUE, adjusted = TRUE, expect = "meanobs",
+  rptObj = NULL, update = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>Formula as used e.g. by lmer. The grouping factor(s) of
+interest needs to be included as a random effect, e.g. '(1|groups)'.
+Covariates and additional random effects can be included to estimate adjusted 
+repeatabilities.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grname</code></td>
+<td>
+<p>A character string or vector of character strings giving the
+name(s) of the grouping factor(s), for which the repeatability should
+be estimated. Spelling needs to match the random effect names as given in <code>formula</code> 
+and terms have to be set in quotation marks. The reseved terms "Residual", 
+"Overdispersion" and "Fixed" allow the estimation of overdispersion variance, residual 
+variance and variance explained by fixed effects, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A dataframe that contains the variables included in the <code>formula</code>
+and <code>grname</code> arguments.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>datatype</code></td>
+<td>
+<p>Character string specifying the data type ('Gaussian', 
+'Binary', 'Proportion', 'Poisson').</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>link</code></td>
+<td>
+<p>Character string specifying the link function. Ignored for 
+'Gaussian' datatype.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>CI</code></td>
+<td>
+<p>Width of the required confidence interval between 0 and 1 (defaults to 
+0.95).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nboot</code></td>
+<td>
+<p>Number of parametric bootstraps for interval estimation 
+(defaults to 1000). Larger numbers of bootstraps give a better
+asymtotic CI, but may be time-consuming. Bootstrapping can be switch off by setting 
+<code>nboot = 0</code>. See also <strong>Details</strong> below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>npermut</code></td>
+<td>
+<p>Number of permutations used when calculating asymptotic p-values 
+(defaults to 0). Larger numbers of permutations give a better
+asymtotic p-values, but may be time-consuming (in particular when multiple grouping factors
+are specified). Permutaton tests can be switch off by setting <code>npermut = 0</code>. 
+See also <strong>Details</strong> below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel</code></td>
+<td>
+<p>Boolean to express if parallel computing should be applied (defaults to FALSE). 
+If TRUE, bootstraps and permutations will be distributed across multiple cores.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncores</code></td>
+<td>
+<p>Specifying the number of cores to use for parallelization. On default,
+all but one of the available cores are used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ratio</code></td>
+<td>
+<p>Boolean to express if variances or ratios of variance should be estimated. 
+If FALSE, the variance(s) are returned without forming ratios. If TRUE (the default) ratios 
+of variances (i.e. repeatabilities) are estimated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adjusted</code></td>
+<td>
+<p>Boolean to express if adjusted or unadjusted repeatabilities should be estimated. 
+If TRUE (the default), the variances explained by fixed effects (if any) will not
+be part of the denominator, i.e. repeatabilities are calculated after controlling for 
+variation due to covariates. If FALSE, the varianced explained by fixed effects (if any) will
+be added to the denominator.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>expect</code></td>
+<td>
+<p>A character string specifying the method for estimating the expectation in Poisson models
+with log link and in Binomial models with logit link (in all other cases the agrument is ignored). 
+The only valid terms are 'meanobs' and 'latent' (and 'liability for binary and proportion data). 
+With the default 'meanobs', the expectation is 
+estimated as the mean of the observations in the sample. With 'latent', the expectation is
+estimated from estiamtes of the intercept and variances on the link scale. While this is a 
+preferred solution, it is susceptible to the distribution of fixed effect covariates and gives 
+appropriate results typically only when all covariances are centered to zero. With 'liability' 
+estimates follow formulae as presented in Nakagawa &amp; Schielzeth (2010). Liability estimates tend 
+to be slightly higher.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rptObj</code></td>
+<td>
+<p>The output of a rptR function. Can be specified in combination with update = TRUE
+to update bootstraps and permutations</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>update</code></td>
+<td>
+<p>If TRUE, the rpt object to be updated has to be inputted with the rptObj argument.
+The function just updates the permutations and bootstraps, so make sure to specify all other
+arguments excactly like for the rpt object specified in rptObj.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For <code>datatype='Gaussian'</code> calls function rptGaussian,  
+for <code>datatype='Poisson'</code> calls function rptPoisson,   
+for <code>datatype='Binary'</code> calls function rptBinary,   
+for <code>datatype='Proportion'</code> calls function rptProportion.  
+</p>
+<p>Confidence intervals and standard errors are estimated by <strong>parametric bootstrapping</strong>. 
+Under the assumption that the model is specified correctly, the fitted model can be used
+to generate response values that could potentially be obversed. Differences between the original 
+data and the simulated response from the fitted model arise from sampling variation. The full model
+is then fitted to each simuated response vector. The distribution of estimates across all 
+<code>nboot</code> replicates represents the design- and model-specific sampling variance and hence 
+uncertainty of the estimates.
+</p>
+<p>In addition to the likelihood-ratio test, the package uses <strong>permutation tests</strong> for null 
+hypothesis testing. The general idea is to randomize data under the null hypothesis of no effect 
+and then test in how many cases the estimates from the model reach or exceed those in the observed 
+data. In the simplest case, a permutation test randomizes the vector of group identities against 
+the response vector many times, followed by refitting the model and recalculating the repeatabilities.
+This provides a null distribution for the case that group identities are unrelated to the response. 
+However, in more complex models involving multiple random effects and/or fixed effects, such a 
+procedure will also break the data structure between the grouping factor of interest and other 
+aspects of the experimental design. Therefore <code>rptR</code> implements a more robust alternative 
+which works by fitting a model withouth the grouping factor of interest. It then adds the 
+randomized residuals to the fitted values of this model, followed by recalculating the repeatability 
+from the full model. This procedure maintains the general data structure and any effects other 
+than the grouping effect of interest. The number of permutations can be adjusted with the <code>nperm</code> argument. 
+By the logic of a null hypothsis testing, the observed data is one possible (albeit maybe unlikely) 
+outcome under the null hypothesis. So the observed data is always included as one 'randomization' and 
+the P value can thus never be lower than <code>1/nperm</code>, because at least one randomization is as 
+exteme as the observed data.   
+</p>
+<p>Note also that the <strong>likelihood-ratio test</strong>, since testing variances at the boundary of the 
+possible parameter range (i.e. against zero), uses a mixture distribution of Chi-square 
+distrbutions with zero and one degree of freedom as a reference. This ist equivalent to deviding 
+the P value derived from a Chi-square distribution with one degree of freedom by two.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns an object of class <code>rpt</code>. See specific functions for details.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Holger Schielzeth  (holger.schielzeth@uni-jena.de), 
+Shinichi Nakagawa (s.nakagawa@unsw.edu.au),
+Martin Stoffel (martin.adam.stoffel@gmail.com)
+</p>
+
+
+<h3>References</h3>
+
+<p>Nakagawa, S. &amp; Schielzeth, H. (2010) <em>Repeatability for 
+Gaussian and non-Gaussian data: a practical guide for biologists</em>. 
+Biological Reviews 85: 935-956.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>rptR
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># load data
+data(BeetlesBody)
+data(BeetlesMale)
+data(BeetlesFemale)
+
+#  prepare proportion data
+BeetlesMale$Dark &lt;- BeetlesMale$Colour
+BeetlesMale$Reddish &lt;- (BeetlesMale$Colour-1)*-1
+BeetlesColour &lt;- aggregate(cbind(Dark, Reddish) ~ Treatment + Population + Container, 
+     data=BeetlesMale, FUN=sum)
+
+# Note: nboot and npermut are set to 0 for speed reasons. Use larger numbers
+# for the real analysis.
+
+# gaussian data (example with a single random effect)
+rpt(BodyL ~ (1|Population), grname="Population", data=BeetlesBody, 
+     nboot=0, npermut=0, datatype = "Gaussian")
+
+# poisson data (example with two grouping levels and adjusted for fixed effect)
+rpt(Egg ~ Treatment + (1|Container) + (1|Population), grname=c("Population"), 
+     data = BeetlesFemale, nboot=0, npermut=0, datatype = "Poisson")
+
+## Not run: 
+
+# binary data (example with estimation of the fixed effect variance)
+rpt(Colour ~ Treatment + (1|Container) + (1|Population), 
+     grname=c("Population", "Container", "Fixed"), 
+     data=BeetlesMale, nboot=0, npermut=0, datatype = "Binary", adjusted = FALSE)
+
+# proportion data (example for the estimation of raw variances, 
+# including residual and fixed-effect variance)
+rpt(cbind(Dark, Reddish) ~ Treatment + (1|Population), 
+     grname=c("Population", "Residual", "Fixed"), data=BeetlesColour,
+     nboot=0, npermut=0, datatype = "Proportion", ratio=FALSE)
+
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

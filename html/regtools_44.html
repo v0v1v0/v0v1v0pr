@@ -1,0 +1,209 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>krsFit</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Tools for Neural Networks</h2>
+
+<h3>Description</h3>
+
+<p>Tools to complement existing neural networks software, notably 
+a more "R-like" wrapper to fitting data with R's <span class="pkg">keras</span> package.  
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">krsFit(x,y,hidden,acts=rep("relu",length(hidden)),learnRate=0.001,
+   conv=NULL,xShape=NULL,classif=TRUE,nClass=NULL,nEpoch=30,
+   scaleX=TRUE,scaleY=TRUE)
+krsFitImg(x,y,hidden=c(100,100),acts=rep("relu",length(hidden)),
+    nClass,nEpoch=30) 
+## S3 method for class 'krsFit'
+predict(object,...)
+diagNeural(krsFitOut)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>An object of class 'krsFit'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Data points to be predicted, 'newx'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>X data, predictors, one row per data point, in the training
+set.  Must be a matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Numeric vector of Y values.  In classification case
+must be integers, not an R factor, and take on the values 0,1,2,...,
+<code>nClass</code>-1</p>
+</td>
+</tr>
+</table>
+<p>.
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>hidden</code></td>
+<td>
+<p>Vector of number of units per 
+hidden layer, or the rate for a dropout layer.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>acts</code></td>
+<td>
+<p>Vector of names of the activation functions, one per
+hidden layer.  Choices inclde 'relu', 'sigmoid', 'tanh', 'softmax',
+'elu', 'selu'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>learnRate</code></td>
+<td>
+<p>Learning rate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>conv</code></td>
+<td>
+<p>R list specifying the convolutional layers, if any.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xShape</code></td>
+<td>
+<p>Vector giving the number of rows and columns, and in the
+convolutional case with multiple channels, the number of channels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>classif</code></td>
+<td>
+<p>If TRUE, indicates a classification problem.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nClass</code></td>
+<td>
+<p>Number of classes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nEpoch</code></td>
+<td>
+<p>Number of epochs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>krsFitOut</code></td>
+<td>
+<p>An object returned by <code>krstFit</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scaleX</code></td>
+<td>
+<p>If TRUE, scale X columns.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scaleY</code></td>
+<td>
+<p>If TRUE, scale Y columns.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The <code>krstFit</code> function is a wrapper for the entire pipeline
+in fitting the R <span class="pkg">keras</span> package to a dataset:  Defining the model,
+compiling, stating the inputs and so on.  As a result, the wrapper
+allows the user to skip those details (or not need to even know them),
+and define the model in a manner more familiar to R users.
+</p>
+<p>The paired <code>predict.krsFit</code> takes as its first argument the output
+of <code>krstFit</code>, and <code>newx</code>, the points to be predicted.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Norm Matloff
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Not run: 
+library(keras)
+data(peDumms) 
+ped &lt;- peDumms[,c(1,20,22:27,29,32,31)]
+# predict wage income
+x &lt;- ped[,-11] 
+y &lt;- ped[,11] 
+z &lt;- krsFit(x,y,c(50,50,50),classif=FALSE,nEpoch=25) 
+preds &lt;- predict(z,x) 
+mean(abs(preds-y))  # something like 25000
+
+x &lt;- ped[,-(4:8)] 
+y &lt;- ped[,4:8] 
+y &lt;- dummiesToInt(y,FALSE) - 1
+z &lt;- krsFit(x,y,c(50,50,0.20,50),classif=TRUE,nEpoch=175,nClass=6) 
+preds &lt;- predict(z,x)
+mean(preds == y)   # something like 0.39
+
+# obtain MNIST training and test sets; the following then uses the
+# example network of 
+
+# https://databricks-prod-cloudfront.cloud.databricks.com/
+# public/4027ec902e239c93eaaa8714f173bcfc/2961012104553482/
+# 4462572393058129/1806228006848429/latest.html
+
+# converted to use the krsFit wrapper
+
+x &lt;- mntrn[,-785] / 255 
+y &lt;- mntrn[,785]
+xShape &lt;- c(28,28)
+
+# define convolutional layers
+conv1 &lt;- list(type='conv2d',filters=32,kern=3)
+conv2 &lt;- list(type='pool',kern=2)
+conv3 &lt;- list(type='conv2d',filters=64,kern=3) 
+conv4 &lt;- list(type='pool',kern=2)
+conv5 &lt;- list(type='drop',drop=0.5)
+
+# call wrapper, 1 dense hidden layer of 128 units, then dropout layer
+# with proportion 0.5
+z &lt;- krsFit(x,y,conv=list(conv1,conv2,conv3,conv4,conv5),c(128,0.5),
+   classif=TRUE,nClass=10,nEpoch=10,xShape=c(28,28),scaleX=FALSE,scaleY=FALSE)
+
+# try on test set
+preds &lt;- predict(z,mntst[,-785]/255)
+mean(preds == mntst[,785])  # 0.98 in my sample run
+
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

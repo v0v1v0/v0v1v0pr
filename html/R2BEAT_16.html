@@ -1,0 +1,192 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>prepareInputToAllocation2</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Input dataframes for R2BEAT two-stages sample design when both sampling frame and a previous round of the survey are available
+</h2>
+
+<h3>Description</h3>
+
+<p>In case of scenario 2 (at least one previous round of the survey available), prepares the following input dataframes for R2BEAT two-stages sample design starting from the sampling frame:
+1. strata
+2. deff
+3. effst
+4. rho
+5. PSU_file
+6. des_file
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">prepareInputToAllocation2 ( 
+  samp_frame,
+  RGdes, 
+  RGcal, 
+  id_PSU, 
+  id_SSU, 
+  strata_var, 
+  target_vars, 
+  deff_var, 
+  domain_var,
+  delta,
+  minimum) 
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>samp_frame</code></td>
+<td>
+<p>The dataframe containing sampling units in the reference population.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>RGdes</code></td>
+<td>
+<p>The 'design' ReGenesees object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>RGcal</code></td>
+<td>
+<p>The 'calibration' ReGenesees object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id_PSU</code></td>
+<td>
+<p>variables used as identifiers in sampling frame.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id_SSU</code></td>
+<td>
+<p>variables used as identifiers in sampling frame.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>strata_var</code></td>
+<td>
+<p>stratification variable used in sampling frame.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target_vars</code></td>
+<td>
+<p>target variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deff_var</code></td>
+<td>
+<p>stratification variable to be used when calculating deff.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>domain_var</code></td>
+<td>
+<p>the variable used to identify the domain of interest.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>delta</code></td>
+<td>
+<p>average number of analysis units per sampling unit.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minimum</code></td>
+<td>
+<p>minimum number of SSU to be selected from a PSU.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list containing: (1) strata, (2) deff, (3) effst, (4) rho, (5) PSU_file, (6) des_file
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Giulio Barcaroli</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+library(readr)
+samp &lt;- read_rds("https://github.com/barcaroli/R2BEAT_workflows/blob/master/sample.rds?raw=true")
+pop &lt;- read_rds("https://github.com/barcaroli/R2BEAT_workflows/blob/master/pop.RDS?raw=true")
+library(R2BEAT)
+str(samp)
+## Sample design description
+library(ReGenesees)
+samp$stratum_2 &lt;- as.factor(samp$stratum_2)
+sample.des &lt;- e.svydesign(samp, 
+                          ids= ~ municipality + id_hh, 
+                          strata = ~ stratum_2, 
+                          weights = ~ weight,
+                          self.rep.str = ~ SR,
+                          check.data = TRUE)
+## Find and collapse lonely strata
+ls &lt;- find.lon.strata(sample.des)
+if (!is.null(ls)) sample.des &lt;- collapse.strata(sample.des)
+## Calibration with known totals
+totals &lt;- pop.template(sample.des,
+             calmodel = ~ sex : cl_age, 
+             partition = ~ region)
+totals &lt;- fill.template(pop, totals, mem.frac = 10)
+sample.cal &lt;- e.calibrate(sample.des, 
+                          totals,
+                          calmodel = ~ sex : cl_age, 
+                          partition = ~ region,
+                          calfun = "logit",
+                          bounds = c(0.3, 2.6), 
+                          aggregate.stage = 2,
+                          force = FALSE)
+samp_frame &lt;- pop
+RGdes &lt;- sample.des
+RGcal &lt;- sample.cal
+strata_var &lt;- c("stratum")      
+target_vars &lt;- c("income_hh",
+                 "active",
+                 "inactive",
+                 "unemployed")   
+weight_var &lt;- "weight"
+deff_var &lt;- "stratum"            
+id_PSU &lt;- c("municipality")      
+id_SSU &lt;- c("id_hh")             
+domain_var &lt;- c("region") 
+delta &lt;- 1                   
+minimum &lt;- 50     
+inp &lt;- prepareInputToAllocation2 ( 
+  samp_frame,
+  RGdes, 
+  RGcal, 
+  id_PSU, 
+  id_SSU, 
+  strata_var, 
+  target_vars, 
+  deff_var, 
+  domain_var,
+  delta,
+  minimum) 
+head(inp$strata)
+head(inp$deff)
+head(inp$effst)
+head(inp$rho)
+head(inp$psu_file)
+head(inp$des_file)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

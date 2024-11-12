@@ -1,0 +1,219 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>RRsimu</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Monte Carlo simulation for one or two RR variables</h2>
+
+<h3>Description</h3>
+
+<p>Simulate and analyse bivariate data including either one RR
+variable (either correlation, logistic, or linear regression model) or two
+RR variables (only correlations). Useful for power analysis, parametric
+bootstraps or for testing the effects of noncompliance on the stability of
+estimates.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">RRsimu(
+  numRep,
+  n,
+  pi,
+  model,
+  p,
+  cor = 0,
+  b.log = 0,
+  complyRates = c(1, 1),
+  sysBias = c(0, 0),
+  method = c("RRuni", "RRcor", "RRlog", "RRlin"),
+  alpha = 0.05,
+  groupRatio = 0.5,
+  MLest = FALSE,
+  getPower = TRUE,
+  nCPU = 1
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>numRep</code></td>
+<td>
+<p>number of replications</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>sample size</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pi</code></td>
+<td>
+<p>true proportion of carriers of sensitive attribute (for 2 RR
+variables: <code>vector</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>either one or two RR model (as <code>vector</code>), see
+<code>RRuni</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>randomization probability (for 2 RR variables: a <code>list</code>). See
+<code>RRuni</code>  for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cor</code></td>
+<td>
+<p>true Pearson-correlation used for data generation (for
+<code>RRcor</code>). Can also be used to generate data with two
+dichotomous RR variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>b.log</code></td>
+<td>
+<p>true regression coefficient in logistic regression (for
+<code>RRlog</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>complyRates</code></td>
+<td>
+<p>vector with two values giving the proportions of
+participants who adhere to the instructions in the subset with or without
+the sensitive attribute, respectively (for 2 RR variables: a <code>list</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sysBias</code></td>
+<td>
+<p>probability of responding 'yes' (coded as 1 in the RR
+variable) in case of non-compliance for carriers and non-carriers,
+respectively. See <code>RRgen</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>vector specifying which RR methods to be used in each
+replication. For a single RR variable, the methods <code>RRuni</code>,
+<code>RRcor</code>,<code>RRlog</code>, and <code>RRlin</code> are
+available. For 2 RR variables, only <code>RRcor</code> is available.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>significance threshold for testing the logistic regression
+parameter <code>beta</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>groupRatio</code></td>
+<td>
+<p>proportion of participants in group 1. Only for two-group
+models (e.g., <code>"SLD"</code>) (for 2 RR variables: <code>vector</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>MLest</code></td>
+<td>
+<p>concerns <code>RRuni</code>: whether to use <code>optim</code> to get
+ML instead of moment estimates (only relevant if pi is outside of [0,1])</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>getPower</code></td>
+<td>
+<p>whether to compute power for <code>method="RRcor"</code> (performs
+an additional bootstrap assuming independence)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nCPU</code></td>
+<td>
+<p>either the number of CPU cores or a cluster initialized via
+<code>makeCluster</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For a single RR variable:
+</p>
+<p>The parameter <code>b.log</code> is the slope-coefficient for the true, latent
+values in a logistic regression model that is used for data generation.
+</p>
+<p>The argument <code>cor</code> is used for data generation for linear models. The
+directly measured covariate is sampled from a normal distribution with
+shifted means, depending on the true state on the sensitive attribute
+(i.e., the true, underlying values on the RR variable). For dichotomous RR
+variables, this corresponds to the assumption of an ordinary t-test, where
+the dependent variable is normally distributed within groups with equal
+variance. The difference in means is chosen in a way, to obtain the
+point-biserial correlation defined by <code>cor</code>.
+</p>
+<p>For two RR variables:
+</p>
+<p><code>cor</code> has to be used. In case of two dichotomous RR variables, the
+true group membership of individuals is sampled from a 2x2 cross table.
+Within this table, probabilities are chosen in a way, to obtain the
+point-tetrachoric correlation defined by <code>cor</code>
+</p>
+<p>Note, that for the FR model with multiple response categories (e.g., from 0
+to 4), the specified <code>cor</code> is not the exact target of the sampling
+procedure. It assumes a normal distribution for each true state, with
+constant differences between the groups (i.e., it assumes an interval
+scaled variable).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list containing </p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>parEsts</code></td>
+<td>
+<p>matrix containing the estimated
+parameters</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>results</code></td>
+<td>
+<p>matrix  with mean parameters, standard errors,
+and number of samples to which the respective method could not be fitted</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>power</code></td>
+<td>
+<p>vector with the estimated power of the selected randomized
+response procedures</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Not run: Simulate data according to the Warner model
+# mcsim &lt;-  RRsimu(numRep=100, n=300, pi=.4,
+#                  model="Warner", p=.2, cor=.3)
+# print(mcsim)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,123 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rosenblatt</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>(Inverse) Rosenblatt transform</h2>
+
+<h3>Description</h3>
+
+<p>The Rosenblatt transform takes data generated from a model and turns it into
+independent uniform variates, The inverse Rosenblatt transform computes
+conditional quantiles and can be used simulate from a stochastic model,
+see <em>Details</em>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rosenblatt(x, model, cores = 1)
+
+inverse_rosenblatt(u, model, cores = 1)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>matrix of evaluation points; must be in <code class="reqn">(0, 1)^d</code> for copula
+models.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>a model object; classes currently supported are
+<code>bicop_dist()</code>, <code>vinecop_dist()</code>, and <code>vine_dist()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cores</code></td>
+<td>
+<p>if <code style="white-space: pre;">⁠&gt;1⁠</code>, computation is parallelized over <code>cores</code> batches (rows
+of <code>u</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>u</code></td>
+<td>
+<p>matrix of evaluation points; must be in <code class="reqn">(0, 1)^d</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The Rosenblatt transform (Rosenblatt, 1952) <code class="reqn">U = T(V)</code> of a random vector
+<code class="reqn">V = (V_1,\ldots,V_d) ~ F</code> is defined as
+</p>
+<p style="text-align: center;"><code class="reqn">
+  U_1= F(V_1), U_{2} = F(V_{2}|V_1), \ldots, U_d =F(V_d|V_1,\ldots,V_{d-1}),
+</code>
+</p>
+
+<p>where <code class="reqn">F(v_k|v_1,\ldots,v_{k-1})</code> is the conditional distribution of
+<code class="reqn">V_k</code> given <code class="reqn">V_1 \ldots, V_{k-1}, k = 2,\ldots,d</code>. The vector
+<code class="reqn">U  = (U_1, \dots, U_d)</code> then contains independent standard uniform
+variables. The inverse operation
+</p>
+<p style="text-align: center;"><code class="reqn">
+  V_1 = F^{-1}(U_1), V_{2} = F^{-1}(U_2|U_1), \ldots,
+  V_d =F^{-1}(U_d|U_1,\ldots,U_{d-1}),
+</code>
+</p>
+
+<p>can be used to simulate from a distribution. For any copula <code class="reqn">F</code>, if
+<code class="reqn">U</code> is a vector of independent random variables, <code class="reqn">V = T^{-1}(U)</code> has
+distribution <code class="reqn">F</code>.
+</p>
+<p>The formulas above assume a vine copula model with order <code class="reqn">d, \dots, 1</code>.
+More generally, <code>rosenblatt()</code> returns the variables
+</p>
+<p style="text-align: center;"><code class="reqn">
+  U_{M[d + 1- j, j]}= F(V_{M[d + 1- j, j]} | V_{M[d - j, j - 1]}, \dots, V_{M[1, 1]}),
+</code>
+</p>
+
+<p>where <code class="reqn">M</code> is the structure matrix. Similarly, <code>inverse_rosenblatt()</code>
+returns
+</p>
+<p style="text-align: center;"><code class="reqn">
+  V_{M[d + 1- j, j]}= F^{-1}(U_{M[d + 1- j, j]} | U_{M[d - j, j - 1]}, \dots, U_{M[1, 1]}).
+</code>
+</p>
+
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># simulate data with some dependence
+x &lt;- replicate(3, rnorm(200))
+x[, 2:3] &lt;- x[, 2:3] + x[, 1]
+pairs(x)
+
+# estimate a vine distribution model
+fit &lt;- vine(x, copula_controls = list(family_set = "par"))
+
+# transform into independent uniforms
+u &lt;- rosenblatt(x, fit)
+pairs(u)
+
+# inversion
+pairs(inverse_rosenblatt(u, fit))
+
+# works similarly for vinecop models
+vc &lt;- fit$copula
+rosenblatt(pseudo_obs(x), vc)
+</code></pre>
+
+
+</div>

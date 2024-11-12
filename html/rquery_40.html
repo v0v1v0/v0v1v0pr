@@ -1,0 +1,117 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>lookup_by_column</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Use one column to pick values from other columns.</h2>
+
+<h3>Description</h3>
+
+<p>The <code>pick</code> column selects values from the columns it names (per-row).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">lookup_by_column(
+  source,
+  pick,
+  result,
+  ...,
+  tmp_name_source = wrapr::mk_tmp_name_source("qn"),
+  temporary = TRUE,
+  qualifiers = NULL,
+  f_dt_factory = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>source</code></td>
+<td>
+<p>source to select from (relop or data.frame).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pick</code></td>
+<td>
+<p>character scalar, name of column to control value choices.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>result</code></td>
+<td>
+<p>character scalar, name of column to place values in.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>force later arguments to be bound by name</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tmp_name_source</code></td>
+<td>
+<p>wrapr::mk_tmp_name_source(), temporary name generator.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>temporary</code></td>
+<td>
+<p>logical, if TRUE use temporary tables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>qualifiers</code></td>
+<td>
+<p>optional named ordered vector of strings carrying additional db hierarchy terms, such as schema.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>f_dt_factory</code></td>
+<td>
+<p>optional signature f_dt_factory(pick, result) returns function with signature f_dt(d, nd) where d is a data.table.  The point is the function must come from a data.table enabled package. Please see <code>rqdatatable::make_dt_lookup_by_column</code> for an example.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+df = data.frame(x = c(1, 2, 3, 4),
+                y = c(5, 6, 7, 8),
+                choice = c("x", "y", "x", "z"),
+                stringsAsFactors = FALSE)
+
+# library("rqdatatable")
+# df %.&gt;%
+#   lookup_by_column(., "choice", "derived")
+
+if (requireNamespace("DBI", quietly = TRUE) &amp;&amp;
+    requireNamespace("RSQLite", quietly = TRUE)) {
+  db &lt;- DBI::dbConnect(RSQLite::SQLite(),
+                       ":memory:")
+  RSQLite::initExtension(db)
+  dr &lt;- rq_copy_to(db, "dRemote", df,
+                   overwrite = TRUE,
+                   temporary = TRUE)
+
+  ops &lt;- dr %.&gt;%
+    lookup_by_column(., "choice", "derived")
+  cat(format(ops))
+
+  execute(db, ops) %.&gt;%
+     print(.)
+
+  DBI::dbDisconnect(db)
+}
+
+
+</code></pre>
+
+
+</div>

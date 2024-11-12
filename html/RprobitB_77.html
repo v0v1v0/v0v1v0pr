@@ -1,0 +1,140 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>update_classes_wb</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Weight-based update of latent classes</h2>
+
+<h3>Description</h3>
+
+<p>This function updates the latent classes based on their class weights.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">update_classes_wb(Cmax, epsmin, epsmax, distmin, s, b, Omega)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Cmax</code></td>
+<td>
+<p>The maximum number of classes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>epsmin</code></td>
+<td>
+<p>The threshold weight (between 0 and 1) for removing a class.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>epsmax</code></td>
+<td>
+<p>The threshold weight (between 0 and 1) for splitting a class.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>distmin</code></td>
+<td>
+<p>The (non-negative) threshold difference in class means for joining two
+classes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s</code></td>
+<td>
+<p>The vector of class weights of length <code>C</code>.
+Set to <code>NA</code> if <code>P_r = 0</code>.
+For identifiability, the vector must be non-ascending.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>b</code></td>
+<td>
+<p>The matrix of class means as columns of dimension <code>P_r</code> x <code>C</code>.
+Set to <code>NA</code> if <code>P_r = 0</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Omega</code></td>
+<td>
+<p>The matrix of class covariance matrices as columns of dimension
+<code>P_r*P_r</code> x <code>C</code>.
+Set to <code>NA</code> if <code>P_r = 0</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The updating scheme bases on the following rules:
+</p>
+
+<ul>
+<li>
+<p> We remove class <code class="reqn">c</code>, if <code class="reqn">s_c&lt;\epsilon_{min}</code>, i.e. if the
+class weight <code class="reqn">s_c</code> drops below some threshold
+<code class="reqn">\epsilon_{min}</code>.
+This case indicates that class <code class="reqn">c</code> has a negligible impact on the
+mixing distribution.
+</p>
+</li>
+<li>
+<p> We split class <code class="reqn">c</code> into two classes <code class="reqn">c_1</code> and <code class="reqn">c_2</code>, if
+<code class="reqn">s_c&gt;\epsilon_{max}</code>.
+This case indicates that class <code class="reqn">c</code> has a high influence on the mixing
+distribution whose approximation can potentially be improved by
+increasing the resolution in directions of high variance.
+Therefore, the class means <code class="reqn">b_{c_1}</code> and <code class="reqn">b_{c_2}</code> of the new
+classes <code class="reqn">c_1</code> and <code class="reqn">c_2</code> are shifted in opposite directions from
+the class mean <code class="reqn">b_c</code> of the old class <code class="reqn">c</code> in the direction of the
+highest variance.
+</p>
+</li>
+<li>
+<p> We join two classes <code class="reqn">c_1</code> and <code class="reqn">c_2</code> to one class <code class="reqn">c</code>, if
+<code class="reqn">||b_{c_1} - b_{c_2}||&lt;\epsilon_{distmin}</code>, i.e. if
+the euclidean distance between the class means <code class="reqn">b_{c_1}</code> and
+<code class="reqn">b_{c_2}</code> drops below some threshold <code class="reqn">\epsilon_{distmin}</code>.
+This case indicates location redundancy which should be repealed. The
+parameters of <code class="reqn">c</code> are assigned by adding the values of <code class="reqn">s</code> from
+<code class="reqn">c_1</code> and <code class="reqn">c_2</code> and averaging the values for <code class="reqn">b</code> and
+<code class="reqn">\Omega</code>.
+The rules are executed in the above order, but only one rule per iteration
+and only if <code>Cmax</code> is not exceeded.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>A list of updated values for <code>s</code>, <code>b</code>, and <code>Omega</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">### parameter settings
+s &lt;- c(0.8,0.2)
+b &lt;- matrix(c(1,1,1,-1), ncol=2)
+Omega &lt;- matrix(c(0.5,0.3,0.3,0.5,1,-0.1,-0.1,0.8), ncol=2)
+
+### Remove class 2
+RprobitB:::update_classes_wb(Cmax = 10, epsmin = 0.3, epsmax = 0.9, distmin = 1,
+                             s = s, b = b, Omega = Omega)
+
+### Split class 1
+RprobitB:::update_classes_wb(Cmax = 10, epsmin = 0.1, epsmax = 0.7, distmin = 1,
+                             s = s, b = b, Omega = Omega)
+
+### Join classes
+RprobitB:::update_classes_wb(Cmax = 10, epsmin = 0.1, epsmax = 0.9, distmin = 3,
+                             s = s, b = b, Omega = Omega)
+</code></pre>
+
+
+</div>

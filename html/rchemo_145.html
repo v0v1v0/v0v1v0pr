@@ -1,0 +1,350 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>sopls</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Block dimension reduction by SO-PLS</h2>
+
+<h3>Description</h3>
+
+<p>Function <code>soplsr</code> implements dimension reductions of pre-selected blocks of variables (= set of columns) of a reference (= training) matrix, by sequential orthogonalization-PLS (said "SO-PLS"). 
+</p>
+<p>Function <code>soplsrcv</code> perfoms repeteated cross-validation of an SO-PLS model in order to choose the optimal lv combination from the different blocks.
+</p>
+<p>SO-PLS is described for instance in Menichelli et al. (2014), Biancolillo et al. (2015) and Biancolillo (2016). 
+</p>
+<p>The block reduction consists in calculating latent variables (= scores) for each block, each block being sequentially orthogonalized to the information computed from the previous blocks.
+</p>
+<p>The function allows giving a priori weights to the rows of the reference matrix in the calculations.
+</p>
+<p><b>Auxiliary functions</b>
+</p>
+<p><code>transform</code> Calculates the LVs for any new matrices list <code class="reqn">Xlist</code> from the model.
+</p>
+<p><code>predict</code> Calculates the predictions for any new matrices list <code class="reqn">Xlist</code> from the model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">
+soplsr(Xlist, Y, Xscaling = c("none", "pareto", "sd")[1], 
+Yscaling = c("none", "pareto", "sd")[1], weights = NULL, nlv)
+
+soplsrcv(Xlist, Y, Xscaling = c("none", "pareto", "sd")[1], 
+Yscaling = c("none", "pareto", "sd")[1], weights = NULL, nlvlist = list(), 
+nbrep = 30, cvmethod = "kfolds", seed = 123, samplingk = NULL, nfolds = 7, 
+optimisation = c("global","sequential")[1], 
+selection = c("localmin","globalmin","1std")[1], majorityvote = FALSE)
+
+
+## S3 method for class 'Soplsr'
+transform(object, X, ...)  
+
+## S3 method for class 'Soplsr'
+predict(object, X, ...)  
+
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Xlist</code></td>
+<td>
+<p>A list of matrices or data frames of reference (= training) observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>For the auxiliary functions: list of new X-data, with the same variables than the training X-data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>A <code class="reqn">n x q</code> matrix or data frame, or a vector of length <code class="reqn">n</code>, of reference (= training) responses.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Xscaling</code></td>
+<td>
+<p>vector (of length Xlist) of variable scaling for each datablock, among "none" (mean-centering only), "pareto" (mean-centering and pareto scaling), "sd" (mean-centering and unit variance scaling). If "pareto" or "sd", uncorrected standard deviation is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Yscaling</code></td>
+<td>
+<p>variable scaling for the Y-block, among "none" (mean-centering only), "pareto" (mean-centering and pareto scaling), "sd" (mean-centering and unit variance scaling). If "pareto" or "sd", uncorrected standard deviation is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>a priori weights to the rows of the reference matrix in the calculations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nlv</code></td>
+<td>
+<p>A vector of same length as the number of blocks defining the number of scores to calculate for each block, or a single number. In this last case, the same number of scores is used for all the blocks.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nlvlist</code></td>
+<td>
+<p>A list of same length as the number of X-blocks. Each component of the list gives the number of PLS components of the corresponding X-block to test.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nbrep</code></td>
+<td>
+<p>An integer, setting the number of CV repetitions. Default value is 30.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cvmethod</code></td>
+<td>
+<p>"kfolds" for k-folds cross-validation, or "loo" for leave-one-out.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>a numeric. Seed used for the repeated resampling, and if cvmethod is "kfolds" and samplingk is not NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>samplingk</code></td>
+<td>
+<p>A vector of length n. The elements are the values of a qualitative variable used for stratified partition creation. If NULL, the first observation is set in the first fold, the second observation in the second fold, etc...</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nfolds</code></td>
+<td>
+<p>An integer, setting the number of partitions to create. Default value is 7.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optimisation</code></td>
+<td>
+<p>"global" or "sequential" optimisation of the number of components. If "sequential", the optimal lv number is found for the first X-block, then for the 2nd one, etc...</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>selection</code></td>
+<td>
+<p>a character indicating the selection method to use to choose the optimal combination of components, among "localmin","globalmin","1std". If "localmin": the optimal combination corresponds to the first local minimum of the mean CV rmse. If "globalmin" : the optimal combination corresponds to the minimum mean CV rmse. If "1std" (one standard errror rule): it corresponds to the first combination after which the mean cross-validated rmse does not decrease significantly.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>majorityvote</code></td>
+<td>
+<p>only if optimisation is "global" or one X-block. If majorityvote is TRUE, the optimal combination is chosen for each Y variable, with the chosen selection, before a majority vote. If majorityvote is "FALSE, the optimal combination is simply chosen with the chosen selection.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>For the auxiliary functions: A fitted model, output of a call to the main functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>For the auxiliary functions: Optional arguments. Not used.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>For <code>soplsr</code>:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>fm</code></td>
+<td>
+<p>A list of the plsr models.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>T</code></td>
+<td>
+<p>A matrix with the concatenated scores calculated from the X-blocks.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pred</code></td>
+<td>
+<p>A matrice <code class="reqn">n x q</code> with the calculated fitted values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xmeans</code></td>
+<td>
+<p>list of vectors of X-mean values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ymeans</code></td>
+<td>
+<p>vector of Y-mean values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xscales</code></td>
+<td>
+<p>list of vectors of X-scaling values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yscales</code></td>
+<td>
+<p>vector of Y-scaling values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>b</code></td>
+<td>
+<p>A list of X-loading weights, used in the orthogonalization step.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>Weights applied to the training observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nlv</code></td>
+<td>
+<p>vector of numbers of latent variables from each X-block.</p>
+</td>
+</tr>
+</table>
+<p>For <code>transform.Soplsr</code>:  the LVs calculated for the new matrices list <code class="reqn">Xlist</code> from the model.
+</p>
+<p>For <code>predict.Soplsr</code>: predicted values for each observation
+</p>
+<p>For <code>soplsrcv</code>:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>lvcombi</code></td>
+<td>
+<p>matrix or list of matrices, of tested component combinations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optimcombi</code></td>
+<td>
+<p>the number of PLS components of each X-block allowing the optimisation of the mean rmseCV.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rmseCV_byY</code></td>
+<td>
+<p>matrix or list of matrices of mean and sd of cross-validated RMSE in the model for each combination and each response variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ExplVarCV_byY</code></td>
+<td>
+<p>matrix or list of matrices of mean and sd of cross-validated explained variances in the model for each combination and each response variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rmseCV</code></td>
+<td>
+<p>matrix or list of matrices of mean and sd of cross-validated RMSE in the model for each combination and response variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ExplVarCV</code></td>
+<td>
+<p>matrix or list of matrices of mean and sd of cross-validated explained variances in the model for each combination and response variables.</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>- Biancolillo et al. , 2015. Combining SO-PLS and linear discriminant analysis for
+multi-block classification. Chemometrics and Intelligent Laboratory Systems, 141, 58-67.
+</p>
+<p>- Biancolillo, A. 2016. Method development in the area of multi-block analysis focused on food analysis. PhD. University of copenhagen.
+</p>
+<p>- Menichelli et al., 2014. SO-PLS as an exploratory tool for path modelling. Food Quality and Preference, 36, 122-134.
+</p>
+<p>- Tenenhaus, M., 1998. La régression PLS: théorie et pratique. Editions Technip, Paris, France.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>soplsr_soplsda_allsteps</code> function to help determine the optimal number of latent variables, perform a permutation test, calculate model parameters and predict new observations.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+N &lt;- 10 ; p &lt;- 12
+set.seed(1)
+X &lt;- matrix(rnorm(N * p, mean = 10), ncol = p, byrow = TRUE)
+Y &lt;- matrix(rnorm(N * 2, mean = 10), ncol = 2, byrow = TRUE)
+colnames(X) &lt;- paste("varx", 1:ncol(X), sep = "")
+colnames(Y) &lt;- paste("vary", 1:ncol(Y), sep = "")
+rownames(X) &lt;- rownames(Y) &lt;- paste("obs", 1:nrow(X), sep = "")
+set.seed(NULL)
+X
+Y
+
+n &lt;- nrow(X)
+
+X_list &lt;- list(X[,1:4], X[,5:7], X[,9:ncol(X)])
+X_list_2 &lt;- list(X[1:2,1:4], X[1:2,5:7], X[1:2,9:ncol(X)])
+
+soplsrcv(X_list, Y, Xscaling = c("none", "pareto", "sd")[1], 
+Yscaling = c("none", "pareto", "sd")[1], weights = NULL, 
+nlvlist=list(0:1, 1:2, 0:1), nbrep=1, cvmethod="loo", seed = 123, samplingk=NULL,
+optimisation="global", selection="localmin", majorityvote=FALSE)
+
+
+ncomp &lt;- 2
+fm &lt;- soplsr(X_list, Y, nlv = ncomp)
+transform(fm, X_list_2)
+predict(fm, X_list_2)
+
+mse(predict(fm, X_list), Y)
+
+# VIP calculation based on the proportion of Y-variance explained by the components
+vip(fm$fm[[1]], X_list[[1]], Y = NULL, nlv = ncomp)
+vip(fm$fm[[2]], X_list[[2]], Y = NULL, nlv = ncomp)
+vip(fm$fm[[3]], X_list[[3]], Y = NULL, nlv = ncomp)
+
+ncomp &lt;- c(2, 0, 3)
+fm &lt;- soplsr(X_list, Y, nlv = ncomp)
+transform(fm, X_list_2)
+predict(fm, X_list_2)
+mse(predict(fm, X_list), Y)
+
+ncomp &lt;- 0
+fm &lt;- soplsr(X_list, Y, nlv = ncomp)
+transform(fm, X_list_2)
+predict(fm, X_list_2)
+
+ncomp &lt;- 2
+weights &lt;- rep(1 / n, n)
+#w &lt;- 1:n
+fm &lt;- soplsr(X_list, Y, Xscaling = c("sd","pareto","none"), nlv = ncomp, weights = weights)
+transform(fm, X_list_2)
+predict(fm, X_list_2)
+
+</code></pre>
+
+
+</div>

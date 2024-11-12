@@ -1,0 +1,124 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>callback_debug_dist_gradients</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Callback to monitor likelihood gradient components</h2>
+
+<h3>Description</h3>
+
+<p>Provides a keras callback to monitor the individual components of the
+censored and truncated likelihood.
+Useful for debugging TensorFlow implementations of Distributions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">callback_debug_dist_gradients(
+  object,
+  data,
+  obs,
+  keep_grads = FALSE,
+  stop_on_na = TRUE,
+  verbose = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>A <code>reservr_keras_model</code> created by <code>tf_compile_model()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>Input data for the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>obs</code></td>
+<td>
+<p>Observations associated to <code>data</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep_grads</code></td>
+<td>
+<p>Log actual gradients? (memory hungry!)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stop_on_na</code></td>
+<td>
+<p>Stop if any likelihood component as NaN in its gradients?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Print a message if training is halted?
+The Message will contain information about which likelihood components have
+NaN in their gradients.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A <code>KerasCallback</code> suitable for passing to <code>keras3::fit()</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">dist &lt;- dist_exponential()
+group &lt;- sample(c(0, 1), size = 100, replace = TRUE)
+x &lt;- dist$sample(100, with_params = list(rate = group + 1))
+global_fit &lt;- fit(dist, x)
+
+if (interactive()) {
+  library(keras3)
+  l_in &lt;- layer_input(shape = 1L)
+  mod &lt;- tf_compile_model(
+    inputs = list(l_in),
+    intermediate_output = l_in,
+    dist = dist,
+    optimizer = optimizer_adam(),
+    censoring = FALSE,
+    truncation = FALSE
+  )
+  tf_initialise_model(mod, global_fit$params)
+  gradient_tracker &lt;- callback_debug_dist_gradients(
+    mod,
+    as_tensor(group, config_floatx()),
+    x,
+    keep_grads = TRUE
+  )
+  fit_history &lt;- fit(
+    mod,
+    x = as_tensor(group, config_floatx()),
+    y = x,
+    epochs = 20L,
+    callbacks = list(
+      callback_adaptive_lr("loss", factor = 0.5, patience = 2L, verbose = 1L, min_lr = 1.0e-4),
+      gradient_tracker,
+      callback_reduce_lr_on_plateau("loss", min_lr = 1.0) # to track lr
+    )
+  )
+  gradient_tracker$gradient_logs[[20]]$dens
+
+  plot(fit_history)
+
+  predicted_means &lt;- predict(mod, data = as_tensor(c(0, 1), config_floatx()))
+}
+
+</code></pre>
+
+
+</div>

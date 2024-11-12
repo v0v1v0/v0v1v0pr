@@ -1,0 +1,216 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>multiclass routines</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Classification with More Than 2 Classes</h2>
+
+<h3>Description</h3>
+
+<p>Tools for multiclass classification, parametric and nonparametric.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">avalogtrn(trnxy,yname)
+ovaknntrn(trnxy,yname,k,xval=FALSE)
+avalogpred()
+classadjust(econdprobs,wrongprob1,trueprob1) 
+boundaryplot(y01,x,regests,pairs=combn(ncol(x),2),pchvals=2+y01,cex=0.5,band=0.10)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>pchvals</code></td>
+<td>
+<p>Point size in base-R graphics.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trnxy</code></td>
+<td>
+<p>Data matrix, Y last.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xval</code></td>
+<td>
+<p>If TRUE, use leaving-one-out method.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y01</code></td>
+<td>
+<p>Y vector (1s and 0s).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>regests</code></td>
+<td>
+<p>Estimated regression function values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>X data frame or matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pairs</code></td>
+<td>
+<p>Two-row matrix, column i of which is a pair of predictor
+variables to graph.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cex</code></td>
+<td>
+<p>Symbol size for plotting.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>band</code></td>
+<td>
+<p>If <code>band</code> is non-NULL, only points within <code>band</code>, 
+say 0.1, of est. P(Y = 1) are displayed, for a contour-like effect.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yname</code></td>
+<td>
+<p>Name of the Y column.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>Number of nearest neighbors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>econdprobs</code></td>
+<td>
+<p>Estimated conditional class probabilities, given the
+predictors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>wrongprob1</code></td>
+<td>
+<p>Incorrect, data-provenanced, unconditional P(Y = 1).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trueprob1</code></td>
+<td>
+<p>Correct unconditional P(Y = 1).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>These functions aid classification in the multiclass setting.  
+</p>
+<p>The function <code>boundaryplot</code> serves as a visualization technique,
+for the two-class setting.  It draws the boundary between predicted Y =
+1 and predicted Y = 0 data points in 2-dimensional feature space, as
+determined by the argument <code>regests</code>.  Used to visually assess
+goodness of fit, typically running this function twice, say one for
+<code>glm</code> then for <code>kNN</code>.  If there is much discrepancy and the
+analyst wishes to still use glm(), he/she may wish to add polynomial
+terms.
+</p>
+<p>The functions not listed above are largely deprecated, e.g. in favor of
+<code>qeLogit</code> and the other <code>qe</code>-series functions.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Norm Matloff
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Not run: 
+
+
+data(oliveoils) 
+oo &lt;- oliveoils[,-1] 
+
+# toy example
+set.seed(9999)
+x &lt;- runif(25)
+y &lt;- sample(0:2,25,replace=TRUE)
+xd &lt;- preprocessx(x,2,xval=FALSE)
+kout &lt;- ovaknntrn(y,xd,m=3,k=2)
+kout$regest  # row 2:  0.0,0.5,0.5
+predict(kout,predpts=matrix(c(0.81,0.55,0.15),ncol=1))  # 0,2,0or2
+yd &lt;- factorToDummies(as.factor(y),'y',FALSE)
+kNN(x,yd,c(0.81,0.55,0.15),2)  # predicts 0, 1or2, 2
+
+data(peDumms)  # prog/engr data 
+ped &lt;- peDumms[,-33] 
+ped &lt;- as.matrix(ped)
+x &lt;- ped[,-(23:28)]
+y &lt;- ped[,23:28]
+knnout &lt;- kNN(x,y,x,25,leave1out=TRUE) 
+truey &lt;- apply(y,1,which.max) - 1
+mean(knnout$ypreds == truey)  # about 0.37
+xd &lt;- preprocessx(x,25,xval=TRUE)
+kout &lt;- knnest(y,xd,25)
+preds &lt;- predict(kout,predpts=x)
+hats &lt;- apply(preds,1,which.max) - 1
+mean(yhats == truey)  # about 0.37
+
+data(peFactors)
+# discard the lower educ-level cases, which are rare
+edu &lt;- peFactors$educ 
+numedu &lt;- as.numeric(edu) 
+idxs &lt;- numedu &gt;= 12 
+pef &lt;- peFactors[idxs,]
+numedu &lt;- numedu[idxs]
+pef$educ &lt;- as.factor(numedu)
+pef1 &lt;- pef[,c(1,3,5,7:9)]
+
+# ovalog
+ovaout &lt;- ovalogtrn(pef1,"occ")
+preds &lt;- predict(ovaout,predpts=pef1[,-3])
+mean(preds == factorTo012etc(pef1$occ))  # about 0.39
+
+# avalog
+
+avaout &lt;- avalogtrn(pef1,"occ")  
+preds &lt;- predict(avaout,predpts=pef1[,-3]) 
+mean(preds == factorTo012etc(pef1$occ))  # about 0.39 
+
+# knn
+
+knnout &lt;- ovalogtrn(pef1,"occ",25)
+preds &lt;- predict(knnout,predpts=pef1[,-3])
+mean(preds == factorTo012etc(pef1$occ))  # about 0.43
+
+data(oliveoils)
+oo &lt;- oliveoils
+oo &lt;- oo[,-1]
+knnout &lt;- ovaknntrn(oo,'Region',10)
+# predict a new case that is like oo1[1,] but with palmitic = 950
+newx &lt;- oo[1,2:9,drop=FALSE]
+newx[,1] &lt;- 950
+predict(knnout,predpts=newx)  # predicts class 2, South
+
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

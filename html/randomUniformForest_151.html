@@ -1,0 +1,222 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>postProcessingVotes</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Post-processing for Regression</h2>
+
+<h3>Description</h3>
+
+<p>Post-processing use OOB votes and predicted values to build more accurate estimates of Response values. Note that post-processing can not ensure that new estimate will have a lower error. It works for many cases but not all.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">postProcessingVotes(object,
+	nbModels = 1,
+	idx = 1,
+	granularity = 1,
+	predObject = NULL,
+	swapPredictions = FALSE,
+	X = NULL,
+	Xtest = NULL,
+	imbalanced = FALSE,
+	OOB = FALSE,
+	method = c("cutoff", "bias", "residuals"),
+	keep2ndModel = FALSE, 
+	largeData = FALSE,
+	...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+
+<p>a randomUniformForest object with OOB data.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nbModels</code></td>
+<td>
+
+<p>how many models to build for new estimates. Usually one is enough.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>idx</code></td>
+<td>
+
+<p>how many values to choose in OOB model for each new predicted value. Usually one is enough.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>granularity</code></td>
+<td>
+
+<p>degree of precision needed for each old estimate value. Usually one is enough.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predObject</code></td>
+<td>
+
+<p>if current model is built with full sample, then using an old model 'predObject' (a randomUniformForest object) that have OOB data can help to reduce error. Must be used with 'swapPredictions = TRUE'
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>swapPredictions </code></td>
+<td>
+
+<p>set it to TRUE if two models, current one without OOB data and old one with OOB data, have to be used for trying to reduce prediction error.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+
+<p>not currently used.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Xtest</code></td>
+<td>
+
+<p>test data in the case of regression, for a more friendly output of the model.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>imbalanced</code></td>
+<td>
+
+<p>if TRUE, may improve metrics in the case of imbalanced datasets.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>OOB</code></td>
+<td>
+
+<p>if FALSE, does not use OOB informations.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+
+<p>for classification, if expected bias is enough high, one may use it as a method to improve AUC. Otherwise, use the default one, 'cutoff'. Both tend to get the same results, despite a few tests for now, but 'bias' method seems more robust. 'residuals' is used in regression only as a powerful but computationally intensive method and replaces the default internal one.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep2ndModel</code></td>
+<td>
+
+<p>if TRUE, and for regression, keep the model based on residuals for further modelling and predictions.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>largeData</code></td>
+<td>
+
+<p>if TRUE, and for regression, use <code>rUniformForest.big</code> to compute model for the residuals.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>arguments to use for the computation of the model from the residuals.
+</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>a vector of predicted values.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Saip Ciss <a href="mailto:saip.ciss@wanadoo.fr">saip.ciss@wanadoo.fr</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>Xu, Ruo, Improvements to random forest methodology (2013). Graduate Theses and Dissertations. Paper 13052.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Note that post-processing works better with enough trees, at least 100, and enough data
+n = 200;  p = 20
+# Simulate 'p' gaussian vectors with random parameters between -10 and 10.
+X &lt;- simulationData(n,p)
+
+# give names to features
+X &lt;- fillVariablesNames(X)
+
+# Make a rule to create response vector
+epsilon1 = runif(n,-1,1)
+epsilon2 = runif(n,-1,1)
+
+# a rule with many noise (only four variables are significant)
+Y = 2*(X[,1]*X[,2] + X[,3]*X[,4]) + epsilon1*X[,5] + epsilon2*X[,6]
+
+# randomize then  make train and test sample
+twoSamples &lt;- cut(sample(1:n,n), 2, labels = FALSE)
+
+Xtrain = X[which(twoSamples == 1),]
+Ytrain = Y[which(twoSamples == 1)]
+Xtest = X[which(twoSamples == 2),]
+Ytest = Y[which(twoSamples == 2)]
+
+# compute an accurate model (in this case bagging and log data works best) and predict
+rUF.model &lt;- randomUniformForest(Xtrain, Ytrain, xtest = Xtest, ytest = Ytest, 
+bagging = TRUE, logX = TRUE, ntree = 60, threads = 2)
+
+# get mean squared error
+rUF.model
+
+# post process
+newEstimate &lt;- postProcessingVotes(rUF.model)
+
+# get mean squared error
+sum((newEstimate - Ytest)^2)/length(Ytest)
+
+## regression do not use all data but sub-samples.
+## Comparing, when using full sample (but then, we do not have OOB data)
+
+# rUF.model.fullsample &lt;- randomUniformForest(Xtrain, Ytrain, xtest = Xtest, ytest = Ytest,
+# subsamplerate = 1, bagging = TRUE, logX = TRUE, ntree = 60, threads = 2)
+# rUF.model.fullsample
+
+## Nevertheless we can use old model with OOB data to fit a new estimate
+## newEstimate.fullsample &lt;- postProcessingVotes(rUF.model.fullsample,
+# predObject = rUF.model, swapPredictions = TRUE)
+
+## get mean squared error
+# sum((newEstimate.fullsample - Ytest)^2)/length(Ytest)
+</code></pre>
+
+
+</div>

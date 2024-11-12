@@ -1,0 +1,346 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fit_t_env</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Maximum likelihood fit of the environmental model of trait evolution
+</h2>
+
+<h3>Description</h3>
+
+<p>Fits model of trait evolution for which evolutionary rates depends on an environmental function, or more generally a time varying function.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">
+fit_t_env(phylo, data, env_data, error=NULL, model=c("EnvExp", "EnvLin"), 
+          method="Nelder-Mead", control=list(maxit=20000), ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>phylo</code></td>
+<td>
+
+<p>An object of class 'phylo' (see ape documentation)
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+
+<p>A named vector of phenotypic trait values.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>env_data</code></td>
+<td>
+
+<p>Environmental data, given as a time continuous function (see, e.g. splinefun) or a data frame with two columns. The first column is time, the second column is the environmental data (temperature for instance).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>error</code></td>
+<td>
+
+<p>A named vector with standard errors (SE) of trait values for each species (with names matching <code>"phylo$tip.label"</code>). The default is NULL, in this case potential error is ignored in the fit. If set to NA, the SE is estimated from the data (to be used when there are no error measurements, a nuisance parameter is estimated). Note: When standard errors are provided, a nuisance parameter is also estimated.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+
+<p>The model describing the functional form of variation of the evolutionary rate <code class="reqn">\sigma^2</code> with time and the environmental variable. Default models are "EnvExp" and "EnvLin" (see details). An user defined function of any functional form may be used (forward in time).
+This function has three arguments: the first argument is time; the second argument is the environmental variable; the third argument is a numeric vector of the parameters controlling the time and environmental variation (to be estimated). See the example below.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+
+<p>Methods used by the optimization routine (see ?optim for details).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+
+<p>Max. bound for the number of iteration of the optimizer; other options can be fixed on the list (see ?optim). 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>Arguments to be passed to the function. See details. 
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>fit_t_env</code> allows fitting environmental models of trait evolution. 
+The default models <em>EnvExp</em> and <em>EnvLin</em> represents models for which the 
+evolutionary rates are changing as a function of environmental changes though times as 
+defined below.
+</p>
+<p><code>EnvExp</code>:
+</p>
+<p style="text-align: center;"><code class="reqn">\sigma^2 (t)  =  \sigma_0^2  e^{(\beta T(t))}</code>
+</p>
+
+<p><code>EnvLin</code>:
+</p>
+<p style="text-align: center;"><code class="reqn">\sigma^2 (t)  =  \sigma_0^2 + \beta T(t)</code>
+</p>
+
+<p>Users defined models should have the following form (see also examples below):
+</p>
+<p><code>fun &lt;- function(t, env, param){ param*env(t)}</code>
+</p>
+<p><em>t</em>: is the time parameter.
+</p>
+<p><em>env</em>: is a time function of an environmental variable. 
+See for instance object created by <code>splinefun</code> when interpolating coordinate of points.
+</p>
+<p><em>param</em>: is a vector of parameters to estimate.
+</p>
+<p>For instance, the <code>EnvExp</code> function can be coded as: 
+</p>
+<p><code>fun &lt;- function(t, env, param){ param[1]*exp(param[2]*env(t))}</code> 
+</p>
+<p>where <code>param[1]</code> is the <code class="reqn">\sigma^2</code> parameter and <code>param[2]</code> is 
+the <code class="reqn">\beta</code> parameter. 
+Note that in this later case, two starting values should be provided in the <code>param</code> 
+argument.
+</p>
+<p>e.g.:
+</p>
+<p><code>sigma=0.1</code>
+</p>
+<p><code>beta=0</code>
+</p>
+<p><code>fit_t_env(tree, data, env_data=InfTemp, model=fun, param=c(sigma,beta))</code>
+</p>
+<p>The various options are passed through "...". 
+</p>
+<p>-param: The starting values used for the model. Must match the total number of parameters of the specified models. If "error=NA", a starting value for the SE to be estimated must be provided with user-defined models.
+</p>
+<p>-scale: scale the amplitude of the environmental curve between 0 and 1. This may improve the parameters search in some situations.
+</p>
+<p>-df: the degree of freedom to use for defining the spline. As a default, smooth.spline(env_data[,1], env_data[,2])$df is used. See <em>sm.spline</em> for details.
+</p>
+<p>-upper: the upper bound for the parameter search when the "L-BFGS-B" method is used. See <em>optim</em> for details.
+</p>
+<p>-lower: the lower bound for the parameter search when the "L-BFGS-B" method is used. See <em>optim</em> for details.
+</p>
+<p>-sig2: can be used instead of param to define the starting sigma value only
+</p>
+<p>-beta: can be used instead of param to define the beta starting value only
+</p>
+<p>-maxdiff: difference in time between tips and present day for phylogenetic trees with no contemporaneous species (default is 0)
+</p>
+
+
+<h3>Value</h3>
+
+<p>a list with the following components
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>LH</code></td>
+<td>
+<p>the maximum log-likelihood value</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aic</code></td>
+<td>
+<p>the Akaike's Information Criterion</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aicc</code></td>
+<td>
+<p>the second order Akaike’s Information Criterion</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>free.parameters</code></td>
+<td>
+<p>the number of estimated parameters</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>param</code></td>
+<td>
+<p>a numeric vector of estimated parameters, sigma and beta respectively for the defaults models. In the same order as defined by the user if a     customized model is provided</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>root</code></td>
+<td>
+<p>the estimated root value</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>convergence</code></td>
+<td>
+<p>convergence status of the optimizing function; "0" indicates convergence (See ?optim for details)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hess.value</code></td>
+<td>
+<p>reliability of the likelihood estimates calculated through the eigen-decomposition of the hessian matrix. "0" means that a reliable estimate has been reached</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>env_func</code></td>
+<td>
+<p>the environmental function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tot_time</code></td>
+<td>
+<p>the root age of the tree</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>the fitted model (default models or user specified)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nuisance</code></td>
+<td>
+<p>maximum-likelihood estimate of <code>nuisance</code>, the unknown, nuisance contribution to measurement error when <code>error</code> argument is used (i.e., NA or a vector provided by the user)</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>The users defined function is evaluated forward in time i.e.: from the root to the tips (time = 0 at the (present) tips).
+The speed of convergence of the fit might depend on the degree of freedom chosen to define the spline. 
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>J. Clavel</p>
+
+
+<h3>References</h3>
+
+<p>Clavel, J. &amp; Morlon, H., 2017. Accelerated body size evolution during cold climatic periods in the Cenozoic. Proceedings of the National Academy of Sciences, 114(16): 4183-4188.
+</p>
+
+
+<h3>See Also</h3>
+
+
+<p><code>plot.fit_t.env</code>, 
+<code>likelihood_t_env</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+if(test){
+data(Cetacea)
+data(InfTemp)
+
+# Simulate a trait with temperature dependence on the Cetacean tree
+set.seed(123)
+
+trait &lt;- sim_t_env(Cetacea, param=c(0.1,-0.2), env_data=InfTemp, model="EnvExp", 
+					root.value=0, step=0.001, plot=TRUE)
+
+## Fit the Environmental-exponential model
+  # Fit the environmental model
+  result1=fit_t_env(Cetacea, trait, env_data=InfTemp, scale=TRUE)
+  plot(result1)
+
+  # Add to the plot the results from different smoothing of the temperature curve
+  result2=fit_t_env(Cetacea, trait, env_data=InfTemp, df=10, scale=TRUE)
+  lines(result2, col="red")
+
+  result3=fit_t_env(Cetacea, trait, env_data=InfTemp, df=50, scale=TRUE)
+  lines(result3, col="blue")
+
+## Fit the environmental linear model
+
+  fit_t_env(Cetacea, trait, env_data=InfTemp, model="EnvLin", df=50, scale=TRUE)
+
+## Fit user defined model (note that several other environmental variables 
+## can be simultaneously encapsulated in this function through the env argument)
+
+  # We define the function for the model
+  my_fun&lt;-function(t, env_cont, param){ 
+      param[1]*exp(param[2]*env_cont(t))
+  }
+  
+  res&lt;-fit_t_env(Cetacea, trait, env_data=InfTemp, model=my_fun, 
+                 param=c(0.1,0), scale=TRUE)
+  # Retrieve the parameters and compare to 'result1'
+  res
+  plot(res, col="red")
+	
+
+## Fit user defined environmental function
+
+if(require(pspline)){
+
+  	 spline_result &lt;- sm.spline(x=InfTemp[,1],y=InfTemp[,2], df=50)
+  	 env_func &lt;- function(t){predict(spline_result,t)}
+  	 t&lt;-unique(InfTemp[,1])
+  	
+  # We build the interpolated smoothing spline function
+  	 env_data&lt;-splinefun(t,env_func(t))
+  
+  # We then fit the model
+  	 fit_t_env(Cetacea, trait, env_data=env_data)
+ }
+ 
+## Various parameterization (box constraints, df, scaling of the curve...) example
+ fit_t_env(Cetacea, trait, env_data=InfTemp, model="EnvLin", method="L-BFGS-B", 
+ 			scale=TRUE, lower=-30, upper=20, df=10)
+
+## A very general model...
+
+# We define the function for the Early-Burst/AC model:
+maxtime = max(branching.times(Cetacea))
+
+# sigma^2*e^(r*t)
+my_fun_ebac &lt;- function(t, env_cont, param){
+    time = (maxtime - t)
+    param[1]*exp(param[2]*time)
+}
+
+res&lt;-fit_t_env(Cetacea, trait, env_data=InfTemp, model=my_fun_ebac,
+                param=c(0.1,0), scale=TRUE)
+res # note that "r" is positive: it's the AC model (~OU model on ultrametric tree)
+
+ }
+</code></pre>
+
+
+</div>

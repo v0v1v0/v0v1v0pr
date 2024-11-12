@@ -1,0 +1,162 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>solving_equations</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>solving_equations helper function</h2>
+
+<h3>Description</h3>
+
+<p>Internal function to solve the hyperbolic and cubic regression.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">solving_equations(
+  datatable,
+  regmethod,
+  type,
+  rv,
+  mode = NULL,
+  logfilename,
+  minmax
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>datatable</code></td>
+<td>
+<p>A data.table object that contains either the experimental
+data or the calibration data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>regmethod</code></td>
+<td>
+<p>A data.table object, with 2 columns, containing the names
+of the samples to correct (columns 1) and a binary variable
+<em>better_model</em> that indicates, if the data should be corrected with
+the hyperbolic regression parameters (better_model = 0) or with the
+cubic regression parameters (better_model = 1).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>A single integer. Type of data to be corrected: either "1"
+(one locus in many samples, e.g. pyrosequencing data) or "2" (many loci
+in one sample, e.g. next-generation sequencing data or microarray data).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rv</code></td>
+<td>
+<p>A list object. A list that contains additional objects needed
+for the algorithms.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mode</code></td>
+<td>
+<p>A character string. Default: NULL. Used to indicate "corrected"
+calibration data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>logfilename</code></td>
+<td>
+<p>A character string. Path to the logfile to save the log
+messages.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minmax</code></td>
+<td>
+<p>A logical, indicating which equations are used for
+BiasCorrection (default: FALSE). If TRUE, equations are used that include
+the respective minima and maxima of the provided data.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>This function solves the equations of the hyperbolic and the
+cubic regression and returns the respectively interpolated values of the
+provided 'datatable'.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# define list object to save all data
+rv &lt;- list()
+rv$minmax &lt;- TRUE
+rv$selection_method &lt;- "RelError"
+rv$sample_locus_name &lt;- "Test"
+rv$seed &lt;- 1234
+
+# define logfilename
+logfilename &lt;- paste0(tempdir(), "/log.txt")
+
+# import experimental file
+exp_type_1 &lt;- rBiasCorrection::example.data_experimental
+rv$fileimport_experimental &lt;- exp_type_1$dat
+
+# import calibration file
+cal_type_1 &lt;- rBiasCorrection::example.data_calibration
+rv$fileimport_calibration &lt;- cal_type_1$dat
+rv$vec_cal &lt;- cal_type_1$vec_cal
+
+
+# perform regression
+regression_results &lt;- regression_utility(
+  rv$fileimport_calibration,
+  "Testlocus",
+  locus_id = NULL,
+  rv = rv,
+  mode = NULL,
+  logfilename,
+  minmax = rv$minmax,
+  seed = rv$seed
+)
+
+# extract regression results
+rv$result_list &lt;- regression_results$result_list
+
+# get regression statistics
+rv$reg_stats &lt;- statistics_list(
+  rv$result_list,
+  minmax = TRUE
+)
+
+# select the better model based on the sum of squared errrors ("SSE")
+rv$choices_list &lt;- better_model(
+  statstable_pre = rv$reg_stats,
+  selection_method = "SSE"
+)
+
+# correct calibration data (to show corrected calibration curves)
+solved_eq_h &lt;- solving_equations(datatable = rv$fileimport_calibration,
+                                 regmethod = rv$choices_list,
+                                 type = 1,
+                                 rv = rv,
+                                 mode = "corrected",
+                                 logfilename = logfilename,
+                                 minmax = rv$minmax)
+rv$fileimport_cal_corrected_h &lt;- solved_eq_h$results
+colnames(rv$fileimport_cal_corrected_h) &lt;- colnames(
+  rv$fileimport_calibration
+)
+
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,260 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>compareNCestimates</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Conditional Sequential Monte Carlo Examples</h2>
+
+<h3>Description</h3>
+
+<p>The <code>compareNCestimates</code> function generates a Monte Carlo study to
+compare log-likelihood (normalizing constant) estimates in the standard linear
+Gaussian state space (LGSS) model: Kalman filter estimates, as the benchmark,
+are compared to the standard bootstrap particle filter and the conditional
+bootstrap particle filter estimates (see <code>Details</code>).
+</p>
+<p>The <code>simGaussianSSM</code> function simulates data from a LGSS model (can be
+used manually to simulate <code>data</code> or runs as a default, if no <code>data</code> is provided, with a default parameter setup, see <code>parameters</code>).
+</p>
+<p>The <code>kalmanFFBS</code> function runs a Kalman (exact) forward filter, computes
+a log-likelihood estimate and generates a joint smoothing state trajectory
+via a backward simulation pass.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">  compareNCestimates(dataY,
+                     trueStates = NULL,
+                     numParticles = 1000L,
+                     simNumber = 100L,
+                     modelParameters = list(stateInit = 0,
+                                            phi = 0.7,
+                                            varStateEvol = 1,
+                                            varObs = 1),
+                     plot = FALSE)
+  simGaussianSSM(len = 100,
+                 stateInit = 0,
+                 phi = 0.7,
+                 varStateEvol = 1,
+                 varObs = 1)
+  kalmanFFBS(dataY,
+             stateInit,
+             phi,
+             varStateEvol,
+             varObs,
+             simNumber)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>dataY</code></td>
+<td>
+<p>A one-column matrix or dataframe or vector containing
+measurements (y values) from a standard linear Gaussian SSM. If not provided, defaults to a LGSS model with time series lenght <code>len=250</code> and parameter
+setup specified with default values in the <code>parameters</code> argument, see <code>simGaussianSSM</code> or <code>compareNCestimates</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trueStates</code></td>
+<td>
+<p>defaults to <code>NULL</code> for a real dataset as the true state
+values are not observed; for simulated data, these can be passed and then will alse be plotted if <code>plot=TRUE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>numParticles</code></td>
+<td>
+<p>An integer specifying the number of particles.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>simNumber</code></td>
+<td>
+<p>An integer specifying the number of repeated simulation runs of each of which produces 2x4=8 normalizing constant esimtates: BPF and conditional BPF esimates under four conditional resampling schemes, as well as
+a ground truth Kalman forward filter estimate and a backward filter output
+required for the reference trajectory of the conditional sampler.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>modelParameters</code></td>
+<td>
+<p>a named <code>list</code> of parameters of the LGSSM model
+in the following order:
+</p>
+
+<ul>
+<li> <p><code>phi:</code> autoregressive parameter
+</p>
+</li>
+<li> <p><code>stateInit:</code> initial state value (i.e. <code class="reqn">X_0</code>)
+</p>
+</li>
+<li> <p><code>varStateEvol:</code> state process variance
+</p>
+</li>
+<li> <p><code>varObs:</code> measurement/observation process variance
+</p>
+</li>
+</ul>
+<p>These parameters are used to for the Kalman forward filtering and backward
+simulation pass, and, if no <code>data</code> argument is provided, to simulate
+data from a linear Gaussian state space model internally via
+<code>simGaussianSSM</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phi</code></td>
+<td>
+<p>autoregressive parameter</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stateInit</code></td>
+<td>
+<p>initial state value (i.e. <code class="reqn">X_0</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>varStateEvol</code></td>
+<td>
+<p>state process variance</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>varObs</code></td>
+<td>
+<p>measurement/observation process variance</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>A boolean variable describing whether plot should
+illustrate the estimated results along with the data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>len</code></td>
+<td>
+<p>Length of data series to simulate.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>compareNCestimates</code> runs a simulation study that provides
+log-likelihood (normalizing constant) estimates; there are <code>simNumber</code>
+runs of the standard BPF and the conditional BPF under four resampling schmes:
+</p>
+
+<ul>
+<li>
+<p> multinomial
+</p>
+</li>
+<li>
+<p> stratified
+</p>
+</li>
+<li>
+<p> systematic
+</p>
+</li>
+<li>
+<p> residual
+</p>
+</li>
+</ul>
+<p>The "ground truth" Kalman forward filter estimate of the normalizing constant
+is compared to the BPF normalizing constant estimates, which are unbiased for
+all above schemes; specifically the conditional BPF estimate is unbiased if
+the reference trajectory is simulated from the target distribution which is obtained here as a backward simulation run of the Kalman
+filter.
+</p>
+<p>Box plots illustrate the unbiasedness of standard BPF and conditional BPF
+estimates for the normailizing constant estimate in the linear Gaussian SSM, and serve as an small example for to illustrate conditional SMC
+algorithms (in their most basic BPF version) with different conditonal resampling schemes as implemented within <span class="pkg">RcppSMC</span>.
+</p>
+<p><code>simGaussianSSM</code> simulates from a Linear Gaussian state space model of
+the following form:
+</p>
+<p style="text-align: center;"><code class="reqn">x_t=\phi x_{t-1} + u_t</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">y_t= x_{t} + w_t</code>
+</p>
+
+<p>where <code class="reqn">\phi</code> is set via the <code>phi</code> argument,
+<code class="reqn">u_t \sim N(0, \sigma_x^2)</code>, <code class="reqn">w_t \sim N(0, \sigma_y^2)</code> for which the
+innovation (<code class="reqn">\sigma_x^2</code>) and measurement (<code class="reqn">\sigma_y^2</code>) variances are
+set via arguments <code>varStateEvol</code> and <code>varObs</code>, respectively.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>compareNCestimates</code> returns a named list of two
+</p>
+
+<ul>
+<li>
+<p><code>outSMC</code> a named list of two:
+</p>
+
+<ul>
+<li>
+<p><code>smcOut</code>: a matrix of dimension <code>simNum x 4</code> which
+contains single log-likelihood estimates of the standard BPF for each of
+the 4 resampling schemes and for each simulation run
+</p>
+</li>
+<li>
+<p><code>csmcOut</code>: a matrix of dimension <code>simNum x 4</code> which
+contains single log-likelihood estimates of the conditional BPF for each
+of the 4 resampling schemes and for each simulation run
+</p>
+</li>
+</ul>
+</li>
+<li>
+<p><code>outKalman</code> the output of <code>kalmanFFBS</code>, see below
+</p>
+</li>
+</ul>
+<p><code>kalmanFFBS</code> returns a named list of two:
+</p>
+
+<ul>
+<li>
+<p><code>logLikeliEstim: </code>(exact) estimate of the log-likelihood
+</p>
+</li>
+<li>
+<p><code>xBackwardSimul: </code>a backward simulation (joint smoothing) trajectory of latent states given parameters and measurement
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>Adam M. Johansen, Dirk Eddelbuettel, Leah South and Ilya Zarubin</p>
+
+
+<h3>References</h3>
+
+<p>A. M. Johansen. SMCTC: Sequential Monte Carlo in C++.
+Journal of Statistical Software, 30(6):1-41, April
+2009. <a href="https://www.jstatsoft.org/article/view/v030i06">https://www.jstatsoft.org/article/view/v030i06</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p>The SMCTC paper and code at <a href="https://www.jstatsoft.org/article/view/v030i06">https://www.jstatsoft.org/article/view/v030i06</a>.</p>
+
+
+</div>

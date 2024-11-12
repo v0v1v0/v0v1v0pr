@@ -1,0 +1,258 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rtelliptical</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Sampling Random Numbers from Truncated Multivariate Elliptical Distributions</h2>
+
+<h3>Description</h3>
+
+<p>This function generates observations from a truncated multivariate elliptical distribution
+with location parameter <code>mu</code>, scale matrix <code>Sigma</code>, lower and upper
+truncation points <code>lower</code> and <code>upper</code> via Slice Sampling algorithm with Gibbs sampler steps.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rtelliptical(n = 10000, mu = rep(0, length(lower)),
+  Sigma = diag(length(lower)), lower, upper = rep(Inf, length(lower)),
+  dist = "Normal", nu = NULL, expr = NULL, gFun = NULL,
+  ginvFun = NULL, burn.in = 0, thinning = 1)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>number of observations to generate. Must be an integer &gt;= 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mu</code></td>
+<td>
+<p>numeric vector of length <code class="reqn">p</code> representing the location parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Sigma</code></td>
+<td>
+<p>numeric positive definite matrix with dimension <code class="reqn">p</code>x<code class="reqn">p</code> representing the
+scale parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lower</code></td>
+<td>
+<p>vector of lower truncation points of length <code class="reqn">p</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>upper</code></td>
+<td>
+<p>vector of upper truncation points of length <code class="reqn">p</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dist</code></td>
+<td>
+<p>represents the truncated distribution to be used. The values are <code>'Normal'</code>,
+<code>'t'</code>, <code>'Laplace'</code>, <code>'PE'</code>, <code>'PVII'</code>, <code>'Slash'</code>, and <code>'CN'</code> for the truncated Normal, Student-t,
+Laplace, Power Exponential, Pearson VII, Slash, and Contaminated Normal distribution, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nu</code></td>
+<td>
+<p>additional parameter or vector of parameters depending on the
+density generating function. See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>expr</code></td>
+<td>
+<p>a character with the density generating function. See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gFun</code></td>
+<td>
+<p>an R function with the density generating function. See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ginvFun</code></td>
+<td>
+<p>an R function with the inverse of the density generating function defined in
+<code>gFun</code>. See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>burn.in</code></td>
+<td>
+<p>number of samples to be discarded as a burn-in phase.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thinning</code></td>
+<td>
+<p>factor for reducing the autocorrelation of random points.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The <code>dist</code> argument represents the truncated distribution to be used. The values are
+<code>Normal</code>, <code>t</code>, <code>'t'</code>, <code>PE</code>, <code>PVII</code>, <code>Slash</code>, and <code>CN</code>, for the
+truncated Normal, Student-t, Laplace, Power Exponential, Pearson VII, Slash, and Contaminated Normal distribution,
+respectively.
+</p>
+<p>The argument <code>nu</code> is a parameter or vector of parameters depending on the density generating
+function (DGF). For the truncated Student-t, Power Exponential, and Slash distribution, <code>nu</code> is a
+positive number. For the truncated Pearson VII, <code>nu</code> is a vector with the first element greater than
+<code class="reqn">p/2</code> and the second element a positive number. For the truncated Contaminated Normal distribution,
+<code>nu</code> is a vector of length 2 assuming values between 0 and 1.
+</p>
+<p>This function also allows generating random numbers from other truncated elliptical distributions not specified
+in the <code>dist</code> argument, by supplying the density generating function (DGF) through arguments either
+<code>expr</code> or <code>gFun</code>. The DGF must be a non-negative and strictly decreasing function on <code>(0, Inf)</code>.
+The easiest way is to provide the DGF expression to argument <code>expr</code> as a character. The notation used in
+<code>expr</code> needs to be understood by package <code>Ryacas0</code>, and the environment of <code>R</code>. For instance,
+for the DGF <code class="reqn">g(t)=e^{-t}</code>, the user must provide <code>expr = "exp(1)^(-t)"</code>. See that the function must depend
+only on variable <code class="reqn">t</code>, and any additional parameter must be passed as a fixed value. For this case, when a character
+expression is provided to <code>expr</code>, the algorithm tries to compute a closed-form expression for the inverse function
+of <code class="reqn">g(t)</code>, however, this is not always possible (a warning message is returned). See example 2.
+</p>
+<p>If it was no possible to generate random samples by passing a character expression to <code>expr</code>, the user may provide
+a custom <code>R</code> function to the <code>gFun</code> argument. By default, its inverse function is approximated numerically,
+however, the user may also provide its inverse to the <code>ginvFun</code> argument to gain some computational time.
+When <code>gFun</code> is provided, arguments <code>dist</code> and <code>expr</code> are ignored.
+</p>
+
+
+<h3>Value</h3>
+
+<p>It returns a matrix of dimensions <code class="reqn">n</code>x<code class="reqn">p</code> with the random points sampled.
+</p>
+
+
+<h3>Note</h3>
+
+<p>The Normal distribution is a particular case of the Power Exponential distribution when <code>nu = 1</code>.
+The Student-t distribution with <code class="reqn">\nu</code> degrees of freedom results from the Pearson VII
+distribution when <code>nu = </code> ((<code class="reqn">\nu</code>+p)/2, <code class="reqn">\nu</code>).
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Katherine L. Valeriano, Christian E. Galarza and Larissa A. Matos
+</p>
+
+
+<h3>References</h3>
+
+
+<p>Fang KT, Kotz S, Ng KW (2018).
+<em>Symmetric multivariate and related distributions</em>.
+Chapman and Hall/CRC.
+</p>
+<p>Ho HJ, Lin TI, Chen HY, Wang WL (2012).
+“Some results on the truncated multivariate t distribution.”
+<em>Journal of Statistical Planning and Inference</em>, <b>142</b>(1), 25–40.
+<a href="https://doi.org/10.1016/j.jspi.2011.06.006">doi:10.1016/j.jspi.2011.06.006</a>.
+</p>
+<p>Neal RM (2003).
+“Slice sampling.”
+<em>Annals of statistics</em>, 705–741.
+</p>
+<p>Robert CP, Casella G (2010).
+<em>Introducing Monte Carlo Methods with R</em>, volume 18.
+New York: Springer.
+</p>
+<p>Valeriano KA, Galarza CE, Matos LA (2023).
+“Moments and random number generation for the truncated elliptical family of distributions.”
+<em>Statistics and Computing</em>, <b>33</b>(1), 32.
+
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>mvtelliptical</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(ggplot2)
+library(ggExtra)
+library(gridExtra)
+
+# Example 1: Sampling from the Truncated Normal distribution
+set.seed(1234)
+mu  = c(0, 1)
+Sigma = matrix(c(1,0.70,0.70,3), 2, 2)
+lower = c(-2, -3)
+upper = c(3, 3)
+sample1 = rtelliptical(5e4, mu, Sigma, lower, upper, dist="Normal")
+
+# Histogram and density for variable 1
+ggplot(data.frame(sample1), aes(x=X1)) +
+   geom_histogram(aes(y=after_stat(density)), colour="black", fill="grey", bins=15) +
+   geom_density(color="red") + labs(x=bquote(X[1]), y="Density") + theme_bw()
+
+# Histogram and density for variable 2
+ggplot(data.frame(sample1), aes(x=X2)) +
+   geom_histogram(aes(y=after_stat(density)), colour="black", fill="grey", bins=15) +
+   geom_density(color="red") + labs(x=bquote(X[2]), y="Density") + theme_bw()
+
+
+# Example 2: Sampling from the Truncated Logistic distribution
+
+# Function for plotting the sample autocorrelation using ggplot2
+acf.plot = function(samples){
+ p = ncol(samples); n = nrow(samples); q1 = qnorm(0.975)/sqrt(n); acf1 = list(p)
+ for (i in 1:p){
+   bacfdf = with(acf(samples[,i], plot=FALSE), data.frame(lag, acf))
+   acf1[[i]] = ggplot(data=bacfdf, aes(x=lag,y=acf)) + geom_hline(aes(yintercept=0)) +
+     geom_segment(aes(xend=lag, yend=0)) + labs(x="Lag", y="ACF", subtitle=bquote(X[.(i)])) +
+     geom_hline(yintercept=c(q1,-q1), color="red", linetype="twodash") + theme_bw()
+ }
+ return (acf1)
+}
+
+set.seed(5678)
+mu  = c(0, 0)
+Sigma = matrix(c(1,0.70,0.70,1), 2, 2)
+lower = c(-2, -2)
+upper = c(3, 2)
+# Sample autocorrelation with no thinning
+sample2 = rtelliptical(10000, mu, Sigma, lower, upper, expr="exp(1)^(-t)/(1+exp(1)^(-t))^2")
+grid.arrange(grobs=acf.plot(sample2), top="Logistic distribution with no thinning", nrow=1)
+
+# Sample autocorrelation with thinning = 3
+sample3 = rtelliptical(10000, mu, Sigma, lower, upper, expr="exp(1)^(-t)/(1+exp(1)^(-t))^2",
+                       thinning=3)
+grid.arrange(grobs=acf.plot(sample3), top="Logistic distribution with thinning = 3", nrow=1)
+
+
+# Example 3: Sampling from the Truncated Kotz-type distribution
+set.seed(5678)
+mu  = c(0, 0)
+Sigma = matrix(c(1,-0.5,-0.5,1), 2, 2)
+lower = c(-2, -2)
+upper = c(3, 2)
+sample4 = rtelliptical(2000, mu, Sigma, lower, upper, gFun=function(t){t^(-1/2)*exp(-2*t^(1/4))})
+f1 = ggplot(data.frame(sample4), aes(x=X1,y=X2)) + geom_point(size=0.50) +
+     labs(x=expression(X[1]), y=expression(X[2]), subtitle="Kotz(2,1/4,1/2)") + theme_bw()
+ggMarginal(f1, type="histogram", fill="grey")
+
+</code></pre>
+
+
+</div>

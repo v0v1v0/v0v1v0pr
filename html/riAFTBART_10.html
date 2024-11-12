@@ -1,0 +1,205 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>sa</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Flexible Monte Carlo sensitivity analysis for unmeasured confounding</h2>
+
+<h3>Description</h3>
+
+<p>This function implements the flexible sensitivity analysis approach for unmeasured confounding with multiple treatments from multilevel survival data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">sa(
+  M.burnin,
+  M.keep,
+  M.thin = 1,
+  status,
+  y.train,
+  x.train,
+  trt.train,
+  x.test,
+  trt.test,
+  cluster.id,
+  verbose = FALSE,
+  formula = NULL,
+  prior_c_function,
+  Q1,
+  Q2 = NULL,
+  nCores = 1,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>M.burnin</code></td>
+<td>
+<p>A numeric value indicating the number of MCMC iterations to be treated as burn in.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>M.keep</code></td>
+<td>
+<p>A numeric value indicating the number of MCMC posterior draws after burn in.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>M.thin</code></td>
+<td>
+<p>A numeric value indicating the thinning parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>status</code></td>
+<td>
+<p>A vector of event indicators: status = 1 indicates that the event was observed while status = 0 indicates the observation was right-censored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y.train</code></td>
+<td>
+<p>A vector of follow-up times.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x.train</code></td>
+<td>
+<p>A dataframe or matrix, including all the covariates but not treatments for training data, with rows corresponding to observations and columns to variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trt.train</code></td>
+<td>
+<p>A numeric vector representing the treatment groups for the training data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x.test</code></td>
+<td>
+<p>A dataframe, including all the covariates but not treatments for testing data, with rows corresponding to observations and columns to variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trt.test</code></td>
+<td>
+<p>A numeric vector representing the treatment groups for the testing data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cluster.id</code></td>
+<td>
+<p>A vector of integers representing the clustering id.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>A logical indicating whether to show the progress bar. The default is FALSE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>A <code>formula</code> object for the analysis. The default is to use all terms specified in <code>x.train</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior_c_function</code></td>
+<td>
+<p>1) A vector of characters indicating the prior distributions for the confounding functions. Each character contains the random number generation code from the standard probability <code>distributions</code> in the <code>stats</code> package. 2) A vector of characters including the grid specifications for the confounding functions. It should be used when users want to formulate the  confounding  functions as scalar values. 3) A matrix indicating the point mass prior for the confounding functions</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Q1</code></td>
+<td>
+<p>A numeric value indicating the number of draws of the GPS from the posterior predictive distribution</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Q2</code></td>
+<td>
+<p>A numeric value indicating the number of draws from the prior distributions of the confounding functions</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nCores</code></td>
+<td>
+<p>A numeric value indicating number of cores to use for parallel computing.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Other parameters that can be passed to BART functions</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list with the following elements:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>result_riAFTBART:</code></td>
+<td>
+<p>Corrected log survival time for the test data from the riAFT-BART model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>c_functions:</code></td>
+<td>
+<p>The confounding functions sampled from the specified distribution used in the analysis.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+set.seed(20181223)
+n = 5       # number of clusters
+k = 50      # cluster size
+N = n*k     # total sample size
+cluster.id = rep(1:n, each=k)
+tau.error = 0.8
+b = rnorm(n, 0, tau.error)
+alpha = 2
+beta1 = 1
+beta2 = -1
+beta3 = -2
+sig.error = 0.5
+censoring.rate = 0.02
+x1 = rnorm(N,0.5,1)
+x2 = rnorm(N,1.5,0.5)
+trt.train = sample(c(1,2,3), N, prob = c(0.4,0.3,0.2), replace = TRUE)
+trt.test = sample(c(1,2,3), N, prob = c(0.3,0.4,0.2), replace = TRUE)
+error = rnorm(N,0,sig.error)
+logtime = alpha + beta1*x1 + beta2*x2 + b[cluster.id] + error
+y = exp(logtime)
+C = rexp(N, rate=censoring.rate) # censoring times
+Y = pmin(y,C)
+status = as.numeric(y&lt;=C)
+res_sa &lt;- sa(M.burnin = 10, M.keep = 10, M.thin = 1, status = status,
+             y.train = Y,trt.train = trt.train,trt.test = trt.test,
+             x.train = cbind(x1,x2),
+             x.test = cbind(x1,x2),
+             cluster.id = cluster.id, verbose = F,prior_c_function = c(
+               "runif(-0.6, 0)",# c(1,2)
+               "runif(0, 0.6)",# c(2,1)
+               "runif(-0.6, 0)", # c(2,3)
+               "seq(-0.6, 0, by = 0.3)", # c(1,3)
+               "seq(0, 0.6, by = 0.3)", # c(3,1)
+              "runif(0, 0.6)" # c(3,2)
+            ),Q1 = 1, nCores = 1)
+ 
+</code></pre>
+
+
+</div>

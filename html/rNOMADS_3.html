@@ -1,0 +1,174 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>BuildProfile</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Get model data at a specific point.
+</h2>
+
+<h3>Description</h3>
+
+<p>Takes the output of <code>ReadGrib</code> or <code>DODSGrab</code> and extracts data at a specific point, performing interpolation if required.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">BuildProfile(model.data, lon, lat, spatial.average, points = 4)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model.data</code></td>
+<td>
+
+<p>Data structure returned by <code>ReadGrib</code> or <code>DODSGrab</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lon</code></td>
+<td>
+
+<p>Longitudes of points of interest.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lat</code></td>
+<td>
+
+<p>Latitudes of points of interest.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>spatial.average</code></td>
+<td>
+
+<p>Whether to interpolate data using b-splines to obtain value at the requested point (<code>spatial.average = TRUE</code>) or use the nearest model node (<code>spatial.average = FALSE</code>).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>points</code></td>
+<td>
+
+<p>How many points to include in the interpolation, will be ignored if <code>spatial.average = FALSE</code>.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>It is much more efficient to download a large chunk of data and extract profile points from that as opposed to downloading individual small model chunks in the vicinity of each point of interest.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>profile</code></td>
+<td>
+<p>A list with as many elements as profile points, with fields:</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>profile$profile.data</code></td>
+<td>
+<p>A levels x variables x time matrix with data at a specific point</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>profile$location</code></td>
+<td>
+<p>The location for which the profile is generated</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>profile$forecast.date</code></td>
+<td>
+<p>What dates and times the profile contains</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>profile$variables</code></td>
+<td>
+<p>The variables the profile contains</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>profile$levels</code></td>
+<td>
+<p>The levels the profile contains</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>The “outside of model domain” warning may occur if the profile point is very close to the prime meridian (in the case of a 0-360 longitude definition) or the antipode of the prime meridian (+/- 180 degrees longitude in the case of -180 to 180 degrees definition).
+For a full download of a global model (e. g. the GFS), this does not mean the point is actually outside of the model domain.
+For example, the 0.5 degree GFS has nodes from 0 to 359.5 degrees longitude; a profile point requested at 359.9 degrees longitude will cause this warning even though it is within the global GFS model domain.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Daniel C. Bowman <a href="mailto:danny.c.bowman@gmail.com">danny.c.bowman@gmail.com</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>ReadGrib</code>, <code>DODSGrab</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+#Get temperature profile in Chapel Hill, NC.
+
+#First, define each location
+lon &lt;- -79.052094
+lat &lt;- 35.907562
+
+#Get second to latest GFS 0.5 model, use analysis forecast
+#(this ensures the data's fully up on NOMADS)
+
+## Not run: 
+model.url &lt;- CrawlModels(abbrev = "gfs_0p50", depth = 2)[2]
+pred &lt;- ParseModelPage(model.url)$pred[1]
+
+## End(Not run)
+
+#Get levels
+pressure &lt;- c(1, 2, 3, 5, 7,
+10, 20, 30, 50, 70,
+seq(100, 1000, by = 25))
+levels &lt;- paste(pressure, " mb", sep = "")
+
+#Variables - temperature and height only
+variables &lt;- c("TMP", "HGT")
+
+## Not run: 
+grib.info &lt;- GribGrab(model.url, pred, levels, variables,
+   model.domain = c(-85, -75, 37, 32))
+grib.data &lt;- ReadGrib(grib.info[[1]]$file.name, levels, variables)
+
+profile &lt;- BuildProfile(grib.data, lon, lat, TRUE, points = 8)
+plot(profile[[1]]$profile.data[,2, 1] - 272.15, 
+   profile[[1]]$profile.data[,1, 1], xlab = "Temperature (C)",
+   ylab = "Height (m)", main = "Temperature Profile above Chapel Hill, NC")
+
+## End(Not run)
+</code></pre>
+
+
+</div>

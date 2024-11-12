@@ -1,0 +1,236 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>GGMblockTest</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Test for block-indepedence</h2>
+
+<h3>Description</h3>
+
+<p>Function performing a test that evaluates the null hypothesis of
+block-independence against the alternative of block-dependence (presence of
+non-zero elements in the off-diagonal block) in the precision matrix using
+high-dimensional data. The mentioned test is a permutation-based test (see
+details).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">GGMblockTest(
+  Y,
+  id,
+  nPerm = 1000,
+  lambda,
+  target = default.target(covML(Y)),
+  type = "Alt",
+  lowCiThres = 0.1,
+  ncpus = 1,
+  verbose = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>Data <code>matrix</code>. Variables assumed to be represented by columns.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id</code></td>
+<td>
+<p>A <code>numeric</code> vector acting as an indicator variable for two
+blocks of the precision matrix. The blocks should be coded as <code>0</code> and
+<code>1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nPerm</code></td>
+<td>
+<p>A <code>numeric</code> or <code>integer</code> determining the number of
+permutations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>A <code>numeric</code> representing the penalty parameter employed
+in the permutation test.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target</code></td>
+<td>
+<p>A target <code>matrix</code> (in precision terms) for Type I ridge
+estimators.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>A <code>character</code> indicating the type of ridge estimator to be
+used. Must be one of: "Alt", "ArchI", "ArchII".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lowCiThres</code></td>
+<td>
+<p>A <code>numeric</code> taking a value between 0 and 1.
+Determines speed of efficient p-value calculation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncpus</code></td>
+<td>
+<p>A <code>numeric</code> or <code>integer</code> indicating the desired
+number of cpus to be used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>A <code>logical</code> indicating if information on progress and
+output should be printed on screen.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The function performs a permutation test for the null hypothesis of
+block-independence against the alternative of block-dependence (presence of
+non-zero elements in the off-diagonal block) in the precision matrix using
+high-dimensional data. In the low-dimensional setting the common test
+statistic under multivariate normality (cf. Anderson, 2003) is:
+</p>
+<p style="text-align: center;"><code class="reqn">
+  \log( \| \hat{\mathbf{\Sigma}}_a \| ) +
+  \log( \| \hat{\mathbf{\Sigma}}_b \| ) -
+  \log( \| \hat{\mathbf{\Sigma}}   \| ),
+</code>
+</p>
+
+<p>where the
+<code class="reqn">\hat{\mathbf{\Sigma}}_a</code>,
+<code class="reqn">\hat{\mathbf{\Sigma}}_b</code>,
+<code class="reqn">\hat{\mathbf{\Sigma}}</code>
+are the estimates of the covariance matrix in the sub- and whole group(s),
+respectively.
+</p>
+<p>To accommodate the high-dimensionality the parameters of interest are
+estimated in a penalized manner (ridge-type penalization, see
+<code>ridgeP</code>). Penalization involves a degree of freedom (the
+penalty parameter: <code>lambda</code>) which needs to be fixed before testing. To
+decide on the penalty parameter for testing we refer to the
+<code>GGMblockNullPenalty</code> function. With an informed choice on the
+penalty parameter at hand, the null hypothesis is evaluated by permutation.
+Hereto the samples are permutated within block. The resulting permuted data
+set represents the null hypothesis. Many permuted data sets are generated.
+For each permutation the test statistic is calculated. The observed test
+statistic is compared to the null distribution from the permutations.
+</p>
+<p>The function implements an efficient permutation resampling algorithm (see
+van Wieringen et al., 2008, for details.): If the probability of a p-value
+being below <code>lowCiThres</code> is smaller than 0.001 (read: the test is
+unlikely to become significant), the permutation analysis is terminated and
+a p-value of unity (1) is reported.
+</p>
+<p>When <code>verbose = TRUE</code> also graphical output is generated: A histogram
+of the null-distribution. Note that, when <code>ncpus</code> is larger than 1,
+functionalities from
+<a href="https://cran.r-project.org/package=snowfall">snowfall</a> are imported.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class list: </p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>statistic</code></td>
+<td>
+<p>A <code>numeric</code>
+representing the observed test statistic (i.e., likelihood ratio).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pvalue</code></td>
+<td>
+<p>A <code>numeric</code> giving the p-value for the block-independence
+test.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nulldist</code></td>
+<td>
+<p>A <code>numeric</code> vector representing the permutation
+null distribution for the test statistic.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nperm</code></td>
+<td>
+<p>A <code>numeric</code>
+indicating the number of permutations used for p-value calculation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>remark</code></td>
+<td>
+<p>A <code>"character"</code> that states whether the permutation
+algorithm was terminated prematurely or not.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Wessel N. van Wieringen, Carel F.W. Peeters &lt;carel.peeters@wur.nl&gt;
+</p>
+
+
+<h3>References</h3>
+
+<p>Anderson, T.W. (2003). An Introduction to Multivariate
+Statistical Analysis, 3rd Edition. John Wiley.
+</p>
+<p>van Wieringen, W.N., van de Wiel, M.A., and van der Vaart, A.W. (2008). A
+Test for Partial Differential Expression. Journal of the American
+Statistical Association 103: 1039-1049.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>ridgeP</code>, <code>optPenalty.LOOCVauto</code>,
+<code>default.target</code>, <code>GGMblockNullPenalty</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Obtain some (high-dimensional) data
+p = 15
+n = 10
+set.seed(333)
+X = matrix(rnorm(n*p), nrow = n, ncol = p)
+colnames(X)[1:15] = letters[1:15]
+id &lt;- c(rep(0, 10), rep(1, 5))
+
+## Generate null distribution of the penalty parameter
+lambda0dist &lt;- GGMblockNullPenalty(X, id, 5, 0.001, 10)
+
+## Location of null distribution
+lambdaNull &lt;- median(lambda0dist)
+
+## Perform test
+testRes &lt;- GGMblockTest(X, id, nPerm = 100, lambdaNull)
+
+</code></pre>
+
+
+</div>

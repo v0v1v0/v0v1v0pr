@@ -1,0 +1,127 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>deutsch_2008</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Modified deutsch model for fitting thermal performance curves</h2>
+
+<h3>Description</h3>
+
+<p>Modified deutsch model for fitting thermal performance curves
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">deutsch_2008(temp, rmax, topt, ctmax, a)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>temp</code></td>
+<td>
+<p>temperature in degrees centigrade</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rmax</code></td>
+<td>
+<p>maximum rate at optimum temperature</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>topt</code></td>
+<td>
+<p>optimum temperature (ºC)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ctmax</code></td>
+<td>
+<p>critical thermal maximum (ºC)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>a</code></td>
+<td>
+<p>related to the full curve width</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Equation:
+</p>
+<p style="text-align: center;"><code class="reqn">\textrm{if} \quad temp &lt; t_{opt}: rate = r_{max} \cdot exp^{-\bigg(\frac{temp-t_{opt}}{2a}\bigg)^2}</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">\textrm{if} \quad temp &gt; t_{opt}: rate = r_{max} \cdot \left(1 - \bigg(\frac{temp - t_{opt}}{t_{opt} - ct_{max}}\bigg)^2\right)</code>
+</p>
+
+<p>Start values in <code>get_start_vals</code> are derived from the data.
+</p>
+<p>Limits in <code>get_lower_lims</code> and <code>get_upper_lims</code> are based on extreme values that are unlikely to occur in ecological settings.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a numeric vector of rate values based on the temperatures and parameter values provided to the function
+</p>
+
+
+<h3>Note</h3>
+
+<p>Generally we found this model easy to fit.
+</p>
+
+
+<h3>References</h3>
+
+<p>Deutsch, C. A., Tewksbury, J. J., Huey, R. B., Sheldon, K. S., Ghalambor, C. K., Haak, D. C., &amp; Martin, P. R. Impacts of climate warming on terrestrial ectotherms across latitude. Proceedings of the National Academy of Sciences, 105(18), 6668-6672. (2008)
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># load in ggplot
+library(ggplot2)
+
+# subset for the first TPC curve
+data('chlorella_tpc')
+d &lt;- subset(chlorella_tpc, curve_id == 1)
+
+# get start values and fit model
+start_vals &lt;- get_start_vals(d$temp, d$rate, model_name = 'deutsch_2008')
+# fit model
+mod &lt;- nls.multstart::nls_multstart(rate~deutsch_2008(temp = temp, rmax, topt, ctmax, a),
+data = d,
+iter = c(4,4,4,4),
+start_lower = start_vals - 10,
+start_upper = start_vals + 10,
+lower = get_lower_lims(d$temp, d$rate, model_name = 'deutsch_2008'),
+upper = get_upper_lims(d$temp, d$rate, model_name = 'deutsch_2008'),
+supp_errors = 'Y',
+convergence_count = FALSE)
+
+# look at model fit
+summary(mod)
+
+# get predictions
+preds &lt;- data.frame(temp = seq(min(d$temp), max(d$temp), length.out = 100))
+preds &lt;- broom::augment(mod, newdata = preds)
+
+# plot
+ggplot(preds) +
+geom_point(aes(temp, rate), d) +
+geom_line(aes(temp, .fitted), col = 'blue') +
+theme_bw()
+
+</code></pre>
+
+
+</div>

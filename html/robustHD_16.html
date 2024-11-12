@@ -1,0 +1,193 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>coefPlot</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Coefficient plot of a sequence of regression models</h2>
+
+<h3>Description</h3>
+
+<p>Produce a plot of the coefficients from a sequence of regression models,
+such as submodels along a robust or groupwise least angle regression
+sequence, or sparse least trimmed squares regression models for a grid of
+values for the penalty parameter.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">coefPlot(object, ...)
+
+## S3 method for class 'seqModel'
+coefPlot(object, zeros = FALSE, labels = NULL, ...)
+
+## S3 method for class 'tslars'
+coefPlot(object, p, zeros = FALSE, labels = NULL, ...)
+
+## S3 method for class 'sparseLTS'
+coefPlot(
+  object,
+  fit = c("reweighted", "raw", "both"),
+  zeros = FALSE,
+  labels = NULL,
+  ...
+)
+
+## S3 method for class 'setupCoefPlot'
+coefPlot(
+  object,
+  abscissa = NULL,
+  size = c(0.5, 2, 4),
+  offset = 1,
+  facets = object$facets,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>the model fit to be plotted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments to be passed down, eventually to
+<code>geom_line</code> and <code>geom_point</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zeros</code></td>
+<td>
+<p>a logical indicating whether predictors that never enter the
+model and thus have zero coefficients should be included in the plot
+(<code>TRUE</code>) or omitted (<code>FALSE</code>, the default).  This is useful if the
+number of predictors is much larger than the number of observations, in
+which case many coefficients are never nonzero.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>labels</code></td>
+<td>
+<p>an optional character vector containing labels for the
+predictors.  Plotting labels can be suppressed by setting this to
+<code>NA</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>an integer giving the lag length for which to produce the plot
+(the default is to use the optimal lag length).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>a character string specifying for which estimator to produce the
+plot.  Possible values are <code>"reweighted"</code> (the default) for the
+reweighted fits, <code>"raw"</code> for the raw fits, or <code>"both"</code> for both
+estimators.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>abscissa</code></td>
+<td>
+<p>a character string specifying what to plot on the
+<code class="reqn">x</code>-axis.  For objects inheriting from class <code>"seqModel"</code>, possible
+values are <code>"step"</code> for the step number (the default), or <code>"df"</code>
+for the degrees of freedom.  For <code>"sparseLTS"</code> objects, possible values
+are <code>"lambda"</code> for the value of the penalty parameter (the default), or
+<code>"step"</code> for the step number.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>size</code></td>
+<td>
+<p>a numeric vector of length three giving the line width, the
+point size and the label size, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>offset</code></td>
+<td>
+<p>an integer giving the offset of the labels from the
+corresponding coefficient values from the last step (i.e., the number of
+blank characters to be prepended to the label).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>facets</code></td>
+<td>
+<p>a faceting formula to override the default behavior.  If
+supplied, <code>facet_wrap</code> or
+<code>facet_grid</code> is called depending on whether the formula
+is one-sided or two-sided.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An object of class <code>"ggplot"</code> (see <code>ggplot</code>).
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Andreas Alfons
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>ggplot</code>, <code>rlars</code>,
+<code>grplars</code>, <code>rgrplars</code>, <code>tslarsP</code>,
+<code>rtslarsP</code>, <code>tslars</code>, <code>rtslars</code>,
+<code>sparseLTS</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## generate data
+# example is not high-dimensional to keep computation time low
+library("mvtnorm")
+set.seed(1234)  # for reproducibility
+n &lt;- 100  # number of observations
+p &lt;- 25   # number of variables
+beta &lt;- rep.int(c(1, 0), c(5, p-5))  # coefficients
+sigma &lt;- 0.5      # controls signal-to-noise ratio
+epsilon &lt;- 0.1    # contamination level
+Sigma &lt;- 0.5^t(sapply(1:p, function(i, j) abs(i-j), 1:p))
+x &lt;- rmvnorm(n, sigma=Sigma)    # predictor matrix
+e &lt;- rnorm(n)                   # error terms
+i &lt;- 1:ceiling(epsilon*n)       # observations to be contaminated
+e[i] &lt;- e[i] + 5                # vertical outliers
+y &lt;- c(x %*% beta + sigma * e)  # response
+x[i,] &lt;- x[i,] + 5              # bad leverage points
+
+
+## robust LARS
+# fit model
+fitRlars &lt;- rlars(x, y, sMax = 10)
+# create plot
+coefPlot(fitRlars)
+
+
+## sparse LTS over a grid of values for lambda
+# fit model
+frac &lt;- seq(0.2, 0.05, by = -0.05)
+fitSparseLTS &lt;- sparseLTS(x, y, lambda = frac, mode = "fraction")
+# create plot
+coefPlot(fitSparseLTS)
+coefPlot(fitSparseLTS, fit = "both")
+</code></pre>
+
+
+</div>

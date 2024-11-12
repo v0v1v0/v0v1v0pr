@@ -1,0 +1,112 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rbing.Op</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Simulate a <code>p*p</code> Orthogonal Random Matrix</h2>
+
+<h3>Description</h3>
+
+<p>Simulate a <code>p*p</code> random orthogonal matrix from the Bingham distribution
+using a rejection sampler.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rbing.Op(A, B)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>A</code></td>
+<td>
+<p>a symmetric matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B</code></td>
+<td>
+<p>a diagonal matrix with decreasing entries.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A random pxp orthogonal matrix simulated from the Bingham
+distribution.
+</p>
+
+
+<h3>Note</h3>
+
+<p>This only works for small matrices, otherwise the sampler will reject
+too frequently to be useful.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Peter Hoff
+</p>
+
+
+<h3>References</h3>
+
+<p>Hoff(2009)
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+Z&lt;-matrix(rnorm(10*5),10,5) ; A&lt;-t(Z)%*%Z
+B&lt;-diag(sort(rexp(5),decreasing=TRUE))
+U&lt;-rbing.Op(A,B)
+U&lt;-rbing.matrix.gibbs(A,B,U)
+
+
+## The function is currently defined as
+function (A, B) 
+{
+    b &lt;- diag(B)
+    bmx &lt;- max(b)
+    bmn &lt;- min(b)
+    if(bmx&gt;bmn)
+    {
+    A &lt;- A * (bmx - bmn)
+    b &lt;- (b - bmn)/(bmx - bmn)
+    vlA &lt;- eigen(A)$val
+    diag(A) &lt;- diag(A) - vlA[1]
+    vlA &lt;- eigen(A)$val
+    nu &lt;- max(dim(A)[1] + 1, round(-vlA[length(vlA)]))
+    del &lt;- nu/2
+    M &lt;- solve(diag(del, nrow = dim(A)[1]) - A)/2
+    rej &lt;- TRUE
+    cholM &lt;- chol(M)
+    nrej &lt;- 0
+    while (rej) {
+        Z &lt;- matrix(rnorm(nu * dim(M)[1]), nrow = nu, ncol = dim(M)[1])
+        Y &lt;- Z %*% cholM
+        tmp &lt;- eigen(t(Y) %*% Y)
+        U &lt;- tmp$vec %*% diag((-1)^rbinom(dim(A)[1], 1, 0.5))
+        L &lt;- diag(tmp$val)
+        D &lt;- diag(b) - L
+        lrr &lt;- sum(diag((D %*% t(U) %*% A %*% U))) - sum(-sort(diag(-D)) * 
+            vlA)
+        rej &lt;- (log(runif(1)) &gt; lrr)
+        nrej &lt;- nrej + 1
+    }
+    }
+    if(bmx==bmn) { U&lt;-rustiefel(dim(A)[1],dim(A)[1]) } 
+    U
+  }
+
+</code></pre>
+
+
+</div>

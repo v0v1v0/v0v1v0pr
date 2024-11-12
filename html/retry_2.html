@@ -1,0 +1,137 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>retry</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Repeatedly evaluate an expression</h2>
+
+<h3>Description</h3>
+
+<p>Repeatedly evaluate an expression until a condition is met or timeout is exceeded.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">retry(
+  expr,
+  upon = "error",
+  when = NULL,
+  until = NULL,
+  envir = parent.frame(),
+  silent = FALSE,
+  timeout = Inf,
+  max_tries = Inf,
+  interval = 0.1,
+  later_run_now = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>expr</code></td>
+<td>
+<p>an expression to be evaluated, supports quasiquotation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>upon</code></td>
+<td>
+<p>a vector of condition classes. The expression will be evaluated again after
+the delay if a condition is thrown. See the <code>classes</code> parameter of <code>rlang::catch_cnd</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>when</code></td>
+<td>
+<p>regular expression pattern that matches the message of the condition. It is used to
+decide if we need to evaluate <code>expr</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>until</code></td>
+<td>
+<p>a function of two arguments. This function is used to check if we need to
+evaluate <code>expr</code>. The first argument is the result of <code>expr</code> and the second argument
+is the condition thrown when <code>expr</code> was evaluated.
+It could be also a one sided formula that is later converted to a function
+using <code>rlang::as_function</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>envir</code></td>
+<td>
+<p>the environment in which the expression is to be evaluated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>silent</code></td>
+<td>
+<p>suppress messages and warnings</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>timeout</code></td>
+<td>
+<p>raise an error if this amount of time in seconds has passed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_tries</code></td>
+<td>
+<p>maximum number of attempts</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interval</code></td>
+<td>
+<p>delay between retries.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>later_run_now</code></td>
+<td>
+<p>execute <code>later::run_now()</code> periodically when <code>later</code> is loaded?</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">retry(10, until = ~TRUE)  # returns immediately
+
+f &lt;- function(x) {
+    if (runif(1) &lt; 0.9) {
+        stop("random error")
+    }
+    x + 1
+}
+# keep retring when there is a random error
+retry(f(1), when = "random error")
+# keep retring until a condition is met
+retry(f(1), until = function(val, cnd) val == 2)
+# or using one sided formula
+retry(f(1), until = ~ . == 2)
+
+try({
+  # it doesn't capture the error of "a" + 1
+  retry(f("a"), when = "random error")
+})
+
+try({
+  # an error is raised after 1 second
+  retry(stop("foo"), when = "foo", timeout = 1)
+})
+
+try({
+  # timeout also works for indefinite R code
+  retry(while(TRUE) {}, until = ~FALSE, timeout = 1)
+})
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,161 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>tutorial</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Exam results for six inner London Education Authorities</h2>
+
+<h3>Description</h3>
+
+<p>A subset of data from a much larger dataset of examination results from six
+inner London Education Authorities (school boards).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">tutorial
+</code></pre>
+
+
+<h3>Format</h3>
+
+<p>A data frame with 4059 observations on the following 10 variables:
+</p>
+
+<dl>
+<dt>school</dt>
+<dd>
+<p>Numeric school identifier.</p>
+</dd>
+<dt>student</dt>
+<dd>
+<p>Numeric student identifier.</p>
+</dd>
+<dt>normexam</dt>
+<dd>
+<p>Students' exam score at age 16, normalised to have
+approximately a standard Normal distribution.</p>
+</dd>
+<dt>cons</dt>
+<dd>
+<p>A column of ones. If included as an explanatory variable in a
+regression model (e.g. in MLwiN), its coefficient is the intercept.</p>
+</dd>
+<dt>standlrt</dt>
+<dd>
+<p>Students' score at age 11 on the London Reading Test
+(LRT), standardised using Z-scores.</p>
+</dd>
+<dt>sex</dt>
+<dd>
+<p>Sex of pupil; a factor with levels <code>boy</code>, <code>girl</code>.</p>
+</dd>
+<dt>schgend</dt>
+<dd>
+<p>Schools' gender; a factor with levels corresponding to mixed
+school (<code>mixedsch</code>), boys' school (<code>boysch</code>), and girls' school
+(<code>girlsch</code>).</p>
+</dd>
+<dt>avslrt</dt>
+<dd>
+<p>Average LRT score in school.</p>
+</dd>
+<dt>schav</dt>
+<dd>
+<p>Average LRT score in school, coded into 3 categories:
+<code>low</code> = bottom 25%, <code>mid</code> = middle 50%, <code>high</code> = top 25%.</p>
+</dd>
+<dt>vrband</dt>
+<dd>
+<p>Students' score in test of verbal reasoning at age 11,
+a factor with 3 levels: <code>vb1</code> = top 25%, <code>vb2</code> = middle 50%,
+<code>vb3</code> = bottom 25%.</p>
+</dd>
+</dl>
+<h3>Details</h3>
+
+<p>The <code>tutorial</code> dataset is one of the sample datasets provided with the
+multilevel-modelling software package MLwiN (Rasbash et al., 2009), and is a
+subset of data from a much larger dataset of examination results from six
+inner London Education Authorities (school boards). The original analysis
+(Goldstein et al., 1993) sought to establish whether some secondary schools
+had better student exam performance at 16 than others, after taking account
+of variations in the characteristics of students when they started secondary
+school; i.e., the analysis investigated the extent to which schools 'added
+value' (with regard to exam performance), and then examined what factors
+might be associated with any such differences. See also Rasbash et al.
+(2012) and Browne (2012).
+</p>
+
+
+<h3>Source</h3>
+
+<p>Browne, W. J. (2012) <em>MCMC Estimation in MLwiN Version 2.26.</em>
+University of Bristol: Centre for Multilevel Modelling.
+</p>
+<p>Goldstein, H., Rasbash, J., Yang, M., Woodhouse, G., Pan, H., Nuttall, D.,
+Thomas, S. (1993) A multilevel analysis of school examination results.
+<em>Oxford Review of Education</em>, <b>19</b>, 425–433.
+</p>
+<p>Rasbash, J., Charlton, C., Browne, W.J., Healy, M. and Cameron, B. (2009)
+<em>MLwiN Version 2.1.</em> Centre for Multilevel Modelling, University of
+Bristol.
+</p>
+<p>Rasbash, J., Steele, F., Browne, W.J. and Goldstein, H. (2012) <em>A
+User's Guide to MLwiN Version 2.26.</em> Centre for Multilevel Modelling,
+University of Bristol.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>See <code>mlmRev</code> package for an alternative format of the same
+dataset.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Not run: 
+
+data(tutorial, package = "R2MLwiN")
+
+# Fit 2-level variance components model, using IGLS (default estimation method)
+(VarCompModel &lt;- runMLwiN(normexam ~ 1 + (1 | school) + (1 | student), data = tutorial))
+
+# print variance partition coefficient (VPC)
+print(VPC &lt;- coef(VarCompModel)[["RP2_var_Intercept"]] /
+             (coef(VarCompModel)[["RP1_var_Intercept"]] +
+             coef(VarCompModel)[["RP2_var_Intercept"]]))
+
+# Fit same model using MCMC
+(VarCompMCMC &lt;- runMLwiN(normexam ~ 1 + (1 | school) + (1 | student),
+ estoptions = list(EstM = 1), data = tutorial))
+
+# return diagnostics for VPC
+VPC_MCMC &lt;- VarCompMCMC@chains[,"RP2_var_Intercept"] /
+            (VarCompMCMC@chains[,"RP1_var_Intercept"] +
+            VarCompMCMC@chains[,"RP2_var_Intercept"])
+sixway(VPC_MCMC, name = "VPC")
+
+# Adding predictor, allowing its coefficient to vary across groups (i.e. random slopes)
+(standlrtRS_MCMC &lt;- runMLwiN(normexam ~ 1 + standlrt + (1 + standlrt | school) + (1 | student),
+ estoptions = list(EstM = 1), data = tutorial))
+
+# Example modelling complex level 1 variance
+# fit log of precision at level 1 as a function of predictors
+(standlrtC1V_MCMC &lt;- runMLwiN(normexam ~ 
+  1 + standlrt + (school | 1 + standlrt) + (1 + standlrt | student),
+  estoptions = list(EstM = 1, mcmcMeth = list(lclo = 1)),
+  data = tutorial))
+
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

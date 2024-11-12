@@ -1,0 +1,424 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rotate</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Rotate or backup files</h2>
+
+<h3>Description</h3>
+
+<p>Functions starting with <code>backup</code> create backups of a <code>file</code>, while functions
+starting with <code>rotate</code> do the same but also replace the original <code>file</code>
+with an empty one (this is useful for log rotation)
+</p>
+<p><strong>Note:</strong>: <code>rotate()</code> and co will not work reliable on filenames that contain
+dots but have no file extension (e.g. <code>my.holiday.picture.jpg</code> is OK but
+<code>my.holiday.picture</code> is not)
+</p>
+<p><code>prune_backups()</code> physically deletes all backups of a file
+based on <code>max_backups</code>
+</p>
+<p><code>prune_backups()</code> physically deletes all backups of a file
+based on <code>max_backups</code>
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rotate(
+  file,
+  size = 1,
+  max_backups = Inf,
+  compression = FALSE,
+  dir = dirname(file),
+  create_file = TRUE,
+  dry_run = FALSE,
+  verbose = dry_run
+)
+
+backup(
+  file,
+  size = 0,
+  max_backups = Inf,
+  compression = FALSE,
+  dir = dirname(file),
+  dry_run = FALSE,
+  verbose = dry_run
+)
+
+prune_backups(
+  file,
+  max_backups,
+  dir = dirname(file),
+  dry_run = FALSE,
+  verbose = dry_run
+)
+
+prune_identical_backups(
+  file,
+  dir = dirname(file),
+  dry_run = FALSE,
+  verbose = dry_run
+)
+
+rotate_date(
+  file,
+  age = 1,
+  size = 1,
+  max_backups = Inf,
+  compression = FALSE,
+  format = "%Y-%m-%d",
+  dir = dirname(file),
+  overwrite = FALSE,
+  create_file = TRUE,
+  now = Sys.Date(),
+  dry_run = FALSE,
+  verbose = dry_run
+)
+
+backup_date(
+  file,
+  age = 1,
+  size = 1,
+  max_backups = Inf,
+  compression = FALSE,
+  format = "%Y-%m-%d",
+  dir = dirname(file),
+  overwrite = FALSE,
+  now = Sys.Date(),
+  dry_run = FALSE,
+  verbose = dry_run
+)
+
+rotate_time(
+  file,
+  age = -1,
+  size = 1,
+  max_backups = Inf,
+  compression = FALSE,
+  format = "%Y-%m-%d--%H-%M-%S",
+  dir = dirname(file),
+  overwrite = FALSE,
+  create_file = TRUE,
+  now = Sys.time(),
+  dry_run = FALSE,
+  verbose = dry_run
+)
+
+backup_time(
+  file,
+  age = -1,
+  size = 1,
+  max_backups = Inf,
+  compression = FALSE,
+  format = "%Y-%m-%d--%H-%M-%S",
+  dir = dirname(file),
+  overwrite = FALSE,
+  now = Sys.time(),
+  dry_run = FALSE,
+  verbose = dry_run
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>file</code></td>
+<td>
+<p><code>character</code> scalar: file to backup/rotate</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>size</code></td>
+<td>
+<p>scalar <code>integer</code>, <code>character</code> or <code>Inf</code>. Backup/rotate only if
+<code>file</code> is larger than this size. <code>Integers</code> are interpreted as bytes. You
+can pass <code>character</code> vectors that contain a file size suffix like <code style="white-space: pre;">⁠1k⁠</code>
+(kilobytes), <code style="white-space: pre;">⁠3M⁠</code> (megabytes), <code style="white-space: pre;">⁠4G⁠</code> (gigabytes), <code style="white-space: pre;">⁠5T⁠</code> (terabytes). Instead
+of these short forms you can also be explicit and use the IEC suffixes
+<code>KiB</code>, <code>MiB</code>, <code>GiB</code>, <code>TiB</code>. In Both cases <code>1</code> kilobyte is <code>1024</code> bytes, 1
+<code>megabyte</code> is <code>1024</code> kilobytes, etc... .
+</p>
+<p>(if <code>age</code> <em>and</em> <code>size</code> are provided, both criteria must be <code>TRUE</code> to
+trigger rotation)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_backups</code></td>
+<td>
+<p>maximum number of backups to keep
+</p>
+
+<ul><li>
+<p> an <code>integer</code> scalar: Maximum number of backups to keep
+</p>
+</li></ul>
+<p>In addition for timestamped backups the following value are supported:
+</p>
+
+<ul>
+<li>
+<p> a <code>Date</code> scalar: Remove all backups before this date
+</p>
+</li>
+<li>
+<p> a <code>character</code> scalar representing a Date in ISO format (e.g. <code>"2019-12-31"</code>)
+</p>
+</li>
+<li>
+<p> a <code>character</code> scalar representing an Interval in the form <code>"&lt;number&gt; &lt;interval&gt;"</code> (see below for more info)
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>compression</code></td>
+<td>
+<p>Whether or not backups should be compressed
+</p>
+
+<ul>
+<li> <p><code>FALSE</code> for uncompressed backups,
+</p>
+</li>
+<li> <p><code>TRUE</code> for zip compression; uses <code>zip()</code>
+</p>
+</li>
+<li>
+<p> a scalar <code>integer</code> between <code>1</code> and <code>9</code> to specify a compression
+level (requires the
+<a href="https://CRAN.R-project.org/package=zip">zip</a> package,
+see its documentation for details)
+</p>
+</li>
+<li>
+<p> the <code>character</code> scalars <code>"utils::zip()"</code> or <code>"zip::zipr"</code> to force a
+specific zip command
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dir</code></td>
+<td>
+<p><code>character</code> scalar. The directory in which the backups
+of <code>file</code> are stored (defaults to <code>dirname(file)</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>create_file</code></td>
+<td>
+<p><code>logical</code> scalar. If <code>TRUE</code> create an empty file in
+place of <code>file</code> after rotating.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dry_run</code></td>
+<td>
+<p><code>logical</code> scalar. If <code>TRUE</code> no changes are applied to the
+file system (no files are created or deleted)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p><code>logical</code> scalar. If <code>TRUE</code> additional informative <code>messages</code>
+are printed</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>age</code></td>
+<td>
+<p>minimum age after which to backup/rotate a file; can be
+</p>
+
+<ul>
+<li>
+<p> a <code>character</code> scalar representing an Interval in the form
+<code>"&lt;number&gt; &lt;interval&gt;"</code> (e.g. <code>"2 months"</code>, see <em>Intervals</em> section below).
+</p>
+</li>
+<li>
+<p> a <code>Date</code> or a <code>character</code> scalar representing a Date for
+a fixed point in time after which to backup/rotate. See <code>format</code> for
+which Date/Datetime formats are supported by rotor.
+</p>
+</li>
+</ul>
+<p>(if <code>age</code> <em>and</em> <code>size</code> are provided, both criteria must be <code>TRUE</code> to
+trigger rotation)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>format</code></td>
+<td>
+<p>a scalar <code>character</code> that can be a subset of of valid
+<code>strftime()</code> formatting strings. The default setting is
+<code>"%Y-%m-%d--%H-%M-%S"</code>.
+</p>
+
+<ul>
+<li>
+<p> You can use an arbitrary number of dashes anywhere in the format, so
+<code>"%Y-%m-%d--%H-%M-%S"</code> and <code>"%Y%m%d%H%M%S"</code> are both legal.
+</p>
+</li>
+<li> <p><code>T</code> and <code style="white-space: pre;">⁠_⁠</code> can also be used as separators. For example, the following
+datetime formats are also possible:
+<code style="white-space: pre;">⁠%Y-%m-%d_%H-%M-%S⁠</code> (Python logging default),
+<code style="white-space: pre;">⁠%Y%m%dT%H%M%S⁠</code> (<a href="https://en.wikipedia.org/wiki/ISO_8601">ISO 8601</a>)
+</p>
+</li>
+<li>
+<p> All datetime components except <code style="white-space: pre;">⁠%Y⁠</code> are optional. If you leave out part
+of the timestamp, the first point in time in the period is assumed. For
+example (assuming the current year is 2019) <code style="white-space: pre;">⁠%Y⁠</code> is identical to
+<code>2019-01-01--00-00-00</code>.
+</p>
+</li>
+<li>
+<p> The timestamps must be lexically sortable, so <code>"%Y-%m-%d"</code> is legal,
+<code>"%m-%d-%Y"</code> and <code style="white-space: pre;">⁠%Y-%d⁠</code> are not.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite</code></td>
+<td>
+<p><code>logical</code> scalar. If <code>TRUE</code> overwrite backups if a backup
+of the same name (usually due to timestamp collision) exists.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>now</code></td>
+<td>
+<p>The current <code>Date</code> or time (<code>POSIXct</code>) as a scalar. You can pass a
+custom value here to to override the real system time. As a convenience you
+can also pass in <code>character</code> strings that follow the guidelines outlined
+above for <code>format</code>, but please note that these differ from the formats
+understood by <code>as.POSIXct()</code> or <code>as.Date()</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p><code>file</code> as a <code>character</code> scalar (invisibly)
+</p>
+
+
+<h3>Side Effects</h3>
+
+<p><code>backup()</code>, <code>backup_date()</code>, and <code>backup_time()</code> may create files (if the
+specified conditions are met). They may also delete backups, based on
+<code>max_backup</code>.
+</p>
+<p><code>rotate()</code>, <code>rotate_date()</code> and <code>rotate_time()</code> do the same, but in
+addition delete the input <code>file</code>, or replace it with an empty file if
+<code>create_file == TRUE</code> (the default).
+</p>
+<p><code>prune_backups()</code> may delete files, depending on <code>max_backups</code>.
+</p>
+<p><code>prune_backups()</code> may delete files, depending on <code>max_backups</code>.
+</p>
+
+
+<h3>Intervals</h3>
+
+<p>In <strong>rotor</strong>, an interval is a character string in the form
+<code>"&lt;number&gt; &lt;interval&gt;"</code>. The following intervals are possible:
+<code>"day(s)"</code>, <code>"week(s)"</code>, <code>"month(s)"</code>, <code>"quarter(s)"</code>, <code>"year(s)"</code>.
+The plural <code>"s"</code> is optional (so <code>"2 weeks"</code> and <code>"2 week"</code> are equivalent).
+Please be aware that weeks are
+<a href="https://en.wikipedia.org/wiki/ISO_week_date">ISOweeks</a>
+and start on Monday (not Sunday as in some countries).
+</p>
+<p>Interval strings can be used as arguments when backing up or rotating files,
+or for pruning backup queues (i.e. limiting the number of backups of a
+single) file.
+</p>
+<p>When rotating/backing up <code>"1 months"</code> means "make a new backup if the last
+backup is from the preceding month". E.g if the last backup of <code>myfile</code>
+is from <code>2019-02-01</code> then <code>backup_time(myfile, age = "1 month")</code> will only
+create a backup if the current date is at least <code>2019-03-01</code>.
+</p>
+<p>When pruning/limiting backup queues, <code>"1 year"</code> means "keep at least most
+one year worth of backups". So if you call
+<code>backup_time(myfile, max_backups = "1 year")</code> on <code>2019-03-01</code>, it will create
+a backup and then remove all backups of <code>myfile</code> before <code>2019-01-01</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>list_backups()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># setup example file
+tf &lt;- tempfile("test", fileext = ".rds")
+saveRDS(cars, tf)
+
+# create two backups of `tf``
+backup(tf)
+backup(tf)
+list_backups(tf)  # find all backups of a file
+
+# If `size` is set, a backup is only created if the target file is at least
+# that big. This is more useful for log rotation than for backups.
+backup(tf, size = "100 mb")  # no backup becuase `tf` is to small
+list_backups(tf)
+
+# If `dry_run` is TRUE, backup() only shows what would happen without
+# actually creating or deleting files
+backup(tf, size = "0.1kb", dry_run = TRUE)
+
+# rotate() is the same as backup(), but replaces `tf`` with an empty file
+rotate(tf)
+list_backups(tf)
+file.size(tf)
+file.size(list_backups(tf))
+
+# prune_backups() can remove old backups
+prune_backups(tf, 1)  # keep only one backup
+list_backups(tf)
+
+# rotate/backup_date() adds a date instead of an index
+# you should not mix index backups and timestamp backups
+# so we clean up first
+prune_backups(tf, 0)
+saveRDS(cars, tf)
+
+# backup_date() adds the date instead of an index to the filename
+backup_date(tf)
+
+# `age` sets the minimum age of the last backup before creating a new one.
+# the example below creates no new backup since it's less than a week
+# since the last.
+backup_date(tf, age = "1 week")
+
+# `now` overrides the current date.
+backup_date(tf, age = "1 year", now = "2999-12-31")
+list_backups(tf)
+
+# backup_time() creates backups with a full timestamp
+backup_time(tf)
+
+# It's okay to mix backup_date() and backup_time()
+list_backups(tf)
+
+# cleanup
+prune_backups(tf, 0)
+file.remove(tf)
+</code></pre>
+
+
+</div>

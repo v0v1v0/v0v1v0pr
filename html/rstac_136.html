@@ -1,0 +1,335 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>extensions</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Extension development functions</h2>
+
+<h3>Description</h3>
+
+<p>Currently, there are five STAC documents defined in STAC spec:
+</p>
+
+<ul>
+<li> <p><code>doc_catalog</code>
+</p>
+</li>
+<li> <p><code>doc_collection</code>
+</p>
+</li>
+<li> <p><code>doc_collections</code>
+</p>
+</li>
+<li> <p><code>doc_item</code>
+</p>
+</li>
+<li> <p><code>doc_items</code>
+</p>
+</li>
+</ul>
+<p>Each document class is associated with STAC API endpoints.
+As soon as new STAC documents are proposed in the specification, new
+classes can be created in the <code>rstac</code> package.
+</p>
+<p>Let <code>version</code> parameter <code>NULL</code> to detect version automatically.
+</p>
+<p>Basically, there are two types of extensions in STAC specification:
+</p>
+
+<ol>
+<li>
+<p> STAC documents extensions: these extensions can be defined in
+different elements of the document specification.
+</p>
+</li>
+<li>
+<p> STAC API extensions: these extensions are associated with the
+interaction between the client and server through API and may add new
+elements in the STAC documents or just filter the elements to be returned
+in the documents.
+</p>
+</li>
+</ol>
+<p>Here, we will focus on the second type of extension.
+</p>
+<p>To let <code>rstac</code> package perform some behavior according to an
+STAC API extension we need define some functions. These functions
+can be implemented in three environments:
+</p>
+
+<ol>
+<li>
+<p> In <code>rstac</code> package by including new functions make a
+GitHub pull request on <code>rstac</code> repository
+(<a href="https://github.com/brazil-data-cube/rstac">https://github.com/brazil-data-cube/rstac</a>)
+</p>
+</li>
+<li>
+<p> In a new package by using <code>rstac</code> as dependent package
+</p>
+</li>
+<li>
+<p> In a script that loads <code>rstac</code> into the environment
+</p>
+</li>
+</ol>
+<p>All these places may impose specific requirements, however the core
+logic to implement an extension is the same.
+</p>
+<p>These functions are intended for those who want to implement new STAC API
+extensions. An extension must define a subclass name and implement all the
+following S3 generic methods for that subclass:
+</p>
+
+<ul>
+<li> <p><code>before_request()</code>: allows handling query parameters before
+submit them to the HTTP server, usually sets up the query endpoint;
+</p>
+</li>
+<li> <p><code>after_request()</code>: allows to check and parse document received
+by the HTTP server;
+</p>
+</li>
+</ul>
+<p>These methods will work 'behind the scenes' when a <code>rstac_query</code> object
+representing a user query are passed to a request function
+(e.g. <code>get_request()</code> or <code>post_request()</code>). The calling order is:
+</p>
+
+<ol>
+<li>
+<p> begin of <code>get_request()</code> or <code>post_request()</code>
+</p>
+</li>
+<li>
+<p> if STAC API version is not defined, try detect it
+</p>
+</li>
+<li>
+<p> call <code>before_request()</code>
+</p>
+</li>
+<li>
+<p> send HTTP request
+</p>
+</li>
+<li>
+<p> receive HTTP response
+</p>
+</li>
+<li> <p><code>after_response()</code>
+</p>
+</li>
+<li>
+<p> end of <code>get_request()</code> or <code>post_request()</code>
+</p>
+</li>
+</ol>
+<p>Besides that, the extension must expose a function to receive user
+parameters and return a <code>rstac_query</code> object with a subclass
+associated with the above S3 methods. This function must accept as its
+first parameter a <code>rstac_query</code> object representing the actual query.
+To keep the command flow consistency, the function needs to check the
+subclass of the input query. After that, it must set new or changes the
+input query parameters according to the user input and, finally,
+return the new query as a <code>rstac_query</code> object.
+</p>
+<p>You can see examples on how to implement an STAC API extension by looking at
+<code>stac.R</code>, <code>collections.R</code>, <code>items.R</code>, <code>stac_search.R</code>,
+and <code>ext_query.R</code> source files. These files implement core STAC API
+endpoints, as well as the query API extension.
+</p>
+<p>There are also some utility functions described in <strong>Functions</strong>
+section bellow that can help the extension development.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">before_request(q)
+
+after_response(q, res)
+
+parse_params(q, params)
+
+content_response(res, status_codes, content_types, key_message)
+
+check_query_verb(q, verbs, msg = NULL)
+
+check_query(x, classes = NULL)
+
+subclass(x)
+
+set_query_endpoint(q, endpoint, params = NULL)
+
+rstac_query(version = NULL, base_url, params = list(), subclass)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>q</code></td>
+<td>
+<p>a <code>rstac_query</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>res</code></td>
+<td>
+<p>a <code>httr</code> <code>response</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>params</code></td>
+<td>
+<p>a named <code>list</code> with all URL query parameters to be
+appended in the URL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>status_codes</code></td>
+<td>
+<p>a <code>character</code> vector with successful
+status codes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>content_types</code></td>
+<td>
+<p>a <code>character</code> vector with all acceptable
+responses' content type.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>key_message</code></td>
+<td>
+<p>a <code>character</code> vector with the JSON keys to show the
+requested API message.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbs</code></td>
+<td>
+<p>a <code>character</code> vector with allowed HTTP request methods</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>msg</code></td>
+<td>
+<p>a <code>character</code> with a personalized error message</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a <code>rstac_query</code> object expressing a STAC query
+criteria.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>classes</code></td>
+<td>
+<p>a <code>character</code> vector with all allowed S3 sub-classes</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>endpoint</code></td>
+<td>
+<p>a <code>character</code> vector with the format string with the
+endpoint url.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>version</code></td>
+<td>
+<p>a <code>character</code> with the STAC version.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>base_url</code></td>
+<td>
+<p>a <code>character</code> informing the base URL of a
+STAC web service.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subclass</code></td>
+<td>
+<p>a <code>character</code> corresponding to the subclass of the
+object to be created.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A <code>rstac_query</code> object for <code>before_request()</code> and
+<code>after_response()</code> functions.
+</p>
+<p>The <code>content_response()</code> function returns a <code>list</code> data structure
+representing the JSON file received in HTTP response
+</p>
+<p>The <code>rstac_query()</code> function returns a <code>STACQuery</code> object with
+subclass defined by <code>subclass</code> parameter.
+</p>
+
+
+<h3>Functions</h3>
+
+
+<ul>
+<li> <p><code>content_response()</code>: The <code>content_response</code> function checks if the request's
+response is in accordance with the allowed status codes and content-types.
+It returns the parsed content response.
+</p>
+</li>
+<li> <p><code>check_query_verb()</code>: The <code>check_query_verb()</code> function allows you to define which HTTP
+verbs are allowed. It is useful for establishing which verbs will be
+supported by an extension.
+</p>
+</li>
+<li> <p><code>check_query()</code>: The <code>check_query()</code> function specifies which type of query
+object (<code>rstac_query</code>) is expected in the function extension.
+</p>
+</li>
+<li> <p><code>subclass()</code>: The <code>subclass()</code> function returns a <code>character</code> representing the
+subclass name of <code>rstac_query</code> objects.
+</p>
+</li>
+<li> <p><code>set_query_endpoint()</code>: The <code>set_query_endpoint()</code> function defines the endpoint of a query.
+If <code>params</code> parameter is passed, each value must be an entry of params
+field of the given query. The corresponding param value will be used as
+value replacement of <code style="white-space: pre;">⁠%s⁠</code> occurrences in the <code>endpoint</code> string. After
+the replacement, all params in this list will be removed.
+</p>
+</li>
+<li> <p><code>rstac_query()</code>: The <code>rstac_query()</code> function is a constructor of <code>rstac_query</code>
+objects. Every extension must implement a subclass of <code>rstac_query</code> to
+represent its queries. This is done by informing to the <code>subclass</code>
+parameter the extension's subclass name.
+</p>
+<p>The <code>params</code> parameter is a named <code>list</code> where user parameters
+must be stored. It is important to know if previous query parameters needs
+to be keeped in the new query. If so, it is recommended do use
+<code>utils::modifyList()</code> function to merge the old and new
+query parameters.
+</p>
+<p>If the <code>version</code> parameter is <code>NULL</code>, <code>rstac</code> will detect
+STAC API version automatically.
+</p>
+<p>In general, if you are implementing a new subclass, the parameters
+<code>version</code> and <code>url</code> will be the same as the previous query. The
+<code>params</code> parameter will be merged with previous query. And subclass
+is the extension's subclass name.
+</p>
+</li>
+</ul>
+<h3>See Also</h3>
+
+<p><code>ext_query()</code>
+</p>
+
+
+</div>

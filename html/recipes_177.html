@@ -1,0 +1,201 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>step_filter</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Filter rows using dplyr</h2>
+
+<h3>Description</h3>
+
+<p><code>step_filter()</code> creates a <em>specification</em> of a recipe step that will remove
+rows using <code>dplyr::filter()</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">step_filter(
+  recipe,
+  ...,
+  role = NA,
+  trained = FALSE,
+  inputs = NULL,
+  skip = TRUE,
+  id = rand_id("filter")
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>recipe</code></td>
+<td>
+<p>A recipe object. The step will be added to the
+sequence of operations for this recipe.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Logical predicates defined in terms of the variables
+in the data. Multiple conditions are combined with <code>&amp;</code>. Only
+rows where the condition evaluates to <code>TRUE</code> are kept. See
+<code>dplyr::filter()</code> for more details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>role</code></td>
+<td>
+<p>Not used by this step since no new variables are
+created.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trained</code></td>
+<td>
+<p>A logical to indicate if the quantities for
+preprocessing have been estimated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inputs</code></td>
+<td>
+<p>Quosure of values given by <code>...</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>skip</code></td>
+<td>
+<p>A logical. Should the step be skipped when the
+recipe is baked by <code>bake()</code>? While all operations are baked
+when <code>prep()</code> is run, some operations may not be able to be
+conducted on new data (e.g. processing the outcome variable(s)).
+Care should be taken when using <code>skip = FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id</code></td>
+<td>
+<p>A character string that is unique to this step to identify it.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>When an object in the user's global environment is
+referenced in the expression defining the new variable(s),
+it is a good idea to use quasiquotation (e.g. <code style="white-space: pre;">⁠!!⁠</code>) to embed
+the value of the object in the expression (to be portable
+between sessions). See the examples.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An updated version of <code>recipe</code> with the new step added to the
+sequence of any existing operations.
+</p>
+
+
+<h3>Row Filtering</h3>
+
+<p>This step can entirely remove observations (rows of data), which can have
+unintended and/or problematic consequences when applying the step to new
+data later via <code>bake()</code>. Consider whether <code>skip = TRUE</code> or
+<code>skip = FALSE</code> is more appropriate in any given use case. In most instances
+that affect the rows of the data being predicted, this step probably should
+not be applied at all; instead, execute operations like this outside and
+before starting a preprocessing <code>recipe()</code>.
+</p>
+
+
+<h3>Tidying</h3>
+
+<p>When you <code>tidy()</code> this step, a tibble is returned with
+columns <code>terms</code> and <code>id</code>:
+</p>
+
+<dl>
+<dt>terms</dt>
+<dd>
+<p>character, the selectors or variables selected</p>
+</dd>
+<dt>id</dt>
+<dd>
+<p>character, id of this step</p>
+</dd>
+</dl>
+<p>The expressions in <code>terms</code> are text representations and are not parsable.
+</p>
+
+
+<h3>Case weights</h3>
+
+<p>The underlying operation does not allow for case weights.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other row operation steps: 
+<code>step_arrange()</code>,
+<code>step_impute_roll()</code>,
+<code>step_lag()</code>,
+<code>step_naomit()</code>,
+<code>step_sample()</code>,
+<code>step_shuffle()</code>,
+<code>step_slice()</code>
+</p>
+<p>Other dplyr steps: 
+<code>step_arrange()</code>,
+<code>step_mutate()</code>,
+<code>step_mutate_at()</code>,
+<code>step_rename()</code>,
+<code>step_rename_at()</code>,
+<code>step_sample()</code>,
+<code>step_select()</code>,
+<code>step_slice()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">rec &lt;- recipe(~., data = iris) %&gt;%
+  step_filter(Sepal.Length &gt; 4.5, Species == "setosa")
+
+prepped &lt;- prep(rec, training = iris %&gt;% slice(1:75))
+
+library(dplyr)
+
+dplyr_train &lt;-
+  iris %&gt;%
+  as_tibble() %&gt;%
+  slice(1:75) %&gt;%
+  dplyr::filter(Sepal.Length &gt; 4.5, Species == "setosa")
+
+rec_train &lt;- bake(prepped, new_data = NULL)
+all.equal(dplyr_train, rec_train)
+
+dplyr_test &lt;-
+  iris %&gt;%
+  as_tibble() %&gt;%
+  slice(76:150) %&gt;%
+  dplyr::filter(Sepal.Length &gt; 4.5, Species != "setosa")
+rec_test &lt;- bake(prepped, iris %&gt;% slice(76:150))
+all.equal(dplyr_test, rec_test)
+
+values &lt;- c("versicolor", "virginica")
+
+qq_rec &lt;-
+  recipe(~., data = iris) %&gt;%
+  # Embed the `values` object in the call using !!
+  step_filter(Sepal.Length &gt; 4.5, Species %in% !!values)
+
+tidy(qq_rec, number = 1)
+</code></pre>
+
+
+</div>

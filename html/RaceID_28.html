@@ -1,0 +1,142 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>diffexpnb</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Function for differential expression analysis</h2>
+
+<h3>Description</h3>
+
+<p>This function performs differential expression analysis between two sets of single cell transcriptomes. The inference is based on a noise model or relies on the <code>DESeq2</code> approach.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">diffexpnb(
+  x,
+  A,
+  B,
+  DESeq = FALSE,
+  method = "pooled",
+  norm = FALSE,
+  vfit = NULL,
+  locreg = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>expression data frame with genes as rows and cells as columns. Gene IDs should be given as row names and cell IDs should be given as column names. This can be a reduced expression table only including the features (genes) to be used in the analysis. This input has to be provided if <code>g</code> (see below) is given and corresponds to a valid gene ID, i. e. one of the rownames of <code>x</code>. The default value is <code>NULL</code>. In this case, cluster identities are highlighted in the plot.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>A</code></td>
+<td>
+<p>vector of cell IDs corresponding column names of <code>x</code>. Differential expression in set <code>A</code> versus set <code>B</code> will be evaluated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B</code></td>
+<td>
+<p>vector of cell IDs corresponding column names of <code>x</code>. Differential expression in set <code>A</code> versus set <code>B</code> will be evaluated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>DESeq</code></td>
+<td>
+<p>logical value. If <code>TRUE</code>, then <span class="pkg">DESeq2</span> is used for the inference of differentially expressed genes. In this case, it is recommended to provide non-normalized input data <code>x</code>. The <span class="pkg">DESeq2</span> package needs to be installed from bioconductor. Default value is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>either "per-condition" or "pooled". If DESeq is not used, this parameter determines, if the noise model is fitted for each set separately ("per-condition") or for the pooled set comprising all cells in <code>A</code> and <code>B</code>. Default value is "pooled".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>norm</code></td>
+<td>
+<p>logical value. If <code>TRUE</code> then the total transcript count in each cell is normalized to the minimum number of transcripts across all cells in set <code>A</code> and <code>B</code>. Default value is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vfit</code></td>
+<td>
+<p>function describing the background noise model. Inference of differentially expressed genes can be performed with a user-specified noise model describing the expression variance as a function of the mean expression. Default value is <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>locreg</code></td>
+<td>
+<p>logical value. If <code>FALSE</code> then regression of a second order polynomial is perfomed to determine the relation of variance and mean. If <code>TRUE</code> a local regression is performed instead. Default value is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments to be passed to the low level function <code>DESeqDataSetFromMatrix</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>If <code>DESeq</code> equals <code>TRUE</code>, the function returns the output of <span class="pkg">DESeq2</span>. In this case list of the following two components is returned:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>cds</code></td>
+<td>
+<p>object returned by the <span class="pkg">DESeq2</span> function <code>DESeqDataSetFromMatrix</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>res</code></td>
+<td>
+<p>data frame containing the results of the <span class="pkg">DESeq2</span> analysis.</p>
+</td>
+</tr>
+</table>
+<p>Otherwise, a list of three components is returned:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>vf1</code></td>
+<td>
+<p>a data frame of three columns, indicating the mean <code>m</code>, the variance <code>v</code> and the fitted variance <code>vm</code> for set <code>A</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vf2</code></td>
+<td>
+<p>a data frame of three columns, indicating the mean <code>m</code>, the variance <code>v</code> and the fitted variance <code>vm</code> for set <code>B</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>res</code></td>
+<td>
+<p>a data frame with the results of the differential gene expression analysis with the structure of the <code>DESeq</code> output, displaying mean expression of the two sets, fold change and log2 fold change between the two sets, the p-value for differential expression (<code>pval</code>) and the Benjamini-Hochberg corrected false discovery rate (<code>padj</code>).</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">sc &lt;- SCseq(intestinalDataSmall)
+sc &lt;- filterdata(sc)
+sc &lt;- compdist(sc)
+sc &lt;- clustexp(sc)
+sc &lt;- findoutliers(sc)
+A &lt;- names(sc@cpart)[sc@cpart %in% c(1,2)]
+B &lt;- names(sc@cpart)[sc@cpart %in% c(3)]
+y &lt;- diffexpnb(getfdata(sc,n=c(A,B)), A=A, B=B )
+</code></pre>
+
+
+</div>

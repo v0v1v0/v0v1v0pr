@@ -1,0 +1,205 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fit_t_standard</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Fits standard models of trait evolution incorporating known and nuisance measurement error
+</h2>
+
+<h3>Description</h3>
+
+<p>Fits Brownian motion (BM), Ornstein-Uhlenbeck (OU), or early burst (EB) models of trait evolution to a given dataset and phylogeny.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fit_t_standard(phylo, data, model=c("BM","OU","EB"), error=NULL, two.regime=FALSE, 
+		method="Nelder-Mead", echo=TRUE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>phylo</code></td>
+<td>
+
+<p>an object of type 'phylo' (see ape documentation); if <code>two.regime=TRUE</code>, this must be a simmap object from <code>make.simmap</code> with two regimes
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+
+<p>a named vector of trait values with names matching <code>phylo$tip.label</code>
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+
+<p>model chosen to fit trait data, <code>"BM"</code> is the Brownian motion model, <code>"OU"</code> is the Ornstein-Uhlenbeck model, and <code>"EB"</code> is the early burst model.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>error</code></td>
+<td>
+
+<p>A named vector with standard errors (SE) of trait values for each species (with names matching <code>"phylo$tip.label"</code>). The default is NULL, in this case potential error is ignored in the fit. If set to NA, the SE is estimated from the data (to be used when there are no error measurements, a nuisance parameter is estimated). Note: When standard errors are provided, a nuisance parameter is also estimated.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>two.regime</code></td>
+<td>
+
+<p>if <code>TRUE</code>, fits a two-regime model
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+
+<p>optimization method from <code>link{optim}</code>
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>echo</code></td>
+<td>
+
+<p>prints information to console during fit
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>Optional arguments. e.g. "upper=xx", "lower=xx" to specify bounds on the parameter search. "fixedRoot=TRUE" to use an OU model where the root state is assumed fixed (instead of sampled from the stationary distribution)
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Note: if including known measurement error, the model fit incorporates this known error and, in addition, estimates an unknown, nuisance contribution to measurement error. The current implementation does not differentiate between the two, so, for instance, it is not possible to estimate the nuisance measurement error without providing the known, intraspecific error values.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a list with the following elements:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>LH</code></td>
+<td>
+<p>maximum log-likelihood value</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aic</code></td>
+<td>
+<p>Akaike Information Criterion value</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aicc</code></td>
+<td>
+<p>AIC value corrected for small sample size</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>free.parameters</code></td>
+<td>
+<p>number of free parameters from the model</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sig2</code></td>
+<td>
+<p>maximum-likelihood estimate of <code>sig2</code> parameter</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>maximum-likelihood estimate of <code>alpha</code> parameter of OU model (see Note)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>r</code></td>
+<td>
+<p>maximum-likelihood estimate of the slope parameter of early burst model</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>z0</code></td>
+<td>
+<p>maximum-likelihood estimate of <code>z0</code>, the value at the root of the tree</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nuisance</code></td>
+<td>
+<p>maximum-likelihood estimate of <code>nuisance</code>, the unknown, nuisance contribution to measurement error (see details)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>convergence</code></td>
+<td>
+<p>convergence diagnostics from <code>optim</code> function (see optim documentation)</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Jonathan Drury <a href="mailto:jonathan.p.drury@gmail.com">jonathan.p.drury@gmail.com</a>
+</p>
+<p>Julien Clavel 
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>fit_t_comp</code>
+<code>sim_t_tworegime</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+if(test){
+data(Cetacea_clades)
+data&lt;-sim_t_tworegime(Cetacea_clades,pars=c(sig2=0.01,r1=-0.01,r2=-0.02),
+	root.value=0,Nsegments=1000,model="EB")
+error&lt;-rep(0.05,length(Cetacea_clades$tip.label))
+names(error)&lt;-Cetacea_clades$tip.label
+
+#Fit single-regime models
+BM1.fit&lt;-fit_t_standard(Cetacea_clades,data,model="BM",error,two.regime=FALSE)
+OU1.fit&lt;-fit_t_standard(Cetacea_clades,data,model="OU",error,two.regime=FALSE)
+EB1.fit&lt;-fit_t_standard(Cetacea_clades,data,model="EB",error,two.regime=FALSE)
+
+#Now fit models that incorporate biogeography, NOTE these models take longer to fit
+BM2.fit&lt;-fit_t_standard(Cetacea_clades,data,model="BM",error,two.regime=TRUE)
+OU2.fit&lt;-fit_t_standard(Cetacea_clades,data,model="OU",error,two.regime=TRUE)
+EB2.fit&lt;-fit_t_standard(Cetacea_clades,data,model="EB",error,two.regime=TRUE)
+  }
+
+
+</code></pre>
+
+
+</div>

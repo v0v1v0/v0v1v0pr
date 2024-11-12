@@ -1,0 +1,496 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>robustbetareg</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Robust Beta Regression</h2>
+
+<h3>Description</h3>
+
+<p>Fit robust beta regression models for rates and proportions via LSMLE, LMDPDE,
+SMLE and MDPDE. Both mean and precision of the response variable are modeled
+through parametric functions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">robustbetareg(
+  formula,
+  data,
+  alpha,
+  type = c("LSMLE", "LMDPDE", "SMLE", "MDPDE"),
+  link = c("logit", "probit", "cloglog", "cauchit", "loglog"),
+  link.phi = NULL,
+  control = robustbetareg.control(...),
+  model = TRUE,
+  ...
+)
+
+LMDPDE.fit(y, x, z, alpha = NULL, link = "logit",
+link.phi = "log", control = robustbetareg.control(...), ...)
+
+LSMLE.fit(y, x, z, alpha = NULL, link = "logit",
+link.phi = "log", control = robustbetareg.control(...), ...)
+
+MDPDE.fit(y, x, z, alpha = NULL, link = "logit",
+link.phi = "log", control = robustbetareg.control(...), ...)
+
+SMLE.fit(y, x, z, alpha = NULL, link = "logit",
+link.phi = "log", control = robustbetareg.control(...), ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>symbolic description of the model. See Details for further
+information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>dataset to be used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>numeric in <code class="reqn">[0,1)</code> indicating the value of the tuning constant
+alpha. <code>alpha = 0</code> leads to the maximum likelihood estimator.
+Robust procedures require <code>alpha</code> greater than zero.
+If this argument is suppressed, the tuning constant will be selected
+automatically through the data-driven algorithm proposed by Ribeiro and
+Ferrari (2022).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>character specifying the type of robust estimator to be used in the
+estimation process. Supported estimators are "<code>LSMLE</code>" ,
+"<code>LMDPDE</code>",  "<code>SMLE</code>", and "<code>MDPDE</code>"; for details, see Maluf
+et al. (2022). The "<code>LSMLE</code>" is the default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>link</code></td>
+<td>
+<p>an optional character that specifies the link function of the
+mean submodel (mu). The "<code>logit</code>", "<code>probit</code>", "<code>cloglog</code>",
+"<code>cauchit</code>", "<code>loglog</code>" functions are supported. The <code>logit</code>
+function is the default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>link.phi</code></td>
+<td>
+<p>an optional character that specifies the link function of the
+precision submodel (phi). The "<code>identity</code>", "<code>log</code>", "<code>sqrt</code>"
+functions are supported. The default is <code>log</code> unless formula is of type
+<code>y ~ x</code> where the default is "<code>identity</code>".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>a list of control arguments specified via
+<code>robustbetareg.control</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>logical. If <code>TRUE</code> the corresponding components of the fit
+(model frame, response, model matrix) are returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>argument to be passed to <code>robustbetareg.control</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y, x, z</code></td>
+<td>
+<p><code>y</code> must be a numeric response vector (with values in
+<code class="reqn">(0,1)</code>), <code>x</code> must be a numeric regressor matrix for the mean
+submodel, and <code>z</code> must be a numeric regressor matrix for the precision
+submodel.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Beta regression models are employed to model continuous response
+variables in the unit interval, like rates and proportions. The maximum
+likelihood-based inference suffers from
+the lack of robustness in the presence of outliers. Based on
+the density power divergence, Ghosh (2019) proposed the minimum density
+power divergence estimator (MDPDE). Ribeiro and Ferrari (2022) proposed an
+estimator based on the maximization of a reparameterized Lq-likelihood;
+it is called SMLE. These estimators require suitable restrictions in the
+parameter space. Maluf et al. (2022) proposed robust estimators based on
+the MDPDE and the SMLE which have the advantage of overcoming this drawback.
+These estimators are called LMDPDE and LSMLE. For details, see the
+cited works. The four estimators are implemented in the <code>robustbetareg</code>
+function. They depend on a tuning constant (called <code class="reqn">\alpha</code>).
+When the tuning constant is fixed and equal to 0, all of the estimators
+coincide with the maximum likelihood estimator. Ribeiro and Ferrari (2022)
+and Maluf et al. (2022) suggest using a data-driven algorithm to select the
+optimum value of <code class="reqn">\alpha</code>. This algorithm is implemented in
+<code>robustbetareg</code> by default when the argument "<code>alpha</code>" is
+suppressed.<br><br>
+The formulation of the model has the same structure as in the usual functions
+<code>glm</code> and <code>betareg</code>. The argument
+<code>formula</code> can comprise of three parts (separated by the symbols
+"<code class="reqn">~</code>" and "<code class="reqn">|</code>"), namely: observed response variable in the unit
+interval, predictor of the mean submodel, with link function <code>link</code>
+and predictor of the precision submodel, with <code>link.phi</code>
+link function. If the model has constant precision, the third part may be
+omitted and the link function for phi is "<code>identity</code>" by default.
+The tuning constant <code>alpha</code> may be treated as fixed or not (chosen
+by the data-driven algorithm). If <code>alpha</code> is fixed, its value
+must be specified in the <code>alpha</code> argument. <br><br>
+Some methods are available for objects of class "<code>robustbetareg</code>",
+see <code>plot.robustbetareg</code>, <code>summary.robustbetareg</code>,
+<code>coef.robustbetareg</code>, and <code>residuals.robustbetareg</code>,
+for details and other methods.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>robustbetareg</code> returns an object of class "<code>robustbetareg</code>" with a list of the following components:</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+   <code>coefficients</code> </td>
+<td style="text-align: left;"> a list with the "<code>mean</code>" and "<code>precision</code>"
+   coefficients. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>vcov</code> </td>
+<td style="text-align: left;"> covariance matrix. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>converged</code> </td>
+<td style="text-align: left;">  logical indicating successful convergence of the
+      iterative process. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>fitted.values</code> </td>
+<td style="text-align: left;"> a vector with the fitted values of the mean submodel. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>start</code> </td>
+<td style="text-align: left;"> a vector with the starting values used in the iterative process. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>weights</code> </td>
+<td style="text-align: left;"> the weights of each observation in the estimation process. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>Tuning</code> </td>
+<td style="text-align: left;"> value of the tuning constant (automatically chosen or fixed) used
+      in the estimation process. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>residuals</code> </td>
+<td style="text-align: left;"> a vector of standardized weighted residual 2 (see Espinheira et al. (2008)). </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>n</code> </td>
+<td style="text-align: left;"> number of observations. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>link</code> </td>
+<td style="text-align: left;"> link function used in the mean submodel. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>link.phi</code> </td>
+<td style="text-align: left;"> link function used in the precision submodel. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>Optimal.Tuning</code> </td>
+<td style="text-align: left;"> logical indicating whether the data-driven algorithm
+      was used. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>pseudo.r.squared</code> </td>
+<td style="text-align: left;"> pseudo R-squared value. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>control</code> </td>
+<td style="text-align: left;"> the control arguments passed to the data-driven algorithm and
+     <code>optim</code> call. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>std.error</code> </td>
+<td style="text-align: left;"> the standard errors. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>method</code> </td>
+<td style="text-align: left;"> type of estimator used. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>call</code> </td>
+<td style="text-align: left;"> the original function call. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>formula</code> </td>
+<td style="text-align: left;"> the formula used. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>model</code> </td>
+<td style="text-align: left;"> the full model frame. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>terms</code> </td>
+<td style="text-align: left;"> a list with elements "<code>mean</code>", "<code>precision</code>" and "<code>full</code>"
+       containing the term objects for the respective models.  </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>y</code> </td>
+<td style="text-align: left;"> the response variable. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>data</code> </td>
+<td style="text-align: left;"> the dataset used. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Yuri S. Maluf (<a href="mailto:yurimaluf@gmail.com">yurimaluf@gmail.com</a>), Francisco F. Queiroz (<a href="mailto:ffelipeq@outlook.com">ffelipeq@outlook.com</a>) and Silvia L. P. Ferrari.
+</p>
+
+
+<h3>References</h3>
+
+<p>Maluf, Y.S., Ferrari, S.L.P., and Queiroz, F.F. (2022). Robust
+beta regression through the logit transformation. <em>arXiv</em>:2209.11315.<br><br>
+Ribeiro, T.K.A. and Ferrari, S.L.P.  (2022). Robust estimation in beta regression
+via maximum Lq-likelihood. <em>Statistical Papers</em>. DOI: 10.1007/s00362-022-01320-0. <br><br>
+Ghosh, A. (2019). Robust inference under the beta regression model with
+application to health care studies. <em>Statistical Methods in Medical
+Research</em>, 28:271-888.<br><br>
+Espinheira, P.L., Ferrari, S.L.P., and Cribari-Neto, F. (2008). On beta regression residuals. <em>Journal of Applied Statistics</em>, 35:407–419.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>robustbetareg.control</code>, <code>summary.robustbetareg</code>, <code>residuals.robustbetareg</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#### Risk Manager Cost data
+data("Firm")
+
+# MLE fit (fixed alpha equal to zero)
+fit_MLE &lt;- robustbetareg(FIRMCOST ~ SIZELOG + INDCOST,
+                         data = Firm, type = "LMDPDE", alpha = 0)
+summary(fit_MLE)
+
+# MDPDE with alpha = 0.04
+fit_MDPDE &lt;- robustbetareg(FIRMCOST ~ SIZELOG + INDCOST,
+                           data = Firm, type = "MDPDE",
+                           alpha = 0.04)
+summary(fit_MDPDE)
+
+# Choosing alpha via data-driven algorithm
+fit_MDPDE2 &lt;- robustbetareg(FIRMCOST ~ SIZELOG + INDCOST,
+                            data = Firm, type = "MDPDE")
+summary(fit_MDPDE2)
+
+# Similar result for the LMDPDE fit:
+fit_LMDPDE2 &lt;- robustbetareg(FIRMCOST ~ SIZELOG + INDCOST,
+                             data = Firm, type = "LMDPDE")
+summary(fit_LMDPDE2)
+
+# Diagnostic plots
+
+
+#### HIC data
+data("HIC")
+
+# MLE (fixed alpha equal to zero)
+fit_MLE &lt;- robustbetareg(HIC ~ URB + GDP |
+                         GDP, data = HIC, type = "LMDPDE",
+                         alpha = 0)
+summary(fit_MLE)
+
+# SMLE and MDPDE with alpha selected via data-driven algorithm
+fit_SMLE &lt;- robustbetareg(HIC ~ URB + GDP |
+                          GDP, data = HIC, type = "SMLE")
+summary(fit_SMLE)
+fit_MDPDE &lt;- robustbetareg(HIC ~ URB + GDP |
+                           GDP, data = HIC, type = "MDPDE")
+summary(fit_MDPDE)
+# SMLE and MDPDE return MLE because of the lack of stability
+
+# LSMLE and LMDPDE with alpha selected via data-driven algorithm
+fit_LSMLE &lt;- robustbetareg(HIC ~ URB + GDP |
+                           GDP, data = HIC, type = "LSMLE")
+summary(fit_LSMLE)
+fit_LMDPDE &lt;- robustbetareg(HIC ~ URB + GDP |
+                            GDP, data = HIC, type = "LMDPDE")
+summary(fit_LMDPDE)
+# LSMLE and LMDPDE return robust estimates with alpha = 0.06
+
+
+# Plotting the weights against the residuals - LSMLE fit.
+plot(fit_LSMLE$residuals, fit_LSMLE$weights, pch = "+", xlab = "Residuals",
+    ylab = "Weights")
+
+# Excluding outlier observation.
+fit_LSMLEwo1 &lt;- robustbetareg(HIC ~ URB + GDP |
+                              GDP, data = HIC[-1,], type = "LSMLE")
+summary(fit_LSMLEwo1)
+
+# Normal probability plot with simulated envelope
+ plotenvelope(fit_LSMLE)
+
+</code></pre>
+
+
+</div>

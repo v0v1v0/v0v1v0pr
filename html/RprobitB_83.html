@@ -1,0 +1,105 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>update_Sigma</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Update error term covariance matrix of multiple linear regression</h2>
+
+<h3>Description</h3>
+
+<p>This function updates the error term covariance matrix of a multiple linear regression.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">update_Sigma(kappa, E, N, S)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>kappa</code></td>
+<td>
+<p>The degrees of freedom (a natural number greater than <code>J-1</code>) of the Inverse
+Wishart prior for <code>Sigma</code>.
+Per default, <code>kappa = J + 1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>E</code></td>
+<td>
+<p>The scale matrix of dimension <code>J-1</code> x <code>J-1</code> of the Inverse Wishart
+prior for <code>Sigma</code>.
+Per default, <code>E = diag(J - 1)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>N</code></td>
+<td>
+<p>The draw size.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>S</code></td>
+<td>
+<p>A matrix, the sum over the outer products of the residuals <code class="reqn">(\epsilon_n)_{n=1,\dots,N}</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function draws from the posterior distribution of the covariance matrix <code class="reqn">\Sigma</code> in the linear utility
+equation </p>
+<p style="text-align: center;"><code class="reqn">U_n = X_n\beta + \epsilon_n,</code>
+</p>
+<p> where <code class="reqn">U_n</code> is the
+(latent, but here assumed to be known) utility vector of decider <code class="reqn">n = 1,\dots,N</code>, <code class="reqn">X_n</code>
+is the design matrix build from the choice characteristics faced by <code class="reqn">n</code>,
+<code class="reqn">\beta</code> is the coefficient vector, and <code class="reqn">\epsilon_n</code> is the error term assumed to be
+normally distributed with mean <code class="reqn">0</code> and unknown covariance matrix <code class="reqn">\Sigma</code>.
+A priori we assume the (conjugate) Inverse Wishart distribution </p>
+<p style="text-align: center;"><code class="reqn">\Sigma \sim W(\kappa,E)</code>
+</p>
+
+<p>with <code class="reqn">\kappa</code> degrees of freedom and scale matrix <code class="reqn">E</code>.
+The posterior for <code class="reqn">\Sigma</code> is the Inverted Wishart distribution with <code class="reqn">\kappa + N</code> degrees of freedom
+and scale matrix <code class="reqn">E^{-1}+S</code>, where <code class="reqn">S = \sum_{n=1}^{N} \epsilon_n \epsilon_n'</code> is the sum over
+the outer products of the residuals <code class="reqn">(\epsilon_n = U_n - X_n\beta)_n</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A matrix, a draw from the Inverse Wishart posterior distribution of the error term
+covariance matrix in a multiple linear regression.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">### true error term covariance matrix
+(Sigma_true &lt;- matrix(c(1,0.5,0.2,0.5,1,0.2,0.2,0.2,2), ncol=3))
+### coefficient vector
+beta &lt;- matrix(c(-1,1), ncol=1)
+### draw data
+N &lt;- 100
+X &lt;- replicate(N, matrix(rnorm(6), ncol=2), simplify = FALSE)
+eps &lt;- replicate(N, rmvnorm(mu = c(0,0,0), Sigma = Sigma_true), simplify = FALSE)
+U &lt;- mapply(function(X, eps) X %*% beta + eps, X, eps, SIMPLIFY = FALSE)
+### prior parameters for covariance matrix
+kappa &lt;- 4
+E &lt;- diag(3)
+### draw from posterior of coefficient vector
+outer_prod &lt;- function(X, U) (U - X %*% beta) %*% t(U - X %*% beta)
+S &lt;- Reduce(`+`, mapply(outer_prod, X, U, SIMPLIFY = FALSE))
+Sigma_draws &lt;- replicate(100, update_Sigma(kappa, E, N, S))
+apply(Sigma_draws, 1:2, mean)
+apply(Sigma_draws, 1:2, stats::sd)
+</code></pre>
+
+
+</div>

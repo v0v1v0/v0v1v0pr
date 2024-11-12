@@ -1,0 +1,276 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>runCINMF</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Perform consensus iNMF on scaled datasets</h2>
+
+<h3>Description</h3>
+
+<p><b>NOT STABLE</b> - This is an experimental function and is subject to change.
+</p>
+<p>Performs consensus integrative non-negative matrix factorization (c-iNMF)
+to return factorized <code class="reqn">H</code>, <code class="reqn">W</code>, and <code class="reqn">V</code> matrices. In order to
+address the non-convex nature of NMF, we built on the cNMF method proposed by
+D. Kotliar, 2019. We run the regular iNMF multiple times with different
+random starts, and cluster the pool of all the factors in <code class="reqn">W</code> and
+<code class="reqn">V</code>s and take the consensus of the clusters of the largest population.
+The cell factor loading <code class="reqn">H</code> matrices are eventually solved
+with the consensus <code class="reqn">W</code> and <code class="reqn">V</code> matrices.
+</p>
+<p>Please see <code>runINMF</code> for detailed introduction to the regular
+iNMF algorithm which is run multiple times in this function.
+</p>
+<p>The consensus iNMF algorithm is developed basing on the consensus NMF (cNMF)
+method (D. Kotliar et al., 2019).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">runCINMF(object, k = 20, lambda = 5, rho = 0.3, ...)
+
+## S3 method for class 'liger'
+runCINMF(
+  object,
+  k = 20,
+  lambda = 5,
+  rho = 0.3,
+  nIteration = 30,
+  nRandomStarts = 10,
+  HInit = NULL,
+  WInit = NULL,
+  VInit = NULL,
+  seed = 1,
+  nCores = 2L,
+  verbose = getOption("ligerVerbose", TRUE),
+  ...
+)
+
+## S3 method for class 'Seurat'
+runCINMF(
+  object,
+  k = 20,
+  lambda = 5,
+  rho = 0.3,
+  datasetVar = "orig.ident",
+  layer = "ligerScaleData",
+  assay = NULL,
+  reduction = "cinmf",
+  nIteration = 30,
+  nRandomStarts = 10,
+  HInit = NULL,
+  WInit = NULL,
+  VInit = NULL,
+  seed = 1,
+  nCores = 2L,
+  verbose = getOption("ligerVerbose", TRUE),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>A liger object or a Seurat object with
+non-negative scaled data of variable features (Done with
+<code>scaleNotCenter</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>Inner dimension of factorization (number of factors). Generally, a
+higher <code>k</code> will be needed for datasets with more sub-structure. Default
+<code>20</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>Regularization parameter. Larger values penalize
+dataset-specific effects more strongly (i.e. alignment should increase as
+<code>lambda</code> increases). Default <code>5</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rho</code></td>
+<td>
+<p>Numeric number between 0 and 1. Fraction for determining the
+number of nearest neighbors to look at for consensus (by
+<code>rho * nRandomStarts</code>). Default <code>0.3</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Arguments passed to methods.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nIteration</code></td>
+<td>
+<p>Total number of block coordinate descent iterations to
+perform. Default <code>30</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nRandomStarts</code></td>
+<td>
+<p>Number of replicate runs for creating the pool of
+factorization results. Default <code>10</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>HInit</code></td>
+<td>
+<p>Initial values to use for <code class="reqn">H</code> matrices. A list object where
+each element is the initial <code class="reqn">H</code> matrix of each dataset. Default
+<code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>WInit</code></td>
+<td>
+<p>Initial values to use for <code class="reqn">W</code> matrix. A matrix object.
+Default <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>VInit</code></td>
+<td>
+<p>Initial values to use for <code class="reqn">V</code> matrices. A list object where
+each element is the initial <code class="reqn">V</code> matrix of each dataset. Default
+<code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>Random seed to allow reproducible results. Default <code>1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nCores</code></td>
+<td>
+<p>The number of parallel tasks to speed up the computation.
+Default <code>2L</code>. Only supported for platform with OpenMP support.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Logical. Whether to show information of the progress. Default
+<code>getOption("ligerVerbose")</code> or <code>TRUE</code> if users have not set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>datasetVar</code></td>
+<td>
+<p>Metadata variable name that stores the dataset source
+annotation. Default <code>"orig.ident"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>layer</code></td>
+<td>
+<p>For Seurat&gt;=4.9.9, the name of layer to retrieve input
+non-negative scaled data. Default <code>"ligerScaleData"</code>. For older Seurat,
+always retrieve from <code>scale.data</code> slot.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>assay</code></td>
+<td>
+<p>Name of assay to use. Default <code>NULL</code> uses current active
+assay.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reduction</code></td>
+<td>
+<p>Name of the reduction to store result. Also used as the
+feature key. Default <code>"cinmf"</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+
+<ul>
+<li>
+<p>liger method - Returns updated input liger object
+</p>
+
+<ul>
+<li>
+<p>A list of all <code class="reqn">H</code> matrices can be accessed with
+<code>getMatrix(object, "H")</code>
+</p>
+</li>
+<li>
+<p>A list of all <code class="reqn">V</code> matrices can be accessed with
+<code>getMatrix(object, "V")</code>
+</p>
+</li>
+<li>
+<p>The <code class="reqn">W</code> matrix can be accessed with
+<code>getMatrix(object, "W")</code>
+</p>
+</li>
+</ul>
+</li>
+<li>
+<p>Seurat method - Returns updated input Seurat object
+</p>
+
+<ul>
+<li>
+<p><code class="reqn">H</code> matrices for all datasets will be concatenated and
+transposed (all cells by k), and form a DimReduc object in the
+<code>reductions</code> slot named by argument <code>reduction</code>.
+</p>
+</li>
+<li>
+<p><code class="reqn">W</code> matrix will be presented as <code>feature.loadings</code> in the
+same DimReduc object.
+</p>
+</li>
+<li>
+<p><code class="reqn">V</code> matrices, an objective error value and the dataset
+variable used for the factorization is currently stored in
+<code>misc</code> slot of the same DimReduc object.
+</p>
+</li>
+</ul>
+</li>
+</ul>
+<h3>References</h3>
+
+<p>Joshua D. Welch and et al., Single-Cell Multi-omic Integration Compares and
+Contrasts Features of Brain Cell Identity, Cell, 2019
+</p>
+<p>Dylan Kotliar and et al., Identifying gene expression programs of cell-type
+identity and cellular activity with single-cell RNA-Seq, eLife, 2019
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+pbmc &lt;- normalize(pbmc)
+pbmc &lt;- selectGenes(pbmc)
+pbmc &lt;- scaleNotCenter(pbmc)
+if (requireNamespace("RcppPlanc", quietly = TRUE)) {
+    pbmc &lt;- runCINMF(pbmc)
+}
+
+</code></pre>
+
+
+</div>

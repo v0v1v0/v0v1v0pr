@@ -1,0 +1,364 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>SAEM.sclm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>ML estimation of spatial censored linear models via the SAEM algorithm</h2>
+
+<h3>Description</h3>
+
+<p>It fits the left, right, or interval spatial censored linear model using the
+Stochastic Approximation EM (SAEM) algorithm. It provides estimates and standard
+errors of the parameters and supports missing values on the dependent variable.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">SAEM.sclm(y, x, ci, lcl = NULL, ucl = NULL, coords, phi0, nugget0,
+  type = "exponential", kappa = NULL, lower = c(0.01, 0.01),
+  upper = c(30, 30), MaxIter = 300, M = 20, pc = 0.2, error = 1e-04,
+  show_se = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>vector of responses of length <code class="reqn">n</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>design matrix of dimensions <code class="reqn">n\times q</code>, where <code class="reqn">q</code> is the number
+of fixed effects, including the intercept.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ci</code></td>
+<td>
+<p>vector of censoring indicators of length <code class="reqn">n</code>. For each observation:
+<code>1</code> if censored/missing, <code>0</code> otherwise.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lcl, ucl</code></td>
+<td>
+<p>vectors of length <code class="reqn">n</code> representing the lower and upper bounds
+of the interval, which contains the true value of the censored observation. Default
+<code>=NULL</code>, indicating no-censored data. For each observation: <code>lcl=-Inf</code> and
+<code>ucl=c</code> (left censoring); <code>lcl=c</code> and <code>ucl=Inf</code> (right censoring); and
+<code>lcl</code> and <code>ucl</code> must be finite for interval censoring. Moreover, missing data
+could be defined by setting <code>lcl=-Inf</code> and <code>ucl=Inf</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coords</code></td>
+<td>
+<p>2D spatial coordinates of dimensions <code class="reqn">n\times 2</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phi0</code></td>
+<td>
+<p>initial value for the spatial scaling parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nugget0</code></td>
+<td>
+<p>initial value for the nugget effect parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>type of spatial correlation function: <code>'exponential'</code>,
+<code>'gaussian'</code>, <code>'matern'</code>, and <code>'pow.exp'</code> for exponential, gaussian,
+matérn, and power exponential, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kappa</code></td>
+<td>
+<p>parameter for some spatial correlation functions. See <code>CovMat</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lower, upper</code></td>
+<td>
+<p>vectors of lower and upper bounds for the optimization method.
+If unspecified, the default is <code>c(0.01,0.01)</code> for lower and <code>c(30,30)</code> for upper.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>MaxIter</code></td>
+<td>
+<p>maximum number of iterations of the SAEM algorithm. By default <code>=300</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>M</code></td>
+<td>
+<p>number of Monte Carlo samples for stochastic approximation. By default <code>=20</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pc</code></td>
+<td>
+<p>percentage of initial iterations of the SAEM algorithm with no memory.
+It is recommended that <code>50&lt;MaxIter*pc&lt;100</code>. By default <code>=0.20</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>error</code></td>
+<td>
+<p>maximum convergence error. By default <code>=1e-4</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>show_se</code></td>
+<td>
+<p>logical. It indicates if the standard errors
+should be estimated by default <code>=TRUE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The spatial Gaussian model is given by
+</p>
+<p><code class="reqn">Y = X\beta + \xi</code>,
+</p>
+<p>where <code class="reqn">Y</code> is the <code class="reqn">n\times 1</code> response vector, <code class="reqn">X</code> is the <code class="reqn">n\times q</code>
+design matrix, <code class="reqn">\beta</code> is the <code class="reqn">q\times 1</code> vector of regression coefficients
+to be estimated, and <code class="reqn">\xi</code> is the error term which is normally distributed with
+zero-mean and covariance matrix <code class="reqn">\Sigma=\sigma^2 R(\phi) + \tau^2 I_n</code>. We assume
+that <code class="reqn">\Sigma</code> is non-singular and <code class="reqn">X</code> has full rank (Diggle and Ribeiro 2007).
+</p>
+<p>The estimation process is performed via the SAEM algorithm, initially proposed by
+Delyon et al. (1999). The spatial censored
+(SAEM) algorithm was previously proposed by Lachos et al. (2017) and
+Ordoñez et al. (2018) and is available in the package <code>CensSpatial</code>.
+These packages differ in the random number generation and optimization procedure.
+</p>
+<p>This model is also a particular case of the spatio-temporal model defined by
+Valeriano et al. (2021) when the number of
+temporal observations is equal to one. The computing codes of the spatio-temporal
+SAEM algorithm are available in the package <code>StempCens</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class "sclm". Generic functions <code>print</code> and <code>summary</code> have
+methods to show the results of the fit. The function <code>plot</code> can extract
+convergence graphs for the parameter estimates.
+</p>
+<p>Specifically, the following components are returned:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>Theta</code></td>
+<td>
+<p>estimated parameters in all iterations, <code class="reqn">\theta = (\beta, \sigma^2, \phi, \tau^2)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>theta</code></td>
+<td>
+<p>final estimation of <code class="reqn">\theta = (\beta, \sigma^2, \phi, \tau^2)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+<p>estimated <code class="reqn">\beta</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma2</code></td>
+<td>
+<p>estimated <code class="reqn">\sigma^2</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phi</code></td>
+<td>
+<p>estimated <code class="reqn">\phi</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tau2</code></td>
+<td>
+<p>estimated <code class="reqn">\tau^2</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>EY</code></td>
+<td>
+<p>stochastic approximation of the first conditional moment.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>EYY</code></td>
+<td>
+<p>stochastic approximation of the second conditional moment.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SE</code></td>
+<td>
+<p>vector of standard errors of <code class="reqn">\theta = (\beta, \sigma^2, \phi, \tau^2)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>InfMat</code></td>
+<td>
+<p>observed information matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loglik</code></td>
+<td>
+<p>log-likelihood for the SAEM method.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>AIC</code></td>
+<td>
+<p>Akaike information criterion.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>BIC</code></td>
+<td>
+<p>Bayesian information criterion.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Iter</code></td>
+<td>
+<p>number of iterations needed to converge.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time</code></td>
+<td>
+<p>processing time.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p><code>RcppCensSpatial</code> call that produced the object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tab</code></td>
+<td>
+<p>table of estimates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>critFin</code></td>
+<td>
+<p>selection criteria.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>range</code></td>
+<td>
+<p>effective range.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncens</code></td>
+<td>
+<p>number of censored/missing observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>MaxIter</code></td>
+<td>
+<p>maximum number of iterations for the SAEM algorithm.</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>The SAEM final estimates correspond to the estimates obtained at the last iteration
+of the algorithm.
+</p>
+<p>To fit a regression model for non-censored data, just set <code>ci</code> as a vector of zeros.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Katherine L. Valeriano, Alejandro Ordoñez, Christian E. Galarza, and Larissa A. Matos.
+</p>
+
+
+<h3>References</h3>
+
+<p>Delyon B, Lavielle M, Moulines E (1999).
+“Convergence of a stochastic approximation version of the EM algorithm.”
+<em>The Annals of Statistics</em>, <b>27</b>(1), 94–128.<br><br> Diggle P, Ribeiro P (2007).
+<em>Model-based Geostatistics</em>.
+Springer.<br><br> Lachos VH, Matos LA, Barbosa TS, Garay AM, Dey DK (2017).
+“Influence diagnostics in spatial models with censored response.”
+<em>Environmetrics</em>, <b>28</b>(7).<br><br> Ordoñez JA, Bandyopadhyay D, Lachos VH, Cabral CRB (2018).
+“Geostatistical estimation and prediction for censored responses.”
+<em>Spatial Statistics</em>, <b>23</b>, 109–123.
+<a href="https://doi.org/10.1016/j.spasta.2017.12.001">doi:10.1016/j.spasta.2017.12.001</a>.<br><br> Valeriano KL, Lachos VH, Prates MO, Matos LA (2021).
+“Likelihood-based inference for spatiotemporal data with censored and missing responses.”
+<em>Environmetrics</em>, <b>32</b>(3).
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>EM.sclm</code>, <code>MCEM.sclm</code>, <code>predict.sclm</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Example 1: 8% of right-censored observations
+set.seed(1000)
+n = 50   # Test with another values for n
+coords = round(matrix(runif(2*n,0,15),n,2), 5)
+x = cbind(rnorm(n), rnorm(n))
+data = rCensSp(c(4,-2), 1, 3, 0.50, x, coords, "right", 0.08)
+
+fit = SAEM.sclm(y=data$y, x=x, ci=data$ci, lcl=data$lcl, ucl=data$ucl,
+                coords, phi0=2, nugget0=1, type="exponential", M=10,
+                pc=0.18)
+fit
+
+# Example 2: censored and missing observations
+set.seed(123)
+n = 200
+coords = round(matrix(runif(2*n,0,20),n,2), 5)
+x = cbind(runif(n), rnorm(n), rexp(n))
+data = rCensSp(c(1,4,-1), 2, 3, 0.50, x, coords, "left", 0.05, 0,
+               "matern", 3)
+data$y[c(10,120)] = NA
+data$ci[c(10,120)] = 1
+data$ucl[c(10,120)] = Inf
+
+fit2 = SAEM.sclm(y=data$y, x=x, ci=data$ci, lcl=data$lcl, ucl=data$ucl,
+                 coords, phi0=2, nugget0=1, type="matern", kappa=3,
+                 M=10, pc=0.18)
+fit2$tab
+plot(fit2)
+</code></pre>
+
+
+</div>

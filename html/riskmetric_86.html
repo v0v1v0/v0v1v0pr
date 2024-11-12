@@ -1,0 +1,114 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pkg_ref_cache</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>S3 generic to calculate a 'pkg_ref' field</h2>
+
+<h3>Description</h3>
+
+<p>Reactively retrieve and cache 'pkg_ref' metadata
+</p>
+
+
+<h3>Value</h3>
+
+<p>a <code>pkg_ref</code> field
+</p>
+
+
+<h3>Caching Details</h3>
+
+
+
+<h4>
+<code>pkg_ref</code> class fields</h4>
+
+<p>The <code>pkg_ref</code> class structures an environment with special handling
+for indexing into the <code>pkg_ref</code> class using the <code>$</code> or <code>[[</code>
+operators. For all intents and purposes, the <code>pkg_ref</code> class is works
+conceptually similar to a lazy, immutable <code>list</code>, and uses the
+<code>pkg_ref_cache</code> function internally to lazily retrieve package
+reference fields.
+</p>
+
+
+
+<h4>Lazy metadata caching</h4>
+
+<p>Laziness in a <code>pkg_ref</code> object refers to the delayed evaluation of the
+contents of its fields. Since some metadata is time or computationally
+intensive to retrieve, and unnessary for some assessments, we want to avoid
+that retrieval until it is needed.
+</p>
+<p>The first time that a field is accessed within a <code>pkg_ref</code> object
+<code>x</code>, a corresponding <code>pkg_ref_cache</code> S3 generic is called. For
+example, when <code>x$description</code> is first accessed, the <code>pkg_ref</code>
+object uses the function <code>pkg_ref_cache.description</code> to attempt to
+retrieve the contents of the corresponding <code>DESCRIPTION</code> file.
+</p>
+<p>Often, the way that this data is collected might be different depending on
+the subclass of the <code>pkg_ref</code>. In the case of the <code>description</code>
+metadata, a reference to a local install might be able to read in a local
+file directly, whereas a reference to a remote source of metadata might
+require first downloading the file. For this reason, many
+<code>pkg_ref_cache.*</code> functions are themselves S3 generics that dispatch
+on the class of the <code>pkg_ref</code> object, allowing for divergent behaviors
+for different source of package metadata.
+</p>
+
+
+
+<h4>
+<code>pkg_ref</code> field immutability</h4>
+
+<p>Once a field has been calculated, its value is immutable. This behavior was
+chosen because of the long time frame over which package metadata changes,
+rendering it unnecessary to continually reevaluate fields each time they
+are accesssed.
+</p>
+<p>This means that within an assessment, a given field for a package will only
+ever be calculated once and preserved for downstream use.
+</p>
+
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# implementing a new field called "first_letter" that is consistently derived
+# across all pkg_ref objects:
+
+  pkg_ref_cache.first_letter &lt;- function(x, name, ...) {
+    substring(x$name, 1, 1)
+  }
+
+  x &lt;- pkg_ref("riskmetric")
+  x$first_letter
+
+
+
+# implementing a new field called "subclass_enum" that dispatches on
+# the subclass of the pkg_ref object:
+
+  pkg_ref_cache.subclass_enum &lt;- function(x, name, ...) {
+    UseMethod("pkg_ref_cache.subclass_enum")
+  }
+
+  pkg_ref_cache.subclass_enum.pkg_ref &lt;- function(x, name, ...) {
+    0
+  }
+
+  pkg_ref_cache.subclass_enum.pkg_install &lt;- function(x, name, ...) {
+    1
+  }
+
+  x$subclass_enum
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,163 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>facts_results</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Read trial simulation results</h2>
+
+<h3>Description</h3>
+
+<p>These functions read trial simulation results. The results were
+computed by FACTS (via <code>run_facts()</code> or <code>run_engine()</code> or
+one of the engine functions such as <code>run_engine_contin()</code>)
+and are stored in CSV files. Different functions read different types
+of output. The functions are named according to the CSV files they read.
+For example, <code>read_patients()</code> reads all files named
+<code>patients00001.csv</code>, <code>patients00002.csv</code>, etc. The most important
+functions are <code>read_patients()</code> and <code>read_weeks()</code>.
+The <code style="white-space: pre;">⁠read_s1*()⁠</code>, <code style="white-space: pre;">⁠read_s2*()⁠</code>, and <code style="white-space: pre;">⁠read_master*()⁠</code> functions
+are for staged designs. The <code>read_csv_special()</code> function allows you to
+supply a custom file name prefix such as "patients",
+but be warned: not every kind of CSV output file is tested in <code>rfacts</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">read_patients(csv_files)
+
+read_weeks(csv_files)
+
+read_mcmc(csv_files)
+
+read_s1_mcmc(csv_files)
+
+read_s1_weeks(csv_files)
+
+read_s1_patients(csv_files)
+
+read_s2_patients(csv_files)
+
+read_s2_weeks(csv_files)
+
+read_s2_mcmc(csv_files)
+
+read_master_mcmc(csv_files)
+
+read_master_patients(csv_files)
+
+read_master_weeks(csv_files)
+
+read_cohorts(csv_files)
+
+read_simulations(csv_files)
+
+read_csv_special(csv_files, prefix, numbered = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>csv_files</code></td>
+<td>
+<p>Character vector of file paths.
+Either the directories containing the trial simulation
+results or the actual CSV file files themselves.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prefix</code></td>
+<td>
+<p>Character, name of the prefix for <code>read_csv_special()</code>.
+<code>read_weeks(x)</code> is equivalent to <code>read_csv_special(x, prefix = "weeks")</code>.
+Be careful: not all kinds of CSV output are tested. We can only
+guarantee the file types with special functions will be read
+correctly, e.g. <code>read_patients()</code> and <code>read_weeks()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>numbered</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>,
+only read the numbered files like <code>patients00001.csv</code>,
+<code>weeks00017.csv</code>, etc. If <code>FALSE</code>, only list the non-numbered files
+like <code>simulations.csv</code> and <code>simulations_freq_locf.csv</code>.
+Avoid <code>summary.csv</code> files. They are not reliable on Linux.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A data frame of trial simulation data. Each <code style="white-space: pre;">⁠read_*()⁠</code> function
+returns different information, but all the <code style="white-space: pre;">⁠read_*()⁠</code> functions
+support the following columns:
+</p>
+
+<ul>
+<li> <p><code>facts_file</code>: character, the base name of the FACTS file.
+</p>
+</li>
+<li> <p><code>facts_scenario</code>: character, the name of the simulation scenario
+from FACTS. Usually, this factors in the virtual subject response
+(VSR) profile, accrual profile (how fast do patients enroll?)
+and dropout profile (how fast do they drop out?).
+</p>
+</li>
+<li> <p><code>facts_sim</code>: integer, numeric index of the CSV file name. For example,
+the <code>facts_sim</code> of <code>patients00012.csv</code> is <code>12</code>. In trial execution mode,
+all these indices are 00000, so <code>facts_id</code> is much
+safer than <code>facts_sim</code> for packetized trial execution mode.
+</p>
+</li>
+<li> <p><code>facts_id</code>: character, random unique id of each CSV file being read.
+Different for every call to <code>read_patients()</code> etc.
+Safer than <code>facts_sim</code> for aggregation over simulations.
+</p>
+</li>
+<li> <p><code>facts_output</code>: character, type of output is in the data frame:
+<code>"patients"</code> for patients files, <code>"weeks"</code> for weeks files,
+<code>"mcmc"</code> for MCMC files, etc. These names adhere to established
+conventions in FACTS.
+</p>
+</li>
+<li> <p><code>facts_csv</code>: character, full path to the original CSV files where
+FACTS stored the simulation output. Required for <code>overwrite_csv_files()</code>.
+</p>
+</li>
+<li> <p><code>facts_header</code>: a character vector of <code style="white-space: pre;">⁠\n⁠</code>-delimited CSV file headers.
+Required for <code>overwrite_csv_files()</code>.
+</p>
+</li>
+</ul>
+<h3>See Also</h3>
+
+<p><code>get_facts_file_example()</code>, <code>run_facts()</code>, <code>run_flfll()</code>,
+<code>run_engine()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Can only run if system dependencies are configured:
+if (file.exists(Sys.getenv("RFACTS_PATHS"))) {
+facts_file &lt;- get_facts_file_example("contin.facts")
+out &lt;- run_facts(
+  facts_file,
+  n_sims = 4,
+  verbose = FALSE
+)
+# What results files do we have?
+head(get_csv_files(out))
+# Read all the "patients*.csv" files with `read_patients(out)`.
+# For each scenario, we have files named
+# patients00001.csv, patients00002.csv, patients00003.csv,
+# and patients00004.csv.
+read_patients(out)
+}
+</code></pre>
+
+
+</div>

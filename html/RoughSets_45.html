@@ -1,0 +1,136 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>predict.RuleSetRST</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Prediction of decision classes using rule-based classifiers.</h2>
+
+<h3>Description</h3>
+
+<p>The prediction method for objects inheriting from the <code>RuleSetRST</code> class.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'RuleSetRST'
+predict(object, newdata, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>an object inheriting from the <code>"RuleSetRST"</code> class. Such objects are typically produced
+by implementations of rule induction methods, which derives from the rough set theory (RST), such as
+<code>RI.indiscernibilityBasedRules.RST</code>, <code>RI.CN2Rules.RST</code>,
+<code>RI.LEM2Rules.RST</code> or <code>RI.AQRules.RST</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newdata</code></td>
+<td>
+<p>an object inheriting from the <code>"DecisionTable"</code> class, which represents the data
+for which predictions are to be made. See <code>SF.asDecisionTable</code>. Columns in <code>newdata</code>
+should correspond to columns of a data set used for the rule induction.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional parameters for a rule voting strategy. It can be applied only to the methods which classify
+new objects by voting. Currently, those methods include <code>RI.LEM2Rules.RST</code> and
+<code>RI.AQRules.RST</code> which accept a named parameter <code>votingMethod</code>. This parameter can be used
+to pass a custom function for computing a weight of a voting rule. There are three such functions already
+available in the package:
+</p>
+
+<ul>
+<li> <p><code>X.ruleStrength</code> is the default voting method. It is defined as a product of a cardinality
+of a support of a rule and the length of this rule. See <code>X.ruleStrength</code>.
+</p>
+</li>
+<li> <p><code>X.laplace</code> corresponds to a voting weighted by the Laplace estimates of rules' confidence.
+See <code>X.laplace</code>.
+</p>
+</li>
+<li> <p><code>X.rulesCounting</code> corresponds to voting by counting the matching rules for different decision
+classes. See <code>X.rulesCounting</code>.
+</p>
+</li>
+</ul>
+<p>A custom function passed using the <code>votingMethod</code> can get additional parameters using the <code>...</code>
+interface.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A data.frame with a single column containing predictions for objects from <code>newdata</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Andrzej Janusz
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Rule induction methods implemented within RST include: <code>RI.indiscernibilityBasedRules.RST</code>,
+<code>RI.CN2Rules.RST</code>, <code>RI.LEM2Rules.RST</code> and <code>RI.AQRules.RST</code>.
+For details on rule induction methods based on FRST see <code>RI.GFRS.FRST</code> and <code>RI.hybridFS.FRST</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">##############################################
+## Example: Classification Task
+##############################################
+data(RoughSetData)
+wine.data &lt;- RoughSetData$wine.dt
+set.seed(13)
+wine.data &lt;- wine.data[sample(nrow(wine.data)),]
+
+## Split the data into a training set and a test set,
+## 60% for training and 40% for testing:
+idx &lt;- round(0.6 * nrow(wine.data))
+wine.tra &lt;-SF.asDecisionTable(wine.data[1:idx,],
+                              decision.attr = 14,
+                              indx.nominal = 14)
+wine.tst &lt;- SF.asDecisionTable(wine.data[(idx+1):nrow(wine.data), -ncol(wine.data)])
+
+true.classes &lt;- wine.data[(idx+1):nrow(wine.data), ncol(wine.data)]
+
+## discretization:
+cut.values &lt;- D.discretization.RST(wine.tra,
+                                   type.method = "unsupervised.quantiles",
+                                   nOfIntervals = 3)
+data.tra &lt;- SF.applyDecTable(wine.tra, cut.values)
+data.tst &lt;- SF.applyDecTable(wine.tst, cut.values)
+
+## rule induction from the training set:
+rules &lt;- RI.LEM2Rules.RST(data.tra)
+
+## predicitons for the test set:
+pred.vals1 &lt;- predict(rules, data.tst)
+pred.vals2 &lt;- predict(rules, data.tst,
+                      votingMethod = X.laplace)
+pred.vals3 &lt;- predict(rules, data.tst,
+                      votingMethod = X.rulesCounting)
+
+## checking the accuracy of predictions:
+mean(pred.vals1 == true.classes)
+mean(pred.vals2 == true.classes)
+mean(pred.vals3 == true.classes)
+
+</code></pre>
+
+
+</div>

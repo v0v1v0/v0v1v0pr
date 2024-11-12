@@ -1,0 +1,182 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fhirClient</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>fhirClient</h2>
+
+<h3>Description</h3>
+
+<p>Read and search only client in R for FHIR STU 3 and R4.
+Based on <a href="https://github.com/ewoutkramer/fhir-net-api">the official HL7 FHIR .NET API.</a>
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+client &lt;- fhirClient$new(endpoint, token = NULL)
+
+client$read(location, summaryType = NULL, returnType = "parsed")
+client$search(resourceType, criteria = NULL, includes = NULL, pageSize = NULL, summaryType = NULL, returnType = "parsed")
+client$searchById(resourceType, id, includes = NULL, summaryType = NULL, returnType = "parsed")
+client$wholeSystemSearch(criteria = NULL, includes = NULL, pageSize = NULL, summaryType = NULL, returnType = "parsed")
+client$searchParams(params, resourceType = NULL, returnType = "parsed")
+client$continue(bundle)
+
+
+client$setToken(token)
+
+client$endpoint
+client$authUrl
+client$tokenUrl
+client$registerUrl
+client$token
+
+print(client)
+</pre>
+
+
+<h3>Arguments</h3>
+
+
+<dl>
+<dt>client</dt>
+<dd>
+<p>A <code>fhirClient</code> object.</p>
+</dd>
+<dt>endpoint</dt>
+<dd>
+<p>The URL of the server to connect to.</p>
+</dd>
+<dt>token</dt>
+<dd>
+<p>An ouath 2.0 Token (httr Token 2.0)</p>
+</dd>
+<dt>resourceType</dt>
+<dd>
+<p>The type of resource to search for.</p>
+</dd>
+<dt>id</dt>
+<dd>
+<p>The id of the Resource to search for.</p>
+</dd>
+<dt>summaryType</dt>
+<dd>
+<p>Whether to include only return a summary of the Resource(s).</p>
+</dd>
+<dt>location</dt>
+<dd>
+<p>The url of the Resource to fetch. This can be a Resource id url or a version-specific.</p>
+</dd>
+<dt>criteria</dt>
+<dd>
+<p>The search parameters to filter the Resources on. Each given string is a combined key/value pair (separated by '=').</p>
+</dd>
+<dt>includes</dt>
+<dd>
+<p>Paths to include in the search.</p>
+</dd>
+<dt>pageSize</dt>
+<dd>
+<p>Asks server to limit the number of entries per page returned.</p>
+</dd>
+<dt>query</dt>
+<dd>
+<p>A searchParams object containing the search parameters.</p>
+</dd>
+<dt>bundle</dt>
+<dd>
+<p>The bundle as received from the last response.</p>
+</dd>
+<dt>returnType</dt>
+<dd>
+<p>Specify the return type. This can be "parsed", "json" or "xml".</p>
+</dd>
+</dl>
+<h3>Details</h3>
+
+<p><code>$new()</code> Creates a new fhirClient using a given endpoint.
+If the endpoint does not end with a slash (/), it will be added.
+</p>
+<p><code>$read()</code> Fetches a typed Resource from a FHIR resource endpoint.
+</p>
+<p><code>$search()</code> Search for Resources of a certain type that match the given criteria.
+</p>
+<p><code>$searchById()</code> Search for Resources based on a Resource's id.
+</p>
+<p><code>$wholeSystemSearch()</code> Search for Resources across the whole server that match the given criteria.
+</p>
+<p><code>$searchByQuery()</code> Search for Resources based on a searchParams object.
+</p>
+<p><code>$continue()</code> Uses the FHIR paging mechanism to go navigate around a series of paged result Bundles.
+</p>
+<p><code>$setToken()</code> Saves an Oauth 2.0 token in a variable.
+</p>
+<p><code>$endpoint</code> Returns the endpoint.
+</p>
+<p><code>$authUrl</code> Returns the authorization server’s OAuth authorization endpoint.
+</p>
+<p><code>$tokenUrl</code> Returns the authorization server’s OAuth token endpoint.
+</p>
+<p><code>$registerUrl</code> Returns the endpoint where the client can register.
+</p>
+<p><code>$token</code> Returns the initialized token.
+</p>
+<p><code>print(p)</code> or <code>p$print()</code> Shows which endpoint is configured.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# Setting up a fhirClient
+client &lt;- fhirClient$new("https://vonk.fire.ly")
+# Read
+client$read("Patient/example")
+
+# Search
+bundle &lt;- client$search("Patient", c("name=Peter", "address-postalcode=3999"))
+
+while(!is.null(bundle)){
+   # Do something useful
+   bundle &lt;- client$continue(bundle)
+}
+
+## End(Not run)
+## Not run: 
+# Using Oauth 2.0
+client &lt;- fhirClient$new("https://vonk.fire.ly")
+
+# Retrieving a token
+
+client_id &lt;- "id"
+client_secret &lt;- "secret"
+app_name &lt;- "TestApp"
+scopes &lt;- c("patient/*.read")
+
+app &lt;- httr::oauth_app(appname = app_name, client_id, client_secret)
+oauth_endpoint &lt;- httr::oauth_endpoint(
+                  authorize = paste(client$authUrl, "?aud=", client$endpoint, sep=""),
+                  access = client$tokenUrl)
+  
+token &lt;- httr::oauth2.0_token(endpoint = oauth_endpoint, app = app, scope = scopes)
+
+# Set a token and read a patient resource
+client$setToken(token$credentials$access_token)
+
+client$read("Patient/example")
+
+# Token refresh
+token &lt;- token$refresh()
+
+client$setToken(token$credentials$access_token)
+
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

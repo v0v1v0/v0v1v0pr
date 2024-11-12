@@ -1,0 +1,141 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fit_dist</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fit a general distribution to observations</h2>
+
+<h3>Description</h3>
+
+<p>The default implementation performs maximum likelihood estimation on all
+placeholder parameters.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fit_dist(dist, obs, start, ...)
+
+fit_dist_direct(dist, obs, start, ..., .start_with_default = FALSE)
+
+## S3 method for class 'Distribution'
+fit(object, obs, start, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>dist</code></td>
+<td>
+<p>A <code>Distribution</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>obs</code></td>
+<td>
+<p>Set of observations as produced by <code>trunc_obs()</code> or convertible
+via <code>as_trunc_obs()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start</code></td>
+<td>
+<p>Initial values of all placeholder parameters.
+If missing, starting values are obtained from <code>fit_dist_start()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Distribution-specific arguments for the fitting procedure</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.start_with_default</code></td>
+<td>
+<p>Before directly optimising the likelihood, use an optimised algorithm for finding
+better starting values?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>same as parameter <code>dist</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For Erlang mixture distributions and for Mixture distributions, an
+EM-Algorithm is instead used to improve stability.
+</p>
+<p><code>fit()</code> and <code>fit_dist()</code> will chose an optimisation method optimized for the specific distribution given.
+<code>fit_dist_direct()</code> can be used to force direct maximisation of the likelihood.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with at least the elements
+</p>
+
+<ul>
+<li> <p><code>params</code> the fitted parameters in the same structure as <code>init</code>.
+</p>
+</li>
+<li> <p><code>logLik</code> the final log-likelihood
+</p>
+</li>
+</ul>
+<p>Additional information may be provided depending on <code>dist</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other distribution fitting functions: 
+<code>fit_blended()</code>,
+<code>fit_erlang_mixture()</code>,
+<code>fit_mixture()</code>
+</p>
+<p>Other distribution fitting functions: 
+<code>fit_blended()</code>,
+<code>fit_erlang_mixture()</code>,
+<code>fit_mixture()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">x &lt;- rexp(100)
+lambda_hat &lt;- 1 / mean(x)
+lambda_hat2 &lt;- fit_dist(dist_exponential(), x)$params$rate
+identical(lambda_hat, lambda_hat2)
+dist &lt;- dist_mixture(list(dist_normal(), dist_translate(dist_exponential(), offset = 6)))
+params &lt;- list(
+  dists = list(list(mean = 5, sd = 1), list(dist = list(rate = 1))), probs = list(0.95, 0.05)
+)
+set.seed(2000)
+u &lt;- runif(100, 10, 20)
+x &lt;- dist$sample(100, with_params = params)
+obs &lt;- trunc_obs(x = x[x &lt;= u], tmin = -Inf, tmax = u[x &lt;= u])
+
+default_fit &lt;- fit_dist(dist, obs)
+direct_fit &lt;- fit_dist_direct(dist, obs)
+# NB: direct optimisation steps with pre-run take a few seconds
+
+direct_fit_init &lt;- fit_dist_direct(dist, obs, start = default_fit$params)
+direct_fit_auto_init &lt;- fit_dist_direct(dist, obs, .start_with_default = TRUE)
+
+stopifnot(direct_fit_init$logLik == direct_fit_auto_init$logLik)
+
+c(default_fit$logLik, direct_fit$logLik, direct_fit_init$logLik)
+
+
+</code></pre>
+
+
+</div>

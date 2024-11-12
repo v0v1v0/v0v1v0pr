@@ -1,0 +1,181 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>lmrob.M.S</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2> M-S regression estimators </h2>
+
+<h3>Description</h3>
+
+<p>Computes an M-S-estimator for linear regression using the
+“M-S” algorithm.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">lmrob.M.S(x, y, control, mf,
+          split = splitFrame(mf, x, control$split.type))
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>numeric matrix (a <code>model.matrix</code>) of the
+predictors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>numeric vector for the response </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p><code>list</code> as returned by <code>lmrob.control</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mf</code></td>
+<td>
+<p>a model frame as returned by <code>model.frame</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>split</code></td>
+<td>
+<p>(optional) list as returned by <code>splitFrame</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function is used by <code>lmrob</code> and not intended to be
+used on its own (because an M-S-estimator has too low efficiency
+‘on its own’).
+</p>
+<p>An M-S estimator is a combination of an S-estimator for the
+continuous variables and an L1-estimator (i.e. an M-estimator with
+<code class="reqn">\psi(t) = sign(t)</code>) for the categorical variables.
+</p>
+<p>The S-estimator is estimated using a subsampling algorithm.  If the
+model includes interactions between categorical (<code>factor</code>)
+and continuous variables, the subsampling algorithm might fail.  In
+this case, one can choose to assign the interaction to the categorical
+side of variables rather than to the continuous side.  This can be
+accomplished via the control argument <code>split.type</code> or by
+specifying <code>split</code>, see <code>splitFrame</code>.
+</p>
+<p>Note that the return status <code>converged</code> does not refer to the
+actual convergence status.  The algorithm used does not guarantee
+convergence and thus true convergence is almost never reached. This
+is, however, not a problem if the estimate is only used as initial
+estimate part of an MM or SMDM estimate.
+</p>
+<p>The algorithm sometimes produces the warning message “Skipping
+design matrix equilibration (dgeequ): row ?? is exactly zero.”. This
+is just an artifact of the algorithm and can be ignored safely.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with components
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>coefficients</code></td>
+<td>
+<p>numeric vector (length <code class="reqn">p</code>) of M-S-regression
+coefficient estimates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>the M-S-scale residual estimate</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>residuals</code></td>
+<td>
+<p>numeric vector (legnth <code class="reqn">n</code>) of the residuals.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rweights</code></td>
+<td>
+<p>numeric vector (length <code class="reqn">n</code>) of the robustness weights.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>the same list as the <code>control</code> argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>converged</code></td>
+<td>
+<p>Convergence status (always <code>TRUE</code>), needed for
+<code>lmrob.fit</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>descent.cov</code></td>
+<td>
+<p><code>logical</code> with the true <code>m_s_descent</code>
+convergence status.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Manuel Koller
+</p>
+
+
+<h3>References</h3>
+
+<p>Maronna, R. A., and Yohai, V. J. (2000).
+Robust regression with both continuous and categorical predictors.
+<em>Journal of Statistical Planning and Inference</em> <b>89</b>, 197–214.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>lmrob</code>; for a description of the available split types, see
+<code>splitFrame</code>.
+</p>
+<p><code>lmRob</code> in package <a href="https://CRAN.R-project.org/package=robust"><span class="pkg">robust</span></a> uses a version of
+the M-S algorithm automatically when the formula contains factors.
+Our version however follows Maronna and Yohai (2000) more closely.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(education)
+education &lt;- within(education, Region &lt;- factor(Region))
+flm &lt;- lm(Y ~ Region + X1 + X2 + X3, education)
+x &lt;- model.matrix(flm)
+y &lt;- education$Y # == model.response(model.frame(flm))
+set.seed(17)
+f.MS &lt;- lmrob.M.S(x, y, control = lmrob.control(),
+                  mf = model.frame(flm))
+
+## The typical use of the "M-S" estimator -- as initial estimate :
+fmMS &lt;- lmrob(Y ~ Region + X1 + X2 + X3, education,
+              init = "M-S")
+</code></pre>
+
+
+</div>

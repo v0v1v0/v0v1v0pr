@@ -1,0 +1,150 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>readDWD.binary</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>read dwd gridded radolan binary data</h2>
+
+<h3>Description</h3>
+
+<p>read gridded radolan binary data.
+Intended to be called via <code>readDWD()</code>.<br></p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">readDWD.binary(
+  file,
+  exdir = sub(".tar.gz$", "", file),
+  toraster = TRUE,
+  quiet = rdwdquiet(),
+  progbar = !quiet,
+  selection = NULL,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>file</code></td>
+<td>
+<p>Name of file on harddrive, like e.g.
+DWDdata/daily_radolan_historical_bin_2017_SF201712.tar.gz</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exdir</code></td>
+<td>
+<p>Directory to unzip into. If existing, only the needed files
+will be unpacked with <code>untar()</code>. Note that exdir
+size will be around 1.1 GB. exdir can contain other files,
+these will be ignored for the actual reading with
+<code>dwdradar::readRadarFile()</code>.
+DEFAULT exdir: sub(".tar.gz$", "", file)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>toraster</code></td>
+<td>
+<p>Logical: convert output (list of matrixes + meta informations)
+to a list with dat (<code>terra::rast</code>) +
+meta (list from the first subfile, but with vector of dates)?
+DEFAULT: TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quiet</code></td>
+<td>
+<p>Suppress progress messages?
+DEFAULT: FALSE through <code>rdwdquiet()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>progbar</code></td>
+<td>
+<p>Show progress bars? <code>readDWD()</code> will
+keep progbar=TRUE for binary files, even if length(file)==1.
+DEFAULT: !quiet, i.e. TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>selection</code></td>
+<td>
+<p>Optionally read only a subset of the ~24*31=744 files.
+Called as <code>f[selection]</code>. DEFAULT: NULL (ignored)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments passed to <code>dwdradar::readRadarFile()</code>,
+i.e. <code>na</code> and <code>clutter</code></p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>list depending on argument <code>toraster</code>, see there for details
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Berry Boessenkool, <a href="mailto:berry-b@gmx.de">berry-b@gmx.de</a>, Dec 2018.
+Significant input for the underlying <code>dwdradar::readRadarFile()</code> came
+from Henning Rust &amp; Christoph Ritschel at FU Berlin.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>readDWD()</code>, especially <code>readDWD.radar()</code><br><a href="https://wradlib.org">https://wradlib.org</a> for much more extensive radar analysis in Python<br>
+Kompositformatbeschreibung at <a href="https://www.dwd.de/DE/leistungen/radolan/radolan.html">https://www.dwd.de/DE/leistungen/radolan/radolan.html</a>
+for format description
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run:  # Excluded from CRAN checks, but run in localtests
+
+# SF file as example: ----
+
+SF_link &lt;- "/daily/radolan/historical/bin/2017/SF201712.tar.gz"
+SF_file &lt;- dataDWD(url=SF_link, base=gridbase, joinbf=TRUE,   # 204 MB
+                     dir=locdir(), read=FALSE)
+# exdir radardir set to speed up my tests:
+SF_exdir &lt;- "C:/Users/berry/Desktop/DWDbinarySF"
+if(!file.exists(SF_exdir)) SF_exdir &lt;- tempdir()
+# no need to read all 24*31=744 files, so setting selection:
+SF_rad &lt;- readDWD(SF_file, selection=1:10, exdir=SF_exdir) #with toraster=TRUE
+if(length(SF_rad)!=2) stop("length(SF_rad) should be 2, but is ", length(SF_rad))
+
+SF_radp &lt;- plotRadar(SF_rad$dat, layer=1:3, main=SF_rad$meta$date)
+plotRadar(SF_radp, layer=1, project=FALSE)
+
+# RW file as example: ----
+
+RW_link &lt;- "hourly/radolan/reproc/2017_002/bin/2017/RW2017.002_201712.tar.gz"
+RW_file &lt;- dataDWD(url=RW_link, base=gridbase, joinbf=TRUE,   # 25 MB
+                  dir=locdir(), read=FALSE)
+RW_exdir &lt;- "C:/Users/berry/Desktop/DWDbinaryRW"
+if(!file.exists(RW_exdir)) RW_exdir &lt;- tempdir()
+RW_rad &lt;- readDWD(RW_file, selection=1:10, exdir=RW_exdir)
+RW_radp &lt;- plotRadar(RW_rad$dat[[1]], main=RW_rad$meta$date[1], extent="rw")
+
+# ToDo: why are values + patterns not the same?
+
+# list of all Files: ----
+data(gridIndex)
+head(grep("historical", gridIndex, value=TRUE))
+
+## End(Not run)
+</code></pre>
+
+
+</div>

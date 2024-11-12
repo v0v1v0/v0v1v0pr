@@ -1,0 +1,190 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>comboGroupsIter</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+comboGroups Iterator
+</h2>
+
+<h3>Description</h3>
+
+
+<ul>
+<li>
+<p> Returns an iterator for iterating over partitions of a vector into groups.
+</p>
+</li>
+<li>
+<p> Supports random access via the <code>[[</code> method.
+</p>
+</li>
+<li>
+<p> GMP support allows for exploration of cases where the number of comboGroups is large.
+</p>
+</li>
+<li>
+<p> Use the <code>next</code> methods to obtain results in lexicographical order.
+</p>
+</li>
+</ul>
+<h3>Usage</h3>
+
+<pre><code class="language-R">comboGroupsIter(v, numGroups = NULL, grpSizes = NULL,
+                retType = "matrix", Parallel = FALSE,
+                nThreads = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>v</code></td>
+<td>
+<p>Source vector. If <code>v</code> is a positive integer, it will be converted to the sequence <code>1:v</code>. If <code>v</code> is a negative integer, it will be converted to the sequence <code>v:-1</code>. All atomic types are supported (See <code>is.atomic</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>numGroups</code></td>
+<td>
+<p>An Integer. The number of groups that the vector will be partitioned into. The default is <code>NULL</code>. If provided and <code>grpSize</code> is <code>NULL</code>, it must divide the length of v (if v is a vector) or v (if v is a scalar).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grpSizes</code></td>
+<td>
+<p>A vector of whole numbers representing the size of each group. The default is <code>NULL</code>. If provided, the sum of the elements must total the length of v (if v is a vector) or v (if v is a scalar).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>retType</code></td>
+<td>
+<p>A string, "3Darray" or "matrix", that determines the shape of the output. The default is "matrix". Note, "3Darray" can only be used when the size of each group is uniform. When the size of each group varies, the return output will always be a matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Parallel</code></td>
+<td>
+<p>Logical value indicating whether results should be generated in parallel using <code class="reqn">n - 1</code> threads, where <code class="reqn">n</code> is the maximum number of threads. The default is <code>FALSE</code>. If <code>nThreads</code> is not <code>NULL</code>, it will be given preference (<em>e.g.</em> if user has 8 threads with <code>Parallel = TRUE</code> and <code>nThreads = 4</code>, only 4 threads will be spawned). If your system is single-threaded, the arguments <code>Parallel</code> and <code>nThreads</code> are ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nThreads</code></td>
+<td>
+<p>Specific number of threads to be used. The default is <code>NULL</code>. See <code>Parallel</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Once you initialize a new iterator, the following methods are available:
+</p>
+
+<dl>
+<dt><code>nextIter</code></dt>
+<dd>
+<p>Retrieve the <b>next</b> lexicographical result</p>
+</dd>
+<dt><code>nextNIter</code></dt>
+<dd>
+<p>Pass an integer <em>n</em> to retrieve the <b>next</b> <em>n</em> lexicographical results</p>
+</dd>
+<dt><code>nextRemaining</code></dt>
+<dd>
+<p>Retrieve all remaining lexicographical results</p>
+</dd>
+<dt><code>currIter</code></dt>
+<dd>
+<p>Returns the current iteration</p>
+</dd>
+<dt><code>startOver</code></dt>
+<dd>
+<p>Resets the iterator</p>
+</dd>
+<dt><code>sourceVector</code></dt>
+<dd>
+<p>View the source vector</p>
+</dd>
+<dt><code>summary</code></dt>
+<dd>
+<p>Returns a list of summary information about the iterator</p>
+</dd>
+<dt><code>front</code></dt>
+<dd>
+<p>Retrieve the <b>first</b> lexicographical result</p>
+</dd>
+<dt><code>back</code></dt>
+<dd>
+<p>Retrieve the <b>last</b> lexicographical result</p>
+</dd>
+<dt><code>[[</code></dt>
+<dd>
+<p>Random access method. Pass a single value or a vector of valid indices. If a single value is passed, the internal index of the iterator will be updated, however if a vector is passed the internal state will not change. GMP support allows for flexible indexing.</p>
+</dd>
+</dl>
+<h3>Value</h3>
+
+
+<ul>
+<li>
+<p> If <code>nextIter</code> is called, a named vector is returned if <code>retType = "matrix"</code>. If <code>retType = "3Darray"</code>, a named matrix is returned.
+</p>
+</li>
+<li>
+<p> Otherwise a named matrix is returned when <code>retType = "matrix"</code> and a named 3D array is returned when <code>retType = "3Darray"</code>.
+</p>
+</li>
+</ul>
+<h3>Note</h3>
+
+
+<ul>
+<li>
+<p>If <code>nThreads</code> is utilized, it will only take effect if the number of elements requested is greater than some threshold (determined internally). <em>E.g</em>:
+</p>
+<pre>serial   &lt;- comboGroupsIter(50, 10)
+multi    &lt;- comboGroupsIter(50, 10, nThreads = 4)
+fetch1e6 &lt;- multi@nextNIter(1e6)  ## much faster than serial@nextNIter(1e6)
+fetch1e3 &lt;- multi@nextNIter(1e3)  ## only one thread used... same as serial@nextNIter(1e3)
+
+library(microbenchmark)
+microbenchmark(multi@nextNIter(1e6), serial@nextNIter(1e6), times = 20)
+microbenchmark(multi@nextNIter(1e3), serial@nextNIter(1e3), times = 20)</pre>
+
+</li>
+<li>
+<p>The maximum number of comboGroups that can be generated at one time is <code class="reqn">2^{31} - 1</code>.
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>Joseph Wood
+</p>
+
+
+<h3>See Also</h3>
+
+<p>comboGroups</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">a = comboGroupsIter(12, 3)
+a@nextIter()
+a@nextNIter(3)
+a@front()
+all_remaining = a@nextRemaining()
+dim(all_remaining)
+a@summary()
+a@back()
+a[[5]]
+a@summary()
+a[[c(1, 17, 3)]]
+a@summary()
+</code></pre>
+
+
+</div>

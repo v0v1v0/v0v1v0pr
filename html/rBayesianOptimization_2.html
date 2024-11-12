@@ -1,0 +1,200 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>BayesianOptimization</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Bayesian Optimization</h2>
+
+<h3>Description</h3>
+
+<p>Bayesian Optimization of Hyperparameters.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">BayesianOptimization(
+  FUN,
+  bounds,
+  init_grid_dt = NULL,
+  init_points = 0,
+  n_iter,
+  acq = "ucb",
+  kappa = 2.576,
+  eps = 0,
+  kernel = list(type = "exponential", power = 2),
+  verbose = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>FUN</code></td>
+<td>
+<p>The function to be maximized. This Function should return a named list with 2 components.
+The first component "Score" should be the metrics to be maximized, and the second component "Pred" should be
+the validation/cross-validation prediction for ensembling/stacking.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bounds</code></td>
+<td>
+<p>A named list of lower and upper bounds for each hyperparameter.
+The names of the list should be identical to the arguments of FUN.
+All the sample points in init_grid_dt should be in the range of bounds.
+Please use "L" suffix to indicate integer hyperparameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init_grid_dt</code></td>
+<td>
+<p>User specified points to sample the target function, should
+be a <code>data.frame</code> or <code>data.table</code> with identical column names as bounds.
+User can add one "Value" column at the end, if target function is pre-sampled.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init_points</code></td>
+<td>
+<p>Number of randomly chosen points to sample the
+target function before Bayesian Optimization fitting the Gaussian Process.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_iter</code></td>
+<td>
+<p>Total number of times the Bayesian Optimization is to repeated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>acq</code></td>
+<td>
+<p>Acquisition function type to be used. Can be "ucb", "ei" or "poi".
+</p>
+
+<ul>
+<li> <p><code>ucb</code> GP Upper Confidence Bound
+</p>
+</li>
+<li> <p><code>ei</code> Expected Improvement
+</p>
+</li>
+<li> <p><code>poi</code> Probability of Improvement
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kappa</code></td>
+<td>
+<p>tunable parameter kappa of GP Upper Confidence Bound, to balance exploitation against exploration,
+increasing kappa will make the optimized hyperparameters pursuing exploration.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eps</code></td>
+<td>
+<p>tunable parameter epsilon of Expected Improvement and Probability of Improvement, to balance exploitation against exploration,
+increasing epsilon will make the optimized hyperparameters are more spread out across the whole range.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kernel</code></td>
+<td>
+<p>Kernel (aka correlation function) for the underlying Gaussian Process. This parameter should be a list
+that specifies the type of correlation function along with the smoothness parameter. Popular choices are square exponential (default) or matern 5/2</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Whether or not to print progress.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Other arguments passed on to <code>GP_fit</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>a list of Bayesian Optimization result is returned:
+</p>
+
+<ul>
+<li> <p><code>Best_Par</code> a named vector of the best hyperparameter set found
+</p>
+</li>
+<li> <p><code>Best_Value</code> the value of metrics achieved by the best hyperparameter set
+</p>
+</li>
+<li> <p><code>History</code> a <code>data.table</code> of the bayesian optimization history
+</p>
+</li>
+<li> <p><code>Pred</code> a <code>data.table</code> with validation/cross-validation prediction for each round of bayesian optimization history
+</p>
+</li>
+</ul>
+<h3>References</h3>
+
+<p>Jasper Snoek, Hugo Larochelle, Ryan P. Adams (2012) <em>Practical Bayesian Optimization of Machine Learning Algorithms</em>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Example 1: Optimization
+## Set Pred = 0, as placeholder
+Test_Fun &lt;- function(x) {
+  list(Score = exp(-(x - 2)^2) + exp(-(x - 6)^2/10) + 1/ (x^2 + 1),
+       Pred = 0)
+}
+## Set larger init_points and n_iter for better optimization result
+OPT_Res &lt;- BayesianOptimization(Test_Fun,
+                                bounds = list(x = c(1, 3)),
+                                init_points = 2, n_iter = 1,
+                                acq = "ucb", kappa = 2.576, eps = 0.0,
+                                verbose = TRUE)
+## Not run: 
+# Example 2: Parameter Tuning
+library(xgboost)
+data(agaricus.train, package = "xgboost")
+dtrain &lt;- xgb.DMatrix(agaricus.train$data,
+                      label = agaricus.train$label)
+cv_folds &lt;- KFold(agaricus.train$label, nfolds = 5,
+                  stratified = TRUE, seed = 0)
+xgb_cv_bayes &lt;- function(max_depth, min_child_weight, subsample) {
+  cv &lt;- xgb.cv(params = list(booster = "gbtree", eta = 0.01,
+                             max_depth = max_depth,
+                             min_child_weight = min_child_weight,
+                             subsample = subsample, colsample_bytree = 0.3,
+                             lambda = 1, alpha = 0,
+                             objective = "binary:logistic",
+                             eval_metric = "auc"),
+               data = dtrain, nround = 100,
+               folds = cv_folds, prediction = TRUE, showsd = TRUE,
+               early_stopping_rounds = 5, maximize = TRUE, verbose = 0)
+  list(Score = cv$evaluation_log$test_auc_mean[cv$best_iteration],
+       Pred = cv$pred)
+}
+OPT_Res &lt;- BayesianOptimization(xgb_cv_bayes,
+                                bounds = list(max_depth = c(2L, 6L),
+                                              min_child_weight = c(1L, 10L),
+                                              subsample = c(0.5, 0.8)),
+                                init_grid_dt = NULL, init_points = 10, n_iter = 20,
+                                acq = "ucb", kappa = 2.576, eps = 0.0,
+                                verbose = TRUE)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

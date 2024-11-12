@@ -1,0 +1,188 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>indexFTP</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create a recursive index of an FTP Server</h2>
+
+<h3>Description</h3>
+
+<p>Create a list of all the files (in all subfolders) of an FTP server.
+Defaults to the German Weather Service (DWD, Deutscher WetterDienst) OpenData server at
+<a href="https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/">https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/</a>.<br>
+The R package <code>RCurl</code> must be available to do this.<br><br>
+It's not suggested to run this for all folders, as it can take quite some time
+and you may get kicked off the FTP-Server. This package contains an index
+of the climatic observations at weather stations (<code>fileIndex</code>)
+and gridded datasets (<code>gridIndex</code>).
+If they are out of date, please let me know!<br><br><strong>Getting banned from the FTP Server</strong><br>
+Normally, this shouldn't happen anymore: since Version 0.10.10 (2018-11-26),
+a single RCurl handle is used for all FTP requests and since version 1.0.17 (2019-05-14),
+the file tree provided by the DWD is used to obtain all folders first,
+eliminating the recursive calls.<br>
+There's a provision if the FTP server detects bot requests and denies access.
+If <code>RCurl::getURL()</code> fails, there will still be an output
+which you can pass in a second run via <code>folder</code> to extract the remaining dirs.
+You might need to wait a bit and set <code>sleep</code> to a higher value in that case.
+Here's an example:<br></p>
+<div class="sourceCode"><pre>gridindex &lt;- indexFTP("", gridbase)
+gridindex &lt;- indexFTP(gridindex, gridbase, sleep=15)
+</pre></div>
+<p>Of course, with a higher sleep value, the execution will take longer!
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">indexFTP(
+  folder = "currentfindex",
+  base = dwdbase,
+  is.file.if.has.dot = TRUE,
+  exclude.latest.bin = TRUE,
+  fast = TRUE,
+  sleep = 0,
+  dir = "DWDdata",
+  filename = folder[1],
+  overwrite = FALSE,
+  quiet = rdwdquiet(),
+  progbar = !quiet,
+  verbose = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>folder</code></td>
+<td>
+<p>Folder(s) to be indexed recursively, e.g. "/hourly/wind/".
+Leading slashes will be removed.
+Use <code>folder=""</code> to search at the location of <code>base</code> itself.
+If <code>folder</code> is "currentfindex" (the default) and <code>base</code>
+is the default, <code>folder</code> is changed to all observational
+folders listed in the current tree file at
+<a href="https://opendata.dwd.de/weather/tree.html">https://opendata.dwd.de/weather/tree.html</a>. With "currentgindex"
+and <code>gridbase</code>, the grid folders in the tree are used.
+DEFAULT: "currentfindex"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>base</code></td>
+<td>
+<p>Main directory of FTP server. Trailing slashes will be removed.
+DEFAULT: <code>dwdbase</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>is.file.if.has.dot</code></td>
+<td>
+<p>Logical: if some of the input paths contain a dot,
+treat those as files, i.e. do not try to read those as if they
+were a folder. Only set this to FALSE if you know what you're doing.
+DEFAULT: TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exclude.latest.bin</code></td>
+<td>
+<p>Exclude latest file at opendata.dwd.de/weather/radar/radolan?
+RCurl::getURL indicates this is a pointer to the last regularly named file.
+DEFAULT: TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fast</code></td>
+<td>
+<p>Read tree file with <code>data.table::fread()</code>
+(1 sec) instead of <code>readLines()</code> (10 secs)?
+DEFAULT: TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sleep</code></td>
+<td>
+<p>If not 0, a random number of seconds between 0 and <code>sleep</code>
+is passed to <code>Sys.sleep()</code> after each read folder
+to avoid getting kicked off the FTP-Server, see note above. DEFAULT: 0</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dir</code></td>
+<td>
+<p>Writeable directory name where to save the downloaded file.
+Created if not existent.
+DEFAULT: "DWDdata" at current <code>getwd()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>filename</code></td>
+<td>
+<p>Character: Part of output filename. "INDEX_of_DWD_" is prepended,
+"/" replaced with "_", ".txt" appended. DEFAULT: folder[1]</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite</code></td>
+<td>
+<p>Logical: Overwrite existing file? If not, "_n" is added to the
+filename, see <code>berryFunctions::newFilename()</code>.
+DEFAULT: FALSE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quiet</code></td>
+<td>
+<p>Suppress progbars and message about directory/files?
+DEFAULT: FALSE through <code>rdwdquiet()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>progbar</code></td>
+<td>
+<p>Logical: present a progress bar in each level? DEFAULT: TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Logical: write a lot of messages from <code>RCurl::getURL()</code>?
+DEFAULT: FALSE (usually, you dont need all the curl information)</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>a vector with file paths
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Berry Boessenkool, <a href="mailto:berry-b@gmx.de">berry-b@gmx.de</a>, Oct 2016
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>createIndex()</code>, <code>updateIndexes()</code>,
+<a href="https://bookdown.org/brry/rdwd/fileindex.html">website index chapter</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run:  ## Needs internet connection
+sol &lt;- indexFTP(folder="/daily/solar", dir=tempdir())
+head(sol)
+
+# mon &lt;- indexFTP(folder="/monthly/kl", dir=tempdir(), verbose=TRUE)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

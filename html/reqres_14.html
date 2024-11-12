@@ -1,0 +1,789 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Response</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>HTTP Response handling</h2>
+
+<h3>Description</h3>
+
+<p>This class handles all functionality involved in crafting a http response.
+Much of the functionality is inspired by the Request class in Express.js, so
+<a href="https://expressjs.com/en/4x/api.html#res">the documentation</a> for this will
+complement this document. As <code>reqres</code> is build on top of the
+<a href="https://github.com/jeffreyhorner/Rook/blob/a5e45f751/README.md">Rook specifications</a>
+the <code>Response</code> object can be converted to a compliant list object to be
+passed on to e.g. the <code>httpuv</code> handler.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'Response'
+as.list(x, ...)
+
+is.Response(x)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A <code>Response</code> object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Ignored</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>A <code>Response</code> object is always created
+as a response to a <code>Request</code> object and contains a reference to the
+originating <code>Request</code> object. A <code>Response</code> is always initialized with a
+404 Not Found code, an empty string as body and the <code>Content-Type</code> header set
+to <code>text/plain</code>. As the <code>Content-Type</code> header is required for <code>httpuv</code> to
+function, it will be inferred if missing when converting to a list. If the
+body is a raw vector it will be set to <code>application/octet-stream</code> and
+otherwise it will be set to <code>text/plain</code>. It is always advised to consciously
+set the <code>Content-Type</code> header though. The only exception is when attaching a
+standard file where the type is inferred from the file extension
+automatically. Unless the body is a raw vector it will automatically be
+converted to a character vector and collapsed to a single string with <code>"\n"</code>
+separating the individual elements before the <code>Response</code> object is converted
+to a list (that is, the body can exist as any type of object up until the
+moment where the <code>Response</code> object is converted to a list). To facilitate
+communication between different middleware the <code>Response</code> object contains
+a data store where information can be stored during the lifetime of the
+response.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A rook-compliant list-response (in case of <code>as.list()</code>) or a logical
+indicating whether the object is a <code>Response</code> (in case of <code>is.Response()</code>)
+</p>
+
+
+<h3>Initialization</h3>
+
+<p>A new 'Response'-object is initialized using the <code>new()</code> method on the
+generator:
+</p>
+<p><strong>Usage</strong>
+</p>
+
+<table><tr>
+<td style="text-align: left;">
+<code>res &lt;- Response$new(request)</code>
+</td>
+</tr></table>
+<p>But often it will be provided by the request using the <code>respond()</code> method,
+which will provide the response, creating one if it doesn't exist
+</p>
+<p><strong>Usage</strong>
+</p>
+
+<table><tr>
+<td style="text-align: left;">
+<code>res &lt;- request$respond()</code>
+</td>
+</tr></table>
+<p><strong>Arguments</strong>
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+<code>request</code> </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;"> The <code>Request</code> object that the <code>Response</code> is responding to</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<h3>Fields</h3>
+
+<p>The following fields are accessible in a <code>Response</code> object:
+</p>
+
+<dl>
+<dt><code>status</code></dt>
+<dd>
+<p>Gets or sets the status code of the response. Is initialised
+with <code>404L</code></p>
+</dd>
+<dt><code>body</code></dt>
+<dd>
+<p>Set or get he body of the response. If it is a character
+vector with a single element named <code>'file'</code> it will be interpreted as the
+location of a file. It is better to use the <code>file</code> field for creating a
+response referencing a file as it will automatically set the correct
+headers.</p>
+</dd>
+<dt><code>file</code></dt>
+<dd>
+<p>Set or get the location of a file that should be used as the
+body of the response. If the body is not referencing a file (but contains
+something else) it will return <code>NULL</code>. The <code>Content-Type</code> header will
+automatically be inferred from the file extension, if known. If unknown it
+will defaults to <code>application/octet-stream</code>. If the file has no extension it
+will be <code>text/plain</code>. Existence of the file will be checked.</p>
+</dd>
+<dt><code>type</code></dt>
+<dd>
+<p>Get or sets the <code>Content-Type</code> header of the response based on
+a file extension or mime-type.</p>
+</dd>
+<dt><code>request</code></dt>
+<dd>
+<p>Get the original <code>Request</code> object that the object is
+responding to.</p>
+</dd>
+</dl>
+<h3>Methods</h3>
+
+<p>The following methods are available in a <code>Response</code> object:
+</p>
+
+<dl>
+<dt><code>set_header(name, value)</code></dt>
+<dd>
+<p>Sets the header given by <code>name</code>. <code>value</code>
+will be converted to character. A header will be added for each element in
+<code>value</code>. Use <code>append_header()</code> for setting headers without overwriting
+existing ones.</p>
+</dd>
+<dt><code>get_header(name)</code></dt>
+<dd>
+<p>Returns the header(s) given by <code>name</code></p>
+</dd>
+<dt><code>remove_header(name)</code></dt>
+<dd>
+<p>Removes all headers given by <code>name</code></p>
+</dd>
+<dt><code>has_header(name)</code></dt>
+<dd>
+<p>Test for the existence of any header given by
+<code>name</code></p>
+</dd>
+<dt><code>append_header(name, value)</code></dt>
+<dd>
+<p>Adds an additional header given by
+<code>name</code> with the value given by <code>value</code>. If the header does not exist yet it
+will be created.</p>
+</dd>
+<dt><code>set_data(key, value)</code></dt>
+<dd>
+<p>Adds <code>value</code> to the internal data store and
+stores it with <code>key</code></p>
+</dd>
+<dt><code>get_data(key)</code></dt>
+<dd>
+<p>Retrieves the data stored under <code>key</code> in the internal
+data store.</p>
+</dd>
+<dt><code>remove_data(key)</code></dt>
+<dd>
+<p>Removes the data stored under <code>key</code> in the
+internal data store.</p>
+</dd>
+<dt><code>has_data(key)</code></dt>
+<dd>
+<p>Queries whether the data store has an entry given by
+<code>key</code></p>
+</dd>
+<dt><code>attach(file, filename=basename(file), type=NULL)</code></dt>
+<dd>
+<p>Sets the body to
+the file given by <code>file</code> and marks the response as a download by setting the
+<code>Content-Disposition</code> to <code style="white-space: pre;">⁠attachment; filename=&lt;filename&gt;⁠</code>. Use the <code>type</code>
+argument to overwrite the automatic type inference from the file extension.</p>
+</dd>
+<dt><code>status_with_text(code)</code></dt>
+<dd>
+<p>Sets the status to <code>code</code> and sets the body
+to the associated status code description (e.g. <code style="white-space: pre;">⁠Bad Gateway⁠</code> for <code>502L</code>)</p>
+</dd>
+<dt><code>set_cookie(name, value, encode = TRUE, expires = NULL, http_only = NULL, max_age = NULL, path = NULL, secure = NULL, same_site = NULL)</code></dt>
+<dd>
+<p>Adds
+the cookie given by <code>name</code> to the given <code>value</code>, optionally url encoding it,
+along with any additional directives. See
+<a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie">https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie</a> for a
+description of the different directives. If the cookie already exists it
+will be overwritten. The validity of the directives will automatically be
+checked. <code>expires</code> expects a POSIXct object, <code>http_only</code> and <code>secure</code> expect
+a logical, <code>max_age</code> expects an integer, <code>path</code> a string, and <code>same_site</code>
+either <code>"Lax"</code> or <code>"Strict"</code></p>
+</dd>
+<dt><code>remove_cookie(name)</code></dt>
+<dd>
+<p>Removes the cookie named <code>name</code> from the
+response.</p>
+</dd>
+<dt><code>has_cookie(name)</code></dt>
+<dd>
+<p>Queries whether the response contains a cookie
+named <code>name</code></p>
+</dd>
+<dt><code>set_links(...)</code></dt>
+<dd>
+<p>Sets the <code>Link</code> header based on the named arguments
+passed to <code>...</code>. The names will be used for the <code>rel</code> directive.</p>
+</dd>
+<dt><code>format(..., autofail = TRUE, compress = TRUE)</code></dt>
+<dd>
+<p>Based on the
+formatters passed in through <code>...</code> content negotiation is performed with
+request and the preferred formatter is chosen. The <code>Content-Type</code> header is
+set automatically. If <code>compress = TRUE</code> the
+<code>compress()</code> method will be called after formatting. If an error is
+encountered and <code>autofail = TRUE</code> the response will be set to <code>500</code>. If a
+formatter is not found and <code>autofail = TRUE</code> the response will be set to
+<code>406</code>. If formatting is successful it will return <code>TRUE</code>, if not it will
+return <code>FALSE</code></p>
+</dd>
+<dt><code>compress(priority = c('gzip', 'deflate', 'br', 'identity'))</code></dt>
+<dd>
+<p>Based
+on the provided priority, an encoding is negotiated with the request and
+applied. The <code>Content-Encoding</code> header is set to the chosen compression
+algorithm.</p>
+</dd>
+<dt><code>content_length()</code></dt>
+<dd>
+<p>Calculates the length (in bytes) of the body.
+This is the number that goes into the <code>Content-Length</code> header. Note that the
+<code>Content-Length</code> header is set automatically by <code>httpuv</code> so this method
+should only be called if the response size is needed for other reasons.</p>
+</dd>
+<dt><code>as_list()</code></dt>
+<dd>
+<p>Converts the object to a list for further processing by
+a Rook compliant server such as <code>httpuv</code>. Will set <code>Content-Type</code> header if
+missing and convert a non-raw body to a single character string.</p>
+</dd>
+</dl>
+<h3>Methods</h3>
+
+
+
+<h4>Public methods</h4>
+
+
+<ul>
+<li> <p><a href="#method-Response-new"><code>Response$new()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Response-print"><code>Response$print()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Response-set_header"><code>Response$set_header()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Response-get_header"><code>Response$get_header()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Response-remove_header"><code>Response$remove_header()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Response-has_header"><code>Response$has_header()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Response-append_header"><code>Response$append_header()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Response-set_data"><code>Response$set_data()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Response-get_data"><code>Response$get_data()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Response-remove_data"><code>Response$remove_data()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Response-has_data"><code>Response$has_data()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Response-timestamp"><code>Response$timestamp()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Response-attach"><code>Response$attach()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Response-status_with_text"><code>Response$status_with_text()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Response-set_cookie"><code>Response$set_cookie()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Response-remove_cookie"><code>Response$remove_cookie()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Response-has_cookie"><code>Response$has_cookie()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Response-set_links"><code>Response$set_links()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Response-format"><code>Response$format()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Response-compress"><code>Response$compress()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Response-content_length"><code>Response$content_length()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Response-as_list"><code>Response$as_list()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Response-as_message"><code>Response$as_message()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Response-clone"><code>Response$clone()</code></a>
+</p>
+</li>
+</ul>
+<hr>
+<a id="method-Response-new"></a>
+
+
+
+<h4>Method <code>new()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Response$new(request)</pre></div>
+
+
+<hr>
+<a id="method-Response-print"></a>
+
+
+
+<h4>Method <code>print()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Response$print(...)</pre></div>
+
+
+<hr>
+<a id="method-Response-set_header"></a>
+
+
+
+<h4>Method <code>set_header()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Response$set_header(name, value)</pre></div>
+
+
+<hr>
+<a id="method-Response-get_header"></a>
+
+
+
+<h4>Method <code>get_header()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Response$get_header(name)</pre></div>
+
+
+<hr>
+<a id="method-Response-remove_header"></a>
+
+
+
+<h4>Method <code>remove_header()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Response$remove_header(name)</pre></div>
+
+
+<hr>
+<a id="method-Response-has_header"></a>
+
+
+
+<h4>Method <code>has_header()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Response$has_header(name)</pre></div>
+
+
+<hr>
+<a id="method-Response-append_header"></a>
+
+
+
+<h4>Method <code>append_header()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Response$append_header(name, value)</pre></div>
+
+
+<hr>
+<a id="method-Response-set_data"></a>
+
+
+
+<h4>Method <code>set_data()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Response$set_data(key, value)</pre></div>
+
+
+<hr>
+<a id="method-Response-get_data"></a>
+
+
+
+<h4>Method <code>get_data()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Response$get_data(key)</pre></div>
+
+
+<hr>
+<a id="method-Response-remove_data"></a>
+
+
+
+<h4>Method <code>remove_data()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Response$remove_data(key)</pre></div>
+
+
+<hr>
+<a id="method-Response-has_data"></a>
+
+
+
+<h4>Method <code>has_data()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Response$has_data(key)</pre></div>
+
+
+<hr>
+<a id="method-Response-timestamp"></a>
+
+
+
+<h4>Method <code>timestamp()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Response$timestamp()</pre></div>
+
+
+<hr>
+<a id="method-Response-attach"></a>
+
+
+
+<h4>Method <code>attach()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Response$attach(file, filename = basename(file), type = NULL)</pre></div>
+
+
+<hr>
+<a id="method-Response-status_with_text"></a>
+
+
+
+<h4>Method <code>status_with_text()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Response$status_with_text(code)</pre></div>
+
+
+<hr>
+<a id="method-Response-set_cookie"></a>
+
+
+
+<h4>Method <code>set_cookie()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Response$set_cookie(
+  name,
+  value,
+  encode = TRUE,
+  expires = NULL,
+  http_only = NULL,
+  max_age = NULL,
+  path = NULL,
+  secure = NULL,
+  same_site = NULL
+)</pre></div>
+
+
+<hr>
+<a id="method-Response-remove_cookie"></a>
+
+
+
+<h4>Method <code>remove_cookie()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Response$remove_cookie(name)</pre></div>
+
+
+<hr>
+<a id="method-Response-has_cookie"></a>
+
+
+
+<h4>Method <code>has_cookie()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Response$has_cookie(name)</pre></div>
+
+
+<hr>
+<a id="method-Response-set_links"></a>
+
+
+
+<h4>Method <code>set_links()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Response$set_links(...)</pre></div>
+
+
+<hr>
+<a id="method-Response-format"></a>
+
+
+
+<h4>Method <code>format()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Response$format(..., autofail = TRUE, compress = TRUE)</pre></div>
+
+
+<hr>
+<a id="method-Response-compress"></a>
+
+
+
+<h4>Method <code>compress()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Response$compress(priority = c("gzip", "deflate", "br", "identity"))</pre></div>
+
+
+<hr>
+<a id="method-Response-content_length"></a>
+
+
+
+<h4>Method <code>content_length()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Response$content_length()</pre></div>
+
+
+<hr>
+<a id="method-Response-as_list"></a>
+
+
+
+<h4>Method <code>as_list()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Response$as_list()</pre></div>
+
+
+<hr>
+<a id="method-Response-as_message"></a>
+
+
+
+<h4>Method <code>as_message()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Response$as_message()</pre></div>
+
+
+<hr>
+<a id="method-Response-clone"></a>
+
+
+
+<h4>Method <code>clone()</code>
+</h4>
+
+<p>The objects of this class are cloneable with this method.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Response$clone(deep = FALSE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>deep</code></dt>
+<dd>
+<p>Whether to make a deep clone.</p>
+</dd>
+</dl>
+</div>
+
+
+
+
+<h3>See Also</h3>
+
+<p><code>Request</code> for handling http requests
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">fake_rook &lt;- fiery::fake_request(
+  'http://example.com/test?id=34632&amp;question=who+is+hadley',
+  content = 'This is elaborate ruse',
+  headers = list(
+    Accept = 'application/json; text/*',
+    Content_Type = 'text/plain'
+  )
+)
+
+req &lt;- Request$new(fake_rook)
+res &lt;- Response$new(req)
+res
+
+# Set the body to the associated status text
+res$status_with_text(200L)
+res$body
+
+# Infer Content-Type from file extension
+res$type &lt;- 'json'
+res$type
+
+# Prepare a file for download
+res$attach(system.file('DESCRIPTION', package = 'reqres'))
+res$type
+res$body
+res$get_header('Content-Disposition')
+
+# Cleaning up connections
+rm(fake_rook, req, res)
+gc()
+
+</code></pre>
+
+
+</div>

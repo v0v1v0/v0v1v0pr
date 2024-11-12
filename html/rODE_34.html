@@ -1,0 +1,258 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>DormandPrince45-class</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>DormandPrince45 ODE solver class</h2>
+
+<h3>Description</h3>
+
+<p>DormandPrince45 ODE solver class
+</p>
+<p>DormandPrince45 generic
+</p>
+<p>DormandPrince45 constructor ODE
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">DormandPrince45(ode, ...)
+
+## S4 method for signature 'DormandPrince45'
+init(object, stepSize, ...)
+
+## S4 replacement method for signature 'DormandPrince45'
+init(object, ...) &lt;- value
+
+## S4 method for signature 'DormandPrince45'
+step(object, ...)
+
+## S4 method for signature 'DormandPrince45'
+enableRuntimeExceptions(object, enable)
+
+## S4 method for signature 'DormandPrince45'
+setStepSize(object, stepSize, ...)
+
+## S4 method for signature 'DormandPrince45'
+getStepSize(object, ...)
+
+## S4 method for signature 'DormandPrince45'
+setTolerance(object, tol)
+
+## S4 replacement method for signature 'DormandPrince45'
+setTolerance(object, ...) &lt;- value
+
+## S4 method for signature 'DormandPrince45'
+getTolerance(object)
+
+## S4 method for signature 'DormandPrince45'
+getErrorCode(object)
+
+## S4 method for signature 'ODE'
+DormandPrince45(ode, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>ode</code></td>
+<td>
+<p>ODE object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional parameters</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>a class object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stepSize</code></td>
+<td>
+<p>size of the step</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>value</code></td>
+<td>
+<p>step size to set</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>enable</code></td>
+<td>
+<p>a logical flag</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>tolerance</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R"># ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  base class: KeplerVerlet.R
+
+setClass("KeplerDormandPrince45", slots = c(
+    GM = "numeric",
+    odeSolver = "DormandPrince45",
+    counter = "numeric"
+    ),
+    contains = c("ODE")
+)
+
+setMethod("initialize", "KeplerDormandPrince45", function(.Object, ...) {
+    .Object@GM &lt;- 4 * pi * pi         # gravitation constant times combined mass
+    .Object@state &lt;- vector("numeric", 5)  # x, vx, y, vy, t
+    .Object@odeSolver &lt;- DormandPrince45(.Object)
+    .Object@counter &lt;- 0
+    return(.Object)
+})
+
+setMethod("doStep", "KeplerDormandPrince45", function(object, ...) {
+    object@odeSolver &lt;- step(object@odeSolver)
+    object@state &lt;- object@odeSolver@ode@state
+    object
+})
+
+setMethod("getTime", "KeplerDormandPrince45", function(object, ...) {
+    return(object@state[5])
+})
+
+setMethod("getEnergy", "KeplerDormandPrince45", function(object, ...) {
+    ke &lt;- 0.5 * (object@state[2] * object@state[2] +
+                     object@state[4] * object@state[4])
+    pe &lt;- -object@GM / sqrt(object@state[1] * object@state[1] +
+                                object@state[3] * object@state[3])
+    return(pe+ke)
+})
+
+setMethod("init", "KeplerDormandPrince45", function(object, initState, ...) {
+    object@state &lt;- initState
+    # call init in AbstractODESolver
+    object@odeSolver &lt;- init(object@odeSolver, getStepSize(object@odeSolver))
+    object@counter &lt;- 0
+    object
+})
+
+setReplaceMethod("init", "KeplerDormandPrince45", function(object, ..., value) {
+    object@state &lt;- value
+    # call init in AbstractODESolver
+    object@odeSolver &lt;- init(object@odeSolver, getStepSize(object@odeSolver))
+    object@counter &lt;- 0
+    object
+})
+
+setMethod("getRate", "KeplerDormandPrince45", function(object, state, ...) {
+    # Computes the rate using the given state.
+    r2 &lt;- state[1] * state[1] + state[3] * state[3]  # distance squared
+    r3 &lt;- r2 * sqrt(r2)   # distance cubed
+    object@rate[1] &lt;- state[2]
+    object@rate[2] &lt;- (- object@GM * state[1]) / r3
+    object@rate[3] &lt;- state[4]
+    object@rate[4] &lt;- (- object@GM * state[3]) / r3
+    object@rate[5] &lt;- 1   # time derivative
+
+    object@counter &lt;- object@counter + 1
+    object@rate
+})
+
+setMethod("getState", "KeplerDormandPrince45", function(object, ...) {
+    # Gets the state variables.
+    return(object@state)
+})
+
+setReplaceMethod("setSolver", "KeplerDormandPrince45", function(object, value) {
+    object@odeSolver &lt;- value
+    object
+})
+
+# constructor
+KeplerDormandPrince45 &lt;- function() {
+    kepler &lt;- new("KeplerDormandPrince45")
+    return(kepler)
+}
+# +++++++++++++++++++++++++++++++++++++++++ Example:      ComparisonRK45ODEApp.R
+# Updates the ODE state instead of using the internal state in the ODE solver
+# Also plots the solver solution versus the analytical solution at a
+# tolerance of 1e-6
+# Example file: ComparisonRK45ODEApp.R
+# ODE Solver:   Runge-Kutta 45
+# ODE class :   RK45
+# Base class:   ODETest
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+importFromExamples("ODETest.R")
+
+ComparisonRK45ODEApp &lt;- function(verbose = FALSE) {
+    ode &lt;- new("ODETest")                         # new ODE instance
+    ode_solver &lt;- RK45(ode)                       # select ODE solver
+    ode_solver &lt;- setStepSize(ode_solver, 1)      # set the step
+
+    # two ways to set tolerance
+      # ode_solver &lt;- setTolerance(ode_solver, 1e-6)
+    setTolerance(ode_solver) &lt;-  1e-6
+
+    time &lt;-  0
+    rowVector &lt;- vector("list")                   # row vector
+    i &lt;- 1    # counter
+    while (time &lt; 50) {
+        # add solution objects to a row vector
+        rowVector[[i]] &lt;- list(t     = getState(ode)[2],
+                               ODE   = getState(ode)[1],
+                               s2    = getState(ode)[2],
+                               exact = getExactSolution(ode, time),
+                               rate.counts = getRateCounts(ode),
+                               time = time )
+        ode_solver &lt;- step(ode_solver)            # advance solver one step
+        stepSize &lt;-  getStepSize(ode_solver)      # get the current step size
+        time  &lt;- time + stepSize
+        ode   &lt;- getODE(ode_solver)               # get updated ODE object
+        state &lt;- getState(ode)                    # get the `state` vector
+        i &lt;- i + 1                                # add a row vector
+    }
+    DT &lt;- data.table::rbindlist(rowVector)        # create data table
+    return(DT)
+}
+
+solution &lt;- ComparisonRK45ODEApp()
+plot(solution)
+
+
+# aditional plot for analytics solution vs. RK45 solver
+solution.multi &lt;- solution %&gt;%
+    select(t, ODE, exact)
+plot(solution.multi)             # 3x3 plot
+
+# plot comparative curves analytical vs ODE solver
+solution.2x1 &lt;- solution.multi %&gt;%
+    gather(key, value, -t)         # make a table of 3 variables. key: ODE/exact
+
+g &lt;- ggplot(solution.2x1, mapping = aes(x = t, y = value, color = key))
+g &lt;-  g + geom_line(size = 1) +
+    labs(title = "ODE vs Exact solution",
+         subtitle = "tolerance = 1E-6")
+print(g)
+
+
+
+
+</code></pre>
+
+
+</div>

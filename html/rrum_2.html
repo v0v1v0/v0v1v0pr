@@ -1,0 +1,206 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rrum</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Gibbs sampler to estimate the rRUM</h2>
+
+<h3>Description</h3>
+
+<p>Obtains samples from posterior distributon for the reduced Reparametrized
+Unified Model (rRUM).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rrum(
+  Y,
+  Q,
+  chain_length = 10000L,
+  as = 1,
+  bs = 1,
+  ag = 1,
+  bg = 1,
+  delta0 = rep(1, 2^ncol(Q))
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>A <code>matrix</code> with N rows and J columns, where N reperesnts
+the number of individuals and J the number of items.
+<code>Y</code> indicates the indviduals' responses to each of the
+items.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Q</code></td>
+<td>
+<p>A <code>matrix</code> with J rows and K columns indicating which
+attributes are required to answer each of the items.
+An entry of 1 indicates attribute k is required to
+answer item j.  An entry of one indicates attribute <code>k</code>
+is not required.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chain_length</code></td>
+<td>
+<p>A <code>numeric</code> indicating the number of iterations of Gibbs
+sampler to be run.  Default is set to 10000.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>as</code></td>
+<td>
+<p>A <code>numeric</code>, parameter for the prior distribution of
+pistar.  High values as encourage higher values of
+pistar and lower values of rstar.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bs</code></td>
+<td>
+<p>A <code>numeric</code>, parameter for the prior distribution of
+pistar.  High values as encourage lower values of
+pistar and higher values of rstar.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ag</code></td>
+<td>
+<p>A <code>numeric</code>, parameter for the prior distribution of
+rstar.  High values as encourage higher values of rstar.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bg</code></td>
+<td>
+<p>A <code>numeric</code>, parameter for the prior distribution of
+pistar.  High values as encourage lower values of rstar.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>delta0</code></td>
+<td>
+<p>A <code>vector</code>, parameters for the Dirichlet prior on pi.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A <code>list</code> that contains
+</p>
+
+<ul>
+<li> <p><code>PISTAR</code>: A <code>matrix</code> where each column represents one draw from the
+posterior distribution of pistar.
+</p>
+</li>
+<li> <p><code>RSTAR</code>: A <code class="reqn">J x K x chain_length</code> <code>array</code> where <code>J</code> reperesents the
+number of items, and <code>K</code> represents the number of attributes.
+Each slice represents one draw from the posterior distribution
+of <code>rstar</code>.
+</p>
+</li>
+<li> <p><code>PI</code>: A <code>matrix</code> where each column reperesents one draw from the posterior
+distribution of <code>pi</code>.
+</p>
+</li>
+<li> <p><code>ALPHA</code>: An <code class="reqn">N x K x chain_length</code> <code>array</code> where <code>N</code> reperesents the
+number of individuals, and <code>K</code> represents the number of
+attributes. Each slice represents one draw from the posterior
+distribution of <code>alpha</code>.
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>Steven Andrew Culpepper, Aaron Hudson, and James Joseph Balamuta
+</p>
+
+
+<h3>References</h3>
+
+<p>Culpepper, S. A. &amp; Hudson, A. (In Press). An improved strategy for Bayesian
+estimation of the reduced reparameterized unified model. Applied
+Psychological Measurement.
+</p>
+<p>Hudson, A., Culpepper, S. A., &amp; Douglas, J. (2016, July). Bayesian estimation
+of the generalized NIDA model with Gibbs sampling. Paper presented at the
+annual International Meeting of the Psychometric Society, Asheville, North
+Carolina.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>simcdm::sim_rrum_items()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Set seed for reproducibility
+set.seed(217)
+
+## Define Simulation Parameters
+
+N = 1000 # Number of Individuals
+J = 6    # Number of Items
+K = 2    # Number of Attributes
+
+# Matrix where rows represent attribute classes
+As = attribute_classes(K) 
+
+# Latent Class probabilities
+pis = c(.1, .2, .3, .4) 
+
+# Q Matrix
+Q = rbind(c(1, 0),
+          c(0, 1),
+          c(1, 0),
+          c(0, 1),
+          c(1, 1),
+          c(1, 1)
+    )
+    
+# The probabiliies of answering each item correctly for individuals 
+# who do not lack any required attribute
+pistar = rep(.9, J)
+
+# Penalties for failing to have each of the required attributes
+rstar  = .5 * Q
+
+# Randomized alpha profiles
+alpha  = As[sample(1:(K ^ 2), N, replace = TRUE, pis),]
+
+# Simulate data
+rrum_items = simcdm::sim_rrum_items(Q, rstar, pistar, alpha)
+
+## Not run: 
+# Note: This portion of the code is computationally intensive.
+
+# Recover simulation parameters with Gibbs Sampler
+Gibbs.out = rrum(rrum_items, Q)
+
+# Iterations to be discarded from chain as burnin
+burnin = 1:5000 
+
+# Calculate summarizes of posterior distributions
+rstar.mean  = with(Gibbs.out, apply(RSTAR[,,-burnin], c(1, 2), mean))
+pistar.mean = with(Gibbs.out, apply(PISTAR[,-burnin], 1, mean))
+pis.mean    = with(Gibbs.out, apply(PI[,-burnin], 1 ,mean))
+
+## End(Not run)
+</code></pre>
+
+
+</div>

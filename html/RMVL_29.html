@@ -1,0 +1,82 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>mvl_write_extent_index</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Compute and write extent index</h2>
+
+<h3>Description</h3>
+
+<p>This function computes a hash-based index that allows to find indices of rows which hashes match query values.
+While it can be applied to arbitrary data, it is optimized for the common case when vectors contain stretches of repeated values
+describing row groups to be processed. This is particularly relevant for R because vectorized processing of row batches is the only practical way to scan very large tables using pure-R code.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">mvl_write_extent_index(MVLHANDLE, L, name = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>MVLHANDLE</code></td>
+<td>
+<p>a handle to MVL file produced by mvl_open()</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>L</code></td>
+<td>
+<p>list of vector like MVL_OBJECTs</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p>if specified add a named entry to MVL file directory</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>mvl_write_extent_index()</code> creates the index in memory and then writes it out. The memory usage is proportional to the number of 
+repeat stretches. Sorting tables improves performance, but is not a requirement.
+</p>
+
+
+<h3>Value</h3>
+
+<p>an object of class MVL_OFFSET that describes an offset into this MVL file. MVL offsets are vectors and can be concatenated. They can be written to MVL file directly, or as part of another object such as list.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>mvl_order_vectors</code>, <code>mvl_index_lapply</code>, <code>mvl_find_matches</code>, <code>mvl_group</code>, <code>mvl_find_matches</code>, <code>mvl_indexed_copy</code>, <code>mvl_merge</code>, <code>mvl_hash_vectors</code>, <code>mvl_get_groups</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+Mtmp&lt;-mvl_open("tmp_a.mvl", append=TRUE, create=TRUE)
+mvl_write_object(Mtmp, data.frame(x=runif(100), y=(1:100) %% 10), "df1")
+Mtmp&lt;-mvl_remap(Mtmp)
+mvl_write_extent_index(Mtmp, list(Mtmp$df1[,"y",ref=TRUE]), "df1_extent_index_y")
+Mtmp&lt;-mvl_remap(Mtmp)
+mvl_index_lapply(Mtmp["df1_extent_index_y", ref=TRUE], list(c(2, 3)),
+                                           function(i, idx) { return(list(i, idx))})
+# Example of full scan
+mvl_index_lapply(Mtmp["df1_extent_index_y", ref=TRUE], ,
+                                           function(i, idx) { return(list(i, idx))})
+
+## End(Not run)
+</code></pre>
+
+
+</div>

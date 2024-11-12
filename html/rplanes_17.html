@@ -1,0 +1,138 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>plane_shape</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Shape component</h2>
+
+<h3>Description</h3>
+
+<p>This function identifies the shape of the trajectory for a forecasted signal to compare against existing shapes in seed data. If the shape is identified as novel, a flag is raised, and the signal is considered implausible. See the Details section for further information.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">plane_shape(location, input, seed, method = "sdiff")
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>location</code></td>
+<td>
+<p>Character vector with location code; the location must appear in input and seed</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>input</code></td>
+<td>
+<p>Input signal data to be scored; object must be one of forecast</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>Prepared seed</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>The method for determining shapes; must be one of "sdiff" or "dtw" (see Details); default is "sdiff"</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The approach for determining shapes can be customized by the user with the <code>plane_shape()</code> "method" argument. The two methods available are "sdiff" (default) and "dtw". Compared with "sdiff", the "dtw" method has been shown to have a higher sensitivity, lower specificity, and much greater computational cost in some circumstances. The "sdiff" method is recommended if computational efficiency is a concern.
+</p>
+<p>The "sdiff" method will use consecutive scaled differences to construct shapes. The algorithm operates in three steps:
+</p>
+
+<ol>
+<li>
+<p> The prepared seed data is combined with forecasted point estimates and each point-to-point difference is calculated.
+</p>
+</li>
+<li>
+<p> The differences are centered and scaled, then cut into categories. Differences greater than or equal to one standard deviation above the mean of differences are considered an "increase". Differences less than or equal to one standard deviation below  the mean of differences are considered a "decrease". All other differences are considered "stable".
+</p>
+</li>
+<li>
+<p> The categorical differences are then combined into windows of equal size to the forecasted horizon. Collectively these combined categorical differences create a "shape" (e.g., "increase;stable;stable;decrease").
+</p>
+</li>
+<li>
+<p> Lastly, the algorithm compares the shape for the forecast to all of the shapes observed. If the shape assessed has not been previously observed in the time series then a flag is raised and the indicator returned is <code>TRUE</code>.
+</p>
+</li>
+</ol>
+<p>The "dtw" method uses a Dynamic Time Warping (DTW) algorithm to identify shapes within the seed data and then compares the shape of the forecast input signal to the observed shapes. This is done in three broad steps:
+</p>
+
+<ol>
+<li>
+<p> The prepared seed data is divided into a set of sliding windows with a step size of one, each representing a section of the overall time series. The length of these windows is determined by the horizon length of the input data signal (e.g., 2 weeks). For example, if the seed data was a vector, <code>c(1, 2, 3, 4, 5)</code>, and the horizon length was 2, then the sliding windows for the observed seed data would be: <code>c(1, 2)</code>, <code>c(2, 3)</code>, <code>c(3, 4)</code>, and <code>c(4, 5)</code>. Each sliding window is a subset of the total trajectory shape of the observed data.
+</p>
+</li>
+<li>
+<p> Shape-based DTW distances are calculated for every 1x1 combination of the observed sliding windows and are stored in a distance matrix. These distances calibrate the function for identifying outlying shapes in forecast data. The algorithm finds the minimum distances for each windowed time series to use as a baseline for "observed distances" between chunks of the larger observed time series. The maximum of those minimum distances across the observed time series is set as the threshold. If the minimum of the forecast:observed distance matrix is greater than the threshold, then the forecast is inferred to be unfamiliar (i.e., a novel shape).
+</p>
+</li>
+<li>
+<p> Next, the algorithm calculates the shape-based DTW distances between the forecast signal (including the point estimate, lower, and upper bounds) and every observed sliding window. If the distance between the forecast and any observed sliding window is less than or equal to the threshold defined above, then this shape is not novel and no flag is raised (indicator is <code>FALSE</code>).
+</p>
+</li>
+</ol>
+<h3>Value</h3>
+
+<p>A <code>list</code> with the following values:
+</p>
+
+<ul><li> <p><strong>indicator</strong>: Logical as to whether or not the the shape of the evaluated signal is novel (<code>TRUE</code> if shape is novel, <code>FALSE</code> if a familiar shape exists in the seed)
+</p>
+</li></ul>
+<h3>References</h3>
+
+<p>Toni Giorgino. Computing and Visualizing Dynamic Time Warping Alignments in R: The dtw Package. Journal of Statistical Software, 31(7), 1-24. doi:10.18637/jss.v031.i07
+</p>
+<p>Tormene, P.; Giorgino, T.; Quaglini, S. &amp; Stefanelli, M. Matching incomplete time series with dynamic time warping: an algorithm and an application to post-stroke rehabilitation. Artif Intell Med, 2009, 45, 11-34. doi:10.1016/j.artmed.2008.11.007
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## read in example observed data and prep observed signal
+hosp &lt;- read.csv(system.file("extdata/observed/hdgov_hosp_weekly.csv", package = "rplanes"))
+
+tmp_hosp &lt;-
+ hosp %&gt;%
+ dplyr::select(date, location, flu.admits) %&gt;%
+ dplyr::mutate(date = as.Date(date))
+
+prepped_observed &lt;- to_signal(tmp_hosp,
+                               outcome = "flu.admits",
+                               type = "observed",
+                               resolution = "weeks")
+## read in example forecast and prep forecast signal
+prepped_forecast &lt;- read_forecast(system.file("extdata/forecast/2022-10-31-SigSci-TSENS.csv",
+                                                package = "rplanes")) %&gt;%
+   to_signal(., outcome = "flu.admits", type = "forecast", horizon = 4)
+
+## prepare seed with cut date
+prepped_seed &lt;- plane_seed(prepped_observed, cut_date = "2022-10-29")
+
+## run plane component
+plane_shape(location = "37", input = prepped_forecast, seed = prepped_seed)
+
+## run plane component with DTW method
+plane_shape(location = "37", input = prepped_forecast, seed = prepped_seed, method = "dtw")
+
+</code></pre>
+
+
+</div>

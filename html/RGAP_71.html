@@ -1,0 +1,372 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fit.TFPmodel</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimation of a <code>TFPmodel</code>
+</h2>
+
+<h3>Description</h3>
+
+<p>Estimates a two-dimensional state-space model and performs filtering and
+smoothing to obtain the TFP trend using either maximum likelihood estimation or
+bayesian methods.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'TFPmodel'
+fit(
+  model,
+  parRestr = initializeRestr(model = model),
+  signalToNoise = NULL,
+  method = "MLE",
+  control = NULL,
+  prior = initializePrior(model),
+  R = 10000,
+  burnin = ceiling(R/10),
+  thin = 1,
+  HPDIprob = 0.85,
+  pointEstimate = "mean",
+  MLEfit = NULL,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>An object of class TFPmodel.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parRestr</code></td>
+<td>
+<p>A list of matrices containing the parameter restrictions for the cycle,
+trend, and the CUBS equation. Each matrix contains the lower and upper bound of the
+involved parameters. <code>NA</code> implies that no restriction is present. Autoregressive
+parameters are automatically restricted to the stationary region unless box constraints
+are specified. By default, <code>parRestr</code> is initialized by the function
+<code>initializeRestr(model)</code>. Only used if <code>method = "MLE"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>signalToNoise</code></td>
+<td>
+<p>(Optional) signal to noise ratio. Only used if <code>method = "MLE"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>The estimation method. Options are maximum likelihood estimation <code>"MLE"</code>
+and bayesian estimation <code>"bayesian"</code>. The default is <code>method = "MLE"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>(Optional) A list of control arguments to be passed on to <code>optim</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior</code></td>
+<td>
+<p>A list of matrices with parameters for the prior distribution and box
+constraints. By default, <code>prior</code> is initialized by <code>initializePrior(model)</code>.
+See details. Only used if <code>method = "bayesian"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R</code></td>
+<td>
+<p>An integer specifying the number of MCMC draws. The default is <code>R = 10000</code>.
+Only used if <code>method = "bayesian"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>burnin</code></td>
+<td>
+<p>An integer specifying the burn-in phase of the MCMC chain. The default is
+<code>burnin = ceiling(R / 10)</code>. Only used if <code>method = "bayesian"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thin</code></td>
+<td>
+<p>An integer specifying the thinning interval between consecutive draws. The
+default is <code>thin = 1</code>, implying that no draws are dopped. For <code>thin = 2</code>,
+every second draw is dropped and so on. Only used if <code>method = "bayesian"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>HPDIprob</code></td>
+<td>
+<p>A numeric in the interval <code>(0,1)</code> specifying the target probability
+of the highest posterior density intervals. The default is <code>HPDIprob = 0.9</code>. Only
+used if <code>method = "bayesian"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pointEstimate</code></td>
+<td>
+<p>Posterior distribution's statistic of central tendency. Possible
+options are <code>"mean"</code> and <code>"median"</code>. The default is <code>pointEstimate = "mean"</code>.
+Only used if <code>method = "bayesian"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>MLEfit</code></td>
+<td>
+<p>(Optional) An object of class <code>TFPfit</code> which is used for
+initialization. Only used if <code>method = "bayesian"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments to be passed to the methods functions.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The list object <code>prior</code> contains three list elements <code>cycle</code>,
+<code>trend</code>, and <code>cubs</code>. Each list element is a <code>4 x n</code> matrix where <code>n</code>
+denotes the number of parameters involved in the respective equation. The upper two
+elements specify the distribution, the lower two parameters specify box constraints.
+<code>NA</code> denotes no constraints. Autoregressive parameters are automatically restricted
+to the stationary region unless box constraints are specified. For instance,
+<code>prior$cycle[, 1]</code> contains the mean, standard deviation, lower and upper bound for
+the first variable, in that respective order.
+</p>
+<p>The respective prior distributions are defined through their mean and standard
+deviation.
+</p>
+<p>The Gibbs sampling procedure is as follows. For each <code class="reqn">r = 1, ..., R</code>
+</p>
+<ul>
+<li>
+<p> The states are sampled by running the Kalman filter and smoother
+conditional on the parameters of the previous step, <code class="reqn">\theta_{r-1}</code>
+</p>
+</li>
+<li>
+<p> Trend equation parameters <code class="reqn">\theta_{trend}</code>: Conditional on the
+states <code class="reqn">\alpha_r</code>, a draw <code class="reqn">\theta_{trend,k}</code> is obtained either
+by a sequential Gibbs step, a Metropolis Hasting step, or by conjugacy,
+depending on the trend model specification.
+</p>
+</li>
+<li>
+<p> Cycle equation parameters <code class="reqn">\theta_{cycle}</code>: Conditional on the
+states <code class="reqn">\alpha_r</code>, a draw <code class="reqn">\theta_{cycle,k}</code> is obtained either
+by a sequential Gibbs step, a Metropolis Hasting step, or by conjugacy,
+depending on the cycle model specification.
+</p>
+</li>
+<li>
+<p> CUBS equation parameters <code class="reqn">\theta_{cubs}</code>: Conditional on the
+states <code class="reqn">\alpha_r</code>, a draw <code class="reqn">\theta_{cubs,k}</code> is obtained either
+by a sequential Gibbs step, a Metropolis Hasting step, a combination
+thereof, or by conjugacy, depending on the CUBS equation specification.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>For maximum likelihood estimation, an object of class <code>TFPit</code> containing
+the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>The input object of class <code>TFPmodel</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SSMfit</code></td>
+<td>
+<p>The estimation output from the funtcion <code>fitSSM</code> from <code>KFAS</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SSMout</code></td>
+<td>
+<p>The filtering and smoothing output from the funtcion <code>KFS</code> from
+<code>KFAS</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parameters</code></td>
+<td>
+<p>A data frame containing the estimated parameters, including standard
+errors, t-statistic, and p-values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parRestr</code></td>
+<td>
+<p>A list of matrices containing the enforced parameter constraints.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>A list of model fit criteria (see below).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>Original call to the function. </p>
+</td>
+</tr>
+</table>
+<p>The list component <code>fit</code> contains the following model fit criteria:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>loglik</code></td>
+<td>
+<p>Log-likelihood function values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>AIC</code></td>
+<td>
+<p>Akaike information criterion.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>BIC</code></td>
+<td>
+<p>Bayesian information criterion.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>AIC</code></td>
+<td>
+<p>Hannan-Quinn information criterion.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>RMSE</code></td>
+<td>
+<p>root mean squared error of the CUBS equation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R2</code></td>
+<td>
+<p>R squared of the CUBS equation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>LjungBox</code></td>
+<td>
+<p>Ljung-Box test output of the CUBS equation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>signal-to-noise</code></td>
+<td>
+<p>Signal-to-noise ratio.</p>
+</td>
+</tr>
+</table>
+<p>For bayesian estimation, an object of class <code>TFPfit</code> containing the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>The input object of class <code>TFPmodel</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tsl</code></td>
+<td>
+<p>A list of time series containing the estimated states.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parameters</code></td>
+<td>
+<p>A data frame containing the estimated parameters, including standard
+errors, highest posterior density credible sets.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior</code></td>
+<td>
+<p>A list of matrices containing the used prior distributions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>A list of model fit criteria (see below).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>Original call to the function. </p>
+</td>
+</tr>
+</table>
+<p>The list component <code>fit</code> contains the following model fit criteria:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>R2</code></td>
+<td>
+<p>R squared of the CUBS equation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>signal-to-noise</code></td>
+<td>
+<p>Signal-to-noise ratio.</p>
+</td>
+</tr>
+</table>
+<h3>See Also</h3>
+
+<p>Other fitting methods: 
+<code>fit.KuttnerModel()</code>,
+<code>fit.NAWRUmodel()</code>,
+<code>fit()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># load data for Italy
+data("gap")
+country &lt;- "Italy"
+tsList &lt;- amecoData2input(gap[[country]])
+# define tfp model
+model &lt;- TFPmodel(tsl = tsList, cycle = "RAR2")
+# initialize parameter restrictions and estimate model
+parRestr &lt;- initializeRestr(model = model, type = "hp")
+
+f &lt;- fit(model = model, parRestr = parRestr)
+
+# Bayesian estimation
+prior &lt;- initializePrior(model = model)
+
+f &lt;- fit(model = model, method = "bayesian", prior = prior, R = 5000, thin = 2)
+
+</code></pre>
+
+
+</div>

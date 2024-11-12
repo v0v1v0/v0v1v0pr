@@ -1,0 +1,299 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>SolrFrame-class</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>SolrFrame</h2>
+
+<h3>Description</h3>
+
+<p>The <code>SolrFrame</code> object makes Solr data accessible through a
+data.frame-like interface. This is the typical way an R user accesses
+data from a Solr core. Much of its methods are shared with
+<code>SolrList</code>, which has very similar behavior.
+</p>
+
+
+<h3>Details</h3>
+
+<p>A <code>SolrFrame</code> should more or less behave analogously to a data
+frame. It provides the same basic accessors (<code>nrow</code>,
+<code>ncol</code>, <code>length</code>, <code>rownames</code>,
+<code>colnames</code>, <code>[</code>, <code>[&lt;-</code>,
+<code>[[</code>, <code>[[&lt;-</code>, <code>$</code>,
+<code>$&lt;-</code>, <code>head</code>, <code>tail</code>, etc) and
+can be coerced to an actual data frame via
+<code>as.data.frame</code>. Supported types of data manipulations
+include <code>subset</code>, <code>transform</code>,
+<code>sort</code>, <code>xtabs</code>, <code>aggregate</code>,
+<code>unique</code>, <code>summary</code>, etc.
+</p>
+<p>Mapping a collection of documents to a tablular data structure is not
+quite natural, as the document collection is ragged: a given document
+can have any arbitrary set of fields, out of a set that is essentially
+infinite. Unlike some other document stores, however, Solr constrains
+the type of every field through a schema. The schema achieves
+flexibility through “dynamic” fields. The name of a dynamic
+field is a wildcard pattern, and any document field that matches the
+pattern is expected to obey the declared type and other
+constraints.
+</p>
+<p>When determining its set of columns, <code>SolrFrame</code> takes every
+actual field present in the collection, and (by default) adds all
+non-dynamic (static) fields, in the order specified by the
+schema. Note that is very likely that many columns will consist
+entirely or almost entirely of NAs.
+</p>
+<p>If a collection is extremly ragged, where few fields are shared
+between documents, it may make more sense to treat the data as a list,
+through <code>SolrList</code>, which shares almost all of the
+functionality of <code>SolrFrame</code> but in a different shape.
+</p>
+<p>The rownames are taken from the field declared in the schema to
+represent the unique document key. Schemas are not strictly required
+to declare such a field, so if there is no unique key, the rownames
+are <code>NULL</code>.
+</p>
+<p>Field restrictions passed to e.g. <code>[</code> or <code>subset(fields=)</code>
+may be specified by name, or wildcard pattern (glob). Similarly, a row
+index passed to <code>[</code> must be either a character vector of
+identifiers (of length &lt;= 1024, NAs are not supported, and this
+requires a unique key in the schema) or a
+<code>SolrPromise</code>/<code>SolrExpression</code>,
+but note that if it evaluates to NAs, the corresponding rows are
+excluded from the result, as with <code>subset</code>. Using a
+<code>SolrPromise</code> or <code>SolrExpression</code> is recommended, as
+filtering happens at the database.
+</p>
+<p>A special feature of <code>SolrFrame</code>, vs. an ordinary data frame, is
+that it can be <code>group</code>ed into a
+<code>GroupedSolrFrame</code>, where every column is modeled
+as a list, split by some combination of grouping factors. This is
+useful for aggregation and supports the implementation of the
+<code>aggregate</code> method, which is the recommended high-level
+interface.
+</p>
+<p>Another interesting feature is laziness. One can <code>defer</code> a
+<code>SolrFrame</code>, so that all column retrieval, e.g., via <code>$</code> or
+<code>eval</code>, returns a <code>SolrPromise</code> object. Many
+operations on promises are deferred, until they are finally
+<code>fulfill</code>ed by being shown or through explicit coercion to an R
+vector.
+</p>
+<p>A note for developers: <code>SolrList</code> and <code>SolrFrame</code> share
+common functionality through the base <code>Solr</code> class. Much of the
+functionality mentioned here is actually implemented as methods on the
+<code>Solr</code> class.
+</p>
+
+
+<h3>Accessors</h3>
+
+<p>These are some accessors that <code>SolrFrame</code> adds on top of the
+basic data frame accessors. Most of these are for advanced use only.
+</p>
+
+<ul>
+<li>
+<p><code>ndoc(x)</code>: Gets the number of documents (rows); serves as an
+abstraction over <code>SolrFrame</code> and <code>SolrList</code>
+
+</p>
+</li>
+<li>
+<p><code>nfield(x)</code>: Gets the number of fields (columns); serves as an
+abstraction over <code>SolrFrame</code> and <code>SolrList</code>
+
+</p>
+</li>
+<li>
+<p><code>ids(x)</code>: Gets the document unique identifiers (may
+be <code>NULL</code>, treated as rownames); serves as an abstraction
+over <code>SolrFrame</code> and <code>SolrList</code>
+
+</p>
+</li>
+<li>
+<p><code>fieldNames(x, includeStatic=TRUE, ...)</code>: Gets the name of
+each field represented by any document in the Solr core, with
+... being passed down to <code>fieldNames</code> on
+<code>SolrCore</code>. Fields must be indexed to be
+reported, with the exception that when <code>includeStatic</code> is
+<code>TRUE</code>, we ensure all static (non-dynamic) fields are present
+in the return value. Names are returned in an order consistent
+with the order in the schema. Note that two different
+“instances” of the same dynamic field do not have a
+specified order in the schema, so we use the index order
+(lexicographical) for those cases.
+
+</p>
+</li>
+<li>
+<p><code>core(x)</code>: Gets the <code>SolrCore</code> wrapped by <code>x</code>
+
+</p>
+</li>
+<li>
+<p><code>query(x)</code>: Gets the query that is being constructed by
+<code>x</code>
+
+</p>
+</li>
+</ul>
+<h3>Extended API</h3>
+
+<p>Most of the typical data frame accessors and data manipulation
+functions will work analogously on <code>SolrFrame</code> (see
+Details). Below, we list some of the non-standard methods that might
+be seen as an extension of the data frame API.
+</p>
+
+<ul>
+<li>
+<p><code>aggregate(x, data, FUN, ..., subset, na.action,
+        simplify = TRUE, count = FALSE)</code>: If <code>x</code> is a formula,
+aggregates <code>data</code>, grouping by <code>x</code>, by either applying
+<code>FUN</code>, or evaluating an aggregating expression in ..., on
+each group. If <code>count</code> is <code>TRUE</code>, a “count”
+column is added with the number of elements in each group. The
+rest of the arguments behave like those for the base
+<code>aggregate</code>.
+</p>
+<p>There are two main modes: aggregating with <code>FUN</code>, or, as an
+extension to the base <code>aggregate</code>, aggregating with
+expressions in <code>...</code>, similar to the interface for
+<code>transform</code>. If <code>FUN</code> is specified, then behavior is
+much like the original, except one can omit the LHS on the
+formula, in which case the entire frame is passed to
+<code>FUN</code>. In the second mode, there is a column in the result
+for each argument in ..., and there must not be an LHS on the
+formula.
+</p>
+<p>See the documentation for the underlying <code>facet</code>
+function for details on what is supported on the formula RHS.
+</p>
+<p>For global aggregation, simply pass the <code>SolrFrame</code> as
+<code>x</code>, in which case the <code>data</code> argument does not exist.
+</p>
+<p>Note that the function or expressions are only
+<em>conceptually</em> evaluated on each group. In reality, the
+computations occur on grouped columns/promises, which are
+modeled as lists. Thus, there is potential for conflict, in
+particular with <code>length</code>, which return the number of
+groups, instead of operating group-wise. One should use the
+abstraction <code>ndoc</code> instead of <code>length</code>, since
+<code>ndoc</code> always returns document counts, and thus will return
+the size of each group.
+
+</p>
+</li>
+<li>
+<p><code>rename(x, ...)</code>: Renames the columns of <code>x</code>,
+where the names and character values of ... indicates the
+mapping (<code>newname = oldname</code>). 
+
+</p>
+</li>
+<li>
+<p><code>group(x, by)</code>: Returns a
+<code>GroupedSolrFrame</code> that is grouped by the
+factors in <code>by</code>, typically a formula. To get back to
+<code>x</code>, call <code>ungroup(x)</code>.
+
+</p>
+</li>
+<li>
+<p><code>grouping(x)</code>: Just returns <code>NULL</code>, since a
+<code>SolrFrame</code> is not grouped (unless extended to be groupable).
+
+</p>
+</li>
+<li>
+<p><code>defer(x)</code>: Returns a <code>SolrFrame</code> that yields
+<code>SolrPromise</code> objects instead of vectors
+whenever a field is retrieved
+
+</p>
+</li>
+<li>
+<p><code>searchDocs(x, q)</code>: Performs a conventional document
+search using the query string <code>q</code>. The main difference to
+filtering is that (by default) Solr will order the result by
+score, i.e., how well each document matches the query.
+
+</p>
+</li>
+</ul>
+<h3>Constructor</h3>
+
+
+<ul><li>
+<p><code>SolrFrame(uri)</code>: Constructs a new <code>SolrFrame</code> instance,
+representing a Solr core located at <code>uri</code>, which should be a
+string or a <code>RestUri</code> object. The ... are
+passed to the <code>SolrQuery</code> constructor.
+
+</p>
+</li></ul>
+<h3>Evaluation</h3>
+
+
+<ul><li>
+<p><code>eval(expr, envir, enclos)</code>: Evaluates <code>expr</code> in the
+<code>SolrFrame</code> <code>envir</code>, using <code>enclos</code> as the
+enclosing environment. The <code>expr</code> can be an R language object
+or a <code>SolrExpression</code>, either of which are lazily evaluated
+if <code>defer</code> has been called on <code>envir</code>.
+
+</p>
+</li></ul>
+<h3>Coercion</h3>
+
+
+<ul>
+<li>
+<p><code>as.data.frame(x, row.names=NULL, optional=FALSE, fill=TRUE)</code>:
+Downloads the data into an actual data.frame, specifically an
+instance of <code>DocDataFrame</code>. If <code>fill</code> is
+FALSE, only the fields represented in at least one document are
+added as columns. 
+
+</p>
+</li>
+<li>
+<p><code>as.list(x)</code>: Essentially <code>as.list(as.data.frame(x))</code>,
+except returns a list of promises if <code>x</code> is deferred.
+
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p> Michael Lawrence </p>
+
+
+<h3>See Also</h3>
+
+<p><code>SolrList</code> for representing a Solr collection as a
+list instead of a table
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+     schema &lt;- deriveSolrSchema(mtcars)
+     solr &lt;- TestSolr(schema)
+     sr &lt;- SolrFrame(solr$uri)
+     sr[] &lt;- mtcars
+     dim(sr)
+     head(sr)
+     subset(sr, mpg &gt; 20 &amp; cyl == 4)
+     solr$kill()
+     ## see the vignette for more
+
+</code></pre>
+
+
+</div>

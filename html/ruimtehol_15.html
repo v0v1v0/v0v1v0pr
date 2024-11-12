@@ -1,0 +1,126 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>starspace_embedding</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Get the document or ngram embeddings</h2>
+
+<h3>Description</h3>
+
+<p>Get the document or ngram embeddings
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">starspace_embedding(object, x, type = c("document", "ngram"))
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>an object of class <code>textspace</code> as returned by <code>starspace</code> or <code>starspace_load_model</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>character vector with text to get the embeddings 
+</p>
+
+<ul>
+<li>
+<p> If <code>type</code> is set to 'document', will assume that a tab or a space is used as separator of each element of <code>x</code>.
+</p>
+</li>
+<li>
+<p> If <code>type</code> is set to 'ngram', will assume that a space is used as separator of each element of <code>x</code>.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>the type of embedding requested. Either one of 'document' or 'ngram'. In case of document, 
+the function returns the document embedding, in case of ngram the function returns the embedding of the 
+provided ngram term. See the details section</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+
+<ul>
+<li>
+<p>document embeddings look to the features (e.g. words) present in <code>x</code> and summate the embeddings of these to get a document embedding and 
+divide this embedding by size^p in case dot similarity is used and the euclidean norm in case cosine similarity is used. 
+Where size is the number of features (e.g. words) in <code>x</code>. 
+If p=1, it's equivalent to taking average of embeddings while when p=0, it's equivalent to taking sum of embeddings. You can set p and similarity in <code>starspace</code> when you train the model.
+</p>
+</li>
+<li>
+<p>for ngram embeddings, starspace is using a hashing trick to find out in which bucket the ngram lies and then retrieves the embedding of that. Note that if you specify ngram, 
+you need to make sure <code>x</code> contains less features (e.g. words) then you've set <code>ngram</code> when you trained your model with <code>starspace</code>.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>a matrix of embeddings
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(dekamer, package = "ruimtehol")
+dekamer$text &lt;- strsplit(dekamer$question, "\\W")
+dekamer$text &lt;- lapply(dekamer$text, FUN = function(x) x[x != ""])
+dekamer$text &lt;- sapply(dekamer$text, 
+                       FUN = function(x) paste(x, collapse = " "))
+
+set.seed(123456789)
+model &lt;- embed_tagspace(x = tolower(dekamer$text), 
+                        y = dekamer$question_theme_main, 
+                        similarity = "dot",
+                        early_stopping = 0.8, ngram = 1, p = 0.5,
+                        dim = 10, minCount = 5)
+embedding &lt;- starspace_embedding(model, "federale politie", type = "document")
+embedding_dictionary &lt;- as.matrix(model)
+embedding
+colSums(embedding_dictionary[c("federale", "politie"), ]) / 2^0.5
+
+## Not run: 
+set.seed(123456789)
+model &lt;- embed_tagspace(x = tolower(dekamer$text), 
+                        y = dekamer$question_theme_main, 
+                        similarity = "cosine",
+                        early_stopping = 0.8, ngram = 1, 
+                        dim = 10, minCount = 5)
+embedding &lt;- starspace_embedding(model, "federale politie", type = "document")
+embedding_dictionary &lt;- as.matrix(model)
+euclidean_norm &lt;- function(x) sqrt(sum(x^2))
+manual &lt;- colSums(embedding_dictionary[c("federale", "politie"), ])
+manual / euclidean_norm(manual)
+embedding
+
+set.seed(123456789)
+model &lt;- embed_tagspace(x = tolower(dekamer$text), 
+                        y = dekamer$question_theme_main, 
+                        similarity = "dot",
+                        early_stopping = 0.8, ngram = 3, p = 0,
+                        dim = 10, minCount = 5, bucket = 1)
+starspace_embedding(model, "federale politie", type = "document")
+starspace_embedding(model, "federale politie", type = "ngram")
+
+## End(Not run)
+</code></pre>
+
+
+</div>

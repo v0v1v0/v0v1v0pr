@@ -1,0 +1,206 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>design_filter_fir</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Design <code>'FIR'</code> filter using <code>firls</code>
+</h2>
+
+<h3>Description</h3>
+
+<p>Design <code>'FIR'</code> filter using <code>firls</code>
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">design_filter_fir(
+  sample_rate,
+  filter_order = NA,
+  data_size = NA,
+  high_pass_freq = NA,
+  high_pass_trans_freq = NA,
+  low_pass_freq = NA,
+  low_pass_trans_freq = NA,
+  stopband_attenuation = 40,
+  scale = TRUE,
+  method = c("kaiser", "firls", "remez")
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>sample_rate</code></td>
+<td>
+<p>sampling frequency</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>filter_order</code></td>
+<td>
+<p>filter order, leave <code>NA</code> (default) if undecided</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data_size</code></td>
+<td>
+<p>minimum length of data to apply the filter, used to
+decide the maximum filter order. For 'FIR' filter, data length must be
+greater than <code>3xfilter_order</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>high_pass_freq</code></td>
+<td>
+<p>high-pass frequency; default is <code>NA</code> (no
+high-pass filter will be applied)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>high_pass_trans_freq</code></td>
+<td>
+<p>high-pass frequency band-width; default
+is automatically inferred from data size.
+Frequency <code>high_pass_freq - high_pass_trans_freq</code> is the corner
+of the stop-band</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>low_pass_freq</code></td>
+<td>
+<p>low-pass frequency; default is <code>NA</code> (no
+low-pass filter will be applied)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>low_pass_trans_freq</code></td>
+<td>
+<p>low-pass frequency band-width; default
+is automatically inferred from data size.
+Frequency <code>low_pass_freq + low_pass_trans_freq</code> is the corner
+of the stop-band</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stopband_attenuation</code></td>
+<td>
+<p>allowable power attenuation (in decibel) at
+transition frequency; default is <code>40</code> dB.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>whether to scale the filter for unity gain</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>method to generate 'FIR' filter, default is using
+<code>kaiser</code> estimate, other choices are
+<code>firls</code> (with <code>hamming</code> window) and
+<code>remez</code> design.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Filter type is determined from <code>high_pass_freq</code> and
+<code>low_pass_freq</code>. High-pass frequency is ignored if <code>high_pass_freq</code>
+is <code>NA</code>, hence the filter is low-pass filter. When
+<code>low_pass_freq</code> is <code>NA</code>, then
+the filter is high-pass filter. When both <code>high_pass_freq</code> and
+<code>low_pass_freq</code> are valid (positive, less than 'Nyquist'), then
+the filter is a band-pass filter if band-pass is less than low-pass
+frequency, otherwise the filter is band-stop.
+</p>
+<p>Although the peak amplitudes are set at 1 by <code>low_pass_freq</code> and
+<code>high_pass_freq</code>, the transition from peak amplitude to zero require
+a transition, which is tricky but also important to set.
+When 'FIR' filters have too steep transition boundaries, the filter tends to
+have ripples in peak amplitude, introducing artifacts to the final signals.
+When the filter is too flat, components from unwanted frequencies may also
+get aliased into the filtered signals. Ideally, the transition bandwidth
+cannot be too steep nor too flat. In this function, users may control
+the transition frequency bandwidths via <code>low_pass_trans_freq</code> and
+<code>high_pass_trans_freq</code>. The power at the end of transition is defined
+by <code>stopband_attenuation</code>, with default value of <code>40</code> (i.e.
+-40 dB, this number is automatically negated during the calculation).
+By design, a low-pass 5 Hz filter with 1 Hz transition bandwidth results in
+around -40 dB power at 6 Hz.
+</p>
+
+
+<h3>Value</h3>
+
+<p>'FIR' filter in 'Arma' form.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# ---- Basic -----------------------------
+
+sample_rate &lt;- 500
+data_size &lt;- 1000
+
+# low-pass at 5 Hz, with auto transition bandwidth
+# from kaiser's method, with default stopband attenuation = 40 dB
+filter &lt;- design_filter_fir(
+  low_pass_freq = 5,
+  sample_rate = sample_rate,
+  data_size = data_size
+)
+
+# Passband ripple is around 0.08 dB
+# stopband attenuation is around 40 dB
+print(filter)
+
+diagnose_filter(
+  filter$b, filter$a,
+  fs = sample_rate,
+  n = data_size,
+  cutoffs = c(-3, -6, -40),
+  vlines = 5
+)
+
+# ---- Advanced ---------------------------------------------
+
+sample_rate &lt;- 500
+data_size &lt;- 1000
+
+# Rejecting 3-8 Hz, with transition bandwidth 0.5 Hz at both ends
+# Using least-square (firls) to generate FIR filter
+# Suggesting the filter order n=160
+filter &lt;- design_filter_fir(
+  low_pass_freq = 3, low_pass_trans_freq = 0.5,
+  high_pass_freq = 8, high_pass_trans_freq = 0.5,
+  filter_order = 160,
+  sample_rate = sample_rate,
+  data_size = data_size,
+  method = "firls"
+)
+
+#
+print(filter)
+
+diagnose_filter(
+  filter$b, filter$a,
+  fs = sample_rate,
+  n = data_size,
+  cutoffs = c(-1, -40),
+  vlines = c(3, 8)
+)
+
+
+
+</code></pre>
+
+
+</div>

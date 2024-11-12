@@ -1,0 +1,137 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>beta_2012</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Beta model for fitting thermal performance curves</h2>
+
+<h3>Description</h3>
+
+<p>Beta model for fitting thermal performance curves
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">beta_2012(temp, a, b, c, d, e)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>temp</code></td>
+<td>
+<p>temperature in degrees centigrade</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>a</code></td>
+<td>
+<p>dimensionless parameter</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>b</code></td>
+<td>
+<p>dimensionless parameter</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>c</code></td>
+<td>
+<p>dimensionless parameter</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d</code></td>
+<td>
+<p>dimensionless parameter</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>e</code></td>
+<td>
+<p>dimensionless parameter</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Equation:
+</p>
+<p style="text-align: center;"><code class="reqn">rate=\frac{a\left(\frac{temp-b+\frac{c(d-1)}{d+e-2}}{c}\right)^{d-1}  \cdot \left(1-\frac{temp-b+\frac{c(d-1)}{d+e-2}}{c}\right)^{e-1}}{{\left(\frac{d-1}{d+e-2}\right)}^{d-1}\cdot \left(\frac{e-1}{d+e-2}\right)^{e-1}}</code>
+</p>
+
+<p>Start values in <code>get_start_vals</code> are derived from the data or sensible values from the literature.
+</p>
+<p>Limits in <code>get_lower_lims</code> and <code>get_upper_lims</code> are derived from the data or based extreme values that are unlikely to occur in ecological settings.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a numeric vector of rate values based on the temperatures and parameter values provided to the function
+</p>
+
+
+<h3>Note</h3>
+
+<p>Generally we found this model difficult to fit.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Daniel Padfield
+</p>
+
+
+<h3>References</h3>
+
+<p>Niehaus, Amanda C., et al. Predicting the physiological performance of ectotherms in fluctuating thermal environments. Journal of Experimental Biology 215.4: 694-701 (2012)
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# load in ggplot
+library(ggplot2)
+
+# subset for the first TPC curve
+data('chlorella_tpc')
+d &lt;- subset(chlorella_tpc, curve_id == 1)
+
+# get start values and fit model
+start_vals &lt;- get_start_vals(d$temp, d$rate, model_name = 'beta_2012')
+# fit model
+mod &lt;- nls.multstart::nls_multstart(rate~beta_2012(temp = temp, a, b, c, d, e),
+data = d,
+iter = c(7,7,7,7,7),
+start_lower = start_vals - 10,
+start_upper = start_vals + 10,
+lower = get_lower_lims(d$temp, d$rate, model_name = 'beta_2012'),
+upper = get_upper_lims(d$temp, d$rate, model_name = 'beta_2012'),
+supp_errors = 'Y',
+convergence_count = FALSE)
+
+# look at model fit
+summary(mod)
+
+# get predictions
+preds &lt;- data.frame(temp = seq(min(d$temp), max(d$temp), length.out = 100))
+preds &lt;- broom::augment(mod, newdata = preds)
+
+# plot
+ggplot(preds) +
+geom_point(aes(temp, rate), d) +
+geom_line(aes(temp, .fitted), col = 'blue') +
+theme_bw()
+
+</code></pre>
+
+
+</div>

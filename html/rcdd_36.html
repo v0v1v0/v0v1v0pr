@@ -1,0 +1,245 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>scdd</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Go between H-representation and V-representation of convex polyhedron</h2>
+
+<h3>Description</h3>
+
+<p>Calculate V-representation (convex hull of points and directions)
+of convex polytope given H-representation (intersection of half spaces)
+or vice versa.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">scdd(input, adjacency = FALSE, inputadjacency = FALSE,
+    incidence = FALSE, inputincidence = FALSE, roworder = c("lexmin",
+    "maxindex", "minindex", "mincutoff", "maxcutoff", "mixcutoff", "lexmax",
+    "randomrow"), keepinput = c("maybe", "TRUE", "FALSE"),
+    representation = c("H", "V"))
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>input</code></td>
+<td>
+<p>either H-representation or V-representation of
+convex polyhedron (see details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adjacency</code></td>
+<td>
+<p>if <code>TRUE</code> produce adjacency list of output
+generators.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inputadjacency</code></td>
+<td>
+<p>if <code>TRUE</code> produce adjacency list of input
+generators.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>incidence</code></td>
+<td>
+<p>if <code>TRUE</code> produce incidence list of output
+generators with respect to input generators.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inputincidence</code></td>
+<td>
+<p>if <code>TRUE</code> produce incidence list of input
+generators with respect to output generators.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>roworder</code></td>
+<td>
+<p>during the computation, take input rows in the specified
+order.  The default <code>"lexmin"</code> is usually o. k.  The option
+<code>"maxcutoff"</code> might be efficient if the input contains many
+redundant inequalities or generators.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keepinput</code></td>
+<td>
+<p>if <code>"TRUE"</code> or <code>"maybe"</code> and an adjacency
+or incidence list involving the input is requested, save the input.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>representation</code></td>
+<td>
+<p>if <code>"H"</code>, then <code>input</code> is
+an H-representation, otherwise a V-representation.  May also be
+obtained from a <code>"representation"</code> attribute of <code>input</code>,
+if present.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>See <code>cddlibman.pdf</code> in the <code>doc</code> directory of this package,
+especially Sections 1 and 2.
+</p>
+<p>Both representations are (in R) matrices, the first two columns are
+special.  Let <code>foo</code> be either an H-representation or
+a V-representation and
+</p>
+<pre>
+      l &lt;- foo[ , 1]
+      b &lt;- foo[ , 2]
+      v &lt;- foo[ , - c(1, 2)]
+      a &lt;- (- v)
+  </pre>
+<p>In the H-representation the convex polyhedron in question is the set of
+points <code>x</code> satisfying
+</p>
+<pre>
+      axb &lt;- a %*% x - b
+      all(axb &lt;= 0)
+      all(l * axb == 0)
+  </pre>
+<p>In the V-representation the convex polyhedron in question is the set of
+points <code>x</code> for which there exists a <code>lambda</code> such that
+</p>
+<pre>
+      x &lt;- t(lambda) %*% v
+  </pre>
+<p>where <code>lambda</code> satisfies the constraints
+</p>
+<pre>
+      all(lambda * (1 - l) &gt;= 0)
+      sum(b * lambda) == max(b)
+  </pre>
+<p>An H-representation or V-representation object can be checked for validity
+using the function <code>validcdd</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a list containing some of the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>output</code></td>
+<td>
+<p>An H-representation if input was V-representation
+and vice versa.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>input</code></td>
+<td>
+<p>The argument <code>input</code>, if requested.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adjacency</code></td>
+<td>
+<p>The adjacency list, if requested.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inputadjacency</code></td>
+<td>
+<p>The input adjacency list, if requested.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>incidence</code></td>
+<td>
+<p>The incidence list, if requested.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inputincidence</code></td>
+<td>
+<p>The input incidence list, if requested.</p>
+</td>
+</tr>
+</table>
+<h3>Rational Arithmetic</h3>
+
+<p>The input representation may
+have type <code>"character"</code> in which case its elements are interpreted
+as unlimited precision rational numbers.  They consist of an optional
+minus sign, a string of digits of any length (the numerator),
+a slash, and another string of digits of any length (the denominator).
+The denominator must be positive.  If the denominator is one, the
+slash and the denominator may be omitted.  This package
+provides several functions (see ConvertGMP and ArithmeticGMP)
+for conversion back and forth between R floating point numbers and rationals
+and for arithmetic on GMP rationals.
+</p>
+
+
+<h3>Warning</h3>
+
+<p>If you want correct answers, use rational arithmetic.  If you do not,
+this function may (1) produce approximately correct answers, (2) fail with
+an error, (3) give answers that are nowhere near correct with no error or
+warning, or (4) crash R losing all work done to that point.  In large
+simulations (1) is most frequent, (2) occurs roughly one time in a thousand,
+(3) occurs roughly one time in ten thousand, and (4) has only occurred once
+and only with the <code>redundant</code> function.  So the R floating point
+arithmetic version does mostly work, but you cannot trust its results unless
+you can check them independently.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>ArithmeticGMP</code>, <code>ConvertGMP</code>,
+<code>validcdd</code>, <code>makeH</code></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">d &lt;- 4
+# unit simplex in H-representation
+qux &lt;- makeH(- diag(d), rep(0, d), rep(1, d), 1)
+print(qux)
+# unit simplex in V-representation
+out &lt;- scdd(qux)
+print(out)
+# unit simplex in H-representation
+# note: different from original, but equivalent
+out &lt;- scdd(out$output)
+print(out)
+
+# add equality constraint
+quux &lt;- addHeq(1:d, (d + 1) / 2, qux)
+print(quux)
+out &lt;- scdd(quux)
+print(out)
+
+# use some options
+out &lt;- scdd(quux, roworder = "maxcutoff", adjacency = TRUE)
+print(out)
+
+# convex hull
+# not the efficient way to do convex hull
+# see ?redundant and sections 5.4 and 6.2 of the package vignette
+np &lt;- 50
+x &lt;- matrix(rnorm(d * np), ncol = d)
+foo &lt;- cbind(0, cbind(1, x))
+out &lt;- scdd(d2q(foo), inputincidence = TRUE, representation = "V")
+boundies &lt;- sapply(out$inputincidence, length) &gt; 0
+sum(boundies) ## number of points on boundary of convex hull
+</code></pre>
+
+
+</div>

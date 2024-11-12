@@ -1,0 +1,252 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ci.curve</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Confidence bands</h2>
+
+<h3>Description</h3>
+
+<p>Computes the pointwise confidence interval of the epidemic curve.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ci.curve(
+  fit = NULL,
+  H.E = NULL,
+  H.W = NULL,
+  scenario = NULL,
+  cases = NULL,
+  cfg = NULL,
+  restrictions = NULL,
+  restriction.starts = NULL,
+  ranges = NULL,
+  rt_func = 1,
+  fit.t.pred = NULL,
+  predict.beyond = 0,
+  lt = NULL,
+  adj.period = NULL,
+  population = NULL,
+  rho = NULL,
+  serial_mean = NULL,
+  serial_var = NULL,
+  window_size = NULL,
+  eps = .Machine$double.eps^(1/2)
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>Output from function estimate.mle.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>H.E</code></td>
+<td>
+<p>Mobility metrics for category Retail &amp; Entertainment. Currently unsupported.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>H.W</code></td>
+<td>
+<p>Mobility metrics for category Workplaces. Currently unsupported.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scenario</code></td>
+<td>
+<p>A character string describing options to deal with restrictions. Currently unsupported.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cases</code></td>
+<td>
+<p>vector of case counts.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cfg</code></td>
+<td>
+<p>The object that contains all variables from the configuration file.
+<code>fit</code>, <code>H.E</code>, <code>H.W</code>, <code>scenario</code>, and <code>cases</code> are also required
+for the method to execute. All other parameters will not be used if <code>cfg</code> is passed to the method.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>restrictions</code></td>
+<td>
+<p>A numeric integer vector giving the severity of restrictions.
+Zero means no restriction, and higher numbers means greater severity/disruption.
+The ordered unique values should be consecutive integers starting from zero.
+Each number (other than 0) adds a new parameter to the fit.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>restriction.starts</code></td>
+<td>
+<p>A vector of same length as restrictions, of times when restrictions
+came into effect. Note: the first index time should be 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ranges</code></td>
+<td>
+<p>A vector of time ranges for the different waves.
+The wave ranges should be contiguous, with at least one unit of time
+between consecutive waves.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rt_func</code></td>
+<td>
+<p>The parametric form of function c(). Options are listed under function c_helper.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit.t.pred</code></td>
+<td>
+<p>Time from which prediction is done. If use.actual.not.predicted is TRUE, values of <code class="reqn">S_t</code> before this time will be computed using actual counts.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predict.beyond</code></td>
+<td>
+<p>Number of days to predict beyond the end of <code>cases</code>. See Details for usage notes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lt</code></td>
+<td>
+<p>The length of cases.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adj.period</code></td>
+<td>
+<p>Adjustment period following a change in severity level. Restriction level (psi) is linearly interpolated from the old to the new value over this period.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>population</code></td>
+<td>
+<p>Total population size.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rho</code></td>
+<td>
+<p>A vector of under-reporting rates of the same length as cases. If a scalar is supplied, the vector will be constant with this value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>serial_mean</code></td>
+<td>
+<p>Mean of the serial interval on the log scale.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>serial_var</code></td>
+<td>
+<p>Variance of the serial interval on the log scale.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>window_size</code></td>
+<td>
+<p>The maximum value for the serial interval.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eps</code></td>
+<td>
+<p>The epsilon value for computing finite differences.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Returns a matrix with two rows containing Wald-style confidence bounds:
+</p>
+
+<ul>
+<li>
+<p> ci_lower - lower bound of a 95% pointwise CI of the best fit curve.
+</p>
+</li>
+<li>
+<p> ci_upper - upper bound of a 95% pointwise CI of the best fit curve.
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(REffectivePred)
+## Read in the data
+path_to_data &lt;- system.file("extdata/NY_OCT_4_2022.csv", package = "REffectivePred")
+data &lt;- read.csv(path_to_data)
+head(data)
+cases &lt;- diff(c(0, data$cases)) # Convert cumulative cases into daily cases
+lt &lt;- length(cases)             # Length of cases
+Time &lt;- as.Date(data$date, tryFormats = c("%d-%m-%Y", "%d/%m/%Y"))
+
+navigate_to_config() # Open the config file, make any necessary changes here.
+path_to_config &lt;- system.file("config.yml", package = "REffectivePred")  # Read config file
+cfg &lt;- load_config()    # Build the cfg object
+
+# Estimate parameters
+est &lt;- estimate.mle(
+    cases = cases,
+    cfg = cfg,
+    hessian = TRUE
+    )
+a1 &lt;- est$a1
+a2 &lt;- est$a2
+a3 &lt;- est$a3
+a4 &lt;- est$a4
+nu &lt;- est$nu
+vt &lt;- c(1, est$vt_params_est)
+psi &lt;- est$Psi
+betas &lt;- est$betas
+
+# Predict curve
+r1 &lt;- pred.curve(
+a1 = a1,
+a2 = a2,
+a3 = a3,
+a4 = a4,
+nu = nu,
+variant.transm = vt,
+Psi = psi,
+betas = betas,
+cases = cases,
+cfg = cfg
+)
+
+plot_outputs(Time = Time,
+cases = cases,
+cfg = cfg,
+curve = r1,
+option = 2
+)
+
+bounds &lt;- ci.curve(fit = est,
+                   cases = cases,
+                   cfg = cfg)
+
+# Adding CI bands
+# lines(c(Time, Time[length(Time)]+(1:predict.beyond)), bounds[2,], lty = 2)
+# lines(c(Time, Time[length(Time)]+(1:predict.beyond)), bounds[1,], lty = 2)
+
+
+</code></pre>
+
+
+</div>

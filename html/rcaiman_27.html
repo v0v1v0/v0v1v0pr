@@ -1,0 +1,148 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fisheye_to_equidistant</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fisheye to equidistant</h2>
+
+<h3>Description</h3>
+
+<p>Fisheye to equidistant projection (also known as polar projection).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fisheye_to_equidistant(
+  r,
+  z,
+  a,
+  m = NULL,
+  radius = NULL,
+  k = NULL,
+  p = NULL,
+  rmax = 100
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>r</code></td>
+<td>
+<p>SpatRaster. A fish-eye image.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>z</code></td>
+<td>
+<p>SpatRaster built with <code>zenith_image()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>a</code></td>
+<td>
+<p>SpatRaster built with <code>azimuth_image()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m</code></td>
+<td>
+<p>SpatRaster. A mask. For hemispherical photographs,
+check <code>mask_hs()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>radius</code></td>
+<td>
+<p>Numeric integer of length one. Radius of the reprojected
+hemispherical image (i.e., the output).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>Numeric vector of length one. Number of k-nearest neighbors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>Numeric vector of length one. Power for inverse-distance weighting.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rmax</code></td>
+<td>
+<p>Numeric vector of length one. Maximum radius where to search for
+<em>knn</em>. Increase this value if pixels with value <code>0</code> or
+<code>FALSE</code> appears where other values are expected.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The pixel values and their image coordinates are treated as points to be
+reprojected and interpolated. To that end, this function use <code>lidR::knnidw()</code>
+as workhorse function, so arguments <code>k</code>, <code>p</code>, and <code>rmax</code> are passed to it. If
+the user does not input values to these arguments, both <code>k</code> and <code>p</code> are
+automatically defined by default as follow: when a binarized image is
+provided as argument <code>r</code>, both parameters are set to <code>1</code>; otherwise, they are
+set to <code>9</code> and <code>2</code>, respectively.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Default value for the <code>radius</code> argument is equivalent to input the
+radius of the <code>r</code> argument.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Lens Functions: 
+<code>azimuth_image()</code>,
+<code>calc_diameter()</code>,
+<code>calc_relative_radius()</code>,
+<code>calc_zenith_colrow()</code>,
+<code>calibrate_lens()</code>,
+<code>crosscalibrate_lens()</code>,
+<code>expand_noncircular()</code>,
+<code>extract_radiometry()</code>,
+<code>fisheye_to_pano()</code>,
+<code>lens()</code>,
+<code>test_lens_coef()</code>,
+<code>zenith_image()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+path &lt;- system.file("external/DSCN4500.JPG", package = "rcaiman")
+caim &lt;- read_caim(path, c(1250, 1020) - 745, 745 * 2, 745 * 2)
+z &lt;- zenith_image(ncol(caim), lens("Nikon_FCE9"))
+a &lt;- azimuth_image(z)
+r &lt;- gbc(caim$Blue)
+r &lt;- correct_vignetting(r, z, c(0.0638, -0.101)) %&gt;% normalize()
+bin &lt;- ootb_mblt(r, z, a)$bin
+bin_equi &lt;- fisheye_to_equidistant(bin, z, a)
+plot(bin)
+plot(bin_equi)
+# Use write_bin(bin, "path/file_name") to have a file ready
+# to calcute LAI with CIMES, GLA, CAN-EYE, etc.
+
+# It can be used to reproject RGB photographs
+plotRGB(caim)
+caim &lt;- fisheye_to_equidistant(caim, z, a)
+plotRGB(caim)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

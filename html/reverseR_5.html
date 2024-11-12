@@ -1,0 +1,229 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>lmInfl</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Checks and analyzes leave-one-out (LOO) p-values and a variety of influence measures in linear regression</h2>
+
+<h3>Description</h3>
+
+<p>This function calculates leave-one-out (LOO) <em>p</em>-values for all data points and identifies those resulting in "significance reversal", i.e. in the <em>p</em>-value of the model's slope traversing the user-defined <code class="reqn">\alpha</code>-level. It also extends the classical influence measures from <code>influence.measures</code> with a few newer ones (<em>e.g</em>, 'Hadi's measure', 'Coefficient of determination ratio' and 'Pena's Si') within an output format where each outlier is marked when exceeding the measure's specific threshold, as defined in the literature. Belsley, Kuh &amp; Welsch's <em>dfstat</em> criterion is also included. 
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">lmInfl(model, alpha = 0.05, cutoff = c("BKW", "R"), verbose = TRUE, ...) 
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>the linear model of class <code>lm</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>the <code class="reqn">\alpha</code>-level to use as the threshold border.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cutoff</code></td>
+<td>
+<p>use the cutoff-values from <code>B</code>elsley, <code>K</code>uh &amp; <code>W</code>elsch or the <code>R</code>-internal ones. See 'Details'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical. If <code>TRUE</code>, results are displayed on the console.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>other arguments to <code>lm</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The algorithm<br>
+1) calculates the <em>p</em>-value of the full model (all points),<br>
+2) calculates a LOO-<em>p</em>-value for each point removed,<br>
+3) checks for significance reversal in all data points and<br>
+4) returns all models as well as classical <code>influence.measures</code> with LOO-<em>p</em>-values, <code class="reqn">\Delta</code><em>p</em>-values, slopes and standard errors attached.<br></p>
+<p>The idea of <em>p</em>-value influencers was first introduced by Belsley, Kuh &amp; Welsch, and described as an influence measure pertaining directly to the change in <em>t</em>-statistics, that will "show whether the conclusions of hypothesis testing would be affected", termed <b>dfstat</b> in [1, 2, 3] or <b>dfstud</b> in [4]:
+</p>
+<p style="text-align: center;"><code class="reqn">\rm{dfstat}_{ij} \equiv \frac{\hat{\beta}_j}{s\sqrt{(X'X)^{-1}_{jj}}}-\frac{\hat{\beta}_{j(i)}}{s_{(i)}\sqrt{(X'_{(i)}X_{(i)})^{-1}_{jj}}}</code>
+</p>
+
+<p>where <code class="reqn">\hat{\beta}_j</code> is the <em>j</em>-th estimate, <em>s</em> is the residual standard error, <em>X</em> is the design matrix and (<em>i</em>) denotes the <em>i</em>-th observation deleted.<br><b>dfstat</b>, which for the regression's slope <code class="reqn">\beta_1</code> is the difference of <em>t</em>-statistics 
+</p>
+<p style="text-align: center;"><code class="reqn">\Delta t = t_{\beta1} - t_{\beta1(i)} = \frac{\beta_1}{\rm{s.e.(\beta_1)}} - \frac{\beta_1(i)}{\rm{s.e.(\beta_1(i)})}</code>
+</p>
+
+<p>is inextricably linked to the changes in <em>p</em>-value <code class="reqn">\Delta p</code>, calculated from
+</p>
+<p style="text-align: center;"><code class="reqn">\Delta p = p_{\beta1} - p_{\beta1(i)} = 2\left(1-P_t(t_{\beta1}, \nu)\right) - 2\left(1-P_t(t_{\beta1(i)} , \nu-1)\right)</code>
+</p>
+
+<p>where <code class="reqn">P_t</code> is the Student's <em>t</em> cumulative distribution function with <code class="reqn">\nu</code> degrees of freedom, and where significance reversal is attained when <code class="reqn">\alpha \in [p_{\beta1}, p_{\beta1(i)}]</code>.
+Interestingly, the seemingly mandatory check of the influence of single data points on statistical inference is living in oblivion: apart from [1-4], there is, to the best of our knowledge, no reference to <b>dfstat</b> or <code class="reqn">\Delta p</code> in current literature on influence measures.
+</p>
+<p>Cut-off values for the different influence measures are per default (<code>cutoff = "BKW"</code>) those defined in Belsley, Kuh &amp; Welsch (1980) and additional literature.<br><br><b>dfbeta slope</b>: <code class="reqn">| \Delta\beta1_i | &gt; 2/\sqrt{n}</code> (page 28)<br><b>dffits</b>: <code class="reqn">| \mathrm{dffits}_i | &gt; 2\sqrt{2/n}</code> (page 28)<br><b>covratio</b>: <code class="reqn">|\mathrm{covr}_i - 1| &gt; 3k/n</code> (page 23)<br><b>Cook's D</b>: <code class="reqn">D_i &gt; Q_F(0.5, k, n - k)</code> (Cook &amp; Weisberg, 1982)<br><b>leverage</b>: <code class="reqn">h_{ii} &gt; 2k/n</code> (page 17)<br><b>studentized residual</b>: <code class="reqn">t_i &gt; Q_t(0.975, n - k - 1)</code> (page 20)<br></p>
+<p>If (<code>cutoff = "R"</code>), the criteria from <code>influence.measures</code> are employed:<br><br><b>dfbeta slope</b>: <code class="reqn">| \Delta\beta1_i | &gt; 1</code><br><b>dffits</b>: <code class="reqn">| \mathrm{dffits}_i | &gt; 3\sqrt{(k/(n - k))}</code><br><b>covratio</b>: <code class="reqn">|1 - \mathrm{covr}_i| &gt; 3k/(n - k)</code><br><b>Cook's D</b>: <code class="reqn">D_i &gt; Q_F(0.5, k, n - k)</code><br><b>leverage</b>: <code class="reqn">h_{ii} &gt; 3k/n</code><br></p>
+<p>The influence output also includes the following more "recent" measures:<br><b>Hadi's measure</b> (column "hadi"):
+</p>
+<p style="text-align: center;"><code class="reqn">H_i^2 = \frac{h_{ii}}{1 - h_{ii}} + \frac{p}{1 - h_{ii}}\frac{d_i^2}{(1-d_i^2)}</code>
+</p>
+
+<p>where <code class="reqn">h_{ii}</code> are the diagonals of the hat matrix (leverages), <code class="reqn">p = 2</code> in univariate linear regression and <code class="reqn">d_i = e_i/\sqrt{\rm{SSE}}</code>, and threshold value <code class="reqn">\mathrm{Med}(H_i^2) + 2 \cdot \mathrm{MAD}(H_i^2)</code>.
+</p>
+<p><b>Coefficient of Determination Ratio</b> (column "cdr"):
+</p>
+<p style="text-align: center;"><code class="reqn">\mathrm{CDR}_i = \frac{R_{(i)}^2}{R^2}</code>
+</p>
+
+<p>with <code class="reqn">R_{(i)}^2</code> being the coefficient of determination without value <em>i</em>, and threshold 
+</p>
+<p style="text-align: center;"><code class="reqn">\frac{B_{\alpha,p/2,(n-p-2)/2}}{B_{\alpha,p/2,(n-p-1)/2}}</code>
+</p>
+
+<p><b>Pena's Si</b> (column "Si"):
+</p>
+<p style="text-align: center;"><code class="reqn">S_i = \frac{\mathbf{s}'_i\mathbf{s}_i}{p\widehat{\mathrm{var}}(\hat{y}_i)}</code>
+</p>
+
+<p>where <code class="reqn">\mathbf{s_i}</code> is the vector of each fitted value from the original model, <code class="reqn">\hat{y}_i</code>, subtracted with all fitted values after 1-deletion, <code class="reqn">\hat{y}_i - \hat{y}_{i(-1)}, \cdots, \hat{y}_i - \hat{y}_{i(-n)}</code>, <code class="reqn">p</code> = number of parameters, and <code class="reqn">\widehat{\mathrm{var}}(\hat{y}_i) = s^2h_{ii}</code>, <code class="reqn">s^2 = (\mathbf{e}'\mathbf{e})/(n - p)</code>, <code class="reqn">\mathbf{e}</code> being the residuals. In this package, a cutoff value of 0.9 is used, as the published criterion of <code class="reqn">|\mathbf{S_i} - \mathrm{Med}(\mathbf{S})| \ge 4.5\mathrm{MAD}(\mathbf{S})</code> seemed too conservative. Results from this function were verified by Prof. Daniel Pena through personal communication.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with the following items:<br></p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>origModel</code></td>
+<td>
+<p>the original model with all data points.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>finalModels</code></td>
+<td>
+<p>a list of final models with the influencer(s) removed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>infl</code></td>
+<td>
+<p>a matrix with the original data, classical <code>influence.measures</code>, studentized residuals, leverages, dfstat, LOO-<em>p</em>-values, LOO-slopes/intercepts and their <code class="reqn">\Delta</code>'s, LOO-standard errors and <code class="reqn">R^2</code>s. Influence measures that exceed their specific threshold - see <code>inflPlot</code> - will be marked with asterisks.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>raw</code></td>
+<td>
+<p>same as <code>infl</code>, but with pure numeric data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sel</code></td>
+<td>
+<p>a vector with the influencers' indices.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>the selected <code class="reqn">\alpha</code>-level.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>origP</code></td>
+<td>
+<p>the original model's <em>p</em>-value.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Andrej-Nikolai Spiess
+</p>
+
+
+<h3>References</h3>
+
+<p><b>For dfstat / dfstud :</b><br>
+Regression diagnostics: Identifying influential data and sources of collinearity.<br>
+Belsley DA, Kuh E, Welsch RE.<br>
+John Wiley, New York, USA (2004).
+</p>
+<p>Econometrics, 5ed.<br>
+Baltagi B.<br>
+Springer-Verlag Berlin, Germany (2011).
+</p>
+<p>Growth regressions and what the textbooks don't tell you.<br>
+Temple J.<br><em>Bull Econom Res</em>, <b>52</b>, 2000, 181-205.
+</p>
+<p>Robust Regression and Outlier Detection.<br>
+Rousseeuw PJ &amp; Leroy AM.<br>
+John Wiley &amp; Sons, New York, NY (1987).<br></p>
+<p><b>Hadi's measure:</b><br>
+A new measure of overall potential influence in linear regression.<br>
+Hadi AS.<br><em>Comp Stat &amp; Data Anal</em>, <b>14</b>, 1992, 1-27.<br></p>
+<p><b>Coefficient of determination ratio:</b><br>
+On the detection of influential outliers in linear regression analysis.<br>
+Zakaria A, Howard NK, Nkansah BK.<br><em>Am J Theor Appl Stat</em>, <b>3</b>, 2014, 100-106.
+</p>
+<p>On the Coefficient of Determination Ratio for Detecting Influential Outliers in Linear Regression Analysis.<br>
+Zakaria A, Gordor BK, Nkansah BK.<br><em>Am J Theor Appl Stat</em>, <b>11</b>, 2022, 27-35.<br></p>
+<p><b>Pena's measure:</b><br>
+A New Statistic for Influence in Linear Regression.<br>
+Pena D.<br><em>Technometrics</em>, <b>47</b>, 2005, 1-12.<br></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Example #1 with single influencer and significant model (p = 0.0089).
+## Removal of #21 results in p = 0.115!
+set.seed(123)
+a &lt;- 1:20
+b &lt;- 5 + 0.08 * a + rnorm(20, 0, 1)
+a &lt;- c(a, 25); b &lt;- c(b, 10)
+LM1 &lt;- lm(b ~ a)
+lmInfl(LM1) 
+
+## Example #2 with single influencer and insignificant model (p = 0.115).
+## Removal of #18 results in p = 0.0227!
+set.seed(123)
+a &lt;- 1:20
+b &lt;- 5 + 0.08 * a + rnorm(20, 0, 1)
+LM2 &lt;- lm(b ~ a)
+lmInfl(LM2) 
+
+## Example #3 with multiple influencers and significant model (p = 0.0269).
+## Removal of #2, #17, #18 or #20 results in crossing p = 0.05!
+set.seed(125)
+a &lt;- 1:20
+b &lt;- 5 + 0.08 * a + rnorm(20, 0, 1)
+LM3 &lt;- lm(b ~ a)
+lmInfl(LM3) 
+
+## Large Example #4 with top 10 influencers and significant model (p = 6.72E-8).
+## Not possible to achieve a crossing of alpha with any point despite strong noise.
+set.seed(123)
+a &lt;- 1:100
+b &lt;- 5 + 0.08 * a + rnorm(100, 0, 5)
+LM4 &lt;- lm(b ~ a)
+lmInfl(LM4) 
+</code></pre>
+
+
+</div>

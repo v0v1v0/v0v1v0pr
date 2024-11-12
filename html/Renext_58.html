@@ -1,0 +1,183 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>parIni.MAX</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Initial estimation of GPD parameters for an aggregated renewal model
+</h2>
+
+<h3>Description</h3>
+
+<p>Initial estimation for an aggregated renewal model with GPD marks.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">parIni.MAX(MAX, threshold, distname.y = "exp")
+parIni.OTS(OTS, threshold, distname.y = "exp")
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>MAX</code></td>
+<td>
+
+<p>A list describing partial observations of <code>MAX</code> type. These are
+block maxima or block <code class="reqn">r</code>-largest statistics. The list must
+contain elements named <code>block</code>, <code>effDuration</code>, <code>r</code>,
+and <code>data</code> (a by-block list of <code class="reqn">r</code>-largest statistics).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>OTS</code></td>
+<td>
+
+<p>A list describing partial observations of <code>OTS</code> type. These are
+observations above the block thresholds, each being not smaller than
+<code>threshold</code>. This list contains <code>block</code>,
+<code>effDuration</code>, <code>threshold</code>, <code>r</code> and <code>data</code> (a
+by-block list of observations).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threshold</code></td>
+<td>
+
+<p>The threshold of the POT-renewal model. This is the location
+parameter of the marks from which Largest Order Statistics are
+observed.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>distname.y</code></td>
+<td>
+
+<p>The name of the distribution. For now this can be <code>"exp"</code> or
+<code>"exponential"</code> for exponential excesses implying Gumbel
+block maxima, or <code>"gpd"</code> for GPD excesses implying GEV block
+maxima. The initialisation is the same in all cases, but the result
+is formatted according to the target distribution.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The functions estimate the Poisson rate <code>lambda</code> along with the
+shape parameter say <code>sigma</code> for exponential excesses.  If the
+target distribution is GPD, then the initial shape parameter is taken
+to be 0.
+</p>
+<p>In the "MAX" case, the estimates are obtained by regressing the maxima
+or <code class="reqn">r</code>-Largest Order Statistics within the blocks on the
+log-duration of the blocks. The response for a block is the minimum of
+the <code class="reqn">r</code> available Largest Order Statistics as found within the
+block, and <code class="reqn">r</code> will generally vary across block.  When some blocks
+contain <code class="reqn">r &gt; 1</code> largest order statistics, the corresponding
+spacings are used to compute a spacings-based estimation of
+<code class="reqn">\sigma</code>. This estimator is independent of the regression
+estimator for <code class="reqn">\sigma</code> and the two estimators can be combined in a
+weighted mean.
+</p>
+<p>In the "OTS" case, the estimate of <code>lambda</code> is obtained by a
+Poisson regression using the log durations of the blocks as an
+offset. The estimate of <code>sigma</code> is simply the mean of all the
+available excesses, which by assumption share the same exponential
+distribution.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A vector containing the estimate of the Poisson rate <code class="reqn">\lambda</code>,
+and the estimates of the parameters for the target distribution of the
+excesses. For exponential excesses, these are simply a
+<code>rate</code> parameter. For <code>GPD</code> excesses, these are the
+<code>scale</code> and <code>shape</code> parameters, the second taken as zero.
+</p>
+
+
+<h3>Note</h3>
+
+<p>In the MAX case, the estimation is possible only when the number of
+blocks is greater than <code class="reqn">1</code>, since otherwise no information about
+<code class="reqn">\lambda</code> can be gained from the data; recall that the time at
+which the events occurred within a block is not known or used.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Yves Deville
+</p>
+
+
+<h3>References</h3>
+
+<p>See the document <em>Renext Computing Details</em>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>The <code>spacings</code> methods for the spacings used in the
+estimation.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">set.seed(1234)
+## initialisation for 'MAX' data
+u &lt;- 10
+nBlocks &lt;- 30
+nSim &lt;- 100
+ParMAX &lt;- matrix(NA, nrow = nSim, ncol = 2)
+colnames(ParMAX) &lt;- c("lambda", "sigma")
+
+for (i in 1:nSim) {
+  rd &lt;- rRendata(threshold = u,
+                 effDuration = 1,
+                 lambda = 12,
+                 MAX.effDuration = c(60, rexp(nBlocks)),
+                 MAX.r = c(5, 2 + rpois(nBlocks, lambda = 1)),
+                 distname.y = "exp", par.y = c(rate = 1 / 100))
+
+  MAX &lt;- Renext:::makeMAXdata(rd)
+  pari &lt;- parIni.MAX(MAX = MAX, threshold = u)
+  ParMAX[i, ] &lt;- pari   
+}
+## the same for OTS data
+u &lt;- 10
+nBlocks &lt;- 10
+nSim &lt;- 100
+ParOTS &lt;- matrix(NA, nrow = nSim, ncol = 2)
+colnames(ParOTS) &lt;- c("lambda", "sigma")
+rds &lt;- list()
+
+for (i in 1:nSim) {
+  rd &lt;- rRendata(threshold = u,
+                 effDuration = 1,
+                 lambda = 12,
+                 OTS.effDuration = rexp(nBlocks, rate = 1 / 10),
+                 OTS.threshold = u + rexp(nBlocks, rate = 1 / 10),
+                 distname.y = "exp", par.y = c(rate = 1 / 100))
+  rds[[i]] &lt;- rd
+  OTS &lt;-  Renext:::makeOTSdata(rd)
+  pari &lt;- parIni.OTS(OTS = OTS, threshold = u)
+  ParOTS[i, ] &lt;- pari   
+}
+
+</code></pre>
+
+
+</div>

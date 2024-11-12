@@ -1,0 +1,90 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>lines.rocrisca</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Add Lines to a ROC Plot
+</h2>
+
+<h3>Description</h3>
+
+<p>Used to add an additionnal ROC curve to ROC plot generated with <code>plot.rocrisca</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'rocrisca'
+lines(x, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>An object of class <code>rocrisca</code>, returned by the functions <code>roc.binary</code>,
+<code>roc.net</code>, <code>roc.summary</code>, and <code>roc.time</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments affecting the plot line.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Yohann Foucher &lt;Yohann.Foucher@univ-poitiers.fr&gt;
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# import and attach the data example
+
+data(dataDIVAT3)
+
+# A subgroup analysis to reduce the time needed for this exemple
+
+dataDIVAT3 &lt;- dataDIVAT3[1:400,]
+
+# The ROC curve to evaluate the crude capacities of the recipient age for the
+# prognosis of post kidney transplant mortality (we ignore the censoring process)
+
+roc1 &lt;- roc.binary(status="death", variable="ageR", confounders=~1,
+data=dataDIVAT3, precision=seq(0.1,0.9, by=0.1) )
+
+# The standardized and weighted ROC curve to evaluate the capacities
+# of the recipient age for the prognosis of post kidney transplant
+# mortality by taking into account the donor age and the recipient
+# gender (we ignore the censoring process).
+
+# 1. Standardize the marker according to the covariates among the controls
+lm1 &lt;- lm(ageR ~ ageD + sexeR, data=dataDIVAT3[dataDIVAT3$death == 0,])
+dataDIVAT3$ageR_std &lt;- (dataDIVAT3$ageR - (lm1$coef[1] + lm1$coef[2] *
+ dataDIVAT3$ageD + lm1$coef[3] * dataDIVAT3$sexeR)) / sd(lm1$residuals)
+
+# 2. Compute the sensitivity and specificity from the proposed IPW estimators
+roc2 &lt;- roc.binary(status="death", variable="ageR_std",
+ confounders=~bs(ageD, df=3) + sexeR, data=dataDIVAT3, precision=seq(0.1,0.9, by=0.1))
+
+# The corresponding ROC graph
+
+plot(roc2, type="b", col=2, pch=2, lty=2)
+
+lines(roc1, type="b", col=1, pch=1)
+
+legend("bottomright", lty=1:2, lwd=1, pch=1:2, col=1:2,
+ c(paste("Crude estimation, (AUC=", round(roc1$auc, 2), ")", sep=""),
+ paste("Adjusted estimation, (AUC=", round(roc2$auc, 2), ")", sep="") ) )
+</code></pre>
+
+
+</div>

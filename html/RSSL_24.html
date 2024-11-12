@@ -1,0 +1,140 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>EntropyRegularizedLogisticRegression</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Entropy Regularized Logistic Regression</h2>
+
+<h3>Description</h3>
+
+<p>R Implementation of entropy regularized logistic regression implementation as proposed by Grandvalet &amp; Bengio (2005). An extra term is added to the objective function of logistic regression that penalizes the entropy of the posterior measured on the unlabeled examples.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">EntropyRegularizedLogisticRegression(X, y, X_u = NULL, lambda = 0,
+  lambda_entropy = 1, intercept = TRUE, init = NA, scale = FALSE,
+  x_center = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>matrix; Design matrix for labeled data</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>factor or integer vector; Label vector</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X_u</code></td>
+<td>
+<p>matrix; Design matrix for unlabeled data</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>l2 Regularization</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda_entropy</code></td>
+<td>
+<p>Weight of the labeled observations compared to the unlabeled observations</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intercept</code></td>
+<td>
+<p>logical; Whether an intercept should be included</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init</code></td>
+<td>
+<p>Initial parameters for the gradient descent</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>logical; Should the features be normalized? (default: FALSE)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x_center</code></td>
+<td>
+<p>logical;  Should the features be centered?</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>S4 object of class EntropyRegularizedLogisticRegression with the following slots:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>w</code></td>
+<td>
+<p>weight vector</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>classnames</code></td>
+<td>
+<p>the names of the classes</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Grandvalet, Y. &amp; Bengio, Y., 2005. Semi-supervised learning by entropy minimization. In L. K. Saul, Y. Weiss, &amp; L. Bottou, eds. Advances in Neural Information Processing Systems 17. Cambridge, MA: MIT Press, pp. 529-536.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(RSSL)
+library(ggplot2)
+library(dplyr)
+
+
+# An example where ERLR finds a low-density separator, which is not
+# the correct solution.
+set.seed(1)
+df &lt;- generateSlicedCookie(1000,expected=FALSE) %&gt;% 
+  add_missinglabels_mar(Class~.,0.98)
+
+class_lr &lt;- LogisticRegression(Class~.,df,lambda = 0.01)
+class_erlr &lt;- EntropyRegularizedLogisticRegression(Class~.,df,
+                                lambda=0.01,lambda_entropy = 100)
+
+
+ggplot(df,aes(x=X1,y=X2,color=Class)) +
+  geom_point() +
+  stat_classifier(aes(linetype=..classifier..),
+                  classifiers = list("LR"=class_lr,"ERLR"=class_erlr)) +
+  scale_y_continuous(limits=c(-2,2)) +
+  scale_x_continuous(limits=c(-2,2))
+
+df_test &lt;- generateSlicedCookie(1000,expected=FALSE)
+mean(predict(class_lr,df_test)==df_test$Class)
+mean(predict(class_erlr,df_test)==df_test$Class)
+
+
+
+
+</code></pre>
+
+
+</div>

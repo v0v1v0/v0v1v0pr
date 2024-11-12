@@ -1,0 +1,276 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>reset</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Reconstruction Set Test (RESET)</h2>
+
+<h3>Description</h3>
+
+<p>Implementation of the Reconstruction Set Test (RESET) method, which transforms an n-by-p input matrix <code>X</code> into an n-by-m matrix of sample-level variable set scores and a length m vector of overall variable set scores. Execution of RESET involves the following sequence of steps:
+</p>
+
+<ul>
+<li>
+<p> If <code>center.X=TRUE</code>, mean center the columns of <code>X</code>. If <code>X.test</code> is specified, the centering is instead 
+performed on just the columns of <code>X</code> corresponding to each variable set. 
+See documentation for the <code>X</code> and <code>center.X</code> parameters for more details.
+</p>
+</li>
+<li>
+<p> If <code>scale.X=TRUE</code>, scale the columns of <code>X</code> to have variance 1. If <code>X.test</code> is specified, the scaling is instead 
+performed on just the columns of <code>X</code> corresponding to each variable set. 
+See documentation for the <code>X</code> and <code>scale.X</code> parameters for more details.            
+</p>
+</li>
+<li>
+<p> If <code>center.X.test=TRUE</code>, mean center the columns of <code>X.test</code>. 
+See documentation for the <code>X.test</code> and <code>center.X.test</code> parameters for more details.
+</p>
+</li>
+<li>
+<p> If <code>scale.X.test=TRUE</code>, scale the columns of <code>X.test</code>. 
+See documentation for the <code>X.test</code> and <code>scale.X.test</code> parameters for more details.            
+</p>
+</li>
+<li>
+<p> Set the reconstruction target matrix <code>T</code> to <code>X</code> or, if <code>X.test</code> is specified, to <code>X.test</code>.
+</p>
+</li>
+<li>
+<p> Compute the norm of <code>T</code> and norm of each row of <code>T</code>. By default, these are the Frobenius and Euclidean norms respectively. 
+</p>
+</li>
+<li>
+<p> For each set in <code>var.sets</code>, sample-level and matrix level scores are generated as follows:
+</p>
+
+<ul>
+<li>
+<p> Create a subset of <code>X</code> called <code>X.var.set</code> that only includes the columns of <code>X</code> correponding to the variables
+in the set.
+</p>
+</li>
+<li>
+<p> Compute a rank <code>k</code> orthonormal basis <code>Q</code> for the column space of <code>X.var.set</code>. 
+If the size of the set is less then or equal to <code>random.threshold</code>, then this is computed as the top <code>k</code> columns
+of the <code>Q</code> matrix from a column-pivoted QR decomposition of <code>X.var.set</code>, otherwise, it is approximated using
+a randomized algorithm implemented by <code>randomColumnSpace</code>.
+</p>
+</li>
+<li>
+<p> The reduced rank reconstruction of <code>T</code> is then created as <code>Q Q^T T</code>.
+</p>
+</li>
+<li>
+<p> The original <code>T</code> is subtracted from the reconstruction to represent the reconstruction error and the appropriate norm
+is computed on each row and the entire error matrix.
+</p>
+</li>
+<li>
+<p> The overall score is the log2 ratio of the norm of the original <code>T</code> to the norm of the reconstruction error matrix.
+</p>
+</li>
+<li>
+<p> The score for each sample is the log2 ratio of the norm of the corresponding row of the original <code>T</code> to the norm of the same row of the reconstruction error matrix.
+</p>
+</li>
+<li>
+<p> If <code>per.var=TRUE</code>, then the overall and sample-level scores are divided by the variable set size.
+</p>
+</li>
+</ul>
+</li>
+</ul>
+<h3>Usage</h3>
+
+<pre><code class="language-R">reset(X, X.test, center.X=TRUE, scale.X=FALSE, center.X.test=TRUE, scale.X.test=FALSE, 
+      var.sets, k=2, random.threshold, k.buff=0, q=0, test.dist="normal", norm.type="2",
+      per.var=FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>The n-by-p target matrix; columns represent variables and rows represent samples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X.test</code></td>
+<td>
+<p>Matrix that will be combined with the <code>var.set</code> variables to compute the reduced rank reconstruction.
+This is typically a subset or transformation of <code>X</code>, e.g., projection on top PCs. 
+Reconstruction error will be measured on the variables in <code>X.test</code>. 
+If not specified, the entire <code>X</code> matrix will be used for calculating reconstruction error.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>center.X</code></td>
+<td>
+<p>Flag which controls whether the values in <code>X</code> are mean centered during execution of the algorithm.
+If only <code>X</code> is specified and <code>center.X=TRUE</code>, then all columns in <code>X</code> will be centered. If both <code>X</code> and <code>X.test</code> are specified,
+then centering is performed on just the columns of <code>X</code> contained in the specified variable sets.
+Mean centering is especially important for accurate performance when <code>X.test</code> is specified as a reduced rank representation of the <code>X</code>, e.g, 
+as the projection of <code>X</code> onto the top principal components. However, mean centering the entire matrix <code>X</code> can have a dramatic impact on memory 
+requirements if <code>X</code> is a large sparse matrix. 
+In this case, a non-centered <code>X</code> and appropriate <code>X.test</code> (e.g., project onto top PCs of <code>X</code>) can be provided and mean centering performed
+on just the needed variables during execution of RESET. This "just-in-time" centering is enabled by setting <code>center.X=TRUE</code> and 
+providing both <code>X</code> and <code>X.test</code>. If <code>X</code> has already been mean-centered (and <code>X.test</code> is a subset of this mean-centered matrix or
+computed using this mean-centered matrix), then center should be specified as FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale.X</code></td>
+<td>
+<p>Flag which controls whether the values in <code>X</code> are are scaled to have variance 1 during execution of the algorithm.
+Defaults to false.
+If only <code>X</code> is specified and <code>scale.X=TRUE</code>, then all columns in <code>X</code> will be scaled. If both <code>X</code> and <code>X.test</code> are specified,
+then scaling is performed on just the columns of <code>X</code> contained in the specified variable sets.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>center.X.test</code></td>
+<td>
+<p>Flag which controls whether the values in <code>X.test</code>, if specified, are mean centered during execution of the algorithm.
+Centering should be performed consistently for <code>X</code> and <code>X.test</code>, i.e., if <code>center.X</code> is true or <code>X</code> was previously centered, 
+then <code>center.X.test</code> should te true unless <code>X.test</code> previously centered or generated from a centered <code>X</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale.X.test</code></td>
+<td>
+<p>Flag which controls whether the values in <code>X.test</code>, if specified, are scaled to have variance 1 during execution of the algorithm.
+Similar to centering, scaling should be performed consistently for <code>X</code> and <code>X.test</code>, i.e., if <code>scale.X</code> is true or <code>X</code>
+was previously scaled then <code>scale.X.test</code> should te true unless <code>X.test</code> previously scaled or generated from a scaled <code>X</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>var.sets</code></td>
+<td>
+<p>List of m variable sets, each element is a vector of indices of variables in the set that correspond to columns in <code>X</code>. 
+If variable set information is instead available in terms of variable names, the appropriate format can be generated 
+using <code>createVarSetCollection</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>Rank of reconstruction. Default to 2. Cannot be larger than the minimum variable set size.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>random.threshold</code></td>
+<td>
+<p>If specified, indicates the variable set size above which a randomized reduced-rank reconstruction is used. 
+If the variable set size is less or equal to random.threshold, then a non-random reconstruction is computed. Defaults to k 
+and cannot be less than k.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k.buff</code></td>
+<td>
+<p>Additional dimensions used in randomized reduced-rank construction algorithm. Defaults to 0. 
+Values above 0 can improve the accuracy of the
+randomized reconstruction at the expense of additional computational complexity. If <code>k.buff</code>=0, then the reduced rank 
+reconstruction can be generated directly from the output of <code>randomColumnSpace</code>, otherwise, a reduced rank SVD must also be computed
+with the reconstruction based on the top <code>k</code> components.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>q</code></td>
+<td>
+<p>Number of power iterations for randomized SVD (see <code>randomSVD</code>). 
+Defaults to 0. Although power iterations can improve randomized SVD
+performance in general, it can decrease the sensitivity of the RESET method to detect mean or covariance differences.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test.dist</code></td>
+<td>
+<p>Distribution for non-zero elements of random test matrix used in randomized SVD algorithm. See description for <code>test.dist</code> parameter
+of <code>randomSVD</code> method.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>norm.type</code></td>
+<td>
+<p>The type of norm to use for computing reconstruction error. Defaults to "2" for Euclidean/Frobenius norm. Other supported option
+is "1" for L1 norm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>per.var</code></td>
+<td>
+<p>If true, the computed scores for each variable set are divided by the scaled variable set size to generate per-variable scores.
+Variable set size scaling is performed by dividing all sizes by the mean size (this will generate per-variable scores of approximately the
+same magnitude as the non-per-variable scores).</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list with the following elements:
+</p>
+
+<ul>
+<li> <p><code>S</code> an n-by-m matrix of sample-level variable set scores.
+</p>
+</li>
+<li> <p><code>v</code> a length m vector of overall variable set scores.
+</p>
+</li>
+</ul>
+<h3>See Also</h3>
+
+<p><code>createVarSetCollection</code>,<code>randomColumnSpace</code></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">  # Create a collection of 5 variable sets each of size 10
+  var.sets = list(set1=1:10, 
+                  set2=11:20,
+                  set3=21:30,
+                  set4=31:40,
+                  set5=41:50)                  
+
+  # Simulate a 100-by-100 matrix of random Poisson data
+  X = matrix(rpois(10000, lambda=1), nrow=100)
+
+  # Inflate first 10 rows for first 10 variables, i.e., the first
+  # 10 samples should have elevated scores for the first variable set
+  X[1:10,1:10] = rpois(100, lambda=5)
+
+  # Execute RESET using non-randomized basis computation
+  reset(X, var.sets=var.sets, k=2, random.threshold=10)
+
+  # Execute RESET with randomized basis computation
+  # (random.threshold will default to k value which is less
+  # than the size of all variable sets)
+  reset(X, var.sets=var.sets, k=2, k.buff=2)
+
+  # Execute RESET with non-zero k.buff
+  reset(X, var.sets=var.sets, k=2, k.buff=2)
+  
+  # Execute RESET with non-zero q
+  reset(X, var.sets=var.sets, k=2, q=1)
+
+  # Execute RESET with L1 vs L2 norm
+  reset(X, var.sets=var.sets, k=2, norm.type="1")
+
+  # Project the X matrix onto the first 5 PCs and use that as X.test
+  # Scale X before calling prcomp() so that no centering or scaling
+  # is needed within reset()
+  X = scale(X)
+  X.test = prcomp(X,center=FALSE,scale=FALSE,retx=TRUE)$x[,1:5]
+  reset(X, X.test=X.test, center.X=FALSE, scale.X=FALSE, 
+    center.X.test=FALSE, scale.X.test=FALSE, var.sets=var.sets, k=2)
+</code></pre>
+
+
+</div>

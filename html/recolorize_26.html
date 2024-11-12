@@ -1,0 +1,151 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>imDist</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculates the distance between non-transparent pixels in images</h2>
+
+<h3>Description</h3>
+
+<p>Compares two versions of the same image (probably original and recolored)
+by calculating the color distance between the colors of each pair of pixels.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">imDist(
+  im1,
+  im2,
+  color_space = "Lab",
+  ref_white = "D65",
+  metric = "euclidean",
+  plotting = TRUE,
+  palette = "default",
+  main = "",
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>im1, im2</code></td>
+<td>
+<p>Images to compare; must have the same dimensions. Distances
+will be calculated between each pair of non-transparent pixels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>color_space</code></td>
+<td>
+<p>Color space in which to calculate distances. One of
+"sRGB", "Lab", "Luv", or "XYZ". Passed to
+<code>convertColor</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ref_white</code></td>
+<td>
+<p>Passed to <code>convertColor</code> if
+<code style="white-space: pre;">⁠color_space = "Lab⁠</code>. Reference white for CIE Lab space.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>metric</code></td>
+<td>
+<p>Distance metric to be used for calculating pairwise pixel
+distances in the given color space; passed to <code>dist</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plotting</code></td>
+<td>
+<p>Logical. Plot heatmap of color distances?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>palette</code></td>
+<td>
+<p>If plotting, the color palette to be used. Default is blue to
+red (<code>colorRamps::blue2red(100)</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>main</code></td>
+<td>
+<p>Plot title.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Parameters passed to <code>image</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A matrix of the same dimensions as the original images,
+with the distance between non-transparent pixels at each pixel coordinate.
+Transparent pixels are returned as <code>NA</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">fulgidissima &lt;- system.file("extdata/fulgidissima.png",
+                             package = "recolorize")
+fulgidissima &lt;- png::readPNG(fulgidissima)
+# make an initial histogram fit
+# this doesn't look great:
+fulgidissima_2bin &lt;- recolorize(fulgidissima, "hist", bins = 2)
+
+# we can compare with the original image by creating the recolored
+# image from the colormap
+recolored_2bin &lt;- constructImage(fulgidissima_2bin$pixel_assignments,
+                                fulgidissima_2bin$centers)
+dist_2bin &lt;- imDist(im1 = fulgidissima,
+                    im2 = recolored_2bin)
+
+# using 3 bins/channel looks much better:
+fulgidissima_3bin &lt;- recolorize(fulgidissima, "hist", bins = 3)
+
+# and we can see that on the heatmap:
+recolored_3bin &lt;- constructImage(fulgidissima_3bin$pixel_assignments,
+                                fulgidissima_3bin$centers)
+dist_3bin &lt;- imDist(im1 = fulgidissima,
+                    im2 = recolored_3bin)
+
+# default behavior is to set the color range to the range of distances
+# in a single matrix; to compare two different fits, we have to provide
+# the same `zlim` scale for both
+r &lt;- range(c(dist_2bin, dist_3bin), na.rm = TRUE)
+
+# to reset graphical parameters:
+current_par &lt;- graphics::par(no.readonly = TRUE)
+
+# now we can plot them to compare the fits:
+layout(matrix(1:2, nrow = 1))
+imHeatmap(dist_2bin, range = r)
+imHeatmap(dist_3bin, range = r)
+
+# we can also use other color spaces:
+rgb_3bin &lt;- imDist(fulgidissima,
+                   recolored_3bin,
+                   color_space = "sRGB")
+
+# looks oddly worse, but to keep things in perspective,
+# you can set the range to the maximum color distance in RGB space:
+imHeatmap(rgb_3bin, range = c(0, sqrt(3)))
+# not useful for troubleshooting, but broadly reassuring!
+
+# reset:
+graphics::par(current_par)
+</code></pre>
+
+
+</div>

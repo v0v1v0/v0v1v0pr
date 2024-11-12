@@ -1,0 +1,159 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>burden.continuous</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Linear regression on a genetic score
+</h2>
+
+<h3>Description</h3>
+
+<p>Performs a linear regression on a genetic score
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">  burden.continuous(x, NullObject, genomic.region = x@snps$genomic.region, 
+                    burden, maf.threshold = 0.5, get.effect.size = F, 
+                    alpha = 0.05, cores = 10)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p> A bed matrix, only needed if <code>burden="CAST"</code> or <code>burden="WSS"</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>NullObject</code></td>
+<td>
+<p> A list returned from <code>NullObject.parameters</code> </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>genomic.region</code></td>
+<td>
+<p> A factor containing the genomic region of each SNP, <code>x@snps$genomic.region</code> by default, only needed if <code>burden</code>="CAST" or <code>burden</code>="WSS"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>burden</code></td>
+<td>
+<p>"CAST" or "WSS" to directly compute the CAST or the WSS genetic score, or a matrix with one row per individual and one column per <code>genomic.region</code> if another genetic score is wanted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maf.threshold</code></td>
+<td>
+<p> The MAF threshold to use for the definition of a rare variant in the CAST score. Set at 0.5 by default</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>get.effect.size</code></td>
+<td>
+<p> TRUE/FALSE: whether to return the beta value</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p> The alpha threshold to use for the OR confidence interval</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cores</code></td>
+<td>
+<p> How many cores to use for moments computation, set at 10 by default </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function will return results from the regression of the continuous phenotype on the genetic score for each genomic region.
+</p>
+<p>If another genetic score than CAST or WSS is wanted, a matrix with one row per individual and one column per <code>genomic.region</code>
+containing this score should be given to <code>burden</code>. In this situation, no bed matrix <code>x</code> is needed.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A dataframe with one row per genomic region and at least two columns:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>p.value</code></td>
+<td>
+<p> The p.value of the regression</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>is.err</code></td>
+<td>
+<p> 0/1: whether there was a convergence problem with the regression</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+<p> The beta coefficient associated to the tested genomic region</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>l.lower</code></td>
+<td>
+<p> The lower bound of the confidence interval of beta</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>l.upper</code></td>
+<td>
+<p> The upper bound of the confidence interval of beta</p>
+</td>
+</tr>
+</table>
+<h3>See Also</h3>
+
+ <p><code>CAST</code>, <code>WSS</code>, <code>burden.weighted.matrix</code> </p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#Import data in a bed matrix
+x &lt;- as.bed.matrix(x=LCT.matrix.bed, fam=LCT.matrix.fam, bim=LCT.snps)
+
+#Add population
+x@ped[,c("pop", "superpop")] &lt;- LCT.matrix.pop1000G[,c("population", "super.population")]
+
+#Select EUR superpopulation
+x &lt;- select.inds(x, superpop=="EUR")
+x@ped$pop &lt;- droplevels(x@ped$pop)
+
+#Group variants within known genes
+x &lt;- set.genomic.region(x)
+
+#Filter of rare variants: only non-monomorphic variants with
+#a MAF lower than 2.5%
+#keeping only genomic regions with at least 10 SNPs
+x1 &lt;- filter.rare.variants(x, filter = "whole", maf.threshold = 0.025, min.nb.snps = 10)
+
+#run burden test WSS, using a random continuous variable as phenotype
+x1@ped$pheno &lt;- rnorm(nrow(x1))
+#Null model
+x1.H0 &lt;- NullObject.parameters(pheno = x1@ped$pheno, 
+                               RVAT = "burden", pheno.type = "continuous")
+#Get the beta value
+burden.continuous(x1, NullObject = x1.H0, burden = "WSS", 
+                  get.effect.size = TRUE, cores = 1)
+
+</code></pre>
+
+
+</div>

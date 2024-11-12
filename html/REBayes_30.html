@@ -1,0 +1,254 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>medde</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Maximum Entropy [De]Regularized Density Estimation</h2>
+
+<h3>Description</h3>
+
+<p>Density estimation based on maximum entropy methods
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">medde(
+  x,
+  v = 300,
+  lambda = 0.5,
+  alpha = 1,
+  Dorder = 1,
+  w = NULL,
+  mass = 1,
+  rtol = 1e-06,
+  verb = 0,
+  control = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Data: either univariate or bivariate, the latter is highly experimental</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>v</code></td>
+<td>
+<p>Undata: either univariate or bivariate, univariate default is an
+equally spaced grid of 300 values, for bivariate data there is not (yet) a default.
+Making v extend well beyond the support of x is advisable to avoid weird boundary
+behavior of the estimated density.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>total variation penalty smoothing parameter, if lambda is in [-1,0], a
+shape constraint is imposed. see Koenker and Mizera (2010)  for further details.
+When Dorder = 0, the shape constraint imposes that the density is monotonically
+decreasing, when Dorder = 1 it imposes a concavity constraint.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>Renyi entropy parameter characterizing fidelity criterion
+by default 1 is log-concave and 0.5 is Hellinger.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Dorder</code></td>
+<td>
+<p>Order of the derivative operator for the penalty
+default is Dorder = 1, corresponding to TV norm constraint on the first derivative,
+or a concavity constraint on some transform of the density.  Dorder = 0 imposes
+a TV penalty on the function itself, or when lambda &lt; 0 a monotonicity constraint.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w</code></td>
+<td>
+<p>weights associated with x,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mass</code></td>
+<td>
+<p>normalizing constant for fitted density,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rtol</code></td>
+<td>
+<p>Convergence tolerance for Mosek algorithm,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verb</code></td>
+<td>
+<p>Parameter controlling verbosity of solution, 0 for silent, 5
+gives rather detailed iteration log.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>Mosek control list see KWDual documentation</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>See the references for further details. And also Mosek "Manuals". The
+acronym, according to the urban dictionary has a nice connection to
+a term used in Bahamian dialect, mostly on the Family Islands like Eleuthera
+and Cat Island meaning "mess with" "get involved," "get entangled," "fool
+around," "bother:"
+"I don't like to medder up with all kinda people"
+"Don't medder with people (chirren)"
+"Why you think she medderin up in their business."
+</p>
+<p>This version implements a class of penalized density estimators solving:
+</p>
+<p style="text-align: center;"><code class="reqn">\min_x \phi(x_1) | A_1 x_1 - A_2 x_2 = b,  0 \le x_1, -\lambda \le x_2 \le \lambda </code>
+</p>
+
+<p>where <code class="reqn">x</code> is a vector with two component subvectors: <code class="reqn">x_1</code> is a 
+vector of function values of the density <code class="reqn">x_2</code> is a vector of dual values,
+<code class="reqn">\lambda</code> is typically positive, and controls the fluctuation of the Dorder
+derivative of some transform of the density. When alpha = 1 this transform is
+simply the logarithm of the density, and Dorder = 1 yields a piecewise exponential
+estimate; when Dorder = 2 we obtain a variant of Silverman's (1982) estimator
+that shrinks the fitted density toward the Gaussian, i.e. with total variation
+of the second derivative of <code class="reqn">log f</code> equal to zero.  See demo(Silverman) for
+an illustration of this case.  If <code class="reqn">\lambda</code> is in <code class="reqn">(-1,0]</code> then the 
+<code class="reqn">x_2</code> TV constraint is replaced by <code class="reqn">x_2 \geq 0</code>, which for <code class="reqn">\alpha = 1</code>, 
+constrains the fitted density to be log-concave; for <code class="reqn">\alpha = 0.5</code>,  <code class="reqn">-1/\sqrt f</code>
+is constrained to be concave; and for <code class="reqn">\alpha \le 0</code>, <code class="reqn">1/f^{\alpha -1}</code> is
+constrained to be concave.  In these cases no further regularization of the smoothness
+of density is required as the concavity constraint acts as  regularizer.
+As explained further in Koenker and Mizera (2010) and
+Han and Wellner (2016) decreasing <code class="reqn">\alpha</code> constrains the fitted density to lie 
+in a larger class of quasi-concave
+densities.  See <code>demo(velo)</code> for an illustration of these options, but be aware
+that more extreme <code class="reqn">\alpha</code> pose more challenges from an numerical optimization
+perspective.  Fitting for <code class="reqn">\alpha &lt; 1</code> employs a fidelity criterion closely 
+related to Renyi entropy that is more suitable than likelihood for very peaked, or very heavy
+tailed target densities.  For <code class="reqn">\lambda &lt; 0</code>  fitting for <code>Dorder != 1</code>
+proceed at your own risk.  A closely related problem is illustrated in the demo
+Brown which imposes a convexity constraint 
+on <code class="reqn">0.5 x^2 + log f(x)</code>. This ensures that the resulting Bayes rule,
+aka Tweedie formula, is monotone in <code class="reqn">x</code>, as described further in Koenker and
+Mizera (2013).
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class "medde" with components </p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>points of
+evaluation on the domain of the density</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>estimated function values
+at the evaluation points x</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>status</code></td>
+<td>
+<p>exit status from Mosek</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Roger Koenker and Ivan Mizera
+</p>
+
+
+<h3>References</h3>
+
+<p>Chen, Y. and R.J. Samworth, (2013) "Smoothed log-concave
+maximum likelihood estimation with applications", <em>Statistica Sinica</em>,
+23, 1373–1398.
+</p>
+<p>Han, Qiyang and Jon Wellner (2016) “Approximation and estimation of s-concave 
+densities via Renyi divergences, <em>Annals of Statistics</em>, 44, 1332-1359.
+</p>
+<p>Koenker, R and I. Mizera, (2007) “Density Estimation by Total Variation
+Regularization,” <em>Advances in Statistical Modeling and Inference:
+Essays in Honor of Kjell Doksum</em>, V.N. Nair (ed.), 613-634.
+</p>
+<p>Koenker, R and I. Mizera, (2006) “The alter egos of the regularized maximum
+likelihood density estimators: deregularized maximum-entropy, Shannon,
+Renyi, Simpson, Gini, and stretched strings,” <em> Proceedings of the 7th
+Prague Symposium on Asymptotic Statistics</em>.
+</p>
+<p>Koenker, R and I. Mizera, (2010) “Quasi-Concave Density Estimation”
+<em>Annals of Statistics</em>, 38, 2998-3027.
+</p>
+<p>Koenker, R and I. Mizera, (2013) “Convex Optimization, Shape Constraints,
+Compound Decisions, and Empirical Bayes Rules,” JASA, 109, 674–685.
+</p>
+<p>Koenker, R and I. Mizera, (2014) “Convex Optimization in R.”,
+<em>Journal of Statistical Software</em>, 60, 1-23.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>This function is based on an earlier function of the same name in
+the deprecated package MeddeR that was based on an R-Matlab interface.
+A plotting method is available, or medde estimates can be added to plots
+with the usual <code>lines(meddefit, ...</code> invocation.  For log concave
+estimates there is also a quantile function <code>qmedde</code> and a random
+number generation function <code>rmedde</code>, eventually there should be
+corresponding functionality for other alphas.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Not run: 
+#Maximum Likelihood Estimation of a Log-Concave Density
+set.seed(1968)
+x &lt;- rgamma(50,10)
+m &lt;- medde(x, v = 50, lambda = -.5, verb = 5)
+plot(m, type = "l", xlab = "x", ylab = "f(x)")
+lines(m$x,dgamma(m$x,10),col = 2)
+title("Log-concave Constraint")
+
+## End(Not run)
+
+## Not run: 
+#Maximum Likelihood Estimation of a Gamma Density with TV constraint
+set.seed(1968)
+x &lt;- rgamma(50,5)
+f &lt;- medde(x, v = 50, lambda = 0.2, verb = 5)
+plot(f, type = "l", xlab = "x", ylab = "f(x)")
+lines(f$x,dgamma(f$x,5),col = 2)
+legend(10,.15,c("ghat","true"),lty = 1, col = 1:2)
+title("Total Variation Norm Constraint")
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

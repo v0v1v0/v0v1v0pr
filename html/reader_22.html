@@ -1,0 +1,172 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>reader</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Flexibly load from a text or binary file, accepts multiple file formats.</h2>
+
+<h3>Description</h3>
+
+<p>Uses file extension to distinguish between binary, csv or other 
+text formats. Then tries to automatically determine other parameters
+necessary to read the file. Will attempt to detect the delimiter,
+and detect whether there is a heading/column names, and whether 
+the first column should be rownames, or left as a data column.
+Internal calls to standard file reading functions use 
+'stringsAsFactors=FALSE'.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">reader(fn, dir = "", want.type = NULL, def = "\t", force.read = TRUE,
+  header = NA, h.test.p = 0.05, quiet = TRUE, treatas = NULL,
+  override = FALSE, more.types = NULL, auto.vec = TRUE, one.byte = TRUE,
+  ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>fn</code></td>
+<td>
+<p>filename (with or without path if dir is specified)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dir</code></td>
+<td>
+<p>optional directory if separate path/filename is preferred</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>want.type</code></td>
+<td>
+<p>if loading a binary file with multiple objects, specify
+here the is() type of object you are trying to load</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>def</code></td>
+<td>
+<p>the default delimiter to try first</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>force.read</code></td>
+<td>
+<p>attempt to read the file even if the file type looks unsupported</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>header</code></td>
+<td>
+<p>presence of a header should be autodetected, but can specify header status 
+if you don't trust the autodetection</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>h.test.p</code></td>
+<td>
+<p>p value to discriminate between number of characters in a column name versus
+a column value (sensitivity parameter for automatic header detection)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quiet</code></td>
+<td>
+<p>run without messages and warnings</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>treatas</code></td>
+<td>
+<p>a standard file extension, e.g, 'txt', to treat file as</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>override</code></td>
+<td>
+<p>assume first col is rownames, regardless of heuristic</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>more.types</code></td>
+<td>
+<p>optionally add more file types which are read as text</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>auto.vec</code></td>
+<td>
+<p>if the file seems to only have a single column, automatically
+return the result as a vector rather than a dataframe with 1 column</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>one.byte</code></td>
+<td>
+<p>logical parameter, passed to 'get.delim', whether to look for only 1-byte
+delimiters, to also search for 'whitespace' which is a multibyte (wildcard) delimiter type. 
+Use one.byte = FALSE, to read fixed width files, e.g, many plink files.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments to the function used by 'reader' to parse the file,
+e.g, depending on file.type, can be read.table(), read.delim(), read.csv().</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>returns the most appropriate object depending on the file type,
+which is usually a data.frame except for binary files
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Nicholas Cooper <a href="mailto:nick.cooper@cimr.cam.ac.uk">nick.cooper@cimr.cam.ac.uk</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">orig.dir &lt;- getwd(); setwd(tempdir()); # move to temporary dir
+# create some datasets
+df &lt;- data.frame(ID=paste("ID",101:110,sep=""),
+  scores=sample(70,10,TRUE)+30,age=sample(7,10,TRUE)+11)
+DNA &lt;- apply(matrix(c("A","C","G","T")[sample(4,100,TRUE)],nrow=10),
+                                                1,paste,collapse="")
+fix.wid &lt;- c("    MyVal    Results        Check",
+  "    0.234      42344          yes",
+  "    0.334        351          yes","    0.224         46           no",
+  "    0.214     445391          yes")
+# save data to various file formats
+test.files &lt;- c("temp.txt","temp2.txt","temp3.csv",
+                              "temp4.rda","temp5.fasta","temp6.txt")
+write.table(df,file=test.files[1],col.names=FALSE,row.names=FALSE,sep="|",quote=TRUE)
+write.table(df,file=test.files[2],col.names=TRUE,row.names=TRUE,sep="\t",quote=FALSE)
+write.csv(df,file=test.files[3])
+save(df,file=test.files[4])
+writeLines(DNA,con=test.files[5])
+writeLines(fix.wid,con=test.files[6])
+# use the same reader() function call to read in each file
+for(cc in 1:length(test.files)) {
+  cat(test.files[cc],"\n")
+  myobj &lt;- reader(test.files[cc])  # add 'quiet=FALSE' to see some working
+  print(myobj); cat("\n\n")
+}
+# inspect files before deleting if desired
+unlink(test.files) 
+# myobj &lt;- reader(file.choose()); myobj # run this to attempt opening a file
+setwd(orig.dir) # reset working directory to original
+</code></pre>
+
+
+</div>

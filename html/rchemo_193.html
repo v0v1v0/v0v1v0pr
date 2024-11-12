@@ -1,0 +1,258 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pcasvd</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>PCA algorithms</h2>
+
+<h3>Description</h3>
+
+<p>Algorithms fitting a centered weighted PCA of a matrix <code class="reqn">X</code>. 
+</p>
+<p>Noting <code class="reqn">D</code> a (<code class="reqn">n, n</code>) diagonal matrix of weights for the observations (rows of <code class="reqn">X</code>), the functions consist in:
+</p>
+<p>- <code>pcasvd</code>: SVD factorization of <code class="reqn">D^(1/2) * X</code>, using function <code>svd</code>. 
+</p>
+<p>- <code>pcaeigen</code>:Eigen factorization of <code class="reqn">X' * D * X</code>, using function <code>eigen</code>.
+</p>
+<p>- <code>pcaeigenk</code>: Eigen factorization of <code class="reqn">D^(1/2) * X * X' D^(1/2)</code>, using function <code>eigen</code>. This is the "kernel cross-product trick" version of the PCA algorithm (Wu et al. 1997). For wide matrices (<code class="reqn">n &lt;&lt; p</code>) and <code class="reqn">n</code> not too large, this algorithm can be much faster than the others. 
+</p>
+<p>- <code>pcanipals</code>: Eigen factorization of <code class="reqn">X' * D * X</code> using NIPALS. 
+</p>
+<p>- <code>pcanipalsna</code>: Eigen factorization of <code class="reqn">X' * D * X</code> using NIPALS allowing missing data in <code class="reqn">X</code>. 
+</p>
+<p>- <code>pcasph</code>: Robust spherical PCA (Locantore et al. 1990, Maronna 2005, Daszykowski et al. 2007). 
+</p>
+<p>Function <code>pcanipalsna</code> accepts missing data (<code>NA</code>s) in <code class="reqn">X</code>, unlike the other functions. The part of <code>pcanipalsna</code> accounting specifically for missing missing data is based on the efficient code of K. Wright in the R package <code>nipals</code> (https://cran.r-project.org/web/packages/nipals/index.html).
+</p>
+<p><b>Gram-Schmidt orthogonalization in the NIPALS algorithm</b>
+</p>
+<p>The PCA NIPALS is known to generate a loss of orthogonality of the PCs (due to the accumulation of rounding errors in the successive iterations), particularly for large matrices or with high degrees of column collinearity.
+</p>
+<p>With missing data, orthogonality of loadings is not satisfied neither.
+</p>
+<p>An approach for coming back to orthogonality (PCs and loadings) is the iterative classical Gram-Schmidt orthogonalization (Lingen 2000, Andrecut 2009, and vignette of R package <code>nipals</code>), referred to as the iterative CGS. It consists in adding a CGS orthorgonalization step in each iteration of the PCs and loadings calculations.
+</p>
+<p>For the case with missing data, the iterative CGS does not insure that the orthogonalized PCs are centered.
+</p>
+<p><b>Auxiliary function</b>
+</p>
+<p><code>transform</code> Calculates the PCs for any new matrix <code class="reqn">X</code> from the model.
+</p>
+<p><code>summary</code> returns summary information for the model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">
+pcasvd(X, weights = NULL, nlv)
+
+pcaeigen(X, weights = NULL, nlv)
+
+pcaeigenk(X,weights = NULL,  nlv)
+
+pcanipals(X, weights = NULL, nlv,
+    gs = TRUE, 
+    tol = .Machine$double.eps^0.5, maxit = 200)
+
+pcanipalsna(X, nlv, 
+    gs = TRUE,
+    tol = .Machine$double.eps^0.5, maxit = 200)
+    
+pcasph(X, weights = NULL, nlv)
+  
+## S3 method for class 'Pca'
+transform(object, X, ..., nlv = NULL)  
+
+## S3 method for class 'Pca'
+summary(object, X, ...)  
+  
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>For the main functions and auxiliary function <code>summary</code>: Training X-data (<code class="reqn">n, p</code>). — For the other auxiliary functions: New X-data (<code class="reqn">m, p</code>) to consider.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>Weights (<code class="reqn">n, 1</code>) to apply to the training observations. Internally, weights are "normalized" to sum to 1. Default to <code>NULL</code> (weights are set to <code class="reqn">1 / n</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nlv</code></td>
+<td>
+<p>The number of PCs to calculate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>A fitted model, output of a call to the main functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Optional arguments.</p>
+</td>
+</tr>
+</table>
+<p><b>Specific for the NIPALS algorithm</b>
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>gs</code></td>
+<td>
+<p>Logical indicating if a Gram-Schmidt orthogonalization is implemented or not (default to <code>TRUE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>Tolerance for testing convergence of the NIPALS iterations for each PC.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxit</code></td>
+<td>
+<p>Maximum number of NIPALS iterations for each PC.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list of outputs, such as:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>T</code></td>
+<td>
+<p>The score matrix (<code class="reqn">n, nlv</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>P</code></td>
+<td>
+<p>The loadings matrix (<code class="reqn">p, nlv</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R</code></td>
+<td>
+<p>The projection matrix (= <code class="reqn">P</code>) (<code class="reqn">p, nlv</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sv</code></td>
+<td>
+<p>The singular values (<code class="reqn">min(n, p), 1</code>) except for NIPALS = (<code class="reqn">nlv, 1</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eig</code></td>
+<td>
+<p>The eigenvalues (<code>= sv^2</code>) (<code class="reqn">min(n, p), 1</code>) except for NIPALS = (<code class="reqn">nlv, 1</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xmeans</code></td>
+<td>
+<p>The centering vector of <code class="reqn">X</code> (<code class="reqn">p, 1</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>niter</code></td>
+<td>
+<p>Numbers of iterations of the NIPALS.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>conv</code></td>
+<td>
+<p>Logical indicating if the NIPALS converged before reaching the maximal number of iterations.</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Andrecut, M., 2009. Parallel GPU Implementation of Iterative PCA Algorithms. Journal of Computational Biology 16, 1593-1599. https://doi.org/10.1089/cmb.2008.0221
+</p>
+<p>Gabriel, R. K., 2002. Le biplot - Outil d\'exploration de données multidimensionnelles. Journal de la Société Française de la Statistique, 143, 5-55.
+</p>
+<p>Lingen, F.J., 2000. Efficient Gram-Schmidt orthonormalisation on parallel computers. Communications in Numerical Methods in Engineering 16, 57-66. https://doi.org/10.1002/(SICI)1099-0887(200001)16:1&lt;57::AID-CNM320&gt;3.0.CO;2-I
+</p>
+<p>Tenenhaus, M., 1998. La régression PLS: théorie et pratique. Editions Technip, Paris, France.
+</p>
+<p>Wright, K., 2018. Package nipals: Principal Components Analysis using NIPALS with Gram-Schmidt Orthogonalization. https://cran.r-project.org/
+</p>
+<p>Wu, W., Massart, D.L., de Jong, S., 1997. The kernel PCA algorithms for wide data. Part I: Theory and algorithms. Chemometrics and Intelligent Laboratory Systems 36, 165-172. https://doi.org/10.1016/S0169-7439(97)00010-5
+</p>
+<p>For Spherical PCA: 
+</p>
+<p>Daszykowski, M., Kaczmarek, K., Vander Heyden, Y., Walczak, B., 2007. 
+Robust statistics in data analysis - A review. Chemometrics and Intelligent 
+Laboratory Systems 85, 203-219. https://doi.org/10.1016/j.chemolab.2006.06.016
+</p>
+<p>Locantore N., Marron J.S., Simpson D.G., Tripoli N., Zhang J.T., Cohen K.L.
+Robust principal component analysis for functional data, Test 8 (1999) 1-7
+</p>
+<p>Maronna, R., 2005. Principal components and orthogonal regression based on 
+robust scales, Technometrics, 47:3, 264-273, DOI: 10.1198/004017005000000166
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+n &lt;- 6 ; p &lt;- 4
+Xtrain &lt;- matrix(rnorm(n * p), nrow = n)
+s &lt;- c(3, 4, 7, 10, 11, 15, 21:24)   
+zX &lt;- replace(Xtrain, s, NA)
+Xtrain
+zX
+m &lt;- 2
+Xtest &lt;- matrix(rnorm(m * p), nrow = m)
+
+pcasvd(Xtrain, nlv = 3)
+pcaeigen(Xtrain, nlv = 3)
+pcaeigenk(Xtrain, nlv = 3)
+pcanipals(Xtrain, nlv = 3)
+pcanipalsna(Xtrain, nlv = 3)
+pcanipalsna(zX, nlv = 3)
+
+fm &lt;- pcaeigen(Xtrain, nlv = 3)
+fm$T
+transform(fm, Xtest)
+transform(fm, Xtest, nlv = 2)
+
+pcaeigen(Xtrain, nlv = 3)$T
+pcaeigen(Xtrain, nlv = 3, weights = 1:n)$T
+
+
+Ttrain &lt;- fm$T
+Ttest &lt;- transform(fm, Xtest)
+T &lt;- rbind(Ttrain, Ttest)
+group &lt;- c(rep("Training", nrow(Ttrain)), rep("Test", nrow(Ttest)))
+i &lt;- 1
+plotxy(T[, i:(i+1)], group = group, pch = 16, zeroes = TRUE, cex = 1.3, main = "scores")
+
+plotxy(fm$P, zeroes = TRUE, label = TRUE, cex = 2, col = "red3", main ="loadings")
+
+summary(fm, Xtrain)
+res &lt;- summary(fm, Xtrain)
+plotxy(res$cor.circle, zeroes = TRUE, label = TRUE, cex = 2, col = "red3",
+    circle = TRUE, ylim = c(-1, 1))
+
+</code></pre>
+
+
+</div>

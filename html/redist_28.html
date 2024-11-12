@@ -1,0 +1,174 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>compare_plans</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Make a comparison between two sets of plans</h2>
+
+<h3>Description</h3>
+
+<p>This function provides one way to identify the structural differences between
+two sets of redistricting plans. It operates by computing the precinct
+co-occurrence matrix (a symmetric matrix where the i,j-th entry is the
+fraction of plans where precinct i and j are in the same district) for each
+set, and then computing the first eigenvalue of the difference in these two
+matrices (in each direction). These eigenvalues identify the important parts
+of the map.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">compare_plans(
+  plans,
+  set1,
+  set2,
+  shp = NULL,
+  plot = "fill",
+  thresh = 0.1,
+  labs = c("Set 1", "Set 2"),
+  ncores = 1
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>plans</code></td>
+<td>
+<p>a redist_plans object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>set1</code></td>
+<td>
+<p><code>&lt;data-masking&gt;</code> indexing vectors
+for the plan draws to compare.  Alternatively, a second redist_plans
+object to compare to.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>set2</code></td>
+<td>
+<p><code>&lt;data-masking&gt;</code> indexing vectors
+for the plan draws to compare. Must be mutually exclusive with <code>set1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>shp</code></td>
+<td>
+<p>a shapefile for plotting.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>If <code>plot="line"</code>, display a plot for each set showing the set of
+boundaries which most distinguish it from the other set (the squared
+differences in the eigenvector values across the boundary).  If
+<code>plot="fill"</code>, plot the eigenvector for each set as a choropleth. If <code>plot = 'adj'</code>,
+plot the shows the adjacency graph edges which most distinguish it from the other set.
+The adj option is a different graphical option of the same information as the line
+option. See below for more information.  Set to <code>FALSE</code> to disable plotting
+(or leave out <code>shp</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thresh</code></td>
+<td>
+<p>the value to threshold the eigenvector at in determining the
+relevant set of precincts for comparison.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>labs</code></td>
+<td>
+<p>the names of the panels in the plot.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncores</code></td>
+<td>
+<p>the number of parallel cores to use.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The co-occurrence matrices are regularized with a <code class="reqn">Beta(1/ndists, 1-1/ndists)</code>
+prior, which is useful for when either <code>set1</code> or <code>set2</code> is small.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If possible, makes a comparison plot according to <code>plot</code>. Otherwise
+returns the following list:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>eigen1</code></td>
+<td>
+<p>A numeric vector containing the first eigenvector of
+<code>p1 - p2</code>, where <code>p1</code> and <code>p2</code> are the co-occurrence matrices
+for <code>set1</code> and <code>set2</code>, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eigen2</code></td>
+<td>
+<p>A numeric vector containing the first eigenvector of
+<code>p2 - p1</code>, where <code>p1</code> and <code>p2</code> are the co-occurrence matrices
+for <code>set1</code> and <code>set2</code>, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group_1a, group_1b</code></td>
+<td>
+<p>Lists of precincts. Compared to <code>set2</code>, in the
+<code>set1</code> plans these precincts were much more likely to be in separate
+districts. Computed by thresholding <code>eigen1</code> at <code>thresh</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group_2a, group_2b</code></td>
+<td>
+<p>Lists of precincts. Compared to <code>set1</code>, in the
+<code>set2</code> plans these precincts were much more likely to be in separate
+districts. Computed by thresholding <code>eigen2</code> at <code>thresh</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cooccur_sep_1</code></td>
+<td>
+<p>The difference in the average co-occurrence of precincts
+in <code>group_1a</code> and <code>group_1b</code> between <code>set2</code> and <code>set1</code>.
+Higher indicates better separation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cooccur_sep_2</code></td>
+<td>
+<p>The difference in the average co-occurrence of precincts
+in <code>group_2a</code> and <code>group_2b</code> between <code>set1</code> and <code>set2</code>.
+Higher indicates better separation.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(iowa)
+iowa_map &lt;- redist_map(iowa, ndists = 4, pop_tol = 0.05)
+plans1 &lt;- redist_smc(iowa_map, 100, silent = TRUE)
+plans2 &lt;- redist_mergesplit(iowa_map, 200, warmup = 100, silent = TRUE)
+compare_plans(plans1, plans2, shp = iowa_map)
+compare_plans(plans2, as.integer(draw) &lt;= 20,
+    as.integer(draw) &gt; 20, shp = iowa_map, plot = "line")
+
+</code></pre>
+
+
+</div>

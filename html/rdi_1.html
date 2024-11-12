@@ -1,0 +1,152 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>calcRDI</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate repertoire distances</h2>
+
+<h3>Description</h3>
+
+<p>Calculate repertoire distances from a matrix of vdjCounts
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">calcRDI(vdjCounts, distMethod = c("euclidean", "cor"), subsample = TRUE,
+  nIter = 100, constScale = TRUE, units = c("lfc", "pct"), ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>vdjCounts</code></td>
+<td>
+<p>a matrix of repertoire counts, as created by calcVDJCounts</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>distMethod</code></td>
+<td>
+<p>one of c("euclidean","cor") determining how to calculate the 
+distance from the matrix of vdj counts. See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subsample</code></td>
+<td>
+<p>logical; if true, all repertoires are subsampled to be equal 
+size.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nIter</code></td>
+<td>
+<p>value defining how many times the subsampling should be 
+repeated. Only used if subsample is TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>constScale</code></td>
+<td>
+<p>logical; if <code>TRUE</code>, vdjCounts will be scaled such that the sum of
+each column will be equal to 500 counts (an arbitrary constant). 
+Otherwise, the columns will be scaled to the average count of all 
+the columns.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>units</code></td>
+<td>
+<p>One of "lfc" or "pct". This determines the method used for 
+transforming the repertoire counts. See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional parameters; these are ignored by this function.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>There are two options for distance methods, "euclidean" and "cor". Euclidean refers to
+standard euclidean distance, and is the standard for the RDI measure described in 
+(Bolen et al. Bioinformatics 2016). In contrast, cor refers to a correlation-based 
+distance metric, where the distance is defined as <code>(1-correlation)</code> between each 
+column of vdjCounts. 
+</p>
+<p>The <code>units</code> parameter is used to determine the transformation function for the
+repertoire counts. If <code>units='lfc'</code> (default), then the arcsinh transformation 
+is applied to the count matrix, resulting in a distance metric which 
+will scale with the average log fold change of each gene. In contrast,
+<code>units='pct'</code> will result in no transformation of the count matrix, and distances
+will be proportional to the average percent change of each gene, instead. Note that
+"units" is a bit of a misnomer, as the distance metric doesn't actually represent the
+true log-fold or percent change in the repertoires. In order to actually estimate 
+these parameters, refer to the rdiModel and convertRDI
+functions.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A dissimilarity structure containing distances between repertoires, averaged
+across each subsampe run.
+In addition to the standard attributes in a dist object, 
+three additional attributes are defined as follows:
+</p>
+
+<table>
+<tr>
+<td style="text-align: right;">
+  <em>ngenes</em>  </td>
+<td style="text-align: left;"> integers, the number of genes in each column of "genes" 
+                                that were included in at least one repertoire.</td>
+</tr>
+<tr>
+<td style="text-align: right;">
+  <em>nseq</em>  </td>
+<td style="text-align: left;"> integer, the number of sequences used after subsampling  
+                              the repertoires. If <code>subsample=FALSE</code>, this is not
+                              defined.</td>
+</tr>
+<tr>
+<td style="text-align: right;">
+  <em>units</em> </td>
+<td style="text-align: left;"> string, either "lfc" or "pct", depending on the "units" in the 
+                    original call
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+#create genes
+genes = sample(letters, 10000, replace=TRUE)
+
+#create sequence annotations
+seqAnnot = data.frame(donor = sample(1:4, 10000, replace=TRUE),
+                      cellType = sample(c("B","T"), 10000, replace=TRUE)
+                     )
+##generate repertoire counts
+cts = calcVDJcounts(genes,seqAnnot) 
+
+##calculate RDI 
+d = calcRDI(cts)
+
+##calculate RDI in percent space
+d_pct = calcRDI(cts,units="pct")
+
+##convert RDI to actual 'lfc' estimates and compare
+dtrue = convertRDI(d)$pred
+plot(d, dtrue)
+
+</code></pre>
+
+
+</div>

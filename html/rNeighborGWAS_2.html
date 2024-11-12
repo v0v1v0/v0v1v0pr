@@ -1,0 +1,154 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>calc_PVEnei</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculating phenotypic variation explained by neighbor effects</h2>
+
+<h3>Description</h3>
+
+<p>A function to calculate PVE by neighbor effects for a series of neighbor distance using a mixed model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">calc_PVEnei(
+  pheno,
+  geno,
+  smap,
+  scale_seq,
+  addcovar = NULL,
+  grouping = rep(1, nrow(smap)),
+  response = c("quantitative", "binary"),
+  n_core = 1L
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>pheno</code></td>
+<td>
+<p>A numeric vector including phenotypes for individuals</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>geno</code></td>
+<td>
+<p>An individual x marker matrix. Bialleles (i.e., A or a) must be converted into -1 or 1 digit.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>smap</code></td>
+<td>
+<p>A matrix showing a spatial map for individuals. The first and second column include spatial points along an x-axis and y-axis, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale_seq</code></td>
+<td>
+<p>A numeric vector including a set of the maximum spatial distance between a focal individual and neighbors to define neighbor effects. A scalar is also allowed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>addcovar</code></td>
+<td>
+<p>An optional matrix including additional non-genetic covariates. It contains no. of individuals x no. of covariates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grouping</code></td>
+<td>
+<p>A positive integer vector assigning each individual to a group. This argument can be useful when a "smap" contains different experimental replicates. Default setting means that all individuals are belong to a single group.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>response</code></td>
+<td>
+<p>An option to select if the phenotype is a <code>"quantitative"</code> trait subject to linear models, or a <code>"binary"</code> trait subject to logistic models.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_core</code></td>
+<td>
+<p>No. of cores for a multi-core computation. This does not work for Windows OS. Default is a single-core computation.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function uses mixed models via the <code>gaston</code> package (Perdry &amp; Dandine-Roulland 2020).
+If <code>"binary"</code> is selected, <code>logistic.mm.aireml()</code> is called via the <code>gaston</code> package.
+In such a case, <code>PVEnei</code> below is replaced by the ratio of phenotypic variation explained (RVE) by neighbor effects as RVE_nei = <code class="reqn">\sigma_2^2</code>/<code class="reqn">\sigma_1^2</code> and p-values are not provided.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A numeric matrix including a given spatial scale, PVE by neighbor effects, and p-values.
+</p>
+
+<ul>
+<li>
+<p><code>scale</code> Maximum neighbor distance given as an argument
+</p>
+</li>
+<li>
+<p><code>PVEself</code> Proportion of phenotypic variation explained (PVE) by self effects. RVE is returned when <code>response = "binary"</code>
+</p>
+</li>
+<li>
+<p><code>PVEnei</code> Proportion of phenotypic variation explained (PVE) by neighbor effects. RVE is returned when <code>response = "binary"</code>
+</p>
+</li>
+<li>
+<p><code>p-value</code> p-value by a likelihood ratio test between models with or without neighbor effects (when s is not zero); or between a null model and model with self effects alone (when s = 0). NA when <code>response = "binary"</code>
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>Yasuhiro Sato (<a href="mailto:sato.yasuhiro.36c@kyoto-u.jp">sato.yasuhiro.36c@kyoto-u.jp</a>)
+</p>
+
+
+<h3>References</h3>
+
+<p>Perdry H, Dandine-Roulland C. (2020) gaston: Genetic Data Handling (QC, GRM, LD, PCA) &amp; Linear Mixed Models. https://CRAN.R-project.org/package=gaston
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">set.seed(1)
+g &lt;- matrix(sample(c(-1,1),100*1000,replace = TRUE),100,1000)
+gmap &lt;- cbind(c(rep(1,nrow(g)/2),rep(2,nrow(g)/2)),c(1:ncol(g)))
+x &lt;- runif(nrow(g),1,100)
+y &lt;- runif(nrow(g),1,100)
+smap &lt;- cbind(x,y)
+grouping &lt;- c(rep(1,nrow(g)/2),rep(2,nrow(g)/2))
+pheno &lt;- nei_simu(geno=g,smap=smap,scale=44,grouping=grouping,n_causal=50,pveB=0.4,pve=0.8)
+
+fake_nei &lt;- list()
+fake_nei[[1]] &lt;- g
+fake_nei[[2]] &lt;- gmap
+fake_nei[[3]] &lt;- smap
+fake_nei[[4]] &lt;- data.frame(pheno,grouping)
+names(fake_nei) &lt;- c("geno","gmap","smap","pheno")
+
+min_s &lt;- min_dist(fake_nei$smap, fake_nei$pheno$grouping)
+scale_seq &lt;- c(min_s, quantile(dist(fake_nei$smap),c(0.2*rep(1:5))))
+
+pve_out &lt;- calc_PVEnei(geno=fake_nei$geno, pheno=fake_nei$pheno[,1],
+                       smap=fake_nei$smap, scale_seq=scale_seq,
+                       addcovar=as.matrix(fake_nei$pheno$grouping),
+                       grouping=fake_nei$pheno$grouping)
+delta_PVE(pve_out)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,208 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>extract.bsm.density</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Extract Lognormal Density</h2>
+
+<h3>Description</h3>
+
+<p><code>bsm.extraction</code> extracts the parameters of the lognormal density as implied by the BSM model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">extract.bsm.density(initial.values = c(NA, NA), r, y, te, s0, market.calls, 
+  call.strikes, call.weights = 1, market.puts, put.strikes, put.weights = 1, 
+  lambda = 1, hessian.flag = F, cl = list(maxit = 10000))
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>initial.values</code></td>
+<td>
+<p>initial values for the optimization</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>r</code></td>
+<td>
+<p>risk free rate</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>dividend yield</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>te</code></td>
+<td>
+<p>time to expiration</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s0</code></td>
+<td>
+<p>current asset value</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>market.calls</code></td>
+<td>
+<p>market calls (most expensive to cheapest)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call.strikes</code></td>
+<td>
+<p>strikes for the calls (smallest to largest)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call.weights</code></td>
+<td>
+<p>weights to be used for calls</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>market.puts</code></td>
+<td>
+<p>market calls (cheapest to most expensive)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>put.strikes</code></td>
+<td>
+<p>strikes for the puts (smallest to largest)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>put.weights</code></td>
+<td>
+<p>weights to be used for puts</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>Penalty parameter to enforce the martingale condition</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hessian.flag</code></td>
+<td>
+<p>if F, no hessian is produced</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cl</code></td>
+<td>
+<p>list of parameter values to be passed to the optimization function</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>If <code>initial.values</code> are not specified then the function will attempt to pick them
+automatically.  <code>cl</code> is a list that can be used to pass parameters to the <code>optim</code>
+function.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Let S_T with the lognormal random variable of the risk neutral density.
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>mu</code></td>
+<td>
+<p>mean of log(S_T)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zeta </code></td>
+<td>
+<p>sd of log(S_T)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>converge.result </code></td>
+<td>
+<p>Did the result converge?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hessian</code></td>
+<td>
+<p> Hessian matrix</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Kam Hamidieh</p>
+
+
+<h3>References</h3>
+
+<p>E. Jondeau and S. Poon and M. Rockinger (2007):
+<em>Financial Modeling Under Non-Gaussian Distributions</em> 
+Springer-Verlag, London
+</p>
+<p>J. Hull (2011)
+<em>Options, Futures, and Other Derivatives and DerivaGem Package</em>
+Prentice Hall, Englewood Cliffs, New Jersey, 8th Edition
+</p>
+<p>R. L. McDonald (2013)
+<em>Derivatives Markets</em>
+Pearson, Upper Saddle River, New Jersey, 3rd Edition
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#
+# Create some BSM Based options
+#
+
+r     = 0.05
+te    = 60/365
+s0    = 1000
+sigma = 0.25
+y     = 0.01
+
+call.strikes   = seq(from = 500, to = 1500, by = 25)
+market.calls   = price.bsm.option(r =r, te = te, s0 = s0, 
+                 k = call.strikes, sigma = sigma, y = y)$call
+
+put.strikes    = seq(from = 510, to = 1500, by = 25)
+market.puts    = price.bsm.option(r =r, te = te, s0 = s0, 
+                 k = put.strikes, sigma = sigma, y = y)$put
+
+#
+#  Get extract the parameter of the density
+#
+
+extract.bsm.density(r = r, y = y, te = te, s0 = s0, market.calls = market.calls, 
+               call.strikes = call.strikes,  market.puts = market.puts, 
+               put.strikes = put.strikes, lambda = 1, hessian.flag = FALSE)
+
+#
+# The extracted parameters should be close to these actual values:
+#
+actual.mu     = log(s0) + ( r - y - 0.5 * sigma^2) * te
+actual.zeta   = sigma * sqrt(te)
+actual.mu 
+actual.zeta
+</code></pre>
+
+
+</div>

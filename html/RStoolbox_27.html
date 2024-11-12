@@ -1,0 +1,114 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rasterPCA</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Principal Component Analysis for Rasters</h2>
+
+<h3>Description</h3>
+
+<p>Calculates R-mode PCA for SpatRasters and returns a SpatRaster with multiple layers of PCA scores.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rasterPCA(
+  img,
+  nSamples = NULL,
+  nComp = nlyr(img),
+  spca = FALSE,
+  maskCheck = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>img</code></td>
+<td>
+<p>SpatRaster.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nSamples</code></td>
+<td>
+<p>Integer or NULL. Number of pixels to sample for PCA fitting. If NULL, all pixels will be used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nComp</code></td>
+<td>
+<p>Integer. Number of PCA components to return.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>spca</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, perform standardized PCA. Corresponds to centered and scaled input image. This is usually beneficial for equal weighting of all layers. (<code>FALSE</code> by default)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maskCheck</code></td>
+<td>
+<p>Logical. Masks all pixels which have at least one NA (default TRUE is reccomended but introduces a slow-down, see Details when it is wise to disable maskCheck). 
+Takes effect only if nSamples is NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments to be passed to writeRaster, e.g. filename.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Internally rasterPCA relies on the use of princomp (R-mode PCA). If nSamples is given the PCA will be calculated
+based on a random sample of pixels and then predicted for the full raster. If nSamples is NULL then the covariance matrix will be calculated
+first and will then be used to calculate princomp and predict the full raster. The latter is more precise, since it considers all pixels,
+however, it may be slower than calculating the PCA only on a subset of pixels. 
+</p>
+<p>Pixels with missing values in one or more bands will be set to NA. The built-in check for such pixels can lead to a slow-down of rasterPCA.
+However, if you make sure or know beforehand that all pixels have either only valid values or only NAs throughout all layers you can disable this check
+by setting maskCheck=FALSE which speeds up the computation.
+</p>
+<p>Standardised PCA (SPCA) can be useful if imagery or bands of different dynamic ranges are combined. SPC uses the correlation matrix instead of the covariance matrix, which
+has the same effect as using normalised bands of unit variance.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns a named list containing the PCA model object ($model) and a SpatRaster with the principal component layers ($object).
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(ggplot2)
+library(reshape2)
+ggRGB(rlogo, 1,2,3)
+
+## Run PCA
+set.seed(25)
+rpc &lt;- rasterPCA(rlogo)
+rpc
+
+## Model parameters:
+summary(rpc$model)
+loadings(rpc$model)
+
+ggRGB(rpc$map,1,2,3, stretch="lin", q=0)
+if(require(gridExtra)){
+  plots &lt;- lapply(1:3, function(x) ggR(rpc$map, x, geom_raster = TRUE))
+  grid.arrange(plots[[1]],plots[[2]], plots[[3]], ncol=2)
+}
+</code></pre>
+
+
+</div>

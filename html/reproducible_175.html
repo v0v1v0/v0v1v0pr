@@ -1,0 +1,382 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>postProcessTo</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Transform a GIS dataset so it has the properties (extent, projection, mask) of another</h2>
+
+<h3>Description</h3>
+
+<p>This function provides a single step to achieve the GIS operations
+"pre-crop-with-buffer-to-speed-up-projection", "project",
+"post-projection-crop", "mask" and possibly "write".
+It uses primarily the <code>terra</code> package internally
+(with some minor functions from <code>sf</code>)
+in an attempt to be as efficient as possible. Currently, this function is tested
+with <code>sf</code>, <code>SpatVector</code>, <code>SpatRaster</code>, <code style="white-space: pre;">⁠Raster*⁠</code> and <code style="white-space: pre;">⁠Spatial*⁠</code> objects passed
+to <code>from</code>, and the same plus <code>SpatExtent</code>, and <code>crs</code> passed to <code>to</code> or the
+relevant <code style="white-space: pre;">⁠*to⁠</code> functions.
+For this function, Gridded means a <code style="white-space: pre;">⁠Raster*⁠</code> class object from <code>raster</code> or
+a <code>SpatRaster</code> class object from <code>terra</code>.
+Vector means a <code style="white-space: pre;">⁠Spatial*⁠</code> class object from <code>sp</code>, a <code>sf</code> class object
+from <code>sf</code>, or a <code>SpatVector</code> class object from <code>terra</code>.
+This function is also used internally with the deprecated family <code>postProcess()</code>,
+<code style="white-space: pre;">⁠*Inputs⁠</code>, such as <code>cropInputs()</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">postProcessTo(
+  from,
+  to,
+  cropTo = NULL,
+  projectTo = NULL,
+  maskTo = NULL,
+  writeTo = NULL,
+  overwrite = TRUE,
+  verbose = getOption("reproducible.verbose"),
+  ...
+)
+
+postProcessTerra(
+  from,
+  to,
+  cropTo = NULL,
+  projectTo = NULL,
+  maskTo = NULL,
+  writeTo = NULL,
+  overwrite = TRUE,
+  verbose = getOption("reproducible.verbose"),
+  ...
+)
+
+maskTo(
+  from,
+  maskTo,
+  overwrite = FALSE,
+  verbose = getOption("reproducible.verbose"),
+  ...
+)
+
+projectTo(
+  from,
+  projectTo,
+  overwrite = FALSE,
+  verbose = getOption("reproducible.verbose"),
+  ...
+)
+
+cropTo(
+  from,
+  cropTo = NULL,
+  needBuffer = FALSE,
+  overwrite = FALSE,
+  verbose = getOption("reproducible.verbose"),
+  ...
+)
+
+writeTo(
+  from,
+  writeTo,
+  overwrite = getOption("reproducible.overwrite"),
+  isStack = NULL,
+  isBrick = NULL,
+  isRaster = NULL,
+  isSpatRaster = NULL,
+  verbose = getOption("reproducible.verbose"),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>from</code></td>
+<td>
+<p>A Gridded or Vector dataset on which to do one or more of:
+crop, project, mask, and write</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>to</code></td>
+<td>
+<p>A Gridded or Vector dataset which is the object
+whose metadata will be the target for cropping, projecting, and masking of <code>from</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cropTo</code></td>
+<td>
+<p>Optional Gridded or Vector dataset which,
+if supplied, will supply the extent with which to crop <code>from</code>. To omit
+cropping completely, set this to <code>NA</code>. If supplied, this will override <code>to</code>
+for the cropping step. Defaults to <code>NULL</code>, which means use <code>to</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>projectTo</code></td>
+<td>
+<p>Optional Gridded or Vector dataset, or <code>crs</code> object (e.g., sf::st_crs).
+If Gridded it will supply
+the <code>crs</code>, <code>extent</code>, <code>res</code>, and <code>origin</code>
+to project the <code>from</code> to. If Vector, it will provide the <code>crs</code> only.
+The resolution and extent will be taken from <code>res(from)</code> (i.e. <code>ncol(from)*nrow(from)</code>).
+If a Vector, the extent of the <code>projectTo</code> is not used (unless it is also passed to <code>cropTo</code>.
+To omit projecting, set this to <code>NA</code>.
+If supplied, this will override <code>to</code> for the projecting step.
+Defaults to <code>NULL</code>, which means use <code>to</code>.
+<strong>Attention.</strong> Conflicts may arise with when <code>projectTo</code> is a Vector/CRS object with a
+distinct CRS from <code>to</code>. Because <code>to</code> is used for masking <em>after</em> <code>from</code> is re-projected using
+<code>projectTo</code>, the extents of <code>to</code> and <code>from</code> may no longer overlap (as in <em>align</em>)
+perfectly leading to failure during
+the masking step. We  recommend passing a raster templates to <code>projectTo</code> whose extent and CRS
+are both compatible with the object used later for masking (either <code>to</code> or <code>maskTo</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maskTo</code></td>
+<td>
+<p>Optional Gridded or Vector dataset which,
+if supplied, will supply the extent with which to mask <code>from</code>.
+If Gridded, it will mask with the <code>NA</code> values on the <code>maskTo</code>;
+if Vector, it will mask on the <code>terra::aggregate(maskTo)</code>.
+To omit masking completely, set this to <code>NA</code>.
+If supplied, this will override <code>to</code> for the masking step.
+Defaults to <code>NULL</code>, which means use <code>to</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>writeTo</code></td>
+<td>
+<p>Optional character string of a filename to use <code>writeRaster</code> to save the final
+object. Default is <code>NULL</code>, which means there is no <code>writeRaster</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite</code></td>
+<td>
+<p>Logical. Used if <code>writeTo</code> is not <code>NULL</code>; also if <code>terra</code> determines
+that the object requires writing to disk during a <code>crop</code>, <code>mask</code> or <code>project</code> call
+e.g., because it is too large.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Numeric, -1 silent (where possible), 0 being very quiet,
+1 showing more messaging, 2 being more messaging, etc.
+Default is 1. Above 3 will output much more information about the internals of
+Caching, which may help diagnose Caching challenges. Can set globally with an
+option, e.g., <code style="white-space: pre;">⁠options('reproducible.verbose' = 0) to reduce to minimal⁠</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Arguments passed to <code>terra::mask</code> (for <code>maskTo</code>), <code>terra::project</code> (for <code>projectTo</code>)
+or <code>terra::writeRaster</code> (for <code>writeTo</code>) and not used for <code>cropTo</code>, as well <code>postProcess</code>'s
+<code>rasterToMatch</code> and <code>studyArea</code> arguments (see below). Commonly used arguments might be
+<code>method</code>, <code>touches</code>, and <code>datatype</code>. If <code>filename</code> is passed, it will be ignored; use
+<code style="white-space: pre;">⁠writeTo = ⁠</code>. If <code>reproducible.gdalwarp = TRUE</code>, then these will be passed to the
+<code style="white-space: pre;">⁠gdal*⁠</code> functions. See them for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>needBuffer</code></td>
+<td>
+<p>Logical. Defaults to <code>FALSE</code>, meaning nothing is done out
+of the ordinary. If <code>TRUE</code>, then a buffer around the cropTo, so that if a reprojection
+has to happen on the <code>cropTo</code> prior to using it as a crop layer, then a buffer
+of 1.5 * res(cropTo) will occur prior, so that no edges are cut off.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>isStack, isBrick, isRaster, isSpatRaster</code></td>
+<td>
+<p>Logical. Default <code>NULL</code>. Used to convert <code>from</code>
+back to these classes prior to writing, if provided.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>postProcessTo</code> is a wrapper around (an initial "wide" crop for speed)
+<code>cropTo(needBuffer = TRUE)</code>, <code>projectTo</code>,
+<code>cropTo</code> (the actual crop for precision), <code>maskTo</code>, <code>writeTo</code>.
+Users can call each of these individually.
+</p>
+<p><code>postProcessTerra</code> is the early name of this function that is now <code>postProcessTo</code>.
+</p>
+<p>This function is meant to replace <code>postProcess()</code> with the more efficient
+and faster <code>terra</code> functions.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of the same class as <code>from</code>, but potentially cropped (via <code>cropTo()</code>),
+projected (via <code>projectTo()</code>), masked (via <code>maskTo()</code>), and written to disk
+(via <code>writeTo()</code>).
+</p>
+
+
+<h3>Use Cases</h3>
+
+<p>The table below shows what will result from passing different classes to <code>from</code>
+and <code>to</code>:
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+<strong><code>from</code></strong>
+</td>
+<td style="text-align: left;"> <strong><code>to</code></strong>   </td>
+<td style="text-align: left;"> <strong><code>from</code></strong> will have:                             </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>Gridded</code> </td>
+<td style="text-align: left;"> <code>Gridded</code>  </td>
+<td style="text-align: left;"> the extent, projection, origin, resolution
+and masking where there are <code>NA</code> from the <code>to</code>    </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>Gridded</code> </td>
+<td style="text-align: left;"> <code>Vector</code>   </td>
+<td style="text-align: left;"> the projection, origin, and mask from <code>to</code>, and
+extent will be a round number of pixels that
+fit within the extent of <code>to</code>. Resolution will
+be the same as <code>from</code>.  See section
+below about <code>projectTo</code>. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>Vector</code> </td>
+<td style="text-align: left;"> <code>Vector</code>    </td>
+<td style="text-align: left;"> the projection, origin, extent and mask from <code>to</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<p>If one or more of the <code style="white-space: pre;">⁠*To⁠</code> arguments are supplied, these will
+override individual components of <code>to</code>. If <code>to</code> is omitted or <code>NULL</code>,
+then only the <code style="white-space: pre;">⁠*To⁠</code> arguments that are used will be performed. In all cases,
+setting a <code style="white-space: pre;">⁠*To⁠</code> argument to <code>NA</code> will prevent that step from happening.
+</p>
+
+
+<h3><code>projectTo</code></h3>
+
+<p>Since these functions use the gis capabilities of <code>sf</code> and <code>terra</code>, they will only
+be able to do things that those functions can do. One key caution, which is
+stated clearly in <code>?terra::project</code> is that projection of a raster (i.e., gridded)
+object should always be with another gridded object. If the user chooses to
+supply a <code>projectTo</code> that is a vector object for a <code>from</code> that is gridded,
+there may be unexpected failures due e.g., to extents not overlapping during
+the <code>maskTo</code> stage.
+</p>
+
+
+<h3>Backwards compatibility with <code>postProcess</code>
+</h3>
+
+
+
+<h4>
+<code>rasterToMatch</code> and <code>studyArea</code>:</h4>
+
+<p>If these are supplied, <code>postProcessTo</code> will use them instead
+of <code>to</code>. If only <code>rasterToMatch</code> is supplied, it will be assigned to
+<code>to</code>. If only <code>studyArea</code> is supplied, it will be used for <code>cropTo</code>
+and <code>maskTo</code>; it will only be used for <code>projectTo</code> if <code>useSAcrs = TRUE</code>.
+If both <code>rasterToMatch</code> and <code>studyArea</code> are supplied,
+<code>studyArea</code> will only be applied to <code>maskTo</code> (unless <code>maskWithRTM = TRUE</code>),
+and, optionally, to <code>projectTo</code> (if <code>useSAcrs = TRUE</code>); everything else
+will be from <code>rasterToMatch</code>.
+</p>
+
+
+
+<h4>
+<code>targetCRS</code>, <code>filename2</code>, <code>useSAcrs</code>, <code>maskWithRTM</code>:</h4>
+
+<p><code>targetCRS</code> if supplied will be assigned to <code>projectTo</code>. <code>filename2</code> will
+be assigned to <code>writeTo</code>. If <code>useSAcrs</code> is set, then the <code>studyArea</code>
+will be assigned to <code>projectTo</code>. If <code>maskWithRTM</code> is used, then the
+<code>rasterToMath</code> will be assigned to <code>maskTo</code>. All of these will override
+any existing values for these arguments.
+</p>
+
+<p>See also <code>postProcess()</code> documentation section on
+<em>Backwards compatibility with <code>rasterToMatch</code> and/or <code>studyArea</code></em> for further
+detail.
+</p>
+
+
+<h3>Cropping</h3>
+
+<p>If <code>cropTo</code> is not <code>NA</code>, <code>postProcessTo</code> does cropping twice, both the first and last steps.
+It does it first for speed, as cropping is a very fast algorithm. This will quickly remove
+a bunch of pixels that are not necessary. But, to not create bias, this first crop is padded
+by  <code>2 * res(from)[1]</code>), so that edge cells still have a complete set of neighbours.
+The second crop is at the end, after projecting and masking. After the projection step,
+the crop is no longer tight. Under some conditions, masking will effectively mask and crop in
+one step, but under some conditions, this is not true, and the mask leaves padded NAs out to
+the extent of the <code>from</code> (as it is after crop, project, mask). Thus the second
+crop removes all NA cells so they are tight to the mask.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>maskTo()</code>, <code>cropTo()</code>, <code>projectTo()</code>, <code>writeTo()</code>, and <code>fixErrorsIn()</code>.
+Also the functions that
+call <code>sf::gdal_utils(...)</code> directly: <code>gdalProject()</code>, <code>gdalResample()</code>, <code>gdalMask()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># prepare dummy data -- 3 SpatRasters, 2 SpatVectors
+# need 2 SpatRaster
+rf &lt;- system.file("ex/elev.tif", package = "terra")
+elev1 &lt;- terra::rast(rf)
+#'
+ras2 &lt;- terra::deepcopy(elev1)
+ras2[ras2 &gt; 200 &amp; ras2 &lt; 300] &lt;- NA_integer_
+terra::values(elev1) &lt;- rep(1L, terra::ncell(ras2))
+#'
+# a polygon vector
+f &lt;- system.file("ex/lux.shp", package = "terra")
+vOrig &lt;- terra::vect(f)
+v &lt;- vOrig[1:2, ]
+#'
+utm &lt;- terra::crs("epsg:23028") # $wkt
+vInUTM &lt;- terra::project(vOrig, utm)
+vAsRasInLongLat &lt;- terra::rast(vOrig, resolution = 0.008333333)
+res100 &lt;- 100
+rInUTM &lt;- terra::rast(vInUTM, resolution = res100)
+# crop, reproject, mask, crop a raster with a vector in a different projection
+#  --&gt; gives message about not enough information
+t1 &lt;- postProcessTo(elev1, to = vInUTM)
+# crop, reproject, mask a raster to a different projection, then mask
+t2a &lt;- postProcessTo(elev1, to = vAsRasInLongLat, maskTo = vInUTM)
+
+
+# using gdal directly --&gt; slightly different mask
+opts &lt;- options(reproducible.gdalwarp = TRUE)
+t2b &lt;- postProcessTo(elev1, to = vAsRasInLongLat, maskTo = vInUTM)
+t3b &lt;- postProcessTo(elev1, to = rInUTM, maskTo = vInUTM)
+options(opts)
+</code></pre>
+
+
+</div>

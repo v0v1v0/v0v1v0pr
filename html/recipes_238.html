@@ -1,0 +1,198 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>step_sample</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Sample rows using dplyr</h2>
+
+<h3>Description</h3>
+
+<p><code>step_sample()</code> creates a <em>specification</em> of a recipe step that will sample
+rows using <code>dplyr::sample_n()</code> or <code>dplyr::sample_frac()</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">step_sample(
+  recipe,
+  ...,
+  role = NA,
+  trained = FALSE,
+  size = NULL,
+  replace = FALSE,
+  skip = TRUE,
+  id = rand_id("sample")
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>recipe</code></td>
+<td>
+<p>A recipe object. The step will be added to the
+sequence of operations for this recipe.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Argument ignored; included for consistency with other step
+specification functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>role</code></td>
+<td>
+<p>Not used by this step since no new variables are
+created.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trained</code></td>
+<td>
+<p>A logical to indicate if the quantities for
+preprocessing have been estimated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>size</code></td>
+<td>
+<p>An integer or fraction. If the value is within (0, 1),
+<code>dplyr::sample_frac()</code> is applied to the data. If an integer
+value of 1 or greater is used, <code>dplyr::sample_n()</code> is applied.
+The default of <code>NULL</code> uses <code>dplyr::sample_n()</code> with the size
+of the training set (or smaller for smaller <code>new_data</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>replace</code></td>
+<td>
+<p>Sample with or without replacement?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>skip</code></td>
+<td>
+<p>A logical. Should the step be skipped when the
+recipe is baked by <code>bake()</code>? While all operations are baked
+when <code>prep()</code> is run, some operations may not be able to be
+conducted on new data (e.g. processing the outcome variable(s)).
+Care should be taken when using <code>skip = FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id</code></td>
+<td>
+<p>A character string that is unique to this step to identify it.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An updated version of <code>recipe</code> with the new step added to the
+sequence of any existing operations.
+</p>
+
+
+<h3>Row Filtering</h3>
+
+<p>This step can entirely remove observations (rows of data), which can have
+unintended and/or problematic consequences when applying the step to new
+data later via <code>bake()</code>. Consider whether <code>skip = TRUE</code> or
+<code>skip = FALSE</code> is more appropriate in any given use case. In most instances
+that affect the rows of the data being predicted, this step probably should
+not be applied at all; instead, execute operations like this outside and
+before starting a preprocessing <code>recipe()</code>.
+</p>
+
+
+<h3>Tidying</h3>
+
+<p>When you <code>tidy()</code> this step, a tibble is returned with
+columns <code>terms</code>, <code>size</code>, <code>replace</code> , and <code>id</code>:
+</p>
+
+<dl>
+<dt>terms</dt>
+<dd>
+<p>character, the selectors or variables selected</p>
+</dd>
+<dt>size</dt>
+<dd>
+<p>numeric, amount of sampling</p>
+</dd>
+<dt>replace</dt>
+<dd>
+<p>logical, whether sampling is done with replacement</p>
+</dd>
+<dt>id</dt>
+<dd>
+<p>character, id of this step</p>
+</dd>
+</dl>
+<h3>Case weights</h3>
+
+<p>This step performs an unsupervised operation that can utilize case weights.
+As a result, case weights are only used with frequency weights. For more
+information, see the documentation in case_weights and the examples on
+<code>tidymodels.org</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other row operation steps: 
+<code>step_arrange()</code>,
+<code>step_filter()</code>,
+<code>step_impute_roll()</code>,
+<code>step_lag()</code>,
+<code>step_naomit()</code>,
+<code>step_shuffle()</code>,
+<code>step_slice()</code>
+</p>
+<p>Other dplyr steps: 
+<code>step_arrange()</code>,
+<code>step_filter()</code>,
+<code>step_mutate()</code>,
+<code>step_mutate_at()</code>,
+<code>step_rename()</code>,
+<code>step_rename_at()</code>,
+<code>step_select()</code>,
+<code>step_slice()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Uses `sample_n`
+recipe(~., data = mtcars) %&gt;%
+  step_sample(size = 1) %&gt;%
+  prep(training = mtcars) %&gt;%
+  bake(new_data = NULL) %&gt;%
+  nrow()
+
+# Uses `sample_frac`
+recipe(~., data = mtcars) %&gt;%
+  step_sample(size = 0.9999) %&gt;%
+  prep(training = mtcars) %&gt;%
+  bake(new_data = NULL) %&gt;%
+  nrow()
+
+# Uses `sample_n` and returns _at maximum_ 20 samples.
+smaller_cars &lt;-
+  recipe(~., data = mtcars) %&gt;%
+  step_sample() %&gt;%
+  prep(training = mtcars %&gt;% slice(1:20))
+
+bake(smaller_cars, new_data = NULL) %&gt;% nrow()
+bake(smaller_cars, new_data = mtcars %&gt;% slice(21:32)) %&gt;% nrow()
+</code></pre>
+
+
+</div>

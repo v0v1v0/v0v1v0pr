@@ -1,0 +1,759 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Renouv</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Fit a 'Renouvellement' model
+</h2>
+
+<h3>Description</h3>
+
+<p>Fit a 'renouvellement' POT model using Over the Threshold data and
+possibly historical data of two kinds.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">Renouv(x,
+       threshold = NULL,
+       effDuration = NULL,
+       distname.y = "exponential",
+       MAX.data = NULL,
+       MAX.effDuration = NULL,
+       OTS.data = NULL,
+       OTS.effDuration = NULL,
+       OTS.threshold = NULL,
+       fixed.par.y = NULL,
+       start.par.y = NULL,
+       force.start.H = FALSE,
+       numDeriv = TRUE,
+       trans.y = NULL,
+       jitter.KS = TRUE,
+       pct.conf = c(95, 70),
+       rl.prob = NULL,
+       prob.max = 1.0-1e-04 ,
+       pred.period = NULL,
+       suspend.warnings = TRUE,
+       control = list(maxit = 300, fnscale = -1),
+       control.H = list(maxit = 300, fnscale = -1),
+       trace = 0,
+       plot = TRUE,
+       label = "",
+       ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+
+<p>Can be a numeric vector, an object of the class <code>"Rendata"</code> or
+<code>NULL</code>.  In the first case, <code>x</code> contains all the levels
+above the threshold for a variable of interest.  In the second case,
+most formal arguments take values in accordance with the object
+content, and can be by-passed by giving the formal explicitly.  When
+<code>x</code> is <code>NULL</code>, the model is fitted using the data provided
+using the <code>OTS</code> and <code>MAX</code> formals.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threshold</code></td>
+<td>
+
+<p>Value of the threshold for the OT data.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>effDuration</code></td>
+<td>
+
+<p>Effective duration, i.e. duration of the OT period.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>distname.y</code></td>
+<td>
+
+<p>Name of the distribution for the excesses over the threshold. See
+<b>Details</b> below.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>MAX.data</code></td>
+<td>
+
+<p>Either a numeric vector or a list of numeric vectors representing
+historical data <code class="reqn">r</code>-max by blocks. When <em>a vector</em> is
+given, there is only one block, and the data are the corresponding
+<code class="reqn">r</code>-max observed levels where <code class="reqn">r</code> is the vector
+length; the block duration is given in <code>MAX.effDuration</code>. When
+<em>a list</em> is given, each list element contains the data for one
+block, and the effective duration are in <code>MAX.effDuration</code>
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>MAX.effDuration</code></td>
+<td>
+
+<p>Vector of (effective) durations, one by block MAX data.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>OTS.data</code></td>
+<td>
+
+<p>A numeric vector or a list of numeric vectors representing
+supplementary Over Threshold data in blocks. When a <em>vector</em> is
+given, there is only one block, and the data contain all the
+'historical' levels over the corresponding threshold given in
+<code>OTS.threshold</code>. The block duration is given in
+<code>OTS.effDuration</code>. When a <em>list</em> is given, each list
+element contains the data for one block, and the threshold and
+effective duration are in <code>OTS.threshold</code> and
+<code>OTS.effDuration</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>OTS.effDuration</code></td>
+<td>
+
+<p>A numeric vector giving the (effective) durations for the OTS
+blocks.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>OTS.threshold</code></td>
+<td>
+
+<p>A vector giving the thresholds for the different OTS blocks. The
+given values must be greater than or equal to the value of
+<code>threshold</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fixed.par.y</code></td>
+<td>
+
+<p>Named list of known (or fixed) parameter values for the
+<code>y</code>-distribution.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start.par.y</code></td>
+<td>
+
+<p>Named list of parameter initial values for the
+<code>y</code>-distribution. Only used when the distribution does not
+belong to the list of special distributions.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>force.start.H</code></td>
+<td>
+
+<p>Logical. When <code>TRUE</code>, the values in <code>start.par.y</code> (which
+must then be correct) will be used also as starting values in the
+maximisation of the global likelihood : OT data and historical
+data. This is useful e.g. when the historical data fall outside of
+the support for the distribution fitted without historical data. See
+below the <b>Details</b> section.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>numDeriv</code></td>
+<td>
+
+<p>Logical: should the hessian be computed using the <code>numDeriv</code>
+package (value <code>TRUE</code>) or should it be taken from the results
+of <code>optim</code>?
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trans.y</code></td>
+<td>
+
+<p>Transformation of the levels <em>before thresholding</em> (if not
+<code>NULL</code>).  This is only possible with the <code>"exponential"</code>
+value <code>distname.y</code>. The two allowed choices are <code>"square"</code>
+and <code>"log"</code> meaning that the fitted (exponentially distributed)
+values are <code>x.OT^2</code> <code>-threshold^2</code> and <code>log(x.OT)</code>
+<code>-log(threshold)</code> respectively.  The corresponding
+distributions for <code>x.OT</code> may be called "square-exponential" and
+"log-exponential".
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>jitter.KS</code></td>
+<td>
+
+<p>Logical. When set to <code>TRUE</code>, a small amount of noise is added
+to the "OT" data used in the Kolmogorov-Smirnov test in order to
+remove ties. This is done using the <code>OTjitter</code> function.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pct.conf</code></td>
+<td>
+
+<p>Character or numeric vector specifying the percentages for the
+confidence (bilateral) limits on quantiles.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rl.prob</code></td>
+<td>
+
+<p>Vector of probabilities for the computation of return levels.  These
+are used in plots (hence must be dense enough) and appear on output
+in the data.frame <code>ret.lev</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prob.max</code></td>
+<td>
+
+<p>Max value of probability for return level and confidence limits
+evaluations. This argument 'shortens' the default <code>prob</code>
+vector: values <code>&gt; prob.max</code> in the default <code>prob</code> vector
+are omitted. Ignored when a <code>prob</code> argument is given.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pred.period</code></td>
+<td>
+
+<p>A vector of "pretty" periods at which return level and probability
+will be evaluated and returned in the <code>pred</code> data.frame.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>suspend.warnings</code></td>
+<td>
+
+<p>Logical. If <code>TRUE</code>, the warnings will be suspended during
+optimisation steps. This is useful when the parameters are subject
+to constraints as is usually the case.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+
+<p>A named list used in <code>optim</code> for the no-history stage
+(if any). Note that <code>fnscale = -1</code> says that maximisation is
+required (not minimisation) and must not be changed!
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control.H</code></td>
+<td>
+
+<p>A named list used in <code>optim</code> for the historical stage
+(if any).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trace</code></td>
+<td>
+
+<p>Level of verbosity. Value <code>0</code> prints nothing.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+
+<p>Draw a return level plot?
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>label</code></td>
+<td>
+
+<p>Label to be used in the legend when <code>plot</code> is <code>TRUE</code>.
+</p>
+</td>
+</tr>
+</table>
+<table><tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>Arguments passed to <code>plot.Renouv</code>, e.g. <code>main</code>,
+<code>ylim</code>.
+</p>
+</td>
+</tr></table>
+<h3>Details</h3>
+
+<p>The model is fitted using Maximum Likelihood (ML).
+</p>
+<p>Some distributions listed below and here called "special" are
+considered in a special manner.  For these distributions, it is not
+necessary to give starting values nor parameter names which are
+unambiguous.
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+    distribution </td>
+<td style="text-align: left;"> parameters </td>
+</tr>
+<tr>
+<td style="text-align: left;"> 
+    <code>exponential</code> </td>
+<td style="text-align: left;"> <code>rate</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>weibull</code> </td>
+<td style="text-align: left;"> <code>shape</code>, <code>scale</code>
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>GPD</code> </td>
+<td style="text-align: left;"> <code>scale</code>, <code>shape</code>
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>gpd</code> </td>
+<td style="text-align: left;"> <code>scale</code>, <code>shape</code>
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>lomax</code> </td>
+<td style="text-align: left;"> <code>scale</code>, <code>shape</code>
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>maxlo</code> </td>
+<td style="text-align: left;"> <code>scale</code>, <code>shape</code>
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>log-normal</code> </td>
+<td style="text-align: left;"> <code>meanlog</code>,
+    <code>sdlog</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>gamma</code> </td>
+<td style="text-align: left;"> <code>shape</code>, <code>scale</code>
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>mixexp2</code> </td>
+<td style="text-align: left;"> <code>prob1</code>, <code>rate1</code>, <code>delta</code>
+  </td>
+</tr>
+</table>
+<p>Other distributions can be used. Because the probability functions are
+then used in a "black-box" fashion, these distributions should respect
+the following <em>formal requirements</em>:
+</p>
+
+<ol>
+<li>
+<p> The name for the <em>density</em>, <em>distribution</em> and
+<em>quantile</em> functions must obey to the <em>classical
+"prefixing convention"</em>. Prefixes must be respectively: <code>"d"</code>,
+<code>"p"</code>, <code>"q"</code>.  This rules applies for distribution of the
+<code>stats</code> package and those of many other packages such
+<code>evd</code>.
+</p>
+</li>
+<li> <p><em>The first (main) argument must be vectorisable</em> in all
+three functions, i.e. a vector of <code>x</code>, <code>q</code> or <code>p</code>
+must be accepted by the density, the distribution and the quantile
+functions.
+</p>
+</li>
+<li> <p><em>The density must have a</em> <code>log</code> <em>formal</em>
+argument. When <code>log</code> is <code>TRUE</code>, the log-density is
+returned instead of the density.
+</p>
+</li>
+</ol>
+<p>For such a distribution, it is necessary to give arguments names in
+<code>start.par.y</code>. The arguments list must have exactly the required
+number of parameters for the family (e.g. <code>2</code> for <code>gamma</code>).
+Some parameters can be fixed (known); then the parameter set will be
+the reunion of those appearing in <code>start.par.y</code> and those in
+<code>fixed.par.y</code>. Anyway, in the present version, <em>at least one
+parameter must be unknown</em> for the <code>y</code> part of the model.
+</p>
+<p><em>Mathematical requirements</em> exist for a correct use of ML. They
+are referred to as "regularity conditions" in ML theory. Note that the
+support of the distribution must be the set of non-negative real
+numbers.
+</p>
+<p>The estimation procedure differs according to the existence of
+the different types of data: main sample, MAX and OTS.
+</p>
+
+<ol>
+<li>
+<p> When no historical data is given, the whole set of parameters
+contains orthogonal subsets: a "point process" part
+concerning the process of events, and an "observation" part
+concerning the excesses over the threshold. The parameters can in this
+case be estimated separately. The rate of the Poisson process is estimated
+by the empirical rate, i.e. the number of events divided by the total
+duration given in <code>effDuration</code>. The  "Over the Threshold"
+parameters are estimated from the excesses computed as <code>x.OT</code> 
+minus the threshold.
+</p>
+</li>
+<li>
+<p> When historical data is given, the two parameter vectors must be
+coped with together in maximising the global likelihood. In this case,
+we begin the estimation ignoring the historical data and then use the
+estimates as starting values for the maximisation of the global
+likelihood. In some circumstances, the estimates obtained in the first
+stage can not be used with historical data because some of these fall
+outside the support of the distribution fitted. This can happen
+e.g. with a <code>distname.y = "gpd"</code> when historical data exceed
+<code>threshold</code> - <code>scale</code>/<code>shape</code> for the values of
+<code>shape</code> and <code>scale</code> computed in the first stage.
+</p>
+</li>
+<li>
+<p> From version 2.1-1 on, it is possible to use <code>OTS</code> and/or
+<code>MAX</code> data with no <code>OT</code> data by specifying <code>x =
+      NULL</code>. Yet at the time this is only possible <code>distname.y</code> takes
+one of the two values: <code>"exp"</code>, or <code>"gpd"</code>.  The initial
+values for the parameter are then obtained by using the
+<code>parIni.OTS</code>, <code>parIni.MAX</code> functions and
+possibly by combining the two resulting initial parameter
+vectors. This possibility can be used to fit a model from <em>block
+maxima</em> or <code class="reqn">r</code>-<em>largest</em> classical data but with more
+flexibility since the duration of the blocks may here not be constant.
+</p>
+</li>
+</ol>
+<p>The returned <code>Renouv</code> object contains a <code>MAX</code> element
+concerning the distribution of block maxima in the two following
+cases.
+</p>
+ 
+<ol>
+<li>
+<p> When <code>distname.y</code> is <code>"exponential"</code> or <code>"exp"</code>,
+the distribution of the maximum is Gumbel. The estimated parameters
+can be used with the <code>gumbel</code> function of the <b>evd</b> package.
+</p>
+</li>
+<li>
+<p> When  <code>distname.y</code> is <code>"gpd"</code>, <code>"lomax"</code>,
+<code>"maxlo"</code> or <code>"GPD"</code>  the distribution of the maximum
+is a Generalised Extreme Values distribution. The estimated parameters
+can be used with the <code>gev</code> function of the <b>evd</b> package.
+</p>
+</li>
+</ol>
+<h3>Value</h3>
+
+<p>An object with class <code>"Renouv"</code>. This is mainly a list with the
+various results.
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>est.N</code></td>
+<td>
+
+<p>Estimate(s) for the count <code>"N"</code> part. This estimate
+does not use the historical data, even if is available.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>est.y</code></td>
+<td>
+
+<p>Estimate(s) for the excess <code>"y"</code> part. This estimate does
+not use the historical data, even if available.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cov.N, cov.y</code></td>
+<td>
+
+<p>The (co-)variances for the estimates above.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estimate</code></td>
+<td>
+
+<p>Estimate(s) for the whole set of parameters based on OT data
+<b>and on historical data</b> if available.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ks.test</code></td>
+<td>
+
+<p>Kolmogorov-Smirnov goodness-of-fit test.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ret.lev</code></td>
+<td>
+
+<p>A data frame containing return levels and confidence limits. The
+corresponding probabilities are either provided by user or taken as
+default values.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pred</code></td>
+<td>
+
+<p>A data frame similar to <code>ret.lev</code>, but with "pretty" return
+periods. These are taken as the provided values <code>pred.period</code>
+if any or are chosen as "round" multiples of the time unit (taken
+from <code>effDuration</code>). The periods are chosen in order to cover
+periods ranging from 1/10 to 10 time units.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>MAX</code></td>
+<td>
+
+<p>A list providing the estimated distribution of the maximum of the
+marks over a block of unit duration. This list element only exists when
+this distribution can be deduced from the fit, which
+is the case when <code>distname.y</code> is a GPD in a broad sense,
+see <b>Details</b>.
+</p>
+</td>
+</tr>
+</table>
+<p>Other results are available. Use <code>names(result)</code> to see their
+list.
+</p>
+<p>Except in the the special case where <code>distname.y</code> is
+<code>"exponential"</code> and where no historical data are used, the
+inference on quantiles is obtained with the <em>delta method</em> and
+using numerical derivatives. Confidence limits are unreliable for
+return levels much greater than the observation-historical period.
+</p>
+<p>Due to the presence of estimated parameters, the Kolmogorov-Smirnov
+test is unreliable when less than 30 observations are available.
+</p>
+
+
+<h3>Warning</h3>
+
+<p>With some distributions or in presence of historical data, the
+estimation can fail due to some problem during the optimisation. Even
+when the optimisation converges, the determination of the (numerical)
+hessian can be impossible: This can happen if <em>one or more
+parameter is too small</em> to compute a finite difference approximation
+of gradient. For instance the 'rate' parameter of the exponential
+distribution (= inverse mean) will be small when the mean of
+the excesses is large.
+</p>
+<p>A possible solution is then to <b>rescale the data</b> e.g. dividing
+them by 10 or 100. As a rule of thumb, an acceptable scaling leads to
+data (excesses) of a few units to a few hundreds, but <b>an
+order of magnitude of thousands or more should be avoided and reduced
+by scaling</b>. The rescaling is recommended for the square exponential
+distribution (obtained with <code>trans =</code> <code>"square"</code>) since the
+observations are squared.
+</p>
+<p>Another possible way to solve the problem is to change the
+<code>numDeriv</code> value.
+</p>
+
+
+<h3>Note</h3>
+
+<p>The model only concerns the "Over the Threshold" part of the
+distribution of the observations. When historical data is used,
+observations should all be larger than the threshold.
+</p>
+<p>The name of the elements in the returned list is indicative, and is
+likely to be changed in future versions. At the time, the effect of
+historical data on estimation (when such data exist) can be evaluated
+by comparing <code>c(res$est.N, res$est.y)</code> and <code>res$estimate</code>
+where <code>res</code> is the results list.
+</p>
+<p>Some warnings may indicate that missing values are met during the
+optimisation process. This is due to the evaluation of the density at tail
+values. At the time the ML estimates are computed using an unconstrained
+optimisation, so invalid parameter values can be met during the
+maximisation or even be returned as (invalid) estimates. 
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Yves Deville
+</p>
+
+
+<h3>References</h3>
+
+
+<ul>
+<li>
+<p> Miquel J. (1984) <em>Guide pratique d'estimation des
+probabilités de crues</em>, Eyrolles (coll. EDF DER).
+</p>
+</li>
+<li>
+<p> Coles S. (2001) <em>Introduction to Statistical Modelling of Extremes
+Values</em>, Springer.
+</p>
+</li>
+<li>
+<p> Embrechts P., Klüppelberg C. and Mikosch T. (1997) <em>Modelling
+Extremal Events for Insurance and Finance</em>. Springer.
+</p>
+</li>
+</ul>
+<h3>See Also</h3>
+
+<p><code>RLplot</code> for the <em>return level plot</em>. See
+<code>optim</code> for the tuning of the optimisation. The
+<code>RenouvNoEst</code> can be used to create an object with S3
+class <code>"Renouv"</code> from known parameters.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Garonne data. Use a "Rendata" object as 'x'. Historical data are used!
+fit &lt;- Renouv(x = Garonne, distname = "weibull", trace = 1,
+              main = "'Garonne' data")
+summary(fit)
+
+## generates a warning because of the ties
+fit2 &lt;- Renouv(x = Garonne, distname = "GPD",
+               jitter.KS = FALSE,
+               threshold = 2800, trace = 1,
+               main = "'Garonne' data with threshold = 2800 and GPD fit")
+
+## use a numeric vector as 'x'
+fit3 &lt;-
+    Renouv(x = Garonne$OTdata$Flow,
+           threshold = 2500,
+           effDuration = 100,
+           distname = "GPD",
+           OTS.data = list(numeric(0), c(6800, 7200)),
+           OTS.effDuration = c(100, 150),
+           OTS.threshold = c(7000, 6000), 
+           trace = 1,
+           main = "'Garonne' data with artificial \"OTS\" data")
+## Add historical (fictive) data
+fit4 &lt;- Renouv(x = Garonne$OTdata$Flow,
+               threshold = 2500,
+               effDuration = 100,
+               distname = "weibull",
+               fixed.par.y = list(shape = 1.1),
+               OTS.data = list(numeric(0), c(6800, 7200)),
+               OTS.effDuration = c(100, 150),
+               OTS.threshold = c(7000, 6000),
+               trace = 0,
+               main = "'Garonne' data with artificial \"OTS\" data")
+
+##============================================================================
+## use the 'venice' dataset in a r-largest fit from the 'evd' package
+##============================================================================
+## transform data: each row is a block
+MAX.data &lt;- as.list(as.data.frame(t(venice)))
+## remove the NA imposed by the rectangular matrix format
+MAX.data &lt;- lapply(MAX.data, function(x) x[!is.na(x)])
+MAX.effDuration &lt;- rep(1, length(MAX.data))
+
+## fit a Renouv model with no OT data. The threshold
+## must be in the support of the gev distribution
+u &lt;- 66
+fit.gpd &lt;- Renouv(x = NULL,
+                  MAX.data = MAX.data,
+                  MAX.effDuration = MAX.effDuration,
+                  distname.y = "GPD",
+                  threshold = u,
+                  numDeriv = FALSE,
+                  trace = 0,
+                  plot = FALSE)
+## Not run: 
+  require(ismev)
+  ## compare with results from the ismev package 
+  fit.gev &lt;- rlarg.fit(venice)
+  est.gev &lt;- fit.gev$mle
+  names(est.gev) &lt;- c("loc", "scale", "shape")
+  
+  ## transform the 'gev' fit into a Ren parameter set.
+  cov.gev &lt;- fit.gev$cov
+  rownames(cov.gev) &lt;- colnames(cov.gev) &lt;-  c("loc", "scale", "shape")
+  trans &lt;- gev2Ren(est.gev,
+                   threshold = u,
+                   vcovGev = cov.gev)
+  est &lt;- cbind(ismev = trans, RenextLab = coef(fit.gpd))
+  colnames(est) &lt;- c("ismev", "RenextLab")
+  print(est)
+  
+  ## fill a 3d array with the two gpd covariance matrices
+  cov2 &lt;- attr(trans, "vcov")[c(1, 3, 4), c(1, 3, 4)]
+  
+  ## covariance
+  covs &lt;-
+    array(dim = c(2, 3, 3),
+          dimnames = list(c("ismev", "RenextLab"),
+            colnames(fit.gpd$cov), colnames(fit.gpd$cov)))
+  
+  covs["ismev", , ] &lt;- cov2
+  covs["RenextLab", , ] &lt;- fit.gpd$cov
+  print(covs)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

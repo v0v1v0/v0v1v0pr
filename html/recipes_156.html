@@ -1,0 +1,213 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>selections</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Methods for selecting variables in step functions</h2>
+
+<h3>Description</h3>
+
+<p>Tips for selecting columns in step functions.
+</p>
+
+
+<h3>Details</h3>
+
+<p>When selecting variables or model terms in <code>step</code>
+functions, <code>dplyr</code>-like tools are used. The <em>selector</em> functions
+can choose variables based on their name, current role, data
+type, or any combination of these. The selectors are passed as
+any other argument to the step. If the variables are explicitly
+named in the step function, this might look like:
+</p>
+<pre>
+  recipe( ~ ., data = USArrests) %&gt;%
+    step_pca(Murder, Assault, UrbanPop, Rape, num_comp = 3)
+</pre>
+<p>The first four arguments indicate which variables should be
+used in the PCA while the last argument is a specific argument
+to <code>step_pca()</code> about the number of components.
+</p>
+<p>Note that:
+</p>
+
+<ol>
+<li>
+<p> These arguments are not evaluated until the <code>prep</code>
+function for the step is executed.
+</p>
+</li>
+<li>
+<p> The <code>dplyr</code>-like syntax allows for negative signs to
+exclude variables (e.g. <code>-Murder</code>) and the set of selectors will
+processed in order.
+</p>
+</li>
+<li>
+<p> A leading exclusion in these arguments (e.g. <code>-Murder</code>)
+has the effect of adding <em>all</em> variables to the list except the
+excluded variable(s), ignoring role information.
+</p>
+</li>
+</ol>
+<p>Select helpers from the <code>tidyselect</code> package can also be used:
+<code>tidyselect::starts_with()</code>, <code>tidyselect::ends_with()</code>,
+<code>tidyselect::contains()</code>, <code>tidyselect::matches()</code>,
+<code>tidyselect::num_range()</code>, <code>tidyselect::everything()</code>,
+<code>tidyselect::one_of()</code>, <code>tidyselect::all_of()</code>, and
+<code>tidyselect::any_of()</code>
+</p>
+<p>Note that using <code>tidyselect::everything()</code> or any of the other <code>tidyselect</code>
+functions aren't restricted to predictors. They will thus select outcomes,
+ID, and predictor columns alike. This is why these functions should be used
+with care, and why <code>tidyselect::everything()</code> likely isn't what you need.
+</p>
+<p>For example:
+</p>
+<pre>
+  recipe(Species ~ ., data = iris) %&gt;%
+    step_center(starts_with("Sepal"), -contains("Width"))
+</pre>
+<p>would only select <code>Sepal.Length</code>
+</p>
+<p>Columns of the design matrix that may not exist when the step
+is coded can also be selected. For example, when using
+<code>step_pca()</code>, the number of columns created by feature extraction
+may not be known when subsequent steps are defined. In this
+case, using <code>matches("^PC")</code> will select all of the columns
+whose names start with "PC" <em>once those columns are created</em>.
+</p>
+<p>There are sets of recipes-specific functions that can be used to select
+variables based on their role or type: <code>has_role()</code> and
+<code>has_type()</code>. For convenience, there are also functions that are
+more specific. The functions <code>all_numeric()</code> and <code>all_nominal()</code> select
+based on type, with nominal variables including both character and factor;
+the functions <code>all_predictors()</code> and <code>all_outcomes()</code> select based on role.
+The functions <code>all_numeric_predictors()</code> and <code>all_nominal_predictors()</code>
+select intersections of role and type. Any can be used in conjunction with
+the previous functions described for selecting variables using their names.
+</p>
+<p>A selection like this:
+</p>
+<pre>
+  data(biomass)
+  recipe(HHV ~ ., data = biomass) %&gt;%
+    step_center(all_numeric(), -all_outcomes())
+</pre>
+<p>is equivalent to:
+</p>
+<pre>
+  data(biomass)
+  recipe(HHV ~ ., data = biomass) %&gt;%
+    step_center(all_numeric_predictors())
+</pre>
+<p>Both result in all the numeric predictors: carbon, hydrogen,
+oxygen, nitrogen, and sulfur.
+</p>
+<p>If a role for a variable has not been defined, it will never be
+selected using role-specific selectors.
+</p>
+
+
+<h4>Interactions</h4>
+
+<p>Selectors can be used in <code>step_interact()</code> in similar ways but
+must be embedded in a model formula (as opposed to a sequence
+of selectors). For example, the interaction specification
+could be <code>~ starts_with("Species"):Sepal.Width</code>. This can be
+useful if <code>Species</code> was converted to dummy variables
+previously using <code>step_dummy()</code>. The implementation of
+<code>step_interact()</code> is special, and is more restricted than
+the other step functions. Only the selector functions from
+recipes and tidyselect are allowed. User defined selector functions
+will not be recognized. Additionally, the tidyselect domain specific
+language is not recognized here, meaning that <code>&amp;</code>, <code>|</code>, <code>!</code>, and <code>-</code>
+will not work.
+</p>
+
+
+
+<h4>Tips for saving recipes and filtering columns</h4>
+
+<p>When creating variable selections:
+</p>
+
+<ul>
+<li>
+<p> If you are using column filtering steps, such as <code>step_corr()</code>, try to
+avoid hardcoding specific variable names in downstream steps in case
+those columns are removed by the filter. Instead, use
+<code>dplyr::any_of()</code> and
+<code>dplyr::all_of()</code>.
+</p>
+
+<ul>
+<li> <p><code>dplyr::any_of()</code> will be tolerant if a column
+has been removed.
+</p>
+</li>
+<li> <p><code>dplyr::all_of()</code> will fail unless all of the
+columns are present in the data.
+</p>
+</li>
+</ul>
+</li>
+<li>
+<p> For both of these functions, if you are going to save the recipe as a
+binary object to use in another R session, try to avoid referring to a
+vector in your workspace.
+</p>
+
+<ul>
+<li>
+<p> Preferred: <code>any_of(!!var_names)</code>
+</p>
+</li>
+<li>
+<p> Avoid: <code>any_of(var_names)</code>
+</p>
+</li>
+</ul>
+</li>
+</ul>
+<p>Some examples:
+</p>
+<div class="sourceCode r"><pre>some_vars &lt;- names(mtcars)[4:6]
+
+# No filter steps, OK for not saving the recipe
+rec_1 &lt;-
+  recipe(mpg ~ ., data = mtcars) %&gt;% 
+  step_log(all_of(some_vars)) %&gt;% 
+  prep()
+
+# No filter steps, saving the recipe
+rec_2 &lt;-
+  recipe(mpg ~ ., data = mtcars) %&gt;% 
+  step_log(!!!some_vars) %&gt;% 
+  prep()
+
+# This fails since `wt` is not in the data
+recipe(mpg ~ ., data = mtcars)  %&gt;% 
+  step_rm(wt) %&gt;% 
+  step_log(!!!some_vars) %&gt;% 
+  prep()
+</pre></div>
+<div class="sourceCode"><pre>## Error in `step_log()`:
+## Caused by error in `prep()` at recipes/R/recipe.R:479:9:
+## ! Can't select columns that don't exist.
+## x Column `wt` doesn't exist.
+</pre></div>
+<div class="sourceCode r"><pre># Best for filters (using any_of()) and when
+# saving the recipe
+rec_4 &lt;- 
+  recipe(mpg ~ ., data = mtcars) %&gt;% 
+  step_rm(wt) %&gt;% 
+  step_log(any_of(!!some_vars)) %&gt;% 
+  # equal to step_log(any_of(c("hp", "drat", "wt")))
+  prep()
+</pre></div>
+
+
+
+</div>

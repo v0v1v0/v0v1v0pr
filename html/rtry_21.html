@@ -1,0 +1,142 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rtry_trans_wider</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Transform data from long to wide table</h2>
+
+<h3>Description</h3>
+
+<p>This function transforms the original long table format of the data into a wide table format.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rtry_trans_wider(
+  input,
+  names_from = NULL,
+  values_from = NULL,
+  values_fn = NULL,
+  showOverview = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>input</code></td>
+<td>
+<p>Input data frame or data table.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>names_from</code></td>
+<td>
+<p>The column(s) from which the output column names to be obtained.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>values_from</code></td>
+<td>
+<p>The column(s) from which the output values to be obtained.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>values_fn</code></td>
+<td>
+<p>(Optional) Function to be applied to the output values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>showOverview</code></td>
+<td>
+<p>Default <code>TRUE</code> displays the dimension of the wide table.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A data frame of the transformed wide table.
+</p>
+
+
+<h3>References</h3>
+
+<p>This function makes use of the <code>pivot_wider</code> function
+within the <code>tidyr</code> package.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>rtry_select_row</code>, <code>rtry_select_col</code>, <code>rtry_select_anc</code>,
+<code>rtry_join_left</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Provide the standardized trait values per observation, together with species names
+# and the georeferences of the sampling site (Latitude and Longtude), if availalbe,
+# in a wide table format. Several steps are necessary:
+
+# 1. Select only the trait records that have standardized numeric values.
+#    The complete.cases() is used to ensure the cases are complete, i.e. have no
+#    missing values.
+num_traits &lt;- rtry_select_row(data_TRY_15160,
+                complete.cases(TraitID) &amp; complete.cases(StdValue))
+
+# 2. Select the relevant columns for transformation.
+num_traits &lt;- rtry_select_col(num_traits,
+                ObservationID, AccSpeciesID, AccSpeciesName, TraitID, TraitName,
+                StdValue, UnitName)
+
+# 3. Extract the values of georeferences and the corresponding ObservationID.
+lat &lt;- rtry_select_anc(data_TRY_15160, 59)
+lon &lt;- rtry_select_anc(data_TRY_15160, 60)
+
+# 4. Merge the relevant data frames based on the ObservationID using rtry_join_left().
+num_traits_georef &lt;- rtry_join_left(num_traits, lat, baseOn = ObservationID)
+num_traits_georef &lt;- rtry_join_left(num_traits_georef, lon, baseOn = ObservationID)
+
+# 5. Perform wide table transformation of TraitID, TraitName and UnitName based on
+#    ObservationID, AccSpeciesID and AccSpeciesName with cell values from StdValue.
+#    If several records with StdValue were provided for one trait with the same
+#    ObservationID, AccSpeciesID and AccSpeciesName, calculate their mean.
+num_traits_georef_wider &lt;- rtry_trans_wider(num_traits_georef,
+                             names_from = c(TraitID, TraitName, UnitName),
+                             values_from = c(StdValue),
+                             values_fn = list(StdValue = mean))
+
+# Expected messages:
+# dim:   150 28
+# dim:   150 7
+# col:   ObservationID AccSpeciesID AccSpeciesName TraitID TraitName
+#        StdValue UnitName
+#
+# dim:   98 2
+# col:   ObservationID Latitude
+#
+# dim:   97 2
+# col:   ObservationID Longitude
+#
+# dim:   150 8
+# col:   ObservationID AccSpeciesID AccSpeciesName TraitID TraitName
+#        StdValue UnitName Latitude
+#
+# dim:   150 9
+# col:   ObservationID AccSpeciesID AccSpeciesName TraitID TraitName
+#        StdValue UnitName Latitude Longitude
+#
+# dim:   146 7
+
+# Learn more via the vignette (Workflow for general data preprocessing using rtry):
+# vignette("rtry-workflow-general")
+</code></pre>
+
+
+</div>

@@ -1,0 +1,323 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fpca.face</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Functional principal component analysis with fast covariance estimation</h2>
+
+<h3>Description</h3>
+
+<p>A fast implementation of the sandwich smoother (Xiao et al., 2013)
+for covariance matrix smoothing. Pooled generalized cross validation
+at the data level is used for selecting the smoothing parameter.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fpca.face(
+  Y = NULL,
+  ydata = NULL,
+  Y.pred = NULL,
+  argvals = NULL,
+  pve = 0.99,
+  npc = NULL,
+  var = FALSE,
+  simul = FALSE,
+  sim.alpha = 0.95,
+  center = TRUE,
+  knots = 35,
+  p = 3,
+  m = 2,
+  lambda = NULL,
+  alpha = 1,
+  search.grid = TRUE,
+  search.length = 100,
+  method = "L-BFGS-B",
+  lower = -20,
+  upper = 20,
+  control = NULL,
+  periodicity = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Y, ydata</code></td>
+<td>
+<p>the user must supply either <code>Y</code>, a matrix of functions
+observed on a regular grid, or a data frame <code>ydata</code> representing
+irregularly observed functions. See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y.pred</code></td>
+<td>
+<p>if desired, a matrix of functions to be approximated using
+the FPC decomposition.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>argvals</code></td>
+<td>
+<p>numeric; function argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pve</code></td>
+<td>
+<p>proportion of variance explained: used to choose the number of
+principal components.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>npc</code></td>
+<td>
+<p>how many smooth SVs to try to extract, if <code>NA</code> (the
+default) the hard thresholding rule of Gavish and Donoho (2014) is used (see
+Details, References).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>var</code></td>
+<td>
+<p>logical; should an estimate of standard error be returned?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>simul</code></td>
+<td>
+<p>logical; if <code>TRUE</code> curves will we simulated using
+Monte Carlo to obtain an estimate of the <code>sim.alpha</code> quantile at each
+<code>argval</code>; ignored if <code>var == FALSE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sim.alpha</code></td>
+<td>
+<p>numeric; if <code>simul==TRUE</code>, quantile to estimate at
+each <code>argval</code>; ignored if <code>var == FALSE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>center</code></td>
+<td>
+<p>logical; center <code>Y</code> so that its column-means are 0? Defaults to
+<code>TRUE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>knots</code></td>
+<td>
+<p>number of knots to use or the vectors of knots; defaults to 35</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>integer; the degree of B-splines functions to use</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m</code></td>
+<td>
+<p>integer; the order of difference penalty to use</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>smoothing parameter; if not specified smoothing parameter is
+chosen using <code>optim</code> or a grid search</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>numeric; tuning parameter for GCV; see parameter <code>gamma</code>
+in <code>gam</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>search.grid</code></td>
+<td>
+<p>logical; should a grid search be used to find <code>lambda</code>?
+Otherwise, <code>optim</code> is used</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>search.length</code></td>
+<td>
+<p>integer; length of grid to use for grid search for
+<code>lambda</code>; ignored if <code>search.grid</code> is <code>FALSE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>method to use; see <code>optim</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lower</code></td>
+<td>
+<p>see <code>optim</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>upper</code></td>
+<td>
+<p>see <code>optim</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>see <code>optim</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>periodicity</code></td>
+<td>
+<p>Option for a periodic spline basis. Defaults to FALSE.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list with components
+</p>
+
+<ol>
+<li> <p><code>Yhat</code> - If <code>Y.pred</code> is specified, the smooth version of
+<code>Y.pred</code>.   Otherwise, if <code>Y.pred=NULL</code>, the smooth version of <code>Y</code>.
+</p>
+</li>
+<li> <p><code>scores</code> - matrix of scores
+</p>
+</li>
+<li> <p><code>mu</code> - mean function
+</p>
+</li>
+<li> <p><code>npc</code> - number of principal components
+</p>
+</li>
+<li> <p><code>efunctions</code> - matrix of eigenvectors
+</p>
+</li>
+<li> <p><code>evalues</code> - vector of eigenvalues
+</p>
+</li>
+<li> <p><code>pve</code> - The percent variance explained by the returned number of PCs
+</p>
+</li>
+</ol>
+<p>if <code>var == TRUE</code> additional components are returned
+</p>
+
+<ol>
+<li> <p><code>sigma2</code> - estimate of the error variance
+</p>
+</li>
+<li> <p><code>VarMats</code> - list of covariance function estimate for each
+subject
+</p>
+</li>
+<li> <p><code>diag.var</code> - matrix containing the diagonals of each matrix in
+</p>
+</li>
+<li> <p><code>crit.val</code> - list of estimated quantiles; only returned if
+<code>simul == TRUE</code>
+</p>
+</li>
+</ol>
+<h3>Author(s)</h3>
+
+<p>Luo Xiao
+</p>
+
+
+<h3>References</h3>
+
+<p>Xiao, L., Li, Y., and Ruppert, D. (2013).
+Fast bivariate <em>P</em>-splines: the sandwich smoother,
+<em>Journal of the Royal Statistical Society: Series B</em>, 75(3), 577-599.
+</p>
+<p>Xiao, L., Ruppert, D., Zipunnikov, V., and Crainiceanu, C. (2016).
+Fast covariance estimation for high-dimensional functional data.
+<em>Statistics and Computing</em>, 26, 409-421.
+DOI: 10.1007/s11222-014-9485-x.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>fpca.sc</code>  for another covariance-estimate based
+smoothing of <code>Y</code>; <code>fpca2s</code> and <code>fpca.ssvd</code>
+for two SVD-based smoothings.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#### settings
+I &lt;- 50 # number of subjects
+J &lt;- 3000 # dimension of the data
+t &lt;- (1:J)/J # a regular grid on [0,1]
+N &lt;- 4 #number of eigenfunctions
+sigma &lt;- 2 ##standard deviation of random noises
+lambdaTrue &lt;- c(1,0.5,0.5^2,0.5^3) # True eigenvalues
+
+case = 1
+### True Eigenfunctions
+
+if(case==1) phi &lt;- sqrt(2)*cbind(sin(2*pi*t),cos(2*pi*t),
+                                sin(4*pi*t),cos(4*pi*t))
+if(case==2) phi &lt;- cbind(rep(1,J),sqrt(3)*(2*t-1),
+                          sqrt(5)*(6*t^2-6*t+1),
+                         sqrt(7)*(20*t^3-30*t^2+12*t-1))
+
+###################################################
+########     Generate Data            #############
+###################################################
+xi &lt;- matrix(rnorm(I*N),I,N);
+xi &lt;- xi %*% diag(sqrt(lambdaTrue))
+X &lt;- xi %*% t(phi); # of size I by J
+Y &lt;- X + sigma*matrix(rnorm(I*J),I,J)
+
+results &lt;- fpca.face(Y,center = TRUE, argvals=t,knots=100,pve=0.99)
+
+# calculate percent variance explained by each PC
+ evalues = results$evalues
+ pve_vec = evalues * results$npc/sum(evalues)
+
+###################################################
+####               FACE                ########
+###################################################
+Phi &lt;- results$efunctions
+eigenvalues &lt;- results$evalues
+
+for(k in 1:N){
+  if(Phi[,k] %*% phi[,k]&lt; 0)
+    Phi[,k] &lt;- - Phi[,k]
+}
+
+### plot eigenfunctions
+par(mfrow=c(N/2,2))
+seq &lt;- (1:(J/10))*10
+for(k in 1:N){
+  plot(t[seq],Phi[seq,k]*sqrt(J),type="l",lwd = 3,
+       ylim = c(-2,2),col = "red",
+       ylab = paste("Eigenfunction ",k,sep=""),
+       xlab="t",main="FACE")
+
+  lines(t[seq],phi[seq,k],lwd = 2, col = "black")
+}
+</code></pre>
+
+
+</div>

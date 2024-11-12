@@ -1,0 +1,375 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>prevalence</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate point prevalence at an index date.</h2>
+
+<h3>Description</h3>
+
+<p>Point prevalence at a specific index date is estimated using contributions to
+prevalence from both available registry data, and from Monte Carlo
+simulations of the incidence and survival process, as outlined by Crouch et
+al (2004) (see References).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">prevalence(
+  index,
+  num_years_to_estimate,
+  data,
+  inc_formula = NULL,
+  inc_model = NULL,
+  surv_formula = NULL,
+  surv_model = NULL,
+  registry_start_date = NULL,
+  death_column = NULL,
+  incident_column = NULL,
+  age_column = "age",
+  age_dead = 100,
+  status_column = "status",
+  N_boot = 1000,
+  population_size = NULL,
+  proportion = 1e+05,
+  level = 0.95,
+  dist = c("exponential", "weibull", "lognormal"),
+  precision = 2
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>index</code></td>
+<td>
+<p>The date at which to estimate point prevalence as a string in the format
+YYYY-MM-DD.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>num_years_to_estimate</code></td>
+<td>
+<p>Number of years of data to consider when
+estimating point prevalence; multiple values can be specified in a vector.
+If any values are greater than the number of years of registry data
+available before <code>index_date</code>, incident cases
+for the difference will be simulated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame with the corresponding column names provided in
+<code>form</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inc_formula</code></td>
+<td>
+<p>A formula specifying the columns used in the incidence process.
+The LHS should be the name of the column holding the incident dates,
+with the RHS specifying any variables that should be stratified by, or 1 if no
+stratification. For example, with the supplied <code>prevsim</code> data set, it could
+be used as follows:
+</p>
+<p><code>entrydate ~ 1</code> for a non-stratified process.
+<code>entrydate ~ sex</code> for a process that will stratify incidence by sex.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inc_model</code></td>
+<td>
+<p>An object that has a <code>draw_incident_population</code>
+method. See the vignette for further guidance.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>surv_formula</code></td>
+<td>
+<p>A formula used to specify a survival model, where the
+LHS a Surv object, as used by <code>flexsurvreg</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>surv_model</code></td>
+<td>
+<p>An object that has a <code>predict_survival_probability</code>
+method. See the vignette for further guidance.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>registry_start_date</code></td>
+<td>
+<p>The starting date of the registry. If not supplied
+then defaults to the earliest incidence date in the supplied data set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>death_column</code></td>
+<td>
+<p>A string providing the name of the column which holds the death
+date information. If not provided then prevalence cannot be counted and estimates
+will be solely derived from simulation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>incident_column</code></td>
+<td>
+<p>A string providing the name of the column which holds the diagnosis
+date. If not provided either in this argument or in <code>inc_formula</code>,
+then prevalence cannot be counted and estimates will be solely derived from simulation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>age_column</code></td>
+<td>
+<p>A string providing the name of the column that holds patient age. If provided
+then patients alive at <code>age_dead</code> are set to die. This helps combat 'immortal' patients.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>age_dead</code></td>
+<td>
+<p>The age at which patients are set to be dead if they are still alive, to prevent
+'immortal' patients. Used in conjunction with <code>age_column</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>status_column</code></td>
+<td>
+<p>A string providing the name of the column that holds patient event status at
+the event time. If not provided in <code>surv_formula</code> or in this argument then prevalence
+cannot be counted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>N_boot</code></td>
+<td>
+<p>Number of bootstrapped calculations to perform.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>population_size</code></td>
+<td>
+<p>Integer corresponding to the size of the population at
+risk.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>proportion</code></td>
+<td>
+<p>The population ratio to estimate prevalence for.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>level</code></td>
+<td>
+<p>Double representing the desired confidence interval width.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dist</code></td>
+<td>
+<p>The distribution used by the default parametric survival model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>precision</code></td>
+<td>
+<p>Integer representing the number of decimal places required.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The most important parameter is <code>num_years_to_estimate</code>, which governs
+the number of previous years of data to use when estimating the prevalence at
+the index date. If this parameter is greater than the number of years of
+known incident cases available in the supplied registry data (specified with
+argument <code>num_registry_years</code>), then the remaining
+<code>num_years_to_estimate - num_registry_years</code> years of incident data will
+be simulated using Monte Carlo simulation.
+</p>
+<p>The larger <code>num_years_to_estimate</code>, the more accurate the prevalence
+estimate will be, provided an adequate survival model can be fitted to the
+registry data. It is therefore important to provide as much clean registry
+data as possible.
+</p>
+<p>Prevalence arises from two stochastic processes: incidence and survival.
+This is reflected in the function arguments by multiple options for
+each of these processes.
+</p>
+<p>The incidence process is specified by an object
+that has an associated <code>draw_incident_population</code> method, which produces the new
+incident population. The default implementation is a homogeneous Poisson process,
+whereby interarrival times are distributed according to an exponential distribution.
+The <code>inc_formula</code> argument specifies the nature of this process, see the
+description for more details. See the vignette for guidance on providing a custom incidence
+object.
+</p>
+<p>The survival process is characterised by a method <code>predict_survival_probability</code>,
+that estimates the probability of a given individual being alive at the index date.
+The default object is a parametric distribution with the functional form being specified
+in <code>surv_formula</code> and distribution given in <code>dist</code>. See the vignette for guidance
+on providing a custom survival model.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>prevalence</code> object containing the following attributes:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>estimates</code></td>
+<td>
+<p>Prevalence estimates at the specified years as both absolute and rates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>simulated</code></td>
+<td>
+<p>A <code>data.table</code> containing simulated incident cases from each bootstrap iteration
+Each row corresponds to a simulated incident case with their simulated attributes and survival status.
+Binary flags are provided beginning <code>prev_</code>, which indicate whether that person contributed
+to the prevalence for the specified time-period. The <code>prev_registry</code> flag indicates whether that
+person was incident during the registry time-span and alive at the index. These cases are used to
+assess the model fit, as the numbers can be simply compared to the known registry prevalence.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>counted</code></td>
+<td>
+<p>The number of incident cases present in the registry data set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>full_surv_model</code></td>
+<td>
+<p>The survival model built on the complete registry data set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>full_inc_model</code></td>
+<td>
+<p>The incidence model built on the complete registry data set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>surv_models</code></td>
+<td>
+<p>A list of the survival models fitted to each bootstrap iteration.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inc_models</code></td>
+<td>
+<p>A list of the incidence models fitted to each bootstrap iteration.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>index_date</code></td>
+<td>
+<p>The index date.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>est_years</code></td>
+<td>
+<p>The years at which prevalence is estimated at.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>counted_incidence_rate</code></td>
+<td>
+<p>The overall incidence rate in the registry data set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>registry_start</code></td>
+<td>
+<p>The date the registry was identified at starting at.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>proportion</code></td>
+<td>
+<p>The denominator to use for estimating prevalence rates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>status_col</code></td>
+<td>
+<p>The column in the registry data containing the survival status.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>N_boot</code></td>
+<td>
+<p>The number of bootstrap iterations that were run.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>means</code></td>
+<td>
+<p>Covariate means, used when plotting Kaplan-Meier estimators using <code>survfit</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_event_time</code></td>
+<td>
+<p>The maximum time-to-event in the registry data. Again, used in
+<code>survfit</code> to scale the time-axis.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pval</code></td>
+<td>
+<p>The p-value resulting from a hypothesis test on the difference between the
+simulated and counted prevalence on the time-span covered by the registry. Tests the
+prevalence fit; if a significant result is found then further diagnostics are required.</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Crouch, Simon, et al. "Determining disease prevalence from
+incidence and survival using simulation techniques." Cancer epidemiology
+38.2 (2014): 193-199.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other prevalence functions: 
+<code>test_prevalence_fit()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(prevsim)
+
+## Not run: 
+data(prevsim)
+
+prevalence(index='2013-01-30',
+           num_years_to_estimate=c(3, 5, 10, 20),
+           data=prevsim,
+           inc_formula = entrydate ~ sex,
+           surv_formula = Surv(time, status) ~ age + sex,
+           dist='weibull',
+           population_size = 1e6,
+           death_column = 'eventdate')
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

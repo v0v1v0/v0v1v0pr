@@ -1,0 +1,111 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>merge_knn</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Merge multiple approximate nearest neighbors graphs</h2>
+
+<h3>Description</h3>
+
+<p><code>merge_knn</code> takes a list of nearest neighbor graphs and merges them into a
+single graph, with the same number of neighbors as the first graph. This is
+useful to combine the results of multiple different nearest neighbor
+searches: the output will be at least as accurate as the most accurate of the
+two input graphs, and ideally will be more accurate than either.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">merge_knn(graphs, is_query = FALSE, n_threads = 0, verbose = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>graphs</code></td>
+<td>
+<p>A list of nearest neighbor graphs to merge. Each item in the
+list should consist of a sub-list containing:
+</p>
+
+<ul>
+<li> <p><code>idx</code> an n by k matrix containing the k nearest neighbor indices.
+</p>
+</li>
+<li> <p><code>dist</code> an n by k matrix containing k nearest neighbor distances.
+The number of neighbors can differ between graphs, but the merged result
+will have the same number of neighbors as the first graph in the list.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>is_query</code></td>
+<td>
+<p>If <code>TRUE</code> then the graphs are treated as the result of a knn
+query, not a knn building process. Or: is the graph bipartite? This should
+be set to <code>TRUE</code> if <code>nn_graphs</code> are the results of using e.g.
+<code>graph_knn_query()</code> or <code>random_knn_query()</code>, and set to <code>FALSE</code> if these
+are the results of <code>nnd_knn()</code> or <code>random_knn()</code>. The difference is that if
+<code>is_query = FALSE</code>, if an index <code>p</code> is found in <code>nn_graph1[i, ]</code>, i.e. <code>p</code>
+is a neighbor of <code>i</code> with distance <code>d</code>, then it is assumed that <code>i</code> is a
+neighbor of <code>p</code> with the same distance. If <code>is_query = TRUE</code>, then <code>i</code> and
+<code>p</code> are indexes into two different datasets and the symmetry does not hold.
+If you aren't sure what case applies to you, it's safe (but potentially
+inefficient) to set <code>is_query = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_threads</code></td>
+<td>
+<p>Number of threads to use.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>If <code>TRUE</code>, log information to the console.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>a list containing:
+</p>
+
+<ul>
+<li> <p><code>idx</code> an n by k matrix containing the merged nearest neighbor indices.
+</p>
+</li>
+<li> <p><code>dist</code> an n by k matrix containing the merged nearest neighbor distances.
+</p>
+</li>
+</ul>
+<p>The size of <code>k</code> in the output graph is the same as that of the first
+item in <code>nn_graphs</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">set.seed(1337)
+# Nearest neighbor descent with 15 neighbors for iris three times,
+# starting from a different random initialization each time
+iris_rnn1 &lt;- nnd_knn(iris, k = 15, n_iters = 1)
+iris_rnn2 &lt;- nnd_knn(iris, k = 15, n_iters = 1)
+iris_rnn3 &lt;- nnd_knn(iris, k = 15, n_iters = 1)
+
+# Merged results should be an improvement over individual results
+iris_mnn &lt;- merge_knn(list(iris_rnn1, iris_rnn2, iris_rnn3))
+sum(iris_mnn$dist) &lt; sum(iris_rnn1$dist)
+sum(iris_mnn$dist) &lt; sum(iris_rnn2$dist)
+sum(iris_mnn$dist) &lt; sum(iris_rnn3$dist)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,196 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>huber2</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Weighted Huber Proposal 2 Estimator</h2>
+
+<h3>Description</h3>
+
+<p>Weighted Huber Proposal 2 estimator of location and scatter.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">huber2(x, w, k = 1.5, na.rm = FALSE, maxit = 50, tol = 1e-04, info = FALSE,
+       k_Inf = 1e6, df_cor = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><code>[numeric vector]</code> data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w</code></td>
+<td>
+<p><code>[numeric vector]</code> weights (same length as <code>x</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p><code>[double]</code> robustness tuning constant
+(<code class="reqn">0 &lt; k \leq \infty</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na.rm</code></td>
+<td>
+<p><code>[logical]</code> indicating whether <code>NA</code> values should
+be removed before the computation proceeds (default: <code>FALSE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxit</code></td>
+<td>
+<p><code>[integer]</code> maximum number of iterations to use
+(default: <code>50</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p><code>[double]</code> numerical tolerance criterion to stop the
+iterations (default: <code>1e-04</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>info</code></td>
+<td>
+<p><code>[logical]</code> indicating whether additional information
+should be returned (default: <code>FALSE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k_Inf</code></td>
+<td>
+<p><code>[integer]</code> numerical value that represents <code>Inf</code>
+(default: <code>1e+06</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>df_cor</code></td>
+<td>
+<p><code>[logical]</code> if <code>TRUE</code>, the degrees of freedom of
+the estimate of scale is adjusted (default: <code>TRUE</code>).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Function <code>huber2</code> computes the weighted Huber (1964) Proposal 2
+estimates of location and scale.
+</p>
+<p>The method is initialized by the weighted median (location) and the
+weighted interquartile range (scale).
+</p>
+
+
+<h3>Value</h3>
+
+<p>The return value depends on <code>info</code>: </p>
+
+<dl>
+<dt>
+<code>info = FALSE</code>:</dt>
+<dd>
+<p>estimate of mean or total <code>[double]</code></p>
+</dd>
+<dt>
+<code>info = TRUE</code>:</dt>
+<dd>
+<p>a <code>[list]</code> with items:
+</p>
+
+<ul>
+<li> <p><code>characteristic</code> <code>[character]</code>,
+</p>
+</li>
+<li> <p><code>estimator</code> <code>[character]</code>,
+</p>
+</li>
+<li> <p><code>estimate</code> <code>[double]</code>,
+</p>
+</li>
+<li> <p><code>variance</code> (default: <code>NA</code>),
+</p>
+</li>
+<li> <p><code>robust</code> <code>[list]</code>,
+</p>
+</li>
+<li> <p><code>residuals</code> <code>[numeric vector]</code>,
+</p>
+</li>
+<li> <p><code>model</code> <code>[list]</code>,
+</p>
+</li>
+<li> <p><code>design</code> (default: <code>NA</code>),
+</p>
+</li>
+<li> <p><code>[call]</code>
+</p>
+</li>
+</ul>
+</dd>
+</dl>
+<h3>Comparison</h3>
+
+<p>The <code>huber2</code> estimator is initialized by the weighted median and
+the weighted (scaled) interquartile range. For unweighted data, this
+estimator <em>differs</em> from <code>hubers</code> in <span class="pkg">MASS</span>,
+which is initialized by <code>mad</code>.
+</p>
+<p>The difference between the estimators is usually negligible (for
+sufficiently small values of <code>tol</code>). See examples.
+</p>
+
+
+<h3>References</h3>
+
+<p>Huber, P. J. (1964). Robust Estimation of a Location Parameter.
+<em>Annals of Mathematical Statistics</em> <b>35</b>, 73–101.
+<a href="https://doi.org/10.1214/aoms/1177703732">doi:10.1214/aoms/1177703732</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">head(workplace)
+
+# Weighted "Proposal 2" estimator of the mean
+huber2(workplace$employment, workplace$weight, k = 8)
+
+# More information on the estimate, i.e., info = TRUE
+m &lt;- huber2(workplace$employment, workplace$weight, k = 8, info = TRUE)
+
+# Estimate of scale
+m$scale
+
+# Comparison with MASS::hubers (without weights). We make a copy of MASS::hubers
+library(MASS)
+hubers_mod &lt;- hubers
+
+# Then we replace mad by the (scaled) IQR as initial scale estimator
+body(hubers_mod)[[7]][[3]][[2]] &lt;- substitute(s0 &lt;- IQR(y, type = 2) * 0.7413)
+
+# Define the numerical tolerance
+TOLERANCE &lt;- 1e-8
+
+# Comparison
+m1 &lt;- huber2(workplace$payroll, rep(1, 142), tol = TOLERANCE)
+m2 &lt;- hubers_mod(workplace$payroll, tol = TOLERANCE)$mu
+m1 / m2 - 1
+
+# The absolute relative difference is &lt; 4.0-09 (smaller than TOLERANCE)
+</code></pre>
+
+
+</div>

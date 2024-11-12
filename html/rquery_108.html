@@ -1,0 +1,160 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>sql_node</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Make a general SQL node.</h2>
+
+<h3>Description</h3>
+
+<p>Make a general SQL node.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">sql_node(
+  source,
+  exprs,
+  ...,
+  mods = NULL,
+  orig_columns = TRUE,
+  expand_braces = TRUE,
+  translate_quotes = TRUE,
+  env = parent.frame()
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>source</code></td>
+<td>
+<p>source to work from.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exprs</code></td>
+<td>
+<p>SQL expressions</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>force later arguments to bind by name</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mods</code></td>
+<td>
+<p>SQL modifiers (GROUP BY, ORDER BY, and so on)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>orig_columns</code></td>
+<td>
+<p>logical if TRUE select all original columns.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>expand_braces</code></td>
+<td>
+<p>logical if TRUE use col notation to ensure col is a column name.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>translate_quotes</code></td>
+<td>
+<p>logical if TRUE translate quotes to SQL choice (simple replacement, no escaping).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>env</code></td>
+<td>
+<p>environment to look to.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>sql node.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+if (requireNamespace("DBI", quietly = TRUE) &amp;&amp; requireNamespace("RSQLite", quietly = TRUE)) {
+  # example database connection
+  my_db &lt;- DBI::dbConnect(RSQLite::SQLite(),
+                          ":memory:")
+  # load up example data
+  d &lt;- rq_copy_to(
+    my_db, 'd',
+    data.frame(v1 = c(1, 2, NA, 3),
+               v2 = c(NA, "b", NA, "c"),
+               v3 = c(NA, NA, 7, 8),
+               stringsAsFactors = FALSE))
+
+  # look at table
+  execute(my_db, d)
+
+  # get list of columns
+  vars &lt;- column_names(d)
+  print(vars)
+
+  # build a NA/NULLs per-row counting expression.
+  # names are "quoted" by wrapping them with as.name().
+  # constants can be quoted by an additional list wrapping.
+  expr &lt;- lapply(vars,
+                 function(vi) {
+                   list("+ (CASE WHEN (",
+                        as.name(vi),
+                        "IS NULL ) THEN 1.0 ELSE 0.0 END)")
+                 })
+  expr &lt;- unlist(expr, recursive = FALSE)
+  expr &lt;- c(list(0.0), expr)
+  cat(paste(unlist(expr), collapse = " "))
+
+  # instantiate the operator node
+  op_tree &lt;- d %.&gt;%
+    sql_node(., "num_missing" %:=% list(expr))
+  cat(format(op_tree))
+
+  # examine produced SQL
+  sql &lt;- to_sql(op_tree, my_db)
+  cat(sql)
+
+  # execute
+  execute(my_db, op_tree) %.&gt;%
+     print(.)
+
+  # whole process wrapped in convenience node
+  op_tree2 &lt;- d %.&gt;%
+    count_null_cols(., vars, "nnull")
+  execute(my_db, op_tree2) %.&gt;%
+    print(.)
+
+  # sql_node also allows marking variable in quoted expressions
+  ops &lt;- d %.&gt;%
+     sql_node(., qae(sqrt_v1 = sqrt(.[v1])))
+  execute(my_db, ops) %.&gt;%
+     print(.)
+  # marking variables allows for error-checking of column names
+  tryCatch({
+    ops &lt;- d %.&gt;%
+      sql_node(., qae(sqrt_v1 = sqrt(.[v1_misspellled])))
+    },
+    error = function(e) {print(e)})
+
+  DBI::dbDisconnect(my_db)
+}
+
+</code></pre>
+
+
+</div>

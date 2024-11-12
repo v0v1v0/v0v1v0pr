@@ -1,0 +1,155 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>biasVarCov</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Bias-Variance-Covariance Decomposition
+</h2>
+
+<h3>Description</h3>
+
+<p>Bias-Variance-Covariance decomposition for Mean Squared Error (MSE) or test error in binary classification, between a response vector and its estimate, over the test sample. For every estimate, based on training examples, MSE on the test sample, between values of the response and values of the estimate, can be decomposed in noise (variance of the response), squared bias (between response and estimate), variance (of the estimate) and covariance (of the response and the estimate). Same decomposition arrives for binary classification with responses in {0, 1}.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">biasVarCov(predictions, target, regression = FALSE, idx = 1:length(target))
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>predictions</code></td>
+<td>
+
+<p>vector of predictions for the test sample.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target</code></td>
+<td>
+
+<p>response vector for the test sample.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>regression</code></td>
+<td>
+
+<p>if TRUE, decomposition is done for regression. If FALSE, for classification.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>idx</code></td>
+<td>
+
+<p>not currently used.
+</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>a list with the following components :
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>MSE, predError</code></td>
+<td>
+<p>mean squared error or test error for the test sample.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>squaredBias</code></td>
+<td>
+<p>squared bias.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predictionsVar</code></td>
+<td>
+<p>variance of the estimate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predictionsTargetCov</code></td>
+<td>
+<p>covariance between estimate and response.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Saip Ciss <a href="mailto:saip.ciss@wanadoo.fr">saip.ciss@wanadoo.fr</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">n = 100;  p = 10
+# simulate 'p' gaussian vectors with random parameters between -10 and 10.
+X &lt;- simulationData(n,p)
+
+# make a rule to create response vector
+epsilon1 = runif(n,-1,1)
+epsilon2 = runif(n,-1,1)
+rule = 2*(X[,1]*X[,2] + X[,3]*X[,4]) + epsilon1*X[,5] + epsilon2*X[,6]
+
+# Classification
+Y &lt;- as.factor(ifelse(rule &gt; mean(rule), 1, 0))
+
+# define random train and test sample of (X,Y)
+trainTestIdx &lt;- cut(sample(1:nrow(X), nrow(X)), 2, labels= FALSE)
+
+# training sample
+Xtrain = X[trainTestIdx == 1,]
+Ytrain = Y[trainTestIdx == 1]
+
+# test sample
+Xtest = X[trainTestIdx == 2,]
+Ytest = Y[trainTestIdx == 2]
+
+# learning model
+synthDataset.ruf &lt;- randomUniformForest(Xtrain, Ytrain, threads = 1, 
+ntree = 20, BreimanBounds = FALSE)
+synthDataset.pred.ruf &lt;- predict(synthDataset.ruf, Xtest)
+
+# test error
+testError = 1 - sum(synthDataset.pred.ruf == Ytest)/length(Ytest)
+testError
+
+# test error decomposition
+testError.dec &lt;- biasVarCov(synthDataset.pred.ruf, Ytest, regression = FALSE)
+
+# Regression
+Y = rule
+
+# training sample
+Xtrain = X[trainTestIdx == 1,]
+Ytrain = Y[trainTestIdx == 1]
+
+# test sample
+Xtest = X[trainTestIdx == 2,]
+Ytest = Y[trainTestIdx == 2]
+
+# learning model
+synthDataset.ruf &lt;- randomUniformForest(Xtrain, Ytrain, threads = 1,
+ntree = 20, BreimanBounds = FALSE)
+synthDataset.pred.ruf &lt;- predict(synthDataset.ruf, Xtest)
+
+# MSE
+MSE &lt;- sum((synthDataset.pred.ruf - Ytest)^2)/length(Ytest)
+
+# test error decomposition
+MSE.dec &lt;- biasVarCov(synthDataset.pred.ruf, Ytest, regression = TRUE)
+</code></pre>
+
+
+</div>

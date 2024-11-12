@@ -1,0 +1,219 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>SolrList-class</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>SolrList</h2>
+
+<h3>Description</h3>
+
+<p>The <code>SolrList</code> object makes Solr data accessible through a
+list-like interface. This interface is appropriate when the data are
+highly ragged.
+</p>
+
+
+<h3>Details</h3>
+
+<p>A <code>SolrList</code> should more or less behave analogously to a list. It
+provides the same basic accessors (<code>length</code>,
+<code>names</code>, <code>[</code>, <code>[&lt;-</code>,
+<code>[[</code>, <code>[[&lt;-</code>, <code>$</code>,
+<code>$&lt;-</code>, <code>head</code>, <code>tail</code>, etc) and
+can be coerced to a list via <code>as.list</code>. Supported types of
+data manipulations include <code>subset</code>,
+<code>transform</code>, <code>sort</code>, <code>xtabs</code>,
+<code>aggregate</code>, <code>unique</code>, <code>summary</code>,
+etc.
+</p>
+<p>An obvious difference between a <code>SolrList</code> and an ordinary list
+is that we know the <code>SolrList</code> contains only documents, which are
+themselves represented as named lists of fields, usually vectors of
+length one. This constraint enables us to provide the convenience of
+accessing fields by slicing across every document. We can pass a field
+selection to the second argument of <code>[</code>. Like data frame,
+selecting a single column with e.g. <code>x[,"foo"]</code> will return the
+field as a vector, filling NAs whereever a document lacks a
+value for the field.
+</p>
+<p>The names are taken from the field declared in the schema to
+represent the unique document key. Schemas are not strictly required
+to declare such a field, so if there is no unique key, the names
+are <code>NULL</code>.
+</p>
+<p>Field restrictions passed to e.g. <code>[</code> or <code>subset(fields=)</code>
+may be specified by name, or wildcard pattern (glob). Similarly, a row
+index passed to <code>[</code> must be either a character vector of
+identifiers (of length &lt;= 1024, NAs are not supported, and this
+requires a unique key in the schema) or a
+<code>SolrPromise</code>/<code>SolrExpression</code>,
+but note that if it evaluates to NAs, the corresponding rows are
+excluded from the result, as with <code>subset</code>. Using a
+<code>SolrPromise</code> or <code>SolrExpression</code> is recommended, as
+filtering happens at the database.
+</p>
+<p>A <code>SolrList</code> can be made lazy by calling <code>defer</code> on a
+<code>SolrList</code>, so that all column retrieval, e.g., via <code>[</code>,
+returns a <code>SolrPromise</code> object. Many operations on
+promises are deferred, until they are finally <code>fulfill</code>ed by
+being shown or through explicit coercion to an R vector.
+</p>
+<p>A note for developers: <code>SolrFrame</code> and <code>SolrList</code> share
+common functionality through the base <code>Solr</code> class. Much of the
+functionality mentioned here is actually implemented as methods on the
+<code>Solr</code> class.
+</p>
+
+
+<h3>Accessors</h3>
+
+<p>These are some accessors that <code>SolrList</code> adds on top of the
+basic data frame accessors. Most of these are for advanced use only.
+</p>
+
+<ul>
+<li>
+<p><code>ndoc(x)</code>: Gets the number of documents (rows); serves as an
+abstraction over <code>SolrFrame</code> and <code>SolrList</code>
+
+</p>
+</li>
+<li>
+<p><code>nfield(x)</code>: Gets the number of fields (columns); serves as an
+abstraction over <code>SolrFrame</code> and <code>SolrList</code>
+
+</p>
+</li>
+<li>
+<p><code>ids(x)</code>: Gets the document unique identifiers (may
+be <code>NULL</code>, treated as rownames); serves as an abstraction
+over <code>SolrFrame</code> and <code>SolrList</code>
+
+</p>
+</li>
+<li>
+<p><code>fieldNames(x, ...)</code>: Gets the name of each field represented by
+any document in the Solr core, with ... being passed down to
+<code>fieldNames</code> on <code>SolrCore</code>.
+
+</p>
+</li>
+<li>
+<p><code>core(x)</code>: Gets the <code>SolrCore</code> wrapped by <code>x</code>
+
+</p>
+</li>
+<li>
+<p><code>query(x)</code>: Gets the query that is being constructed by
+<code>x</code>
+
+</p>
+</li>
+</ul>
+<h3>Extended API</h3>
+
+<p>Most of the typical data frame accessors and data manipulation
+functions will work analogously on <code>SolrList</code> (see
+Details). Below, we list some of the non-standard methods that might
+be seen as an extension of the data frame API.
+</p>
+
+<ul>
+<li>
+<p><code>rename(x, ...)</code>: Renames the columns of <code>x</code>,
+where the names and character values of ... indicates the
+mapping (<code>newname = oldname</code>). 
+
+</p>
+</li>
+<li>
+<p><code>defer(x)</code>: Returns a <code>SolrList</code> that yields
+<code>SolrPromise</code> objects instead of vectors
+whenever a field is retrieved
+
+</p>
+</li>
+<li>
+<p><code>searchDocs(x, q)</code>: Performs a conventional document
+search using the query string <code>q</code>. The main difference to
+filtering is that (by default) Solr will order the result by
+score, i.e., how well each document matches the query.
+
+</p>
+</li>
+</ul>
+<h3>Constructor</h3>
+
+
+<ul><li>
+<p><code>SolrList(uri, ...)</code>:
+Constructs a new <code>SolrList</code> instance, representing a Solr
+core located at <code>uri</code>, which should be a string or a
+<code>RestUri</code> object. The
+... are passed to the <code>SolrQuery</code> constructor.
+
+</p>
+</li></ul>
+<h3>Evaluation</h3>
+
+
+<ul><li>
+<p><code>eval(expr, envir, enclos)</code>: Evaluates R language <code>expr</code>
+in the <code>SolrList</code> <code>envir</code>, using <code>enclos</code> as the
+enclosing environment.
+
+</p>
+</li></ul>
+<h3>Coercion</h3>
+
+
+<ul>
+<li>
+<p><code>as.data.frame(x, row.names=NULL, optional=FALSE, fill=FALSE)</code>:
+Downloads the data into an actual data.frame, specifically an
+instance of <code>DocDataFrame</code>. If <code>fill</code> is
+FALSE, only the fields represented in at least one document are
+added as columns. 
+
+</p>
+</li>
+<li>
+<p><code>as.list(x), as(x, "DocCollection")</code>: Coerces <code>x</code> into
+the corresponding list, specifically an instance of
+<code>DocList</code>.
+
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p> Michael Lawrence </p>
+
+
+<h3>See Also</h3>
+
+<p><code>SolrFrame</code> for representing a Solr collection as a
+table instead of a list
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+     solr &lt;- TestSolr()
+     sr &lt;- SolrList(solr$uri)
+     length(sr)
+     head(sr)
+     sr[["GB18030TEST"]]
+     # Solr tends to crash for some reason running this inside R CMD check
+     ## Not run:  
+     as.list(subset(sr, price &gt; 100))[,"price"]
+     
+## End(Not run)
+     solr$kill()
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,154 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>model_lineup</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Produce a lineup for a fitted model</h2>
+
+<h3>Description</h3>
+
+<p>A lineup hides diagnostics among "null" diagnostics, i.e. the same
+diagnostics calculated using models fit to data where all model assumptions
+are correct. For each null diagnostic, <code>model_lineup()</code> simulates new
+responses from the model using the fitted covariate values and the model's
+error distribution, link function, and so on. Hence the new response values
+are generated under ideal conditions: the fitted model is true and all
+assumptions hold. <code>decrypt()</code> reveals which diagnostics are the true
+diagnostics.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">model_lineup(fit, fn = augment, nsim = 20, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>A model fit to data, such as by <code>lm()</code> or <code>glm()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fn</code></td>
+<td>
+<p>A diagnostic function. The function's first argument should be the
+fitted model, and it must return a data frame. Defaults to
+<code>broom::augment()</code>, which produces a data frame containing the original
+data and additional columns <code>.fitted</code>, <code>.resid</code>, and so on. To see a list
+of model types supported by <code>broom::augment()</code>, and to find documentation
+on the columns reported for each type of model, load the <code>broom</code> package
+and use <code>methods(augment)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nsim</code></td>
+<td>
+<p>Number of total diagnostics. For example, if <code>nsim = 20</code>, the
+diagnostics for <code>fit</code> are hidden among 19 null diagnostics.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments passed to <code>fn</code> each time it is called.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>To generate different kinds of diagnostics, the user can provide a custom
+<code>fn</code>. The <code>fn</code> should take a model fit as its argument and return a data
+frame. For instance, the data frame might contain one row per observation and
+include the residuals and fitted values for each observation; or it might be
+a single row containing a summary statistic or test statistic.
+</p>
+<p><code>fn</code> will be called on the original <code>fit</code> provided. Then
+<code>parametric_boot_distribution()</code> will be used to simulate data from the model
+fit <code>nsim - 1</code> times, refit the model to each simulated dataset, and run <code>fn</code>
+on each refit model. The null distribution is conditional on X, i.e. the
+covariates used will be identical, and only the response values will be
+simulated. The data frames are concatenated with an additional <code>.sample</code>
+column identifying which fit each row came from.
+</p>
+<p>When called, this function will print a message such as
+<code>decrypt("sD0f gCdC En JP2EdEPn ZY")</code>. This is how to get the location of the
+true diagnostics among the null diagnostics: evaluating this in the R console
+will produce a string such as <code>"True data in position 5"</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A data frame (tibble) with columns corresponding to the columns
+returned by <code>fn</code>. The additional column <code>.sample</code> indicates which set of
+diagnostics each row is from. For instance, if the true data is in position
+5, selecting rows with <code>.sample == 5</code> will retrieve the diagnostics from
+the original model fit.
+</p>
+
+
+<h3>Model limitations</h3>
+
+<p>Because this function uses S3 generic methods such as <code>model.frame()</code>,
+<code>simulate()</code>, and <code>update()</code>, it can be used with any model fit for which
+methods are provided. In base R, this includes <code>lm()</code> and <code>glm()</code>.
+</p>
+<p>The model provided as <code>fit</code> must be fit using the <code>data</code> argument to provide
+a data frame. For example:
+</p>
+<div class="sourceCode"><pre>fit &lt;- lm(dist ~ speed, data = cars)
+</pre></div>
+<p>When simulating new data, this function provides the simulated data as the
+<code>data</code> argument and re-fits the model. If you instead refer directly to local
+variables in the model formula, this will not work. For example, if you fit a
+model this way:
+</p>
+<div class="sourceCode"><pre># will not work
+fit &lt;- lm(cars$dist ~ cars$speed)
+</pre></div>
+<p>It will not be possible to refit the model using simulated datasets, as that
+would require modifying your environment to edit <code>cars</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Buja et al. (2009). Statistical inference for exploratory data
+analysis and model diagnostics. <em>Philosophical Transactions of the Royal
+Society A</em>, 367 (1906), pp. 4361-4383. <a href="https://doi.org/10.1098/rsta.2009.0120">doi:10.1098/rsta.2009.0120</a>
+</p>
+<p>Wickham et al. (2010). Graphical inference for infovis. <em>IEEE Transactions on
+Visualization and Computer Graphics</em>, 16 (6), pp. 973-979.
+<a href="https://doi.org/10.1109/TVCG.2010.161">doi:10.1109/TVCG.2010.161</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>parametric_boot_distribution()</code> to simulate draws by using the
+fitted model to draw new response values; <code>sampling_distribution()</code> to
+simulate draws from the population distribution, rather than from the model
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">fit &lt;- lm(dist ~ speed, data = cars)
+model_lineup(fit, nsim = 5)
+
+resids_vs_speed &lt;- function(f) {
+  data.frame(resid = residuals(f),
+             speed = model.frame(f)$speed)
+}
+model_lineup(fit, fn = resids_vs_speed, nsim = 5)
+
+</code></pre>
+
+
+</div>

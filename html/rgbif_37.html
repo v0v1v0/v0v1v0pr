@@ -1,0 +1,583 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>download_predicate_dsl</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Download predicate DSL (domain specific language)</h2>
+
+<h3>Description</h3>
+
+<p>Download predicate DSL (domain specific language)
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pred(key, value)
+
+pred_gt(key, value)
+
+pred_gte(key, value)
+
+pred_lt(key, value)
+
+pred_lte(key, value)
+
+pred_not(...)
+
+pred_like(key, value)
+
+pred_within(value)
+
+pred_isnull(key)
+
+pred_notnull(key)
+
+pred_or(..., .list = list())
+
+pred_and(..., .list = list())
+
+pred_in(key, value)
+
+pred_default()
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>key</code></td>
+<td>
+<p>(character) the key for the predicate. See "Keys" below</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>value</code></td>
+<td>
+<p>(various) the value for the predicate</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>..., .list</code></td>
+<td>
+<p>For <code>pred_or()</code> or <code>pred_and()</code>, one or more objects of
+class <code>occ_predicate</code>, created by any <code style="white-space: pre;">⁠pred*⁠</code> function</p>
+</td>
+</tr>
+</table>
+<h3>predicate methods and their equivalent types</h3>
+
+<p><code style="white-space: pre;">⁠pred*⁠</code> functions are named for the 'type' of operation they do, following
+the terminology used by GBIF, see
+https://www.gbif.org/developer/occurrence#predicates
+</p>
+<p>Function names are given, with the equivalent GBIF type value (e.g.,
+<code>pred_gt</code> and <code>greaterThan</code>)
+</p>
+<p>The following functions take one key and one value:
+</p>
+
+<ul>
+<li> <p><code>pred</code>: equals
+</p>
+</li>
+<li> <p><code>pred_lt</code>: lessThan
+</p>
+</li>
+<li> <p><code>pred_lte</code>: lessThanOrEquals
+</p>
+</li>
+<li> <p><code>pred_gt</code>: greaterThan
+</p>
+</li>
+<li> <p><code>pred_gte</code>: greaterThanOrEquals
+</p>
+</li>
+<li> <p><code>pred_like</code>: like
+</p>
+</li>
+</ul>
+<p>The following function is only for geospatial queries, and only
+accepts a WKT string:
+</p>
+
+<ul><li> <p><code>pred_within</code>: within
+</p>
+</li></ul>
+<p>The following function is only for stating the you don't want
+a key to be null, so only accepts one key:
+</p>
+
+<ul><li> <p><code>pred_notnull</code>: isNotNull
+</p>
+</li></ul>
+<p>The following function is only for stating that you want a key to be null.
+</p>
+
+<ul><li> <p><code>pred_isnull</code> : isNull
+</p>
+</li></ul>
+<p>The following two functions accept multiple individual predicates,
+separating them by either "and" or "or":
+</p>
+
+<ul>
+<li> <p><code>pred_and</code>: and
+</p>
+</li>
+<li> <p><code>pred_or</code>: or
+</p>
+</li>
+</ul>
+<p>The not predicate accepts one predicate; that is, this negates whatever
+predicate is passed in, e.g., not the taxonKey of 12345:
+</p>
+
+<ul><li> <p><code>pred_not</code>: not
+</p>
+</li></ul>
+<p>The following function is special in that it accepts a single key
+but many values; stating that you want to search for all the values:
+</p>
+
+<ul><li> <p><code>pred_in</code>: in
+</p>
+</li></ul>
+<p>The following function will apply commonly used <strong>defaults</strong>.
+</p>
+
+<ul><li> <p><code>pred_default</code>
+</p>
+</li></ul>
+<p>Using <code>pred_default()</code> is equivalent to running:
+</p>
+<div class="sourceCode"><pre>  pred_and(
+   pred("HAS_GEOSPATIAL_ISSUE",FALSE),
+   pred("HAS_COORDINATE",TRUE),
+   pred("OCCURRENCE_STATUS","PRESENT"),
+   pred_not(pred_in("BASIS_OF_RECORD",
+    c("FOSSIL_SPECIMEN","LIVING_SPECIMEN")))
+  )
+</pre></div>
+
+
+<h3>What happens internally</h3>
+
+<p>Internally, the input to <code style="white-space: pre;">⁠pred*⁠</code> functions turns into JSON to be sent to
+GBIF. For example ...
+</p>
+<p><code>pred_in("taxonKey", c(2480946, 5229208))</code> gives:
+</p>
+<div class="sourceCode"><pre>{
+   "type": "in",
+   "key": "TAXON_KEY",
+   "values": ["2480946", "5229208"]
+ }
+</pre></div>
+<p><code>pred_gt("elevation", 5000)</code> gives:
+</p>
+<div class="sourceCode"><pre>{
+   "type": "greaterThan",
+   "key": "ELEVATION",
+   "value": "5000"
+}
+</pre></div>
+<p><code>pred_or(pred("taxonKey", 2977832), pred("taxonKey", 2977901))</code> gives:
+</p>
+<div class="sourceCode"><pre>{
+  "type": "or",
+  "predicates": [
+     {
+       "type": "equals",
+       "key": "TAXON_KEY",
+       "value": "2977832"
+     },
+     {
+       "type": "equals",
+       "key": "TAXON_KEY",
+       "value": "2977901"
+     }
+  ]
+}
+</pre></div>
+
+
+<h3>Keys</h3>
+
+<p>Acceptable arguments to the <code>key</code> parameter are (with the version of
+the key in parens that must be sent if you pass the query via the <code>body</code>
+parameter; see below for examples). You can also use the 'ALL_CAPS' version
+of a key if you prefer. Open an issue in the GitHub
+repository for this package if you know of a key that should
+be supported that is not yet.
+</p>
+
+<ul>
+<li>
+<p> taxonKey (TAXON_KEY)
+</p>
+</li>
+<li>
+<p> acceptedTaxonKey (ACCEPTED_TAXON_KEY)
+</p>
+</li>
+<li>
+<p> kingdomKey (KINGDOM_KEY)
+</p>
+</li>
+<li>
+<p> phylumKey (PHYLUM_KEY)
+</p>
+</li>
+<li>
+<p> classKey (CLASS_KEY)
+</p>
+</li>
+<li>
+<p> orderKey (ORDER_KEY)
+</p>
+</li>
+<li>
+<p> familyKey (FAMILY_KEY)
+</p>
+</li>
+<li>
+<p> genusKey (GENUS_KEY)
+</p>
+</li>
+<li>
+<p> subgenusKey (SUBGENUS_KEY)
+</p>
+</li>
+<li>
+<p> speciesKey (SPECIES_KEY)
+</p>
+</li>
+<li>
+<p> scientificName (SCIENTIFIC_NAME)
+</p>
+</li>
+<li>
+<p> country (COUNTRY)
+</p>
+</li>
+<li>
+<p> publishingCountry (PUBLISHING_COUNTRY)
+</p>
+</li>
+<li>
+<p> hasCoordinate (HAS_COORDINATE)
+</p>
+</li>
+<li>
+<p> hasGeospatialIssue (HAS_GEOSPATIAL_ISSUE)
+</p>
+</li>
+<li>
+<p> typeStatus (TYPE_STATUS)
+</p>
+</li>
+<li>
+<p> recordNumber (RECORD_NUMBER)
+</p>
+</li>
+<li>
+<p> lastInterpreted (LAST_INTERPRETED)
+</p>
+</li>
+<li>
+<p> modified (MODIFIED)
+</p>
+</li>
+<li>
+<p> continent (CONTINENT)
+</p>
+</li>
+<li>
+<p> geometry (GEOMETRY)
+</p>
+</li>
+<li>
+<p> basisOfRecord (BASIS_OF_RECORD)
+</p>
+</li>
+<li>
+<p> datasetKey (DATASET_KEY)
+</p>
+</li>
+<li>
+<p> datasetID/datasetId (DATASET_ID)
+</p>
+</li>
+<li>
+<p> eventDate (EVENT_DATE)
+</p>
+</li>
+<li>
+<p> catalogNumber (CATALOG_NUMBER)
+</p>
+</li>
+<li>
+<p> otherCatalogNumbers (OTHER_CATALOG_NUMBERS)
+</p>
+</li>
+<li>
+<p> year (YEAR)
+</p>
+</li>
+<li>
+<p> month (MONTH)
+</p>
+</li>
+<li>
+<p> decimalLatitude (DECIMAL_LATITUDE)
+</p>
+</li>
+<li>
+<p> decimalLongitude (DECIMAL_LONGITUDE)
+</p>
+</li>
+<li>
+<p> elevation (ELEVATION)
+</p>
+</li>
+<li>
+<p> depth (DEPTH)
+</p>
+</li>
+<li>
+<p> institutionCode (INSTITUTION_CODE)
+</p>
+</li>
+<li>
+<p> collectionCode (COLLECTION_CODE)
+</p>
+</li>
+<li>
+<p> issue (ISSUE)
+</p>
+</li>
+<li>
+<p> mediatype (MEDIA_TYPE)
+</p>
+</li>
+<li>
+<p> recordedBy (RECORDED_BY)
+</p>
+</li>
+<li>
+<p> recordedById/recordedByID (RECORDED_BY_ID)
+</p>
+</li>
+<li>
+<p> establishmentMeans (ESTABLISHMENT_MEANS)
+</p>
+</li>
+<li>
+<p> coordinateUncertaintyInMeters (COORDINATE_UNCERTAINTY_IN_METERS)
+</p>
+</li>
+<li>
+<p> gadm (GADM_GID) (for the Database of Global Administrative Areas)
+</p>
+</li>
+<li>
+<p> level0Gid (GADM_LEVEL_0_GID)
+</p>
+</li>
+<li>
+<p> level1Gid (GADM_LEVEL_1_GID)
+</p>
+</li>
+<li>
+<p> level2Gid (GADM_LEVEL_2_GID)
+</p>
+</li>
+<li>
+<p> level3Gid (GADM_LEVEL_3_GID)
+</p>
+</li>
+<li>
+<p> stateProvince (STATE_PROVINCE)
+</p>
+</li>
+<li>
+<p> occurrenceStatus (OCCURRENCE_STATUS)
+</p>
+</li>
+<li>
+<p> publishingOrg (PUBLISHING_ORG)
+</p>
+</li>
+<li>
+<p> occurrenceId/occurrenceID (OCCURRENCE_ID)
+</p>
+</li>
+<li>
+<p> eventId/eventID (EVENT_ID)
+</p>
+</li>
+<li>
+<p> parentEventId/parentEventID (PARENT_EVENT_ID)
+</p>
+</li>
+<li>
+<p> identifiedBy (IDENTIFIED_BY)
+</p>
+</li>
+<li>
+<p> identifiedById/identifiedByID (IDENTIFIED_BY_ID)
+</p>
+</li>
+<li>
+<p> license (LICENSE)
+</p>
+</li>
+<li>
+<p> locality(LOCALITY)
+</p>
+</li>
+<li>
+<p> pathway (PATHWAY)
+</p>
+</li>
+<li>
+<p> preparations (PREPARATIONS)
+</p>
+</li>
+<li>
+<p> networkKey (NETWORK_KEY)
+</p>
+</li>
+<li>
+<p> organismId/organismID (ORGANISM_ID)
+</p>
+</li>
+<li>
+<p> organismQuantity (ORGANISM_QUANTITY)
+</p>
+</li>
+<li>
+<p> organismQuantityType (ORGANISM_QUANTITY_TYPE)
+</p>
+</li>
+<li>
+<p> protocol (PROTOCOL)
+</p>
+</li>
+<li>
+<p> relativeOrganismQuantity (RELATIVE_ORGANISM_QUANTITY)
+</p>
+</li>
+<li>
+<p> repatriated (REPATRIATED)
+</p>
+</li>
+<li>
+<p> sampleSizeUnit (SAMPLE_SIZE_UNIT)
+</p>
+</li>
+<li>
+<p> sampleSizeValue (SAMPLE_SIZE_VALUE)
+</p>
+</li>
+<li>
+<p> samplingProtocol (SAMPLING_PROTOCOL)
+</p>
+</li>
+<li>
+<p> verbatimScientificName (VERBATIM_SCIENTIFIC_NAME)
+</p>
+</li>
+<li>
+<p> taxonID/taxonId (TAXON_ID)
+</p>
+</li>
+<li>
+<p> taxonomicStatus (TAXONOMIC_STATUS)
+</p>
+</li>
+<li>
+<p> waterBody (WATER_BODY)
+</p>
+</li>
+<li>
+<p> iucnRedListCategory (IUCN_RED_LIST_CATEGORY)
+</p>
+</li>
+<li>
+<p> degreeOfEstablishment (DEGREE_OF_ESTABLISHMENT)
+</p>
+</li>
+<li>
+<p> isInCluster (IS_IN_CLUSTER)
+</p>
+</li>
+<li>
+<p> lifeStage (LIFE_STAGE)
+</p>
+</li>
+<li>
+<p> distanceFromCentroidInMeters (DISTANCE_FROM_CENTROID_IN_METERS)
+</p>
+</li>
+<li>
+<p> gbifId (GBIF_ID)
+</p>
+</li>
+</ul>
+<h3>References</h3>
+
+<p>Download predicates docs:
+<a href="https://www.gbif.org/developer/occurrence#predicates">https://www.gbif.org/developer/occurrence#predicates</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other downloads: 
+<code>occ_download_cached()</code>,
+<code>occ_download_cancel()</code>,
+<code>occ_download_dataset_activity()</code>,
+<code>occ_download_datasets()</code>,
+<code>occ_download_get()</code>,
+<code>occ_download_import()</code>,
+<code>occ_download_list()</code>,
+<code>occ_download_meta()</code>,
+<code>occ_download_queue()</code>,
+<code>occ_download_wait()</code>,
+<code>occ_download()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">pred("taxonKey", 3119195)
+pred_gt("elevation", 5000)
+pred_gte("elevation", 5000)
+pred_lt("elevation", 1000)
+pred_lte("elevation", 1000)
+pred_within("POLYGON((-14 42, 9 38, -7 26, -14 42))")
+pred_and(pred_within("POLYGON((-14 42, 9 38, -7 26, -14 42))"),
+  pred_gte("elevation", 5000))
+pred_or(pred_lte("year", 1989), pred("year", 2000))
+pred_and(pred_lte("year", 1989), pred("year", 2000))
+pred_in("taxonKey", c(2977832, 2977901, 2977966, 2977835))
+pred_in("basisOfRecord", c("MACHINE_OBSERVATION", "HUMAN_OBSERVATION"))
+pred_not(pred("taxonKey", 729))
+pred_like("catalogNumber", "PAPS5-560%")
+pred_notnull("issue")
+pred("basisOfRecord", "LITERATURE")
+pred("hasCoordinate", TRUE)
+pred("stateProvince", "California")
+pred("hasGeospatialIssue", FALSE)
+pred_within("POLYGON((-14 42, 9 38, -7 26, -14 42))")
+pred_or(pred("taxonKey", 2977832), pred("taxonKey", 2977901),
+  pred("taxonKey", 2977966))
+pred_in("taxonKey", c(2977832, 2977901, 2977966, 2977835))
+</code></pre>
+
+
+</div>

@@ -1,0 +1,110 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rasclass-package</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Supervised Raster Image Classification</h2>
+
+<h3>Description</h3>
+
+<p>This package is built to perform supervised, per-pixel based raster image classification.
+</p>
+
+
+<h3>Details</h3>
+
+<p>The raster image classification is carried out by calling a sequence of functions that load data, calculate the classification grid and produce an accuracy assessment of the classification.
+</p>
+<p>The package contains the readRasterFolder function to load a set of external data layers from a folder containing raster images in the ESRI asciigrid format (<em>.asc</em> file extension). All files in the specified folder are parsed and stored in a rasclass-class object. The requirements for reading the input raster files is that they are all in the same projection, are aligned and have the same grid-size (i.e. all raster files should have the same header). Furthermore one raster file has to be specified as sample data. Alternatively, data can also converted into the rasclass format from a dataframe using the setRasclassData function.
+</p>
+<p>For the classification, the package contains five supervised, per-pixel classification methods: Maximum Likelihood Classification, Multinomial Logistic Regression, Neural Networks, Random Forests and Support Vector Machines. There is only one classification function classifyRasclass and the algorithm can be specified with as an argument. The output of the classifications is the classified raster grid and standard accuracy assessment indicators, including user and producer accuracies, the overall accuracy, the confusion matrix and the kappa coefficient.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Daniel Wiesmann <a href="mailto:daniel.wiesmann@ist.utl.pt">daniel.wiesmann@ist.utl.pt</a> and David Quinn <a href="mailto:djq@mit.edu">djq@mit.edu</a></p>
+
+
+<h3>See Also</h3>
+
+<p><code>rasclass-class</code>,
+<code>rasclassRaster-class</code>,
+</p>
+<p><code>readRaster</code>,
+<code>writeRaster</code>,
+</p>
+<p><code>readRasterFolder</code>,
+<code>setRasclassData</code>,
+</p>
+<p><code>buildFormula</code>,
+<code>checkRasclass</code>,
+</p>
+<p><code>rasclassMlc</code>,
+<code>classifyRasclass</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# If available, load data from external folder
+object &lt;- readRasterFolder(path = "mypath", samplename = "mysample",
+	filenames = c('myvar1.asc', 'myvar2.asc'))
+
+## End(Not run)
+
+# For this example, create artificial data
+mysample &lt;- c(rep(rep(c(1,2), each = 25), 25), rep(rep(c(3,4), each = 25), 25))
+mysample &lt;- mysample + sample(c(0, NA), 2500, replace = TRUE, prob = c(1, 50))
+myvar1 &lt;- rep(1:50, each = 50) + rnorm(2500, 0, 5)
+myvar2 &lt;- rep(rep(1:50), 50) + rnorm(2500, 0, 5)
+newdata &lt;- data.frame(mysample, myvar1, myvar2)
+
+# Prepare a rasclass object using the dataframe and specifying raster properties
+object &lt;- new('rasclass')
+object &lt;- setRasclassData(newdata, ncols = 50, nrows = 50,
+	xllcorner = 0, yllcorner = 0, cellsize = 1, NAvalue = -9999,
+	samplename = 'mysample')
+
+# Classify using each algorithm once
+outlist &lt;- list()
+outlist[['maximumLikelihood']] &lt;- classifyRasclass(object, method = 'maximumLikelihood')
+summary(outlist[['maximumLikelihood']])
+
+outlist[['logit']] &lt;- classifyRasclass(object, method = 'logit')
+summary(outlist[['logit']])
+
+outlist[['neuralNetwork']] &lt;- classifyRasclass(object, method = 'neuralNetwork')
+summary(outlist[['neuralNetwork']])
+
+outlist[['randomForest']] &lt;- classifyRasclass(object, method = 'randomForest')
+summary(outlist[['randomForest']])
+
+outlist[['supportVector']] &lt;- classifyRasclass(object, method = 'supportVector')
+summary(outlist[['supportVector']])
+
+# Store sample data as a rasclassRaster for display purposes
+mysample.ras &lt;- new('rasclassRaster')
+mysample.ras@grid &lt;- mysample
+mysample.ras@nrows &lt;- 50
+mysample.ras@ncols &lt;- 50
+mysample.ras@xllcorner &lt;- 0
+mysample.ras@yllcorner &lt;- 0
+mysample.ras@cellsize &lt;- 1
+mysample.ras@NAvalue &lt;- -9999
+
+# Plot results of each classifier
+opar &lt;- par(mfrow = c(2, 3))
+image(mysample.ras)
+title('Sample data')
+for(i in 1:length(outlist)) {
+	image(outlist[[i]]@predictedGrid)
+	title(names(outlist)[[i]])
+}
+par(opar)
+</code></pre>
+
+
+</div>

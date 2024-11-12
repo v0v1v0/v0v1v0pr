@@ -1,0 +1,363 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>AROC.bnp</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Nonparametric Bayesian inference of the covariate-adjusted ROC curve (AROC).
+</h2>
+
+<h3>Description</h3>
+
+<p>This function estimates the covariate-adjusted ROC curve (AROC) using the nonparametric Bayesian approach proposed by Inacio de Carvalho and Rodriguez-Alvarez (2018).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">AROC.bnp(formula.h, group, tag.h, data, standardise = TRUE, 
+  p = seq(0, 1, l = 101), ci.level = 0.95, compute.lpml = FALSE, compute.WAIC = FALSE, 
+  compute.DIC = FALSE, pauc = pauccontrol(), density = densitycontrol.aroc(),
+  prior.h = priorcontrol.bnp(), mcmc = mcmccontrol(),
+  parallel = c("no", "multicore", "snow"), ncpus = 1, cl = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula.h</code></td>
+<td>
+<p>A <code>formula</code> object specifying the regression function associated to each component of the single-weights linear dependent Dirichlet process mixture model used to estimate the conditional distribution function of the diagnostic test outcome in the healthy population. Regarding the modelling of continuous covariates, both linear and nonlinear effects are allowed, with nonlinear effects being modelled through B-spline basis expansions (see Note).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group</code></td>
+<td>
+<p>A character string with the name of the variable that distinguishes healthy/nondiseased from diseased individuals.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tag.h</code></td>
+<td>
+<p>The value codifying healthy individuals in the variable <code>group</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p> A data frame representing the data and containing all needed variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>standardise</code></td>
+<td>
+<p>A logical value. If TRUE both the test outcomes and the continuous covariates assumed to have a linear effect are standardised (i.e., the resulting variables have mean zero and standard deviation of one). The default is TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>Set of false positive fractions (FPF) at which to estimate the covariate-adjusted ROC curve.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ci.level</code></td>
+<td>
+<p>An integer value (between 0 and 1) specifying the level for the credible interval. The default is 0.95.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>compute.lpml</code></td>
+<td>
+<p>A logical value. If TRUE, the log pseudo marginal likelihood (LPML, Geisser and Eddy, 1979) and the conditional predictive ordinates (CPO) are computed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>compute.WAIC</code></td>
+<td>
+<p>A logical value. If TRUE, the widely applicable information criterion (WAIC, Gelman et al., 2014; Watanabe, 2010) is computed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>compute.DIC</code></td>
+<td>
+<p>A logical value. If TRUE, the deviance information criterion (DIC)(Celeux et al., 2006, Spiegelhalter et al., 2002) is computed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pauc</code></td>
+<td>
+<p>A list of control values to replace the default values returned by the function <code>pauccontrol</code>. This argument is used to indicate whether the partial area under the covariate-adjusted ROC curve (pAAUC) should be computed, and in case it is computed, whether the focus should be placed on restricted false positive fractions (FPFs) or on restricted true positive fractions (TPFs), and the upper bound for the FPF (if focus is FPF) or the lower bound for the TPF (if focus is TPF).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>density</code></td>
+<td>
+<p>A list of control values to replace the default values returned by the function <code>densitycontrol.aroc</code>. This argument is used to indicate whether the conditional densities of the marker in the healthy population should be computed, and in case it is to be computed, at which grid of test outcomes the conditional densities should be evaluated, and at which covariate values they should be predicted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior.h</code></td>
+<td>
+<p>A list of control values to replace the default values returned by the function <code>priorcontrol.bnp</code>. See <code>priorcontrol.bnp</code> for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mcmc</code></td>
+<td>
+<p>A list of control values to replace the default values returned by the function <code>mcmccontrol</code>. See <code>mcmccontrol</code> for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel</code></td>
+<td>
+<p>A characters string with the type of parallel operation: either "no" (default), "multicore" (not available on Windows) or "snow".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncpus</code></td>
+<td>
+<p>An integer with the number of processes to be used in parallel operation. Defaults to 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cl</code></td>
+<td>
+<p>An object inheriting from class <code>cluster</code> (from the <code>parallel</code> package), specifying an optional parallel or snow cluster if parallel = "snow". If not supplied, a cluster on the local machine is created for the duration of the call.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Estimates the covariate-adjusted ROC curve (AROC) defined as
+</p>
+<p style="text-align: center;"><code class="reqn">AROC\left(p\right) = Pr\{1 - F_{\bar{D}}(Y_D | \mathbf{X}_{D}) \leq p\},</code>
+</p>
+
+<p>where <code class="reqn">F_{\bar{D}}(\cdot|\mathbf{X}_{\bar{D}})</code> denotes the distribution function of <code class="reqn">Y_{\bar{D}}</code> conditional on the vector of covariates <code class="reqn">\mathbf{X}_{\bar{D}}</code>. 
+</p>
+<p>The method implemented in this function combines a single-weights linear dependent Dirichlet process mixture model (De Iorio et al., 2009) to estimate <code class="reqn">F_{\bar{D}}(\cdot|\mathbf{X}_{\bar{D}})</code> and the Bayesian bootstrap (Rubin, 1981) to estimate the outside probability. More precisely, and letting <code class="reqn">\{(\mathbf{x}_{\bar{D}i},y_{\bar{D}i})\}_{i=1}^{n_{\bar{D}}}</code> be a random sample from the nondiseased population, our postulated model for the conditional distribution function takes the following form 
+</p>
+<p style="text-align: center;"><code class="reqn">F_{\bar{D}}(y_{\bar{D}i}|\mathbf{X}_{\bar{D}}=\mathbf{x}_{\bar{D}i}) = \sum_{l=1}^{L}\omega_l\Phi(y_{\bar{D}i}\mid\mu_{l}(\mathbf{x}_{\bar{D}i}),\sigma_l^2),</code>
+</p>
+
+<p>where <code class="reqn">\Phi(y|\mu, \sigma^2)</code> denotes the cumulative distribution function of the normal distribution, evaluated at <code class="reqn">y</code>, with mean <code class="reqn">\mu</code> and variance <code class="reqn">\sigma^2</code>. The regression function <code class="reqn">\mu_{l}(\mathbf{x}_{\bar{D}i})</code> can incorportate both linear and nonlinear (through B-splines) effects of continuous covariates, categorical covariates (factors) as well as interactions. Interactions between categorical and (nonlinear) continuous covariates are also allowed (factor-by curve interactions). For the sake of simplicity we write <code class="reqn">\mu_{l}(\mathbf{x}_{\bar{D}i}) = \mathbf{z}_{\bar{D}i}^{T}\mathbf{\beta}_l</code> (<code class="reqn">l=1,...,L</code>), where <code class="reqn">\mathbf{z}_{\bar{D}i}</code> is the <code class="reqn">i</code>th column of the design matrix (possibly containing a basis representation of some/all continuous covariates). Here <code class="reqn">L</code> is a pre-specified upper bound on the number of mixture components. The <code class="reqn">\omega_l</code>'s result from a truncated version of the stick-breaking construction (<code class="reqn">\omega_1=v_1</code>; <code class="reqn">\omega_l=v_l\prod_{r&lt;l}(1-v_r)</code>, <code class="reqn">l=2,\ldots,L</code>; <code class="reqn">v_1,\ldots,v_{L-1}\sim</code> Beta <code class="reqn">(1,\alpha)</code>; <code class="reqn">v_L=1</code>, <code class="reqn">\alpha \sim \Gamma(a_{\alpha},b_{\alpha})</code>), <code class="reqn">\mathbf{\beta}_l\sim N_{Q}(\mathbf{m},\mathbf{S})</code>, and <code class="reqn">\sigma_l^{-2}\sim\Gamma(a,b)</code>. It is further assumed that <code class="reqn">\mathbf{m} \sim N_{Q}(\mathbf{m}_0,\mathbf{S}_0)</code> and <code class="reqn">\mathbf{S}^{-1}\sim W(\nu,(\nu\Psi)^{-1})</code>. Here <code class="reqn">\Gamma(a,b)</code> denotes a Gamma distribution with shape parameter <code class="reqn">a</code> and rate parameter <code class="reqn">b</code>, <code class="reqn">W(\nu,(\nu\Psi)^{-1})</code> denotes a Wishart distribution with <code class="reqn">\nu</code> degrees of freedom and expectation <code class="reqn">\Psi^{-1}</code>, and <code class="reqn">Q</code> denotes the dimension of the vector <code class="reqn">\mathbf{z}_{\bar{D}i}</code>. It is worth mentioning that when <code class="reqn">L=1</code>, the model for the conditional distribution of the test outcomes (in the healthy population) reduces to a normal regression model (where continuous covariates effects are modelled either parametrically or nonparametrically). For a detailed description, we refer to Inacio de Carvalho and Rodriguez-Alvarez (2018).
+</p>
+<p>Regarding the area under the curve, we note that
+</p>
+<p style="text-align: center;"><code class="reqn">AAUC = \int_{0}^{1}AROC(p)dp = 1 - E\{U_D\},</code>
+</p>
+
+<p>where <code class="reqn">U_D = 1 - F_{\bar{D}}(Y_D |\mathbf{X}_D)</code>. In our implementation, the expectation is computed using the Bayesian bootstrap (using the same weights as those used to estimate the AROC, see Inacio de Carvalho and Rodriguez-Alvarez (2018) for details). As far as the partial area under the curve is concerned, when <code>focus = "FPF"</code> and assuming an upper bound <code class="reqn">u_1</code> for the FPF, what it is computed is 
+</p>
+<p style="text-align: center;"><code class="reqn">pAAUC_{FPF}(u_1)=\int_0^{u_1} AROC(p)dp = u_1 - E\{U_{D,u_1}\},</code>
+</p>
+ 
+<p>where <code class="reqn">U_{D,u_1} = min\{u_1, 1 - F_{\bar{D}}(Y_D |\mathbf{X}_D)\}</code>. Again, the expectation is computed using the Bayesian bootstrap. The returned value is the normalised pAAUC, <code class="reqn">pAAUC_{FPF}(u_1)/u_1</code> so that it ranges from <code class="reqn">u_1/2</code> (useless test) to 1 (perfect marker). Conversely, when <code>focus = "TPF"</code>, and assuming a lower bound for the TPF of <code class="reqn">u_2</code>, the partial area corresponding to TPFs lying in the interval <code class="reqn">(u_2,1)</code> is computed as 
+</p>
+<p style="text-align: center;"><code class="reqn">pAAUC_{TPF}(u_2)=\int_{AROC^{-1}(u_2)}^{1}AROC(p)dp-\{1-AROC^{-1}(u_2)\}\times u_2.</code>
+</p>
+
+<p>Here, the computation of the integral is done numerically. The returned value is the normalised pAAUC, <code class="reqn">pAAUC_{TPF}(u_2)/(1-u_2)</code>, so that it ranges from <code class="reqn">(1-u_2)/2</code> (useless test) to 1 (perfect test).
+</p>
+<p>Finally, it is important referring that with respect to the computation of the DIC, when <code class="reqn">L=1</code>, it is computed as in Spiegelhalter et al. (2002), and when <code class="reqn">L&gt;1</code>, DIC3 as described in Celeux et al. (2006) is computed. Also, for the computation of the conditional predictive ordinates (CPO) we follow the stable version proposed by Gelman et al. (2014).
+</p>
+
+
+<h3>Value</h3>
+
+<p>As a result, the function provides a list with the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>The matched call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>The original supplied data argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>missing.ind</code></td>
+<td>
+<p>A logical value indicating whether for each pair of observations (test outcomes and covariates) missing values occur.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>marker</code></td>
+<td>
+<p>The name of the diagnostic test variable in the dataframe.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group</code></td>
+<td>
+<p>The value of the argument <code>group</code> used in the call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tag.h</code></td>
+<td>
+<p>The value of the argument <code>tag.h</code> used in the call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>Set of false positive fractions (FPF) at which the covariate-adjusted ROC curve (AROC) has been estimated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ci.level</code></td>
+<td>
+<p>The value of the argument <code>ci.level</code> used in the call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior</code></td>
+<td>
+<p>A list returning the hyperparameter values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ROC</code></td>
+<td>
+<p>Estimated covariate-adjusted ROC curve (AROC) (posterior mean) and <code>ci.level</code>*100% pointwise credible band.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>AUC</code></td>
+<td>
+<p>Estimated area under the covariate-adjusted ROC curve (AAUC) (posterior mean), and <code>ci.level</code>*100% credible interval.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pAUC</code></td>
+<td>
+<p>If computed, estimated partial area under the covariate-adjusted ROC curve (pAAUC) (posterior mean) and <code>ci.level</code>*100% credible
+interval. Note that the returned values are normalised, so that the maximum value is one (see more on Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newdata</code></td>
+<td>
+<p>If <code>compute</code> is set to <code>TRUE</code> in the argument <code>density</code>, a data frame containing the values of the covariates at which the regression function and conditional densities were computed (see below).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reg.fun.h</code></td>
+<td>
+<p>If <code>compute</code> is set to <code>TRUE</code> in the argument <code>density</code>, a data frame containing the predicted regression function (posterior mean) and <code>ci.level</code>*100% pointwise credible band.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dens</code></td>
+<td>
+<p>If <code>compute</code> is set to <code>TRUE</code> in the argument <code>density</code>, a list with two components (only for the healthy population): <code>grid</code> (grid of test outcomes where the densities were evaluated) and <code>dens</code> (MCMC realisations of the corresponding conditional densities).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lpml</code></td>
+<td>
+<p>If computed, a list with two components: the log pseudo marginal likelihood (LPML) and the conditional predictive ordinates (CPO).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>WAIC</code></td>
+<td>
+<p>If computed, widely applicable information criterion (WAIC) and associated complexity penalty (pW).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>DIC</code></td>
+<td>
+<p>If computed, deviance information criterion (DIC) and associated complexity penalty (pD).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>Results of the fitting process. A list with the following components: (1) <code>formula</code>: the value of the argument <code>formula.h</code> used in the call. (2) <code>mm</code>: information needed to construct the model design matrix associated with the single weights linear dependent Dirichlet process mixture model. (3) <code>beta</code>: array of dimension <code>nsave</code>x<code>L</code>x<code>Q</code> with the sampled regression coefficients. (4) <code>sd</code>: matrix of dimension <code>nsave</code>x<code>L</code> with the sampled variances. (4) <code>probs</code>: matrix of dimension <code>nsave</code>x<code>L</code> with the sampled components' weights. Here, <code>nsave</code> is the number of Gibbs sampler iterations saved, <code>L</code> is the upper bound on the number of mixture components, and <code>Q</code> is the dimension of vector <code class="reqn">\mathbf{z}_{\bar{D}}</code> (see also Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data_model</code></td>
+<td>
+<p>List with the data used in the fit: observed diagnostic test outcome and design matrices, separately for the healthy and diseased groups.</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>The input argument <code>formula.h</code> is similar to that used for the <code>glm</code> function, except that flexible specifications can be added by means of the function <code>f()</code>. For instance, specification <code class="reqn">y \sim x1 + f(x2, K = 3)</code> would assume a linear effect of <code>x1</code> (if <code>x1</code> continuous) and the effect of <code>x2</code> would be modeled using B-splines basis functions. The argument <code>K = 3</code> indicates that <code>3</code> internal knots will be used, with the quantiles of <code>x2</code> used for their location. Categorical variables (factors) can be also incorporated, as well as interaction terms. For example, to include the factor-by-curve interaction between <code>age</code> and <code>gender</code> we need to specify, e.g., <code class="reqn">y \sim gender + f(age, by = gender, K = c(3, 5))</code>. Note that, in this case, the number of knots can be different for each level of the factor. The order of the vector <code>K</code> of knots should match the levels of the factor.</p>
+
+
+<h3>References</h3>
+
+<p>Celeux, G., Forbes, F., Robert C. P., and Titerrington, D. M. (2006). Deviance information criteria for missing data models. <em>Bayesian Analysis</em>, <b>1</b>, 651–674.
+</p>
+<p>De Iorio, M., Johnson, W. O., Muller, P., and Rosner, G. L. (2009). Bayesian nonparametric nonproportional hazards survival modeling. <em>Biometrics</em>, <b>65</b>, 762–775.
+</p>
+<p>Geisser, S. and Eddy, W.F. (1979) A Predictive Approach to Model Selection. <em>Journal of the American Statistical Association</em>, <b>74</b>, 153–160.
+</p>
+<p>Gelman, A., Carlin, J.B., Stern, H.S., Dunson, D.B., Vehtari, A., and Rubin, D.B. (2014). Bayesian Data Analysis, 3rd ed. CRC Press: Boca Raton, FL.
+</p>
+<p>Gelman, A., Hwang, J., and Vehtari, A. (2014). Understanding predictive information criteria for Bayesian models. <em>Statistics and Computing</em>, <b>24</b>, 997–1010.
+</p>
+<p>Inacio de Carvalho, V., and Rodriguez-Alvarez, M. X. (2022). The Covariate-Adjusted ROC Curve: The Concept and Its Importance, Review of Inferential Methods, and a New Bayesian Estimator. <em>Statistical Science</em>, <b>37</b>, 541 -561.
+</p>
+<p>Rubin, D. B. (1981). The Bayesian bootstrap. <em>The Annals of Statistics</em>, <b>9</b>, 130–134.
+</p>
+<p>Speigelhalter, D. J., Best, N. G., Carlin, B. P., and van der Linde, A. (2002). Bayesian measures of model comparison and fit. <em>Journal of the Royal Statistical Society, Ser. B</em>, <b>64</b>, 583–639.
+</p>
+<p>Watanabe, S. (2010). Asymptotic Equivalence of Bayes Cross Validation and Widely Applicable Information Criterion in Singular Learning Theory. <em>Journal of Machine Learning Research</em>, <b>11</b>, 3571–3594.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>AROC.bnp</code>, <code>AROC.sp</code>, <code>AROC.kernel</code>, <code>pooledROC.BB</code>, <code>pooledROC.emp</code>, <code>pooledROC.kernel</code>, <code>pooledROC.dpm</code>, <code>cROC.bnp</code>, <code>cROC.sp</code> or <code>AROC.kernel</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(ROCnReg)
+data(psa)
+# Select the last measurement
+newpsa &lt;- psa[!duplicated(psa$id, fromLast = TRUE),]
+
+# Log-transform the biomarker
+newpsa$l_marker1 &lt;- log(newpsa$marker1)
+
+AROC_bnp &lt;- AROC.bnp(formula.h = l_marker1 ~ f(age, K = 0),
+              group = "status", 
+              tag.h = 0, 
+              data = newpsa,
+              standardise = TRUE,
+              p = seq(0,1,l=101),
+              compute.lpml = TRUE,
+              compute.WAIC = TRUE,
+              compute.DIC = TRUE,
+              pauc = pauccontrol(compute = TRUE, focus = "FPF", value = 0.5),
+              density = densitycontrol.aroc(compute = TRUE, grid.h = NA, newdata = NA),
+              prior.h = priorcontrol.bnp(m0 = rep(0, 4), S0 = 10*diag(4), nu = 6, Psi = diag(4),
+              a = 2, b = 0.5, alpha = 1, L =10),
+              mcmc = mcmccontrol(nsave = 500, nburn = 100, nskip = 1))
+
+summary(AROC_bnp)
+
+plot(AROC_bnp)
+
+
+</code></pre>
+
+
+</div>

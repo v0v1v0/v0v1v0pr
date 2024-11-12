@@ -1,0 +1,170 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>predict_real</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Compute estimates of real parameters with individual and design covariates</h2>
+
+<h3>Description</h3>
+
+<p>Unlike covariate.predictions this function allows modification of design data covariates
+as well as individual covariates for the computation of the real parameters. It does
+this by modifying values in the design data, adding individual covariate values to the 
+design data and then applying the model formula to the modified design data to construct a 
+design matrix that is used with the beta estimates to construct the real parameter estimates.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">predict_real(
+  model,
+  df,
+  parameter,
+  replicate = FALSE,
+  beta = NULL,
+  data = NULL,
+  se = TRUE,
+  vcv = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>MARK model object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>df</code></td>
+<td>
+<p>design dataframe subset</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parameter</code></td>
+<td>
+<p>names of the parameter</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>replicate</code></td>
+<td>
+<p>if FALSE then number of rows in data must match the number of rows in df</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+<p>estimates of beta parameters for real parameter computation</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>dataframe with covariate values</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>se</code></td>
+<td>
+<p>if TRUE returns std errors and confidence interval of real
+estimates</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vcv</code></td>
+<td>
+<p>logical; if TRUE, sets se=TRUE and returns v-c matrix of real
+estimates</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>There are two restrictions. First,it only works with a single parameter type (eg Phi or p)
+whereas covariate.predictions allows simultaneous estimation of multiple parameter types.
+Second, if the row from df is a fixed parameter that will only be identified if it uses the fix
+parameter in the design data. It will not work with the original approach of using index and fixed as
+arguments. This should be a minor restrictioin because it doesn't make sense to compute a range of
+real parameter values for a fixed parameter. 
+</p>
+<p>The primary arguments are model which is a fitted mark model object and df which is one of 
+the design dataframes from the design data list (ddl) used to fit the model. The value of
+df can be a subset of the original design dataframe but do NOT create an arbitrary dataframe
+for use as df because if you don't get the indices correct or you don't construct the factor
+variables correctly, it will likely fail or the results could be bogus.  
+</p>
+<p>The argument parameter is just the character name for the parameter ("Phi"). It is only used 
+to extract the correct formula from the fitted model.
+</p>
+<p>The argument beta can provide values for the beta coefficients other than the fitted ones but
+if you do so, don't expect the variances to make sense as the beta.vcv is computed at the
+fitted values.  The default for beta is to use the fitted values so it need not be specified.
+</p>
+<p>The argument data is a dataframe containing values for individual covariates or replacement 
+values for design data covariates.  Do not replace values of factor variables which probably 
+would not make sense anyhow.  If replicate=FALSE then the number of rows in df must match the
+number of rows in data and the values in df are replaced (if design covariate) or added if 
+an individual covariate.  If replicate=TRUE, then design data (df) is replicated for each row 
+in data and the values in data are computed for each one of the rows in df.  Using replicate=TRUE
+would make sense in a case where the value can differ for the index. For example, if one of the 
+design covariates was temperature then you might want to compute the values at a range of temperatures
+for a row in the design data representing each age class in the data.
+</p>
+<p>The arguments se and vcv control computation of the std errors and v-c matrix.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A data frame (<code>real</code>) is returned if <code>vcv=FALSE</code>;
+otherwise, a list is returned also containing vcv.real: </p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>real</code></td>
+<td>
+<p> data
+frame containing estimates, and if se=TRUE or vcv=TRUE it also contains
+standard errors and confidence intervals and notation of whether parameters
+are fixed or at a boundary</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vcv.real</code></td>
+<td>
+<p>variance-covariance matrix of
+real estimates</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Jeff Laake
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>inverse.link</code>,<code>deriv_inverse.link</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+data(dipper)
+dp=process.data(dipper)
+ddl=make.design.data(dp)
+model=mark(dp,ddl,model.parameters=list(Phi=list(formula=~Time)),delete=TRUE)
+predict_real(model,ddl$Phi[1,,drop=FALSE],"Phi",replicate=TRUE,data=data.frame(Time=-12:12))
+
+</code></pre>
+
+
+</div>

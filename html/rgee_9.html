@@ -1,0 +1,314 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ee_as_raster</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Convert an Earth Engine (EE) image in a raster object</h2>
+
+<h3>Description</h3>
+
+<p>Convert an ee$Image in a raster object
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ee_as_raster(
+  image,
+  region = NULL,
+  dsn = NULL,
+  via = "drive",
+  container = "rgee_backup",
+  scale = NULL,
+  maxPixels = 1e+09,
+  lazy = FALSE,
+  public = FALSE,
+  add_metadata = TRUE,
+  timePrefix = TRUE,
+  quiet = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>image</code></td>
+<td>
+<p>ee$Image to be converted into a raster object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>region</code></td>
+<td>
+<p>EE Geometry (ee$Geometry$Polygon) which specifies the region
+to export. CRS needs to be the same that the argument <code>image</code>.
+Otherwise, it will be forced. If not specified, image bounds are taken.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dsn</code></td>
+<td>
+<p>Character. Output filename. If missing, a temporary file is
+created.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>via</code></td>
+<td>
+<p>Character. Method to export the image. Two methods are
+implemented: "drive", "gcs". See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>container</code></td>
+<td>
+<p>Character. Name of the folder ('drive') or bucket ('gcs')
+to be exported.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>Numeric. The resolution in meters per pixel. Defaults
+to the native resolution of the image.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxPixels</code></td>
+<td>
+<p>Numeric. The maximum allowed number of pixels in the
+exported image. The task will fail if the exported region covers
+more pixels in the specified projection. Defaults to 100,000,000.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lazy</code></td>
+<td>
+<p>Logical. If TRUE, a <code>
+future::sequential</code> object is created to evaluate the task in the future.
+See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>public</code></td>
+<td>
+<p>Logical. If TRUE, a public link to the image is created.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>add_metadata</code></td>
+<td>
+<p>Add metadata to the stars_proxy object. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>timePrefix</code></td>
+<td>
+<p>Logical. Add current date and time (<code>Sys.time()</code>) as
+a prefix to files to export. This parameter helps to avoid exported files
+with the same name. By default TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quiet</code></td>
+<td>
+<p>Logical. Suppress info message</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Extra exporting argument. See ee_image_to_drive and
+ee_image_to_gcs.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>ee_as_raster</code> supports the download of <code>ee$Images</code>
+by two different options: "drive"
+(<a href="https://CRAN.R-project.org/package=googledrive">Google Drive</a>) and "gcs"
+(<a href="https://CRAN.R-project.org/package=googleCloudStorageR">
+Google Cloud Storage</a>). In both cases, <code>ee_as_stars</code> works as follow:
+</p>
+
+<ul>
+<li>
+<p>1. A task is started (i.e., <code>ee$batch$Task$start()</code>) to
+move the <code>ee$Image</code> from Earth Engine to the intermediate container
+specified in the argument <code>via</code>.
+</p>
+</li>
+<li>
+<p>2. If the argument <code>lazy</code> is TRUE, the task is not be
+monitored. This is useful to lunch several tasks simultaneously and
+calls them later using <code>ee_utils_future_value</code> or
+<code>future::value</code>. At the end of this step,
+the <code>ee$Image</code> is stored on the path specified in the argument
+<code>dsn</code>.
+</p>
+</li>
+<li>
+<p>3. Finally, if the argument <code>add_metadata</code> is TRUE, a list
+with the following elements are added to the stars-proxy object.
+</p>
+
+<ul><li>
+<p><b>if via is "drive":</b>
+</p>
+
+<ul>
+<li>
+<p><b>ee_id: </b>Name of the Earth Engine task.
+</p>
+</li>
+<li>
+<p><b>drive_name: </b>Name of the Image in Google Drive.
+</p>
+</li>
+<li>
+<p><b>drive_id: </b>Id of the Image in Google Drive.
+</p>
+</li>
+<li>
+<p><b>drive_download_link: </b>Download link to the image.
+</p>
+</li>
+</ul>
+</li></ul>
+<ul><li>
+<p><b>if via is "gcs":</b>
+</p>
+
+<ul>
+<li>
+<p><b>ee_id: </b>Name of the Earth Engine task.
+</p>
+</li>
+<li>
+<p><b>gcs_name: </b>Name of the Image in Google Cloud Storage.
+</p>
+</li>
+<li>
+<p><b>gcs_bucket: </b>Name of the bucket.
+</p>
+</li>
+<li>
+<p><b>gcs_fileFormat: </b>Format of the image.
+</p>
+</li>
+<li>
+<p><b>gcs_public_link: </b>Download link to the image.
+</p>
+</li>
+<li>
+<p><b>gcs_URI: </b>gs:// link to the image.
+</p>
+</li>
+</ul>
+</li></ul>
+<p>Run <code>raster@history@metadata</code> to get the list.
+
+</p>
+</li>
+</ul>
+<p>For getting more information about exporting data from Earth Engine, take
+a look at the
+<a href="https://developers.google.com/earth-engine/guides/exporting">Google
+Earth Engine Guide - Export data</a>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A RasterStack object
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other image download functions: 
+<code>ee_as_rast()</code>,
+<code>ee_as_stars()</code>,
+<code>ee_as_thumbnail()</code>,
+<code>ee_imagecollection_to_local()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+library(rgee)
+
+ee_Initialize(drive = TRUE, gcs = TRUE)
+ee_user_info()
+
+# Define an image.
+img &lt;- ee$Image("LANDSAT/LC08/C01/T1_SR/LC08_038029_20180810")$
+  select(c("B4", "B3", "B2"))$
+  divide(10000)
+
+# OPTIONAL display it using Map
+Map$centerObject(eeObject = img)
+Map$addLayer(eeObject = img, visParams = list(max = 0.4,gamma=0.1))
+
+# Define an area of interest.
+geometry &lt;- ee$Geometry$Rectangle(
+  coords = c(-110.8, 44.6, -110.6, 44.7),
+  proj = "EPSG:4326",
+  geodesic = FALSE
+)
+
+## drive - Method 01
+# Simple
+img_02 &lt;- ee_as_raster(
+  image = img,
+  region = geometry,
+  via = "drive"
+)
+
+# Lazy
+img_02 &lt;- ee_as_raster(
+  image = img,
+  region = geometry,
+  via = "drive",
+  lazy = TRUE
+)
+
+img_02_result &lt;- img_02 %&gt;% ee_utils_future_value()
+img_02_result@history$metadata # metadata
+
+## gcs - Method 02
+# Simple
+img_03 &lt;- ee_as_raster(
+ image = img,
+ region = geometry,
+ container = "rgee_dev",
+ via = "gcs"
+)
+
+# Lazy
+img_03 &lt;- ee_as_raster(
+ image = img,
+ region = geometry,
+ container = "rgee_dev",
+ lazy = TRUE,
+ via = "gcs"
+)
+
+img_03_result &lt;- img_03 %&gt;% ee_utils_future_value()
+img_03_result@history$metadata # metadata
+
+# OPTIONAL: clean containers
+# ee_clean_container(name = "rgee_backup", type = "drive")
+# ee_clean_container(name = "rgee_dev", type = "gcs")
+
+## End(Not run)
+</code></pre>
+
+
+</div>

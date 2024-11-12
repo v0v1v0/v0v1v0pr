@@ -1,0 +1,474 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>KLopt.lnorm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculation of <code class="reqn">KL</code>-optimal discriminating design for lognormal errors</h2>
+
+<h3>Description</h3>
+
+<p>Calculates an approximation <code class="reqn">\xi^{**}</code> of the <code class="reqn">KL</code>-optimal design (in case of lognormal errors) <code class="reqn">\xi^*</code> for discrimination between a given list of error densities <code class="reqn">\{f_i(x,\theta_i),\; i = 1,\dots,\nu\}</code>. This procedure is based on the work [8]. This function mimics <code>tpopt</code> almost entirely. It is planed to combine <code>tpopt</code> and <code>KLopt.lnorm</code> in the future. See <code>tpopt</code> for the detailed description of the arguments marked with “-//-”.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">KLopt.lnorm(    x, 
+                w = rep(1, length(x)) / length(x), 
+                eta, 
+                sq.var,
+                theta.fix, 
+                theta.var = NULL, 
+                p, 
+                x.lb = min(x), 
+                x.rb = max(x), 
+                opt = list())
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>-//-</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w</code></td>
+<td>
+<p>-//-</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eta</code></td>
+<td>
+<p>a list of means for the error densities <code class="reqn">\{f_i(x,\theta_i),\; i = 1,\dots,\nu\}</code> between which proposed optimization should be performed. Every function from this list should be defined in the form of <code class="reqn">\eta_i(x,\theta_i)</code>, where <code class="reqn">x</code> is one dimensional variable from <code class="reqn">\mathcal{X}</code> and <code class="reqn">\theta_i</code> is a vector of corresponding model parameters. We will refer to length of this list as <code class="reqn">\nu</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sq.var</code></td>
+<td>
+<p>a list of variances for the error densities <code class="reqn">\{f_i(x,\theta_i),\; i = 1,\dots,\nu\}</code> between which proposed optimization should be performed. Every function from this list should be defined in the form of <code class="reqn">v^2_i(x,\theta_i)</code>. This list also has the length equal to <code class="reqn">\nu</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>theta.fix</code></td>
+<td>
+<p>-//-</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>theta.var</code></td>
+<td>
+<p>-//-</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>-//-</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x.lb</code></td>
+<td>
+<p>-//-</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x.rb</code></td>
+<td>
+<p>-//-</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>opt</code></td>
+<td>
+<p>-//-</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Object of class “KLopt.lnorm” which contains the following fields:
+</p>
+
+<dl>
+<dt>x, w, efficiency, functional</dt>
+<dd>
+<p>-//-</p>
+</dd>
+<dt>eta</dt>
+<dd>
+<p>a list of means from the input.</p>
+</dd>
+<dt>sq.var</dt>
+<dd>
+<p>a list of variances from the input.</p>
+</dd>
+<dt>theta.fix, theta.var, p, x.lb, x.rb, max.iter, done.iter, des.eff, time</dt>
+<dd>
+<p>-//-</p>
+</dd>
+</dl>
+<h3>See Also</h3>
+
+<p><code>plot.KLopt.lnorm</code>, <code>summary.KLopt.lnorm</code>, <code>print.KLopt.lnorm</code></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+### Examples from [8]
+### Cases 1 and 3 are presented here; case 2 can be computed using the
+### function tpopt (see the description of this function for exact example)
+ 
+library(mvtnorm)
+
+### Example 1 from [8]; EMAX vs MM
+
+#List of models
+eta.1 &lt;- function(x, theta.1) 
+    theta.1[1] * x + theta.1[2] * x / (x + theta.1[3])
+
+eta.2 &lt;- function(x, theta.2) 
+    theta.2[1] * x / (x + theta.2[2])
+
+eta &lt;- list(eta.1, eta.2)
+
+#List of fixed parameters
+theta.1 &lt;- c(1, 1, 1)
+theta.2 &lt;- c(1, 1)
+theta.fix &lt;- list(theta.1, theta.2)
+
+#Comparison table
+p &lt;- matrix(
+    c(
+        0,1,
+        0,0
+    ), c(length(eta), length(eta)), byrow = TRUE)
+
+### Case 1 
+
+#List of variances
+sq.var.1 &lt;- function(x, theta.1)
+    1
+    
+sq.var.2 &lt;- function(x, theta.2)
+    1
+
+sq.var &lt;- list(sq.var.1, sq.var.2)
+    
+#Case 1, method 1
+res &lt;- KLopt.lnorm(
+    x = seq(0.1, 5, length.out = 10), 
+    eta = eta, sq.var = sq.var, theta.fix = theta.fix, p = p,  
+    opt = list(method = 1)
+)
+plot(res)
+summary(res)
+
+#Case 1, method 2
+res &lt;- KLopt.lnorm(
+    x = seq(0.1, 5, length.out = 10), 
+    eta = eta, sq.var = sq.var, theta.fix = theta.fix, p = p,  
+    opt = list(method = 2)
+)
+plot(res)
+summary(res)
+
+### case 3
+#List of variances
+sq.var.1 &lt;- function(x, theta.1)
+    exp(eta.1(x, theta.1))
+    
+sq.var.2 &lt;- function(x, theta.2)
+    exp(eta.2(x, theta.2))
+
+sq.var &lt;- list(sq.var.1, sq.var.2)
+
+#Case 3, method 1
+res &lt;- KLopt.lnorm(
+    x = seq(0.1, 5, length.out = 10), 
+    eta = eta, sq.var = sq.var, theta.fix = theta.fix, p = p,  
+    opt = list(method = 1)
+)
+plot(res)
+summary(res)
+
+#Case 3, method 2
+res &lt;- KLopt.lnorm(
+    x = seq(0.1, 5, length.out = 10), 
+    eta = eta, sq.var = sq.var, theta.fix = theta.fix, p = p,  
+    opt = list(method = 2)
+)
+plot(res)
+summary(res)
+
+### Example 2 from [8]; sigmoidal
+
+#List of models
+eta.1 = function(x, theta.1)
+    theta.1[1] - theta.1[2] * exp(-theta.1[3] * x ^ theta.1[4])
+
+eta.2 &lt;- function(x, theta.2)
+    theta.2[1] - theta.2[2] * exp(-theta.2[3] * x)
+
+#List of fixed parameters
+theta.1.mean &lt;- c(2, 1, 0.8, 1.5)
+sigma &lt;- 0.3
+theta.1.sigma &lt;- matrix(
+    c(
+        sigma,0,
+        0,sigma
+    ), c(2, 2), byrow = TRUE)
+grid &lt;- expand.grid(
+    theta.1.mean[1],
+    theta.1.mean[2],
+    seq(theta.1.mean[3] - sqrt(sigma), theta.1.mean[3] + sqrt(sigma), length.out = 5),
+    seq(theta.1.mean[4] - sqrt(sigma), theta.1.mean[4] + sqrt(sigma), length.out = 5)
+)
+
+theta.2 &lt;- c(2,1,1)
+
+theta.fix &lt;- list()
+for(i in 1:length(grid[,1]))
+    theta.fix[[length(theta.fix)+1]] &lt;- as.numeric(grid[i,])
+theta.fix[[length(theta.fix)+1]] &lt;- theta.2
+
+density.on.grid &lt;- dmvnorm(grid[,3:4], mean = theta.1.mean[3:4], sigma = theta.1.sigma)
+density.on.grid &lt;- density.on.grid / sum(density.on.grid)
+    
+eta &lt;- list()
+for(i in 1:length(grid[,1]))
+    eta &lt;- c(eta, eta.1)
+eta &lt;- c(eta, eta.2)
+
+#Comparison table
+p &lt;- rep(0,length(eta))
+for(i in 1:length(grid[,1]))
+    p &lt;- rbind(p, c(rep(0,length(eta)-1), density.on.grid[i]))
+p &lt;- rbind(p, rep(0,length(eta)))
+p &lt;- p[-1,]
+
+### Case 1
+
+sq.var.1 &lt;- function(x, theta.1)
+    1
+
+sq.var.2 &lt;- function(x, theta.2)
+    1
+
+sq.var &lt;- list()
+for(i in 1:length(grid[,1]))
+    sq.var &lt;- c(sq.var, sq.var.1)
+sq.var &lt;- c(sq.var, sq.var.2)
+
+#Case 1, method 1
+res &lt;- KLopt.lnorm(
+    x = c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10), 
+    eta = eta, sq.var = sq.var, theta.fix = theta.fix, p = p, 
+    opt = list(method = 1)
+)
+plot(res)
+summary(res)
+
+#Case 1, method 2 
+res &lt;- KLopt.lnorm(
+    x = c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10), 
+    eta = eta, sq.var = sq.var, theta.fix = theta.fix, p = p, 
+    opt = list(method = 2)
+)
+plot(res)
+summary(res)
+
+### Case 3
+
+sq.var.1 &lt;- function(x, theta.1)
+    exp(eta.1(x, theta.1))
+
+sq.var.2 &lt;- function(x, theta.2)
+    exp(eta.2(x, theta.2))
+
+sq.var &lt;- list()
+for(i in 1:length(grid[,1]))
+    sq.var &lt;- c(sq.var, sq.var.1)
+sq.var &lt;- c(sq.var, sq.var.2)
+
+#Case 3, method 1 
+res &lt;- KLopt.lnorm(
+    x = c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10), 
+    eta = eta, sq.var = sq.var, theta.fix = theta.fix, p = p, 
+    opt = list(method = 1)
+)
+plot(res)
+summary(res)
+
+#Case 3, method 2 
+res &lt;- KLopt.lnorm(
+    x = c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10), 
+    eta = eta, sq.var = sq.var, theta.fix = theta.fix, p = p, 
+    opt = list(method = 2)
+)
+plot(res)
+summary(res)
+
+### Example 3 from [8]; dose response
+
+#List of models
+eta.1 &lt;- function(x, theta.1)
+    theta.1[1] + theta.1[2] * x
+
+eta.2 &lt;- function(x, theta.2)
+    theta.2[1] + theta.2[2] * x * (theta.2[3] - x)
+
+eta.3 &lt;- function(x, theta.3)
+    theta.3[1] + theta.3[2] * x / (theta.3[3] + x)
+
+eta.4 &lt;- function(x, theta.4)
+    theta.4[1] + theta.4[2] / (1 + exp((theta.4[3] - x) / theta.4[4]))
+
+#List of fixed parameters
+theta.1 &lt;- c(60, 0.56)
+theta.2 &lt;- c(60, 7 / 2250, 600)
+theta.3 &lt;- c(60, 294, 25)
+theta.4.mean &lt;- c(49.62, 290.51, 150, 45.51)
+a &lt;- 45
+b &lt;- 20
+grid &lt;- expand.grid(
+        c(theta.4.mean[1] - b, theta.4.mean[1], theta.4.mean[1] + a), 
+        c(theta.4.mean[2] - b, theta.4.mean[2], theta.4.mean[2] + a), 
+        c(theta.4.mean[3] - b, theta.4.mean[3], theta.4.mean[3] + a), 
+        c(theta.4.mean[4] - b, theta.4.mean[4], theta.4.mean[4] + a)  
+        )
+
+eta &lt;- list()
+eta &lt;- c(eta, eta.1, eta.2, eta.3)
+for(i in 1:length(grid[,1]))
+    eta &lt;- c(eta, eta.4)
+
+theta.fix &lt;- list(theta.1, theta.2, theta.3)
+for(i in 1:length(grid[,1]))
+    theta.fix[[length(theta.fix) + 1]] &lt;- as.numeric(grid[i,])
+
+density.on.grid &lt;- rep(1,length(grid[,1]))
+density.on.grid &lt;- density.on.grid / sum(density.on.grid)
+
+#Comparison table
+p &lt;- rep(0, length(eta))
+p &lt;- rbind(p, c(1, rep(0, length(eta) - 1)))
+p &lt;- rbind(p, c(1, 1, rep(0,length(eta) - 2)))
+for(i in 1:length(grid[,1]))
+    p &lt;- rbind(p, c(rep(density.on.grid[i], 3), rep(0, length(eta) - 3)))
+
+### Case 1
+
+#List of variances
+sq.var.1 &lt;- function(x, theta.1)
+    1
+    
+sq.var.2 &lt;- function(x, theta.2)
+    1
+
+sq.var.3 &lt;- function(x, theta.3)
+    1
+
+sq.var.4 &lt;- function(x, theta.4)
+    1
+
+sq.var &lt;- list()
+sq.var &lt;- c(sq.var, sq.var.1, sq.var.2, sq.var.3)
+for(i in 1:length(grid[,1]))
+    sq.var &lt;- c(sq.var, sq.var.4)
+
+#Case 1, method 1
+
+#Design estimation
+res &lt;- KLopt.lnorm(
+    x = seq(0, 500, length.out = 10), 
+    eta = eta, sq.var = sq.var, theta.fix = theta.fix, p = p, 
+    opt = list(max.iter = 10)
+)
+plot(res)
+summary(res)
+
+#Case 1, method 2
+
+#Design estimation
+res &lt;- KLopt.lnorm(
+    x = seq(0, 500, length.out = 10), 
+    eta = eta, sq.var = sq.var, theta.fix = theta.fix, p = p, 
+    opt = list(
+        method = 2, 
+        max.iter = 10, 
+        weights.evaluation.max.iter = 50, 
+        support.epsilon = 1e-4
+    )
+)
+plot(res)
+summary(res)
+
+### Case 3
+
+#List of variances
+sq.var.1 &lt;- function(x, theta.1)
+    exp(1e-2 * eta.1(x,theta.1))
+    
+sq.var.2 &lt;- function(x, theta.2)
+    exp(1e-2 * eta.2(x,theta.2))
+
+sq.var.3 &lt;- function(x, theta.3)
+    exp(1e-2 * eta.3(x,theta.3))
+
+sq.var.4 &lt;- function(x, theta.4)
+    exp(1e-2 * eta.4(x,theta.4))
+    
+sq.var &lt;- list()
+sq.var &lt;- c(sq.var, sq.var.1, sq.var.2, sq.var.3)
+for(i in 1:length(grid[,1]))
+    sq.var &lt;- c(sq.var, sq.var.4)
+
+#Case 3, method 1
+    
+#Design estimation
+res &lt;- KLopt.lnorm(
+    x = seq(0, 500, length.out = 10), 
+    eta = eta, sq.var = sq.var, theta.fix = theta.fix, p = p, 
+    opt = list(max.iter = 10)
+)
+plot(res)
+summary(res)
+
+#Case 3, method 2
+
+eta.2 &lt;- function(x, theta.2)
+    theta.2[1] + theta.2[2] * x - theta.2[3] * x * x
+
+theta.2 &lt;- c(60, 7 * 600 / 2250, 7 / 2250)
+
+eta &lt;- list()
+eta &lt;- c(eta, eta.1, eta.2, eta.3)
+for(i in 1:length(grid[,1]))
+    eta &lt;- c(eta, eta.4)
+
+theta.fix &lt;- list(theta.1, theta.2, theta.3)
+for(i in 1:length(grid[,1]))
+    theta.fix[[length(theta.fix) + 1]] &lt;- as.numeric(grid[i,])
+
+#Design estimation
+res &lt;- KLopt.lnorm(
+    x = seq(0, 500, length.out = 10), 
+    eta = eta, sq.var = sq.var, theta.fix = theta.fix, p = p, 
+    opt = list(max.iter = 6, method = 2)
+)
+plot(res)
+summary(res)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

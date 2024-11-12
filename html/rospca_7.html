@@ -1,0 +1,231 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>selectLambda</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Selection of sparsity parameter using IC
+</h2>
+
+<h3>Description</h3>
+
+<p>Selection of the sparsity parameter for ROSPCA and SCoTLASS using BIC of Hubert et al. (2016), and for SRPCA using BIC of Croux et al. (2013).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">selectLambda(X, k, kmax = 10, method = "ROSPCA", lmin = 0, lmax = 2, lstep = 0.02,
+             alpha = 0.75, stand = TRUE, skew = FALSE, multicore = FALSE, 
+             mc.cores = NULL, P = NULL, ndir = "all")
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>An <code class="reqn">n</code> by <code class="reqn">p</code> matrix or data matrix with observations in the rows and variables in the columns.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+
+<p>Number of Principal Components (PCs).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kmax</code></td>
+<td>
+
+<p>Maximal number of PCs to be computed, only used when <code>method = "ROSPCA"</code> or <code>method = "ROSPCAg"</code>. Default is 10.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+
+<p>PCA method to use: ROSPCA (<code>"ROSPCA"</code> or <code>"ROSPCAg"</code>), SCoTLASS (<code>"SCoTLASS"</code> or <code>"SPCAg"</code>) or SRPCA (<code>"SRPCA"</code>). Default is <code>"ROSPCA"</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lmin</code></td>
+<td>
+
+<p>Minimal value of <code class="reqn">\lambda</code> to look at, default is 0.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lmax</code></td>
+<td>
+
+<p>Maximal value of <code class="reqn">\lambda</code> to look at, default is 2.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lstep</code></td>
+<td>
+
+<p>Difference between two consecutive values of <code class="reqn">\lambda</code>, i.e. the step size, default is 0.02.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+
+<p>Robustness parameter for ROSPCA, default is 0.75.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stand</code></td>
+<td>
+
+<p>Logical indicating if the data should be standardised, default is <code>TRUE</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>skew</code></td>
+<td>
+
+<p>Logical indicating if the skewed version of ROSPCA should be applied, default is <code>FALSE</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>multicore</code></td>
+<td>
+
+<p>Logical indicating if multiple cores can be used, default is <code>TRUE</code>. Note that this is not possible for the Windows platform, so <code>multicore</code> is always <code>FALSE</code> there.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mc.cores</code></td>
+<td>
+
+<p>Number of cores to use if <code>multicore=TRUE</code>, default is <code>NULL</code> which corresponds to the number of cores minus 1.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>P</code></td>
+<td>
+
+<p>True loadings matrix, a numeric matrix of size <code class="reqn">p</code> by <code class="reqn">k</code>. The default is <code>NULL</code> which means that no true loadings matrix is specified. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ndir</code></td>
+<td>
+<p>Number of directions used when computing the outlyingness (or the adjusted outlyingness when <code>skew=TRUE</code>) in <code>rospca</code>, see <code>outlyingness</code> and <code>adjOutl</code> for more details.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>We select an optimal value of <code class="reqn">\lambda</code> for a certain method on a certain dataset by looking at an equidistant grid of <code class="reqn">\lambda</code> values. For each value of <code class="reqn">\lambda</code>, we apply the method on the dataset using this sparsity parameter, and compute an Information Criterion (IC). The optimal value of <code class="reqn">\lambda</code> is then the one corresponding to the minimal IC. The ICs we consider are the BIC of for Hubert et al. (2016) for ROSPCA and SCoTLASS, and the BIC of Croux et al. (2013) for SRPCA.
+The BIC of Hubert et al. (2016) is defined as
+</p>
+<p style="text-align: center;"><code class="reqn">BIC(\lambda)=\ln(1/(h_1p)\sum_{i=1}^{h_1} OD^2_{(i)}(\lambda))+df(\lambda)\ln(h_1p)/(h_1p),</code>
+</p>
+
+<p>where <code class="reqn">h_1</code> is the size of <code class="reqn">H_1</code> (the subset of observations that are kept in the non-sparse reweighting step) and <code class="reqn">OD_{(i)}(\lambda)</code> is the <code class="reqn">i</code>th smallest orthogonal distance for the model when using <code class="reqn">\lambda</code> as the sparsity parameter. The degrees of freedom <code class="reqn">df(\lambda)</code> are the number of non-zero loadings when <code class="reqn">\lambda</code> is used as the sparsity parameter.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with components:<br></p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>opt.lambda</code></td>
+<td>
+<p>Value of <code class="reqn">\lambda</code> corresponding to minimal IC.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min.IC</code></td>
+<td>
+<p>Minimal value of IC.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Lambda</code></td>
+<td>
+<p>Numeric vector containing the used values of <code class="reqn">\lambda</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>IC</code></td>
+<td>
+<p>Numeric cector containing the IC values corresponding to all values of <code class="reqn">\lambda</code> in <code>Lambda</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loadings</code></td>
+<td>
+<p>Loadings obtained using method with sparsity parameter <code>opt.lambda</code>, a numeric matrix of size <code class="reqn">p</code> by <code class="reqn">k</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>Fit obtained using method with sparsity parameter <code>opt.lambda</code>. This is a list containing the loadings (<code>loadings</code>), the eigenvalues (<code>eigenvalues</code>), the standardised data matrix used as input (<code>Xst</code>), the scores matrix (<code>scores</code>), the orthogonal distances (<code>od</code>) and the score distances (<code>sd</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>Type of IC used: <code>BICod</code> (BIC of Hubert et al. (2016)) or <code>BIC</code> (BIC of Croux et al. (2013)).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>measure</code></td>
+<td>
+<p>A numeric vector containing the standardised angles between the true and the estimated loadings matrix for each value of <code class="reqn">\lambda</code> if a loadings matrix is given. When no loadings matrix is given as input (<code>P=NULL</code>), <code>measure</code> is equal to <code>NULL</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Tom Reynkens
+</p>
+
+
+<h3>References</h3>
+
+<p>Hubert, M., Reynkens, T., Schmitt, E. and Verdonck, T. (2016). “Sparse PCA for High-Dimensional Data with Outliers,” <em>Technometrics</em>, 58, 424–434.
+</p>
+<p>Croux, C., Filzmoser, P., and Fritz, H. (2013), “Robust Sparse Principal Component Analysis,” <em>Technometrics</em>, 55, 202–214.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>selectPlot, mclapply, angle
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">X &lt;- dataGen(m=1, n=100, p=10, eps=0.2, bLength=4)$data[[1]]
+
+sl &lt;- selectLambda(X, k=2, method="ROSPCA", lstep=0.1)
+selectPlot(sl)
+</code></pre>
+
+
+</div>

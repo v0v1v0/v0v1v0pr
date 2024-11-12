@@ -1,0 +1,282 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fit_ertmpt</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fit Exponential-RT-MPT Models</h2>
+
+<h3>Description</h3>
+
+<p>Given model and data, this function calls an altered version of the C++ program by Klauer and Kellen (2018) to sample from
+the posterior distribution via a Metropolis-Gibbs sampler and storing it in an mcmc.list called <code>samples</code>. 
+Posterior predictive checks developed by Klauer (2010), deviance information criterion (DIC; Spiegelhalter et al., 2002),
+99% and 95% highest density intervals (HDI) together with the median will be provided for the main parameters in a list 
+called <code>diags</code>. Optionally, the <code>indices</code> widely applicable information criterion (WAIC; Watanabe, 2010; Vehtari et al., 2017) and 
+leave-one-out cross-validation (LOO; Vehtari et al., 2017) can be saved. Additionally the log-likelihood (<code>LogLik</code>) can also be stored. 
+Some specifications of the function call are also saved in <code>specs</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fit_ertmpt(
+  model,
+  data,
+  n.chains = 4,
+  n.iter = 5000,
+  n.burnin = 200,
+  n.thin = 1,
+  Rhat_max = 1.05,
+  Irep = 1000,
+  prior_params = NULL,
+  indices = FALSE,
+  save_log_lik = FALSE,
+  old_label = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>A list of the class <code>ertmpt_model</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>Optimally, a list of class <code>ertmpt_data</code>. Also possible is a <code>data.frame</code> or a 
+path to the text file. Both, <code>data.frame</code> and the text file must contain the column names "subj", 
+"group", "tree", "cat", and "rt" preferably but not necessarily in this order. The values of the latter must 
+be in milliseconds. It is always advised to use <code>to_ertmpt_data</code> first, which gives back an <code>ertmpt_data</code> list
+with informations about the changes in the data, that were needed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.chains</code></td>
+<td>
+<p>Number of chains to use. Default is 4. Must be larger than 1 and smaller or equal to 16.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.iter</code></td>
+<td>
+<p>Number of samples per chain. Default is 5000.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.burnin</code></td>
+<td>
+<p>Number of warm-up samples. Default is 200.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.thin</code></td>
+<td>
+<p>Thinning factor. Default is 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Rhat_max</code></td>
+<td>
+<p>Maximal Potential scale reduction factor: A lower threshold that needs to be reached before the actual sampling starts. Default is 1.05</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Irep</code></td>
+<td>
+<p>Every <code>Irep</code> samples an interim state with the current maximal potential scale reduction
+factor is shown. Default is 1000. The following statements must hold true for <code>Irep</code>:
+</p>
+
+<ul>
+<li> <p><code>n.burnin</code> is smaller than or equal to <code>Irep</code>,
+</p>
+</li>
+<li> <p><code>Irep</code> is a multiple of <code>n.thin</code> and
+</p>
+</li>
+<li> <p><code>n.iter</code> is a multiple of <code>Irep / n.thin</code>.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior_params</code></td>
+<td>
+<p>Named list with prior parameters. All parameters have default values, that lead to uninformative priors. Vectors are not allowed.
+Allowed parameters are:
+</p>
+
+<ul>
+<li> <p><code>mean_of_exp_mu_beta</code>: This is the a priori expected exponential rate (<code>E(exp(beta)) = E(lambda)</code>) and 
+<code>1/mean_of_exp_mu_beta</code> is the a priori expected process time (<code>1/E(exp(beta)) = E(tau)</code>). The default
+mean is set to <code>10</code>, such that the expected a priori process time is <code>0.1</code> seconds.
+</p>
+</li>
+<li> <p><code>var_of_exp_mu_beta</code>: The a priori group-specific variance of the exponential rates. Since
+<code>exp(mu_beta)</code> is Gamma distributed, the rate of the distribution is just mean divided by variance and
+the shape is the mean times the rate. The default is set to <code>100</code>.
+</p>
+</li>
+<li> <p><code>mean_of_mu_gamma</code>: This is the a priori expected <em>mean parameter</em> of the encoding and response execution times,
+which follow a normal distribution truncated from below at zero, so <code>E(mu_gamma) &lt; E(gamma)</code>. The default is <code>0</code>.
+</p>
+</li>
+<li> <p><code>var_of_mu_gamma</code>: The a priori group-specific variance of the <em>mean parameter</em>. Its default is <code>10</code>.
+</p>
+</li>
+<li> <p><code>mean_of_omega_sqr</code>: This is the a priori expected residual variance (<code>E(omega^2)</code>). Its distribution
+differs from the one used in the paper. Here it is a Gamma distribution instead of an improper one. The default
+is <code>0.005</code>.
+</p>
+</li>
+<li> <p><code>var_of_omega_sqr</code>: The a priori variance of the residual variance (<code>Var(omega^2)</code>). The default is
+<code>0.01</code>. The default of the mean and variance is equivalent to a shape and rate of <code>0.0025</code> and 
+<code>0.5</code>, respectivly.
+</p>
+</li>
+<li> <p><code>df_of_sigma_sqr</code>: A priori degrees of freedom for the individual variance of the response executions. The
+individual variance has a scaled inverse chi-squared prior with <code>df_of_sigma_sqr</code> degrees of freedom and
+<code>omega^2</code> as scale. <code>2</code> is the default and it should be an integer.
+</p>
+</li>
+<li> <p><code>sf_of_scale_matrix_SIGMA</code>: The original scaling matrix (S) of the (scaled) inverse Wishart distribution for the process 
+related parameters is an identity matrix <code>S=I</code>. <code>sf_of_scale_matrix_SIGMA</code> is a scaling factor, that scales this 
+matrix (<code>S=sf_of_scale_matrix_SIGMA*I</code>). Its default is <code>1</code>.
+</p>
+</li>
+<li> <p><code>sf_of_scale_matrix_GAMMA</code>: The original scaling matrix (S) of the (scaled) inverse Wishart distribution for the encoding and
+motor execution parameters is an identity matrix <code>S=I</code>. <code>sf_of_scale_matrix_GAMMA</code> is a scaling factor, that scales 
+this matrix (<code>S=sf_of_scale_matrix_GAMMA*I</code>). Its default is <code>1</code>.
+</p>
+</li>
+<li> <p><code>prec_epsilon</code>: This is epsilon in the paper. It is the precision of mu_alpha and all xi (scaling parameter
+in the scaled inverse Wishart distribution). Its default is also <code>1</code>.
+</p>
+</li>
+<li> <p><code>add_df_to_invWish</code>: If <code>P</code> is the number of parameters or rather the size of the scale matrix used in the (scaled)
+inverse Wishart distribution then <code>add_df_to_invWish</code> is the number of degrees of freedom that can be added to it. So
+<code>DF = P + add_df_to_invWish</code>. The default for <code>add_df_to_invWish</code> is <code>1</code>, such that the correlations are uniformly 
+distributed within <code>[-1, 1]</code>.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>indices</code></td>
+<td>
+<p>Model selection indices. If set to <code>TRUE</code> the log-likelihood for each iteration and trial will be stored temporarily
+and with that the WAIC and LOO will be calculated via the <code>loo</code> package. If you want to have this log-likelihood matrix stored in the
+output of this function, you can set <code>save_log_lik</code> to <code>TRUE</code>. The default for <code>indices</code> is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>save_log_lik</code></td>
+<td>
+<p>If set to <code>TRUE</code> and <code>indices = TRUE</code> the log-likelihood matrix for each iteration and trial will
+be saved in the output as a matrix. Its default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>old_label</code></td>
+<td>
+<p>If set to <code>TRUE</code> the old labels of "subj" and "group" of the data will be used in the elements of the output list. Default is <code>FALSE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list of the class <code>ertmpt_fit</code> containing 
+</p>
+
+<ul>
+<li> <p><code>samples</code>: the posterior samples as an <code>mcmc.list</code> object,
+</p>
+</li>
+<li> <p><code>diags</code>: some diagnostics like deviance information criterion, posterior predictive checks for the frequencies and latencies, 
+potential scale reduction factors, and also the 99% and 95% HDIs and medians for the group-level parameters,
+</p>
+</li>
+<li> <p><code>specs</code>: some model specifications like the model, arguments of the model call, and information about the data transformation,
+</p>
+</li>
+<li> <p><code>indices</code> (optional): if enabled, WAIC and LOO,
+</p>
+</li>
+<li> <p><code>LogLik</code> (optional): if enabled, the log-likelihood matrix used for WAIC and LOO. 
+</p>
+</li>
+<li> <p><code>summary</code> includes posterior mean and median of the main parameters.
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>Raphael Hartmann
+</p>
+
+
+<h3>References</h3>
+
+<p>Hartmann, R., Johannsen, L., &amp; Klauer, K. C. (2020). rtmpt: An R package for fitting response-time extended multinomial processing tree models. 
+<em>Behavior Research Methods, 52</em>(3), 1313–1338. 
+</p>
+<p>Hartmann, R., &amp; Klauer, K. C. (2020). Extending RT-MPTs to enable equal process times. <em>Journal of Mathematical Psychology, 96</em>, 102340.
+</p>
+<p>Klauer, K. C. (2010). Hierarchical multinomial processing tree models: A latent-trait approach. <em>Psychometrika, 75(1)</em>, 70-98.
+</p>
+<p>Klauer, K. C., &amp; Kellen, D. (2018). RT-MPTs: Process models for response-time distributions based on multinomial processing trees with 
+applications to recognition memory. <em>Journal of Mathematical Psychology, 82</em>, 111-130.
+</p>
+<p>Spiegelhalter, D. J., Best, N. G., Carlin, B. P., &amp; Van Der Linde, A. (2002). Bayesian measures of model complexity and fit. 
+<em>Journal of the royal statistical society: Series b (statistical methodology), 64(4)</em>, 583-639.
+</p>
+<p>Vehtari, A., Gelman, A., &amp; Gabry, J. (2017). Practical Bayesian model evaluation using leave-one-out cross-validation and WAIC. 
+<em>Statistics and Computing, 27(5)</em>, 1413-1432.
+</p>
+<p>Watanabe, S. (2010). Asymptotic equivalence of Bayes cross validation and widely applicable information criterion in singular learning theory. 
+<em>Journal of Machine Learning Research, 11(Dec)</em>, 3571-3594.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">####################################################################################
+# Detect-Guess variant of the Two-High Threshold model.
+# The encoding and motor execution times are assumed to be equal for each response.
+####################################################################################
+
+mdl_2HTM &lt;- "
+# targets
+do+(1-do)*g
+(1-do)*(1-g)
+
+# lures
+(1-dn)*g
+dn+(1-dn)*(1-g)
+
+# do: detect old; dn: detect new; g: guess
+"
+
+model &lt;- to_ertmpt_model(mdl_file = mdl_2HTM)
+
+data_file &lt;- system.file("extdata/data.txt", package="rtmpt")
+data &lt;- read.table(file = data_file, header = TRUE)
+data_list &lt;- to_ertmpt_data(raw_data = data, model = model)
+
+# This might take some time
+ertmpt_out &lt;- fit_ertmpt(model = model, data = data_list, Rhat_max = 1.1)
+ertmpt_out
+
+# Type ?SimData for another working example.
+</code></pre>
+
+
+</div>

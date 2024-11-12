@@ -1,0 +1,203 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>hazrate.like</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>hazrate.like - Hazard rate likelihood</h2>
+
+<h3>Description</h3>
+
+<p>Computes the hazard rate likelihood of  
+off-transect distances, given parameters. Primarily used as 
+a minimization objective during distance function estimation.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">hazrate.like(
+  a,
+  dist,
+  covars = NULL,
+  w.lo = units::set_units(0, "m"),
+  w.hi = max(dist),
+  series = "cosine",
+  expansions = 0,
+  scale = TRUE,
+  pointSurvey = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>a</code></td>
+<td>
+<p>A vector of likelihood parameter values. Length and meaning 
+depend on <code>series</code> and <code>expansions</code>. If no expansion terms 
+were called for
+(i.e., <code>expansions = 0</code>), the distance likelihoods contain 
+one or two canonical parameters (see Details). If one or more 
+expansions are called for,
+coefficients for the expansion terms follow coefficients for the 
+canonical parameters.  If <code>p</code> is the number of canonical 
+parameters, coefficients
+for the expansion terms are <code>a[(p+1):length(a)]</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dist</code></td>
+<td>
+<p>A numeric vector containing the observed distances.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covars</code></td>
+<td>
+<p>Data frame containing values of covariates at 
+each observation in <code>dist</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w.lo</code></td>
+<td>
+<p>Scalar value of the lowest observable distance.
+This is the <em>left truncation</em> of sighting distances in 
+<code>dist</code>. Same units as <code>dist</code>.
+Values less than <code>w.lo</code> are allowed in <code>dist</code>, 
+but are ignored and their contribution to the likelihood is 
+set to <code>NA</code> in the output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w.hi</code></td>
+<td>
+<p>Scalar value of the largest observable distance.
+This is the <em>right truncation</em> of sighting distances in 
+<code>dist</code>.  Same units as <code>dist</code>.
+Values greater than <code>w.hi</code> are allowed in <code>dist</code>, 
+but are ignored and their contribution to the likelihood is 
+set to <code>NA</code> in the output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>series</code></td>
+<td>
+<p>A string specifying the type of expansion to use.
+Currently, valid values are 'simple', 'hermite', and 'cosine'; but, see 
+<code>dfuncEstim</code> about defining other series.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>expansions</code></td>
+<td>
+<p>A scalar specifying the number of terms in 
+<code>series</code>. Depending on the series, this could be 0 through 5.
+The default of 0 equates to no expansion terms of any type.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>Logical scalar indicating whether or not to scale 
+the likelihood so it integrates to 1. This parameter is used to 
+stop recursion in other functions.
+If <code>scale</code> equals TRUE, a numerical integration 
+routine (<code>integration.constant</code>) is called, which 
+in turn calls this likelihood function again
+with <code>scale</code> = FALSE. Thus, this routine knows when its 
+values are being used to compute the likelihood and when its 
+value is being used to compute the 
+constant of integration.  All user defined likelihoods must have 
+and use this parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pointSurvey</code></td>
+<td>
+<p>Boolean. TRUE if <code>dist</code> is point 
+transect data, FALSE if line transect data.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The hazard rate likelihood is 
+</p>
+<p style="text-align: center;"><code class="reqn">f(x|\sigma,k) = 1 - \exp(-(x/\sigma)^{-k})</code>
+</p>
+ 
+<p>where <code class="reqn">\sigma</code> determines location 
+(i.e., distance at which the function equals 1 - exp(-1) = 0.632), 
+and <code class="reqn">k</code> determines slope of the function 
+at <code class="reqn">\sigma</code> (i.e., larger k equals steeper 
+slope at <code class="reqn">\sigma</code>). For distance analysis, 
+the valid range for both <code class="reqn">\sigma</code> and k is
+<code class="reqn">\geq 0</code>.  
+</p>
+<p><b>Expansion Terms</b>: If <code>expansions</code> = e 
+(e &gt; 0), the expansion function specified by 
+<code>series</code> is called (see for example
+<code>cosine.expansion</code>). Assuming 
+<code class="reqn">h_{ij}(x)</code> is the <code class="reqn">j^{th}</code> 
+expansion term for the <code class="reqn">i^{th}</code> distance and that 
+<code class="reqn">c_1, c_2, \dots, c_k</code> are 
+(estimated) coefficients for the expansion terms, the 
+likelihood contribution for the <code class="reqn">i^{th}</code> 
+distance is, </p>
+<p style="text-align: center;"><code class="reqn">f(x|a,b,c_1,c_2,\dots,c_e) = f(x|a,b)(1 + 
+  \sum_{j=1}^{e} c_j h_{ij}(x)).</code>
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>A numeric vector the same length and order as 
+<code>dist</code> containing the likelihood contribution for 
+corresponding distances in <code>dist</code>. 
+Assuming <code>L</code> is the returned vector from one of these 
+functions, the full log likelihood of all the data is 
+<code>-sum(log(L), na.rm=T)</code>. Note that the
+returned likelihood value for distances less than 
+<code>w.lo</code> or greater than <code>w.hi</code> is <code>NA</code>, 
+and thus it is prudent to use <code>na.rm=TRUE</code> in the
+sum. If <code>scale</code> = TRUE, the integral of the likelihood 
+from <code>w.lo</code> to <code>w.hi</code> is 1.0. If <code>scale</code> = 
+FALSE, the integral of the likelihood is
+arbitrary.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>dfuncEstim</code>,
+<code>halfnorm.like</code>,
+<code>uniform.like</code>,
+<code>negexp.like</code>,
+<code>Gamma.like</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+x &lt;- seq(0, 100, length=100)
+
+# Plots showing effects of changes in sigma
+plot(x, hazrate.like(c(20, 5), x), type="l", col="red")
+plot(x, hazrate.like(c(40, 5), x), type="l", col="blue")
+
+# Plots showing effects of changes in beta
+plot(x, hazrate.like(c(50, 20), x), type="l", col="red")
+plot(x, hazrate.like(c(50, 2), x), type="l", col="blue")
+
+## End(Not run)
+         
+</code></pre>
+
+
+</div>

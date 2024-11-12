@@ -1,0 +1,155 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>RepeatedMedian</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Siegel's repeated median slope and intercept estimator.
+</h2>
+
+<h3>Description</h3>
+
+<p>Computes the repeated median slope proposed by Siegel (1982) using the algorithm by 
+Matousek et. al (1998). The algorithm runs in an expected <code class="reqn">O(n (log n)^2)</code> time,
+which is typically significantly faster than the <code class="reqn">O(n^2)</code> computational cost of 
+the naive algorithm, and requires <code class="reqn">O(n)</code> storage.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">RepeatedMedian(x, y, alpha = NULL, beta = NULL, verbose = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+
+<p>A vector of predictor values.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+
+<p>A vector of response values.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+
+<p>Determines the outer order statistic, which is equal to <code class="reqn">[alpha*n]</code>, where <code class="reqn">n</code> denotes the sample size. Defaults to <code>NULL</code>, which corresponds
+with the (upper) median. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+
+<p>Determines the inner order statistic, which is equal to <code class="reqn">[beta*(n-1)]</code>, where <code class="reqn">n</code> denotes the sample size. Defaults to <code>NULL</code>, which corresponds
+with the (upper) median. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+
+<p>Whether or not to print out the progress of the algorithm. Defaults to <code>TRUE</code>.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Given two input vectors <code>x</code> and <code>y</code> of length <code class="reqn">n</code>, the repeated median is computed as <code class="reqn">med_i med_j (y_i - y_j)/(x_i-x_j)</code>.  The default "outer” median is the <code class="reqn">\lfloor (n + 2) / 2 \rfloor</code> largest element in the ordered median slopes. The inner median, which for each observation is calculated as the median of the slopes connected to this observation, is the <code class="reqn">\lfloor (n +1) / 2 \rfloor</code> largest element in the ordered slopes. By changing <code>alpha</code> and  <code>beta</code>, other repeated order statistics of the slopes can be computed.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with elements:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>intecept</code></td>
+<td>
+<p>The estimate of the intercept.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>slope</code></td>
+<td>
+<p>The Theil-Sen estimate of the slope.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Jakob Raymaekers
+</p>
+
+
+<h3>References</h3>
+
+<p>Siegel, A. F. (1982). Robust regression using repeated medians. <em>Biometrika</em>, <b>69</b>(1), 242-244.  
+</p>
+<p>Matousek, J., Mount, D. M., &amp; Netanyahu, N. S. (1998). Efficient randomized algorithms for the repeated median line estimator. <em>Algorithmica</em>, <b>20</b>(2), 136-150.
+</p>
+<p>Raymaekers (2023). "The R Journal: robslopes: Efficient Computation of the (Repeated) Median Slope", The R Journal. <a href="https://journal.r-project.org/articles/RJ-2023-012/">(link to open access pdf)</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>TheilSen</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# We compare the implemented algorithm against a naive brute-force approach.
+
+bruteForceRM &lt;- function(x, y) {
+  
+  n &lt;- length(x)
+  medind1 &lt;- floor((n+2) / 2)
+  medind2 &lt;- floor((n+1) / 2)
+  temp &lt;-  t(sapply(1:n, function(z)  sort(apply(cbind(x, y), 1 ,
+                                                  function(k) (k[2] - y[z]) /
+                                                    (k[1] - x[z])))))
+  RMslope &lt;- sort(temp[, medind2])[medind1]
+  RMintercept &lt;- sort(y - x * RMslope)[medind1]
+  return(list(intercept = RMintercept, slope = RMslope))
+}
+
+n = 100
+set.seed(2)
+x = rnorm(n)
+y = x + rnorm(n)
+
+t0 &lt;- proc.time()
+RM.fast &lt;- RepeatedMedian(x, y, NULL, NULL, FALSE)
+t1 &lt;- proc.time()
+t1 - t0
+
+t0 &lt;- proc.time()
+RM.naive &lt;- bruteForceRM(x, y)
+t1 &lt;- proc.time()
+t1 - t0
+
+RM.fast$slope - RM.naive$slope
+</code></pre>
+
+
+</div>

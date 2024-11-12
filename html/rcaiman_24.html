@@ -1,0 +1,144 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>extract_sun_coord</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Extract sun coordinates</h2>
+
+<h3>Description</h3>
+
+<p>Extract the sun coordinates for CIE sky model fitting.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">extract_sun_coord(r, z, a, bin, g, max_angular_dist = 30)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>r</code></td>
+<td>
+<p>SpatRaster. A normalized greyscale image. Typically, the
+blue channel extracted from a canopy photograph. Please see <code>read_caim()</code>
+and <code>normalize()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>z</code></td>
+<td>
+<p>SpatRaster built with <code>zenith_image()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>a</code></td>
+<td>
+<p>SpatRaster built with <code>azimuth_image()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bin</code></td>
+<td>
+<p>SpatRaster. This should be a preliminary binarization of
+<code>r</code> useful for masking pixels that are very likely pure sky pixels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g</code></td>
+<td>
+<p>SpatRaster built with <code>sky_grid_segmentation()</code> or
+<code>chessboard()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_angular_dist</code></td>
+<td>
+<p>Numeric vector of length one. Angle in degrees to
+control the potential maximum size of the solar corona.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function uses an object-based image analyze framework. The segmentation
+is given by <code>g</code> and <code>bin</code>. For every cell of <code>g</code>, the pixels
+from <code>r</code> that are equal to one on <code>bin</code> are selected and its
+maximum value is calculated. Then, the 95th percentile of these maximum
+values is computed and used to filter out cells below that threshold; i.e,
+only the cells with at least one extremely bright sky pixel is selected.
+</p>
+<p>The selected cells are grouped based on adjacency, and new bigger segments
+are created from these groups. The degree of membership to the class
+<em>Sun</em> is calculated for every new segment by computing the number of
+cells that constitute the segment and its mean digital number (values taken
+from <code>r</code>). In other words, the  largest and brightest segments are the
+ones that score higher. The one with the highest score is selected as the
+<em>sun seed</em>.
+</p>
+<p>The angular distance from the sun seed to every other segments are computed,
+and only the segments not farther than <code>max_angular_dist</code> are classified
+as part of the sun corona. A multi-part segment is created by merging the
+sun-corona segments and, finally, the center of its bounding box is
+considered as the sun location.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Object of class <em>list</em> with two numeric vectors of length two
+named <em>row_col</em> and <em>zenith_azimuth</em>. The former is the raster
+coordinates of the solar disk (row and column), and the other is the
+angular coordinates (zenith and azimuth angles in degrees).
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Tool Functions: 
+<code>colorfulness()</code>,
+<code>correct_vignetting()</code>,
+<code>defuzzify()</code>,
+<code>extract_dn()</code>,
+<code>extract_feature()</code>,
+<code>extract_rl()</code>,
+<code>extract_sky_points_simple()</code>,
+<code>extract_sky_points()</code>,
+<code>find_sky_pixels_nonnull()</code>,
+<code>find_sky_pixels()</code>,
+<code>masking()</code>,
+<code>optim_normalize()</code>,
+<code>percentage_of_clipped_highlights()</code>,
+<code>read_bin()</code>,
+<code>read_caim_raw()</code>,
+<code>read_caim()</code>,
+<code>write_bin()</code>,
+<code>write_caim()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+caim &lt;- read_caim()
+r &lt;- caim$Blue
+caim &lt;- normalize(caim, 0, 20847, TRUE)
+z &lt;- zenith_image(ncol(caim), lens())
+a &lt;- azimuth_image(z)
+m &lt;- !is.na(z)
+plotRGB(caim*255)
+bin &lt;- ootb_obia(caim, z, a, m, HSV(239, 0.85, 0.5), gamma = NULL)
+g &lt;- sky_grid_segmentation(z, a, 10)
+sun_coord &lt;- extract_sun_coord(r, z, a, bin, g, max_angular_dist = 30)
+points(sun_coord$row_col[2], nrow(caim) - sun_coord$row_col[1],
+        col = 3, pch = 10)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,155 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>stack_rasters</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create and save a multi-band output raster by combining input rasters</h2>
+
+<h3>Description</h3>
+
+<p>This function creates an output raster that "stacks" all the bands of its
+input rasters, as though they were loaded one after another into a GIS. It
+does this by first constructing a GDAL virtual raster, or "VRT", and then
+optionally uses GDAL's warper to convert this VRT into a standalone file.
+The VRT is fast to create and does not require much space, but does require
+the input rasters not be moved or altered. Creating a standalone raster from
+this file may take a long time and a large amount of disk space.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">stack_rasters(
+  rasters,
+  output_filename,
+  ...,
+  resolution,
+  extent,
+  reference_raster = 1,
+  resampling_method = "bilinear",
+  band_names,
+  check_crs = TRUE,
+  gdalwarp_options = c("-multi", "-overwrite", "-co", "COMPRESS=DEFLATE", "-co",
+    "PREDICTOR=2", "-co", "NUM_THREADS=ALL_CPUS"),
+  gdal_config_options = c(VSI_CACHE = "TRUE", GDAL_CACHEMAX = "30%", VSI_CACHE_SIZE =
+    "10000000", GDAL_HTTP_MULTIPLEX = "YES", GDAL_INGESTED_BYTES_AT_OPEN = "32000",
+    GDAL_DISABLE_READDIR_ON_OPEN = "EMPTY_DIR", GDAL_HTTP_VERSION = "2",
+    GDAL_HTTP_MERGE_CONSECUTIVE_RANGES = "YES", GDAL_NUM_THREADS = "ALL_CPUS")
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>rasters</code></td>
+<td>
+<p>A list of rasters to combine into a single multi-band raster,
+as character file paths to files that can be read by <code>terra::rast()</code>.
+Rasters will be "stacked" upon one another, preserving values. They must
+share CRS.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>output_filename</code></td>
+<td>
+<p>The location to save the final "stacked" raster. If
+this filename has a "vrt" extension as determined by <code>tools::file_ext()</code>,
+then this function exits after creating a VRT; otherwise, this function will
+create a VRT and then use <code>sf::gdal_utils("warp")</code> to convert the VRT into
+another format.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>These dots are for future extensions and must be empty.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>resolution</code></td>
+<td>
+<p>Numeric of length 2, representing the target X and Y
+resolution of the output raster. If only a single value is provided, it will
+be used for both X and Y resolution; if more than 2 values are provided, an
+error is thrown.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extent</code></td>
+<td>
+<p>Numeric of length 4, representing the target xmin, ymin, xmax,
+and ymax values of the output raster (its bounding box), in that order.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reference_raster</code></td>
+<td>
+<p>The position (index) of the raster in <code>rasters</code> to
+take extent, resolution, and CRS information from. No reprojection is done.
+If <code>resolution</code> or <code>extent</code> are provided, they override the values from the
+reference raster.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>resampling_method</code></td>
+<td>
+<p>The method to use when resampling to different
+resolutions in the VRT.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>band_names</code></td>
+<td>
+<p>Either a character vector of band names, or a function that
+when given a character vector of band names, returns a character vector of
+the same length containing new band names.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>check_crs</code></td>
+<td>
+<p>Logical: Should this function check that all <code>rasters</code> share
+the same CRS? Set to <code>FALSE</code> only if you are entirely confident that rasters
+have equivalent CRS definitions, but not identical WKT strings.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gdalwarp_options</code></td>
+<td>
+<p>Options passed to <code>gdalwarp</code> through the <code>options</code>
+argument of <code>sf::gdal_utils()</code>. This argument is ignored (with a warning)
+if <code>output_filename</code> is a VRT.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gdal_config_options</code></td>
+<td>
+<p>Options passed to <code>gdalwarp</code> through the
+<code>config_options</code> argument of <code>sf::gdal_utils()</code>.  This argument is ignored
+(with a warning) if <code>output_filename</code> is a VRT.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p><code>output_filename</code>, unchanged.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">stack_rasters(
+  list(
+    system.file("rasters/dpdd.tif", package = "rsi"),
+    system.file("rasters/example_sentinel1.tif", package = "rsi")
+  ),
+  tempfile(fileext = ".vrt")
+)
+
+</code></pre>
+
+
+</div>

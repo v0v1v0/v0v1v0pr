@@ -1,0 +1,118 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>simu.iv.data</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Simulated instrumental variable data</h2>
+
+<h3>Description</h3>
+
+<p>A dataset simulated as in Sun and Tan (2020), Section 4.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">data(simu.iv.data)</code></pre>
+
+
+<h3>Format</h3>
+
+<p>A data matrix with 800 rows and 203 columns.</p>
+
+
+<h3>Details</h3>
+
+ 
+<p>The dataset is generated as follows, where <code>y</code>, <code>iv</code>, <code>tr</code> and <code>x</code> represent an outcome, an instrumental variable, a treatment, and covariates respectively. 
+</p>
+<pre>
+g&lt;-function(z) {
+	1/(1+exp(z/b))^2*dnorm(z)
+}
+
+rnorm.trunct &lt;- function(n, mu, sig, lft, rgt) {
+   x &lt;- rep(0,n)
+   for (i in 1:n) {
+      x[i] &lt;- rnorm(1,mu,sig)  
+      while (x[i]&lt;=lft | x[i]&gt;rgt)
+         x[i] &lt;- rnorm(1,mu,sig)                                  
+   }
+   return(x)
+}
+
+### covariate mean and variance computed as in preprint of Tan (2020)
+
+a&lt;- 2.5;
+c&lt;- 2*pnorm(a)-1;
+b&lt;- sqrt(1-2*a*dnorm(a)/c)
+
+m1&lt;- exp(1/(8*b^2))*(pnorm(a-1/(2*b))-pnorm(-a-1/(2*b)))/c
+v1&lt;- exp(1/(2*b^2))*(pnorm(a-1/b)-pnorm(-a-1/b))/c-m1^2;
+
+m2&lt;- 10;
+v2&lt;- 1/c*integrate(g,-a,a)$value #by numerical integration
+
+m3  &lt;- 3/(25^2)*0.6+(0.6)^3;
+mu4 &lt;-(1/(b^4*c))*((3/2*(2*pnorm(a)-1)-a*(a^2+3)*dnorm(a))
+	-(3/2*(2*pnorm(-a)-1)-(-a)*((-a)^2+3)*dnorm(-a)))
+mu6 &lt;-(1/(b^6*c))*((15/2*(2*pnorm(a)-1)-a*(a^4+5*a^2+15)*dnorm(a))
+	-(15/2*(2*pnorm(-a)-1)-(-a)*((-a)^4+5*(-a)^2+15)*dnorm(-a)))
+v3  &lt;-mu6^2/25^6+15*mu4^2/25^4*0.6^2+15/25^2*0.6^4+0.6^6-m3^2
+
+m4&lt;- 2+20^2;
+v4&lt;- (2*mu4+6)+6*2*20^2+20^4-m4^2
+
+###
+
+set.seed(120)
+
+n&lt;- 800
+p&lt;- 200 
+
+# covariates
+ 
+x&lt;- matrix(rnorm.trunct(p*n, 0, 1, -a, a),n,p)/b
+
+# transformation
+
+z&lt;- x
+z[,1] &lt;- (exp(0.5*x[,1])-m1)/sqrt(v1);	
+z[,2] &lt;- (10+x[,2]/(1+exp(x[,1]))-m2)/sqrt(v2);	
+z[,3] &lt;- ((0.04*x[,1]*x[,3]+0.6)^3-m3)/sqrt(v3);
+z[,4] &lt;- ((x[,2]+x[,4]+20)^2-m4)/sqrt(v4);
+
+# instrumental variable
+
+eta&lt;- z[,1:4]
+iv&lt;- rbinom(n,1,prob=expit(eta));
+
+# unmeasured confounder in latent index model
+u&lt;- rlogis(n, location = 0, scale = 1);
+
+# treatment
+eta.d&lt;- 1+cbind(iv,z[,1:4])
+tr&lt;- as.numeric(eta.d &gt;=u);
+
+# outcome
+late  &lt;- 1
+eta.y &lt;- late*tr +z[,1:4]
+y &lt;- rnorm(n, mean=eta.y, sd=1)
+
+# save; if using main effects of x, then both the instrument propensity score
+# and outcome models are misspecified
+
+simu.iv.data &lt;- cbind(y,tr,iv,x)
+
+save(simu.iv.data, file="simu.iv.data.rda")
+</pre> 
+
+<h3>References</h3>
+
+<p>Tan, Z. (2020) Model-assisted inference for treatment effects using regularized calibrated estimation with high-dimensional data, <em>Annals of Statistics</em>, 48, 811–837.
+</p>
+<p>Sun, B. and Tan, Z. (2020) High-dimensional model-assisted inference for local average treatment effects with instrumental variables, arXiv:2009.09286.
+</p>
+
+
+</div>

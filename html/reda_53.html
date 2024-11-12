@@ -1,0 +1,403 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>simEvent</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Simulated Survival times or Recurrent Events</h2>
+
+<h3>Description</h3>
+
+<p>The function <code>simEvent</code> generates simulated recurrent events or
+survival time (the first event time) from one stochastic process. The
+function <code>simEventData</code> provides a simple wrapper that calls
+<code>simEvent</code> internally and collects the generated survival data or
+recurrent events into a data frame. More examples are available in one of
+the package vignettes in addition to the function documentation.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">simEvent(
+  z = 0,
+  zCoef = 1,
+  rho = 1,
+  rhoCoef = 1,
+  rhoMax = NULL,
+  origin = 0,
+  endTime = 3,
+  frailty = 1,
+  recurrent = TRUE,
+  interarrival = "rexp",
+  relativeRisk = c("exponential", "linear", "excess", "none"),
+  method = c("thinning", "inversion"),
+  arguments = list(),
+  ...
+)
+
+simEventData(nProcess = 1, z = 0, origin = 0, endTime = 3, frailty = 1, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>z</code></td>
+<td>
+<p>Time-invariant or time-varying covariates. The default value is
+<code>0</code> for no covariate effect.  This argument should be a numeric
+vector for time-invariant covariates or a function of times that returns
+a numeric matrix for time-varying covariates, where each row represents
+the covariate vector at one perticular time point.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zCoef</code></td>
+<td>
+<p>Time-invariant or time-varying coefficients of covariates. The
+default value is <code>1</code>. Similar to the argument <code>z</code>, this
+argument should be a numeric vector for time-invariant coefficients or a
+function of times that returns a numeric matrix for time-varying
+coefficients, where each row represents the coefficient vector at one
+perticular time point. The dimension of the <code>z</code> and <code>zCoef</code>
+(either specified or generated) has to match with each other.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rho</code></td>
+<td>
+<p>Baseline rate (or intensity) function for the Poisson process.
+The default is <code>1</code> for a homogenous process of unit intensity. This
+argument can be either a non-negative numeric value for a homogenous
+process or a function of times for a non-homogenous process. In the
+latter case, the function should be able to take a vector of time points
+and return a numerical matrix (or vector) with each row representing the
+baseline hazard rate vector (or scalar value) at each time point.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rhoCoef</code></td>
+<td>
+<p>Coefficients of baseline rate function. The default value is
+<code>1</code>. It can be useful when <code>rho</code> is a function generating
+spline bases.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rhoMax</code></td>
+<td>
+<p>A positive number representing an upper bound of the
+underlying rate function (excluding the frailty term but including the
+covariate effect) for the thinning method.  If this argument is left
+unspecified, the function will try to determine an upper bound
+internally.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>origin</code></td>
+<td>
+<p>The time origin set to be <code>0</code> by default. It should be
+either a numeric value less than <code>endTime</code> or a function that
+returns such a numeric value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>endTime</code></td>
+<td>
+<p>The end of follow-up time set to be <code>3</code> by default.
+Similar to <code>origin</code>, <code>endTime</code> should be either a numeric
+value greater than <code>origin</code> or a function that returns such a
+numeric value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>frailty</code></td>
+<td>
+<p>A positive number or a function for frailty effect. The
+default value is <code>1</code> for no frailty effect.  Other positive value
+can be specified directly for a shared frailty effect within a cluster.
+Similar to <code>z</code>, <code>zCoef</code>, and <code>rho</code>, a function can be
+specified for other distribution of the frailty effect. The specified
+function should randomly return a positive numeric value. The functions
+that generate random numbers following a certain distribution from
+<code>stats</code> package can be directly used. The arguments of the function
+can be specified through a list named <code>frailty</code> in
+<code>arguments</code>. For example, if we consider Gamma distribution with
+mean one as the distribution of frailty effect, we may specify
+<code>frailty = "rgamma"</code>. The shape and scale parameter needs to be
+specified through a list named <code>frailty</code> in <code>arguments</code>, such
+as <code>arguments = list(frailty = list(shape = 2, scale = 0.5))</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>recurrent</code></td>
+<td>
+<p>A logical value with default value <code>TRUE</code> indicating
+whether to generate recurrent event data or survival data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interarrival</code></td>
+<td>
+<p>A function object for randomly generating (positive)
+interarrival time between two successive arrivals/events.  The default
+value is <code>"rexp"</code> (i.e., function <code>stats::rexp</code>) for
+generating interarrival times following exponential distribution, which
+leads to a Poisson process. If the assumption of exponential
+interarrival times cannot be justified, we may consider a renewal
+process, (a generalization of Poisson process), in which interarrival
+times between events independently follows an identical distribution. A
+customized function can be specified in this case. It must have at least
+one argument named <code>rate</code> for the expected number of
+arrivals/events in unit time and returns one positive numerical
+value. If the function contains an argument named <code>n</code>, it is
+assumed that the function returns <code>n</code> interarrival times in one
+function call to possibly speed up the random number generation
+procedure.  Other arguments can be specified through a named list inside
+<code>arguments</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>relativeRisk</code></td>
+<td>
+<p>Relateive risk function for incorporating the covariates
+and the covariate coefficients into the intensity function. The
+applicable choices include <code>exponential</code> (the default) for the
+regular Cox model or Andersen-Gill model, <code>linear</code> for linear model
+(including an intercept term), <code>excess</code> for excess model, and
+<code>none</code> for not incorporating the covariates through a relative risk
+function. A customized function can be specified. The specified function
+must have at least one argument named <code>z</code> for the covariate vector
+and another argument named zCoef for covariate coefficient vector.
+The function should return a numeric value for given <code>z</code> vector and
+<code>zCoef</code> vector.  Other arguments can be specified through a named
+list inside <code>arguments</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>A character string specifying the method for generating
+simulated recurrent or survival data. The default method is thinning
+method (Lewis and Shedler 1979). Another available option is the
+inversion method (Cinlar 1975). When the rate function may go to
+infinite, the inversion method is used and a warning will be thrown out
+if the thinning method is initially specified.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>arguments</code></td>
+<td>
+<p>A list that consists of named lists for specifying other
+arguments in the corresponding functions. For example, if a function of
+time named <code>foo</code> with two arguments, <code>x</code> (for time) and
+<code>y</code>, is specified for the time-varying covariates, the value of its
+second argument, <code>y</code>, can be specified by <code>arguments = list(z
+= list(y = 1)</code>.  A partial matching on names is not allowed to avoid
+possible misspecification. The input arguments will be evaluated within
+function <code>simEvent</code>, which can be useful for randomly setting
+function parameters for each process in function
+<code>simEventData</code>. See examples and vignettes for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguements passed from function <code>simEventData</code> to
+fucntion <code>simEvent</code>. For function <code>simEvent</code>, <code>...</code> is
+not used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nProcess</code></td>
+<td>
+<p>Number of stochastic processes. If missing, the value will
+be the number of row of the specified matrix <code>z</code>. Otherwise, a
+positive number should be speicified.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For each process, a time-invariant or time-varying baseline hazard rate
+(intensity) function of failure can be specified.  Covariates and their
+coefficients can be specified and incorporated by the specified relative
+risk functions. The default is the exponential relative risk function, which
+corresponds to the Cox proportional hazard model (Cox 1972) for survival
+data or Andersen-Gill model (Andersen and Gill 1982) for recurrent
+events. Other relative risk function can be specified through the argument
+<code>relativeRisk</code>. In addition, a frailty effect can be considered.
+Conditional on predictors (or covariates) and the unobserved frailty effect,
+the process is by default a Poisson process, where the interarrival times
+between two successive arrivals/events follow exponential distribution. A
+general renewal process can be specified through <code>interarrival</code> for
+other distributions of the interarrival times in addition to the exponential
+distribution.
+</p>
+<p>The thinning method (Lewis and Shedler 1979) is applied for bounded hazard
+rate function by default. The inversion method (Cinlar 1975) is also
+available for possibly unbounded but integrable rate function over the given
+time period. The inversion method will be used when the rate function may go
+to infinite and a warning will be thrown out if the thinning method is
+specified originally.
+</p>
+<p>For the covariates <code>z</code>, the covariate coefficients <code>zCoef</code>, and
+the baseline hazard rate function <code>rho</code>, a function of time can be
+specified for time-varying effect.  The first argument of the input function
+has to be the time variable (not need to be named as "time" though). Other
+arguments of the function can be specified through a named list in
+<code>arguments</code>, while the first argument should not be specified.
+</p>
+<p>For the frailty effect <code>frailty</code>, the starting point <code>origin</code>, and
+the end point of the process <code>endTime</code>, functions that generate random
+numbers can be specified. An argument <code>n = 1</code> will be implicitly
+specified if the function has an argument named <code>n</code>, which is designed
+for those common functions generating random numbers from <span class="pkg">stats</span>
+package. Similar to <code>z</code>, <code>zCoef</code>, and <code>rho</code>, other arguments
+of the function can be specified through a named list in <code>arguments</code>.
+</p>
+<p>For time-varying covariates, the function <code>simEventData</code> assumes
+covariates can be observed only at event times and censoring times. Thus,
+covariate values are returned only at these time points. If we want other
+observed covariate values to be recorded, we may write a simple wrapper
+function for <code>simEvent</code> similar to <code>simEventData</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The function <code>simEvent</code> returns a <code>simEvent</code> S4 class object and
+the function <code>simEventData</code> returns a <code>data.frame</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Andersen, P. K., &amp; Gill, R. D. (1982). Cox's regression model for counting
+processes: A large sample study. <em>The annals of statistics</em>, 10(4),
+1100–1120.
+</p>
+<p>Cinlar, Erhan (1975). <em>Introduction to stochastic processes</em>. Englewood
+Cliffs, NJ: Printice-Hall.
+</p>
+<p>Cox, D. R. (1972). Regression models and life-tables.
+<em>Journal of the Royal Statistical Society. Series B
+(Methodological)</em>, 34(2), 187–220.
+</p>
+<p>Lewis, P. A., &amp; G. S. Shedler. (1979). Simulation of
+Nonhomogeneous Poisson Processes by Thinning.
+<em>Naval Research Logistics Quarterly</em>,
+26(3), Wiley Online Library: 403–13.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(reda)
+set.seed(123)
+
+### time-invariant covariates and coefficients
+## one process
+simEvent(z = c(0.5, 1), zCoef = c(1, 0))
+simEvent(z = 1, zCoef = 0.5, recurrent = FALSE)
+
+## simulated data
+simEventData(z = c(0.5, 1), zCoef = c(1, 0), endTime = 2)
+simEventData(z = cbind(rnorm(3), 1), zCoef = c(1, 0))
+simEventData(z = matrix(rnorm(5)), zCoef = 0.5, recurrent = FALSE)
+
+
+### time-varying covariates and time-varying coefficients
+zFun &lt;- function(time, intercept) {
+    cbind(time / 10 + intercept, as.numeric(time &gt; 1))
+}
+zCoefFun &lt;- function(x, shift) {
+    cbind(sqrt(x + shift), 1)
+}
+simEvent(z = zFun, zCoef = zCoefFun,
+         arguments = list(z = list(intercept = 0.1),
+                          zCoef = list(shift = 0.1)))
+
+## same function of time for all processes
+simEventData(3, z = zFun, zCoef = zCoefFun,
+             arguments = list(z = list(intercept = 0.1),
+                              zCoef = list(shift = 0.1)))
+
+## same function within one process but different between processes
+## use quote function in the arguments
+simDat &lt;- simEventData(3, z = zFun, zCoef = zCoefFun,
+                       arguments = list(
+                           z = list(intercept = quote(rnorm(1) / 10)),
+                           zCoef = list(shift = 0.1)
+                       ))
+## check the intercept randomly generated,
+## which should be the same within each ID but different between IDs.
+unique(with(simDat, cbind(ID, intercept = round(X.1 - time / 10, 6))))
+
+
+### non-negative time-varying baseline hazard rate function
+simEvent(rho = function(timeVec) { sin(timeVec) + 1 })
+simEventData(3, origin = rnorm(3), endTime = rnorm(3, 5),
+             rho = function(timeVec) { sin(timeVec) + 1 })
+## specify other arguments
+simEvent(z = c(rnorm(1), rbinom(1, 1, 0.5)) / 10,
+         rho = function(a, b) { sin(a + b) + 1 },
+         arguments = list(rho = list(b = 0.5)))
+simEventData(z = cbind(rnorm(3), rbinom(3, 1, 0.5)) / 10,
+             rho = function(a, b) { sin(a + b) + 1 },
+             arguments = list(rho = list(b = 0.5)))
+
+## quadratic B-splines with one internal knot at "time = 1"
+## (using function 'bSpline' from splines2 package)
+simEvent(rho = splines2::bSpline, rhoCoef = c(0.8, 0.5, 1, 0.6),
+         arguments = list(rho = list(degree = 2, knots = 1,
+                                     intercept = TRUE,
+                                     Boundary.knots = c(0, 3))))
+
+
+### frailty effect
+## Gamma distribution with mean one
+simEvent(z = c(0.5, 1), zCoef = c(1, 0), frailty = rgamma,
+         arguments = list(frailty = list(shape = 2, scale = 0.5)))
+
+## lognormal with mean zero (on the log scale)
+set.seed(123)
+simEvent(z = c(0.5, 1), zCoef = c(1, 0), frailty = "rlnorm",
+         arguments = list(frailty = list(sdlog = 1)))
+## or equivalently
+set.seed(123)
+logNorm &lt;- function(a) exp(rnorm(n = 1, mean = 0, sd = a))
+simEvent(z = c(0.5, 1), zCoef = c(1, 0), frailty = logNorm,
+         arguments = list(frailty = list(a = 1)))
+
+
+### renewal process
+## interarrival times following uniform distribution
+rUnif &lt;- function(n, rate, min) runif(n, min, max = 2 / rate)
+simEvent(interarrival = rUnif,
+         arguments = list(interarrival = list(min = 0)))
+
+## interarrival times following Gamma distribution with scale one
+set.seed(123)
+simEvent(interarrival = function(n, rate) rgamma(n, shape = 1 / rate))
+## or equivalently
+set.seed(123)
+simEvent(interarrival = function(rate) rgamma(n = 1, shape = 1 / rate))
+
+
+### relative risk functioin
+set.seed(123)
+simEvent(relativeRisk = "linear")
+## or equivalently
+rriskFun &lt;- function(z, zCoef, intercept) {
+    as.numeric(z %*% zCoef) + intercept
+}
+set.seed(123)
+simEvent(relativeRisk = rriskFun,
+         arguments = list(relativeRisk = list(intercept = 1)))
+</code></pre>
+
+
+</div>

@@ -1,0 +1,218 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>model.data.default</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create a data frame suitable for estimating a model</h2>
+
+<h3>Description</h3>
+
+<p>This is the default method. Works for lm and glm fits.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## Default S3 method:
+model.data(model, na.action = na.omit, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>A fitted model</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na.action</code></td>
+<td>
+<p>Defaults to na.omit, so model as it would appear
+in user workspace is re-created, except that rows with missing
+values are deleted.  Changing this argument to na.pass will
+provide the data as it was in the workspace.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Place holder for other arguments, not used at present</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A data frame
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Paul E. Johnson <a href="mailto:pauljohn@ku.edu">pauljohn@ku.edu</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(rockchalk)
+
+
+
+
+
+
+## first, check if model.data works when there is no data argument
+## This used to fail, now OK
+
+x1 &lt;- rnorm(100, m = 100, s = 10)
+x2 &lt;- rnorm(100, m = 50, s =20)
+y &lt;- rnorm(100, m = 40, s = 3)
+
+m0 &lt;- lm(y ~ log(10+x1) + x2)
+m0.data &lt;- model.data(m0)
+head(m0.data)
+
+
+m1 &lt;- lm(log(43 + y) ~ log(10+x1) + x2)
+m1.data &lt;- model.data(m1)
+head(m1.data)
+
+d &lt;- 3
+
+m2 &lt;- lm(log(d + y) ~ log(10+x1) + x2)
+m2.data &lt;- model.data(m2)
+head(m2.data)
+
+m3 &lt;- lm(log(y + d) ~ log(10+x1) + x2)
+m3.data &lt;- model.data(m3)
+head(m3.data)
+
+
+
+## check numeric and categorical predictors
+
+x1 &lt;- rpois(100, l=6)
+x2 &lt;- rnorm(100, m=50, s=10)
+x3 &lt;- rnorm(100)
+xcat1 &lt;- gl(2,50, labels=c("M","F"))
+xcat2 &lt;- cut(rnorm(100), breaks=c(-Inf, 0, 0.4, 0.9, 1, Inf),
+             labels=c("R", "M", "D", "P", "G"))
+dat &lt;- data.frame(x1, x2, x3, xcat1, xcat2)
+rm(x1, x2, x3, xcat1, xcat2)
+dat$xcat1n &lt;- with(dat, contrasts(xcat1)[xcat1, ,drop=FALSE])
+dat$xcat2n &lt;- with(dat, contrasts(xcat2)[xcat2, ])
+
+STDE &lt;- 20
+dat$y &lt;- with(dat,
+              0.03 + 0.8*x1 + 0.1*x2 + 0.7*x3 +
+              xcat1n %*% c(2) + xcat2n %*% c(0.1,-2,0.3, 0.1) +
+              STDE*rnorm(100))
+
+
+
+m1 &lt;- lm(y ~ poly(x1, 2), data=dat)
+m1.data &lt;- model.data(m1)
+head(m1.data)
+attr(m1.data, "varNamesRHS")
+
+## Check to make sure d is not mistaken for a data column
+d &lt;- 2
+m2 &lt;- lm(y ~ poly(x1, d), data=dat)
+m2.data &lt;- model.data(m2)
+head(m2.data)
+attr(m2.data, "varNamesRHS")
+
+
+## Check to see how the 10 in log is handled
+m3 &lt;- lm(y ~ log(10 + x1) + poly(x1, d) + sin(x2), data=dat)
+m3.data &lt;- model.data(m3)
+head(m3.data)
+attr(m3.data, "varNamesRHS")
+
+
+m4 &lt;- lm(log(50+y) ~ log(d+10+x1) + poly(x1, 2), data=dat)
+m4.data &lt;- model.data(m4)
+head(m4.data)
+attr(m4.data, "varNamesRHS")
+
+
+m5 &lt;- lm(y ~ x1*x1, data=dat)
+m5.data &lt;- model.data(m5)
+head(m5.data)
+attr(m5.data, "varNamesRHS")
+
+
+m6 &lt;- lm(y ~ x1 + I(x1^2), data=dat)
+m6.data &lt;- model.data(m6)
+head(m6.data)
+attr(m6.data, "varNamesRHS")
+
+
+## Put in some missings.
+## poly doesn't work if there are missings, but
+## can test with log
+dat$x1[sample(100, 5)] &lt;- NA
+dat$y[sample(100, 5)] &lt;- NA
+dat$x2[sample(100, 5)] &lt;- NA
+dat$x3[sample(100,10)] &lt;- NA
+
+m1 &lt;- lm(y ~ log(10 + x1), data=dat)
+m1.data &lt;- model.data(m1)
+head(m1.data)
+summarize(m1.data)
+attr(m1.data, "varNamesRHS")
+
+
+
+m2 &lt;- lm(y ~ log(x1 + 10), data=dat)
+m2.data &lt;- model.data(m2)
+head(m2.data)
+summarize(m1.data)
+attr(m1.data, "varNamesRHS")
+
+d &lt;- 2
+m3 &lt;- lm(log(50+y) ~ log(d+10+x1) + x2 + sin(x3), data=dat)
+m3.data &lt;- model.data(m3)
+head(m3.data)
+summarize(m3.data)
+attr(m3.data, "varNamesRHS")
+
+
+m4 &lt;- lm(y ~ I(x1) + I(x1^2) + log(x2), data=dat)
+m4.data &lt;- model.data(m4)
+summarize(m4.data)
+attr(m4.data, "varNamesRHS")
+
+
+m5 &lt;- lm(y ~ x1 + I(x1^2) + cos(x2), data=dat)
+m5.data &lt;- model.data(m5)
+head(m5.data)
+summarize(m5.data)
+attr(m5.data, "varNamesRHS")
+
+
+
+## Now try with some variables in the dataframe, some not
+
+x10 &lt;- rnorm(100)
+x11 &lt;- rnorm(100)
+
+
+
+m6 &lt;- lm(y ~ x1 + I(x1^2) + cos(x2) + log(10 + x10) + sin(x11) +
+         x10*x11, data = dat)
+m6.data &lt;- model.data(m6)
+head(m6.data)
+dim(m6.data)
+summarize(m5.data)
+attr(m6.data, "varNamesRHS")
+
+
+</code></pre>
+
+
+</div>

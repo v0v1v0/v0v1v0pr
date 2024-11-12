@@ -1,0 +1,140 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rapport.inputs</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Template Inputs</h2>
+
+<h3>Description</h3>
+
+<p>Displays summary for template inputs (if any). Note that as of version <code>0.5</code>, <code>rapport</code> template inputs should be defined using YAML syntax. See <code>deprecated-inputs</code> for details on old input syntax. The following sections describe new YAML input definition style.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rapport.inputs(fp, use.header = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>fp</code></td>
+<td>
+<p>a template file pointer (see <code>rapport:::rapport.read</code> for details)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use.header</code></td>
+<td>
+<p>a logical value indicating whether the header section is provided in <code>h</code> argument</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><strong>Introduction</strong>
+</p>
+<p>The full power of <code>rapport</code> comes into play with <em>template inputs</em>. One can match inputs against dataset variables or custom <code>R</code> objects. The inputs provide means of assigning <code>R</code> objects to <code>symbol</code>s in the template evaluation environment. Inputs themselves do not handle only the template names, but also provide an extensive set of rules that each dataset variable/user-provided <code>R</code> object has to satisfy. The new YAML input specification takes advantage of <code>R</code> class system. The input attributes should resemble common <code>R</code> object attributes and methods.
+</p>
+<p>Inputs can be divided into two categories:
+</p>
+
+<ul>
+<li> <p><em>dataset inputs</em>, i.e. the inputs that refer to named element of an |codeR object provided in <code>data</code> argument in <code>rapport</code> call. Currently, <code>rapport</code> supports only <code>data.frame</code> objects, but that may change in the (near) future.
+</p>
+</li>
+<li> <p><em>standalone inputs</em> - the inputs that do not depend on the dataset. The user can just provide an <code>R</code> object of an appropriate class (and other input attributes) to match a <em>standalone</em> input.
+</p>
+</li>
+</ul>
+<p><strong>General input attributes</strong>
+</p>
+<p>Following attributes are available for all inputs:
+</p>
+
+<ul>
+<li> <p><code>name</code> (character string, required) - input name. It acts as an identifier for a given input, and is required as such. Template cannot contain duplicate names. <code>rapport</code> inputs currently have custom naming conventions - see <code>guess.input.name</code> for details.
+</p>
+</li>
+<li> <p><code>label</code> (character string) - input label. It can be blank, but it's useful to provide input label as <code>rapport</code> helpers use that information in plot labels and/or exported HTML tables. Defaults to empty string.
+</p>
+</li>
+<li> <p><code>description</code> (character string) - similar to <code>label</code>, but should contain long description of given input.
+</p>
+</li>
+<li> <p><code>class</code> (character string) - defines an input class. Currently supported input classes are: <code>character</code>, <code>complex</code>, <code>factor</code>, <code>integer</code>, <code>logical</code>, <code>numeric</code> and <code>raw</code> (all atomic vector classes are supported). Class attribute should usually be provided, but it can also be <code>NULL</code> (default) - in that case the input class will be guessed based on matched <code>R</code> object's value.
+</p>
+</li>
+<li> <p><code>required</code> (logical value) - does the input require a value? Defaults to <code>FALSE</code>.
+</p>
+</li>
+<li> <p><code>standalone</code> (logical value) - indicates that the input depends on a dataset. Defaults to <code>FALSE</code>.
+</p>
+</li>
+<li> <p><code>length</code> (either an integer value or a named list with integer values) - provides a set of rules for input value's length. <code>length</code> attribute can be defined via:
+</p>
+
+<ul>
+<li>
+<p> an integer value, e.g. <code>length: 10</code>, which sets restriction to exactly 10 vectors or values.
+</p>
+</li>
+<li>
+<p> named list with <code>min</code> and/or <code>max</code> attributes nested under <code>length</code> attribute. This will define a range of values in which input length must must fall. Note that range limits are inclusive. Either <code>min</code> or <code>max</code> attribute can be omitted, and they will default to <code>1</code> and <code>Inf</code>, respectively.
+</p>
+</li>
+</ul>
+<p><strong>IMPORTANT!</strong> Note that <code>rapport</code> treats input length in a bit different manner. If you match a subset of 10 character vectors from the dataset, input length will be <code>10</code>, as you might expect. But if you select only one variable, length will be equal to <code>1</code>, and not to the number of vector elements. This stands both for standalone and dataset inputs. However, if you match a character vector against a standalone input, length will be stored correctly - as the number of vector elements.
+</p>
+</li>
+<li> <p><code>value</code> (a vector of an appropriate class). This attribute only exists for standalone inputs. Provided value must satisfy rules defined in <code>class</code> and <code>length</code> attributes, as well as any other class-specific rules (see below).
+</p>
+</li>
+</ul>
+<p><strong>Class-specific attributes</strong>
+</p>
+<p><em>character</em>
+</p>
+
+<ul>
+<li> <p><code>nchar</code> - restricts the number of characters of the input value. It accepts the same attribute format as <code>length</code>. If <code>NULL</code> (default), no checks will be performed.
+</p>
+</li>
+<li> <p><code>regexp</code> (character string) - contains a string with regular expression. If non-<code>NULL</code>, all strings in a character vector must match the given regular expression. Defaults to <code>NULL</code> - no checks are applied.
+</p>
+</li>
+<li> <p><code>matchable</code> (logical value) - if <code>TRUE</code>, <code>options</code> attribute must be provided, while <code>value</code> is optional, though recommended. <code>options</code> should contain values to be chosen from, just like <code>&lt;option&gt;</code> tag does when nested in <code>&lt;select&gt;</code> HTML tag, while <code>value</code> must contain a value from <code>options</code> or it can be omitted (<code>NULL</code>). <code>allow_multiple</code> will allow values from <code>options</code> list to be matched multiple times. Note that unlike previous versions of <code>rapport</code>, partial matching is not performed.
+</p>
+</li>
+</ul>
+<p><em>numeric</em>, <em>integer</em>
+</p>
+
+<ul><li> <p><code>limit</code> - similar to <code>length</code> attribute, but allows only <code>min</code> and <code>max</code> nested attributes. Unlike <code>length</code> attribute, <code>limit</code> checks input values rather than input length. <code>limit</code> attribute is <code>NULL</code> by default and the checks are performed only when <code>limit</code> is defined (non-<code>NULL</code>).
+</p>
+</li></ul>
+<p><em>factor</em>
+</p>
+
+<ul>
+<li> <p><code>nlevels</code> - accepts the same format as <code>length</code> attribute, but the check is performed rather on the number of factor levels.
+</p>
+</li>
+<li> <p><code>matchable</code> - <em>ibid</em> as in character inputs (note that in previous versions of <code>rapport</code> matching was performed against factor levels - well, not any more, now we match against values to make it consistent with <code>character</code> inputs).
+</p>
+</li>
+</ul>
+<h3>See Also</h3>
+
+
+<p><code>rapport.meta</code>
+<code>rapport.info</code>
+
+</p>
+
+
+</div>

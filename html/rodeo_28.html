@@ -1,0 +1,182 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>stoiCreate</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Stoichiometry Matrix from Reaction Equations</h2>
+
+<h3>Description</h3>
+
+<p>Creates a stoichiometry matrix from a set of reaction equations.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">stoiCreate(
+  reactions,
+  eval = FALSE,
+  env = globalenv(),
+  toRight = "_forward",
+  toLeft = "_backward"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>reactions</code></td>
+<td>
+<p>A named vector of character strings, each representing
+a (chemical) reaction. See syntax details below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eval</code></td>
+<td>
+<p>Logical. If <code>FALSE</code> (default), the returned matrix is of
+type <code>character</code> and any mathematical expressions are
+returned as text. If <code>TRUE</code>, an attempt is made to return a
+<code>numeric</code> matrix by evaluating the expression making use
+<code>env</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>env</code></td>
+<td>
+<p>Only relevant if <code>eval</code> is <code>TRUE</code>. Must be an
+environment or list supplying constants, functions, and operators needed to
+evaluate expressions in the generated matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>toRight</code></td>
+<td>
+<p>Only relevant for reversible reactions. The passed character
+string is appended to the name of the respective element of
+<code>reactions</code> to create a unique name for the forward reaction.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>toLeft</code></td>
+<td>
+<p>Like <code>toRight</code>, but this is the suffix for the backward
+reaction.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A matrix with the following properties:
+</p>
+
+<ul>
+<li>
+<p>The number of columns equals the total number of components present
+in <code>reactions</code>. The components' names are used as column names.
+</p>
+</li>
+<li>
+<p>The number of rows equals the length of <code>reactions</code> plus the
+number of reversible reactions. Thus, a single row is created for each
+non-reversible reaction but two rows are created for reversible ones.
+The latter represent the forward and backward reaction (in that order).
+The row names are constructed from the names of <code>reactions</code>, making
+use of the suffixes <code>toRight</code> and <code>toLeft</code> in the case of
+reversible reactions.
+</p>
+</li>
+<li>
+<p>The matrix is filled with the stoichiometric factors extracted from
+<code>reactions</code>. Empty elements are set to zero.
+</p>
+</li>
+<li>
+<p>The type of the matrix (<code>character</code> or
+<code>numeric</code>) depends on the value of <code>eval</code>.
+</p>
+</li>
+</ul>
+<h3>Note</h3>
+
+<p>The syntax rules for reaction equations are as follows (see examples):
+</p>
+
+<ul>
+<li>
+<p>There must be a left hand side and a right hand side. Sides must be
+separated by one of the arrows '-&gt;', '&lt;-', or '&lt;-&gt;' with the latter
+indicating a reversible reaction.
+</p>
+</li>
+<li>
+<p>Names of component(s) must appear at each side of the reaction. These
+must be legal row/column names in R. If multiple
+components are consumed or produced, they must be separated by '+'.
+</p>
+</li>
+<li>
+<p>Any stoichiometric factors need to appear before the respective
+component name using '*' as the separating character. Stoichiometric
+factors being equal to unity can be omitted.
+</p>
+</li>
+<li>
+<p>A stoichiometric factor is treated as a mathematical expression.
+In common cases, it is just a numeric constant. However, the
+expression can also involve references to variables or functions. If such
+an expression contains math operators '*' or '+' it needs to be enclosed
+in parenthesis.
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>David Kneis <a href="mailto:david.kneis@tu-dresden.de">david.kneis@tu-dresden.de</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Use <code>stoiCheck</code> to validate the mass balance of
+the generated matrix.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># EXAMPLE 1: From https://en.wikipedia.org/wiki/Petersen_matrix (July 2016)
+#
+reactions &lt;- c(
+  formS=  "A + 2 * B -&gt; S",
+  equiES= "E + S &lt;-&gt; ES",
+  decoES= "ES -&gt; E + P"
+)
+stoi &lt;- stoiCreate(reactions, eval=TRUE, toRight="_f", toLeft="_b")
+print(stoi)
+
+# EXAMPLE 2: Decomposition of organic matter (selected equations only)
+#
+# Eq. 1 and 2 are from Soetaert et al. (1996), Geochimica et Cosmochimica
+# Acta, 60 (6), 1019-1040. 'OM' is organic matter. Constants 'nc' and 'pc'
+# represent the nitrogen/carbon and phosphorus/carbon ratio, respectively.
+reactions &lt;- c(
+  oxicDegrad= "OM + O2 -&gt; CO2 + nc * NH3 + pc * H3PO4 + H2O",
+  denitrific= "OM + 0.8*HNO3 -&gt; CO2 + nc*NH3 + 0.4*N2 + pc*H3PO4 + 1.4*H2O",
+  dissPhosp1= "H3PO4 &lt;-&gt; H + H2PO4",
+  dissPhosp2= "H2PO4 &lt;-&gt; H + HPO4"
+)
+# Non-evaluated matrix
+stoi &lt;- stoiCreate(reactions, toRight="_f", toLeft="_b")
+print(stoi)
+# Evaluated matrix ('nc' and 'pc' according to Redfield ratio)
+pars &lt;- list(nc=16/106, pc=1/106)
+stoi &lt;- stoiCreate(reactions, eval=TRUE, env=pars, toRight="_f", toLeft="_b")
+print(stoi)
+</code></pre>
+
+
+</div>

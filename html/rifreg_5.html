@@ -1,0 +1,154 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>get_rif</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate Recentered Influence Functions</h2>
+
+<h3>Description</h3>
+
+<p>This function estimates the recentered influence function (RIF) of a chosen distributional statistic
+(e.g. quantiles, variance or gini).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">get_rif(
+  dep_var,
+  weights = NULL,
+  statistic,
+  probs = NULL,
+  custom_rif_function = NULL,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>dep_var</code></td>
+<td>
+<p>dependent variable of distributional function. Discrete or continuous numeric vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>numeric vector of non-negative observation weights, hence of same length as <code>dep_var</code>.
+The default (<code>NULL)</code> is equivalent to <code>weights = rep(1, length(dep_var))</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>statistic</code></td>
+<td>
+<p>string containing the distributional statistic for which to compute the RIF. Can be one of
+"mean", "variance", "quantiles", "gini", "interquantile_range", "interquantile_ratio", or "custom". If "custom"
+is selected a <code>custom_rif_function</code> needs to be provided.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>probs</code></td>
+<td>
+<p>a vector of length 1 or more with quantile positions to calculate the RIF.
+Each quantile is indicated with value between 0 and 1. Only required if <code>statistic = "quantiles"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>custom_rif_function</code></td>
+<td>
+<p>the RIF function to compute the RIF of the custom distributional statistic.
+Default is NULL. Only needs to be provided if <code>statistic = "custom"</code>.
+Every custom_rif_function needs the parameters <code>dep_var</code>, <code>weights</code> and <code>probs</code>.
+If they are not needed they must be set to NULL in the function definition (e.g. <code>probs = NULL</code>).
+A custom function must return a data frame containing at least a "rif" and "weights" column.
+See <code>examples</code> for further details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional parameters passed to the <code>custom_rif_function</code>.
+Apart from <code>dep_var</code>, <code>weights</code> and <code>probs</code> they must have a different name than the the ones in
+<code>rif</code>. For instance, if you want to pass a parameter <code>statistic</code> to the
+<code>custom_rif_function</code>, name it <code>custom_statistic</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>a data frame with the RIF value for each observation and in the case of several quantiles
+a column for each quantile.
+</p>
+
+
+<h3>References</h3>
+
+<p>Firpo, Sergio P., Nicole M. Fortin, and Thomas Lemieux. 2009. “Unconditional Quantile
+Regressions.” <em>Econometrica</em> 77(3): 953–73.
+</p>
+<p>Cowell, Frank A., and Emmanuel Flachaire. 2015. “Statistical Methods for Distributional Analysis.”
+In Anthony B. Atkinson and François Bourguignon (eds.), <em>Handbook of Income Distribution</em>. Amsterdam: Elsevier.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+dep_var &lt;- c(1, 3, 9, 16, 3, 7, 4, 9)
+probs &lt;- seq(1:9) / 10
+weights &lt;- c(2, 1, 3, 4, 4, 1, 6, 3)
+rif &lt;- get_rif(
+  dep_var = dep_var,
+  weights = weights,
+  statistic = "quantiles",
+  probs = probs
+)
+
+# custom function
+custom_variance_function &lt;- function(dep_var, weights, probs = NULL) {
+  weighted_mean &lt;- weighted.mean(x = dep_var, w = weights)
+  rif &lt;- (dep_var - weighted_mean)^2
+  rif &lt;- data.frame(rif, weights)
+  names(rif) &lt;- c("rif_variance", "weights")
+  return(rif)
+}
+
+set.seed(123)
+dep_var &lt;- rlnorm(100)
+weights &lt;- rep(1, 100)
+
+# custom function top 10% percent income share
+# (see Essam-Nassah &amp; Lambert, 2012, and Rios-Avila, 2020)
+custom_top_income_share_function &lt;- function(dep_var, weights, probs = 0.1) {
+  probs &lt;- 1 - probs
+  weighted_mean &lt;- weighted.mean(x = dep_var, w = weights)
+  weighted_quantile &lt;- Hmisc::wtd.quantile(x = dep_var, weights = weights, probs = probs)
+  lorenz_ordinate &lt;-
+    sum(dep_var[which(dep_var &lt;= weighted_quantile)] *
+      weights[which(dep_var &lt;= weighted_quantile)]) / sum(dep_var * weights)
+  if_lorenz_ordinate &lt;- -(dep_var / weighted_mean) * lorenz_ordinate +
+    ifelse(dep_var &lt; weighted_quantile,
+      dep_var - (1 - probs) * weighted_quantile,
+      probs * weighted_quantile
+    ) / weighted_mean
+  rif_top_income_share &lt;- (1 - lorenz_ordinate) - if_lorenz_ordinate
+  rif &lt;- data.frame(rif_top_income_share, weights)
+  names(rif) &lt;- c("rif_top_income_share", "weights")
+  return(rif_top_income_share)
+}
+
+rif_custom &lt;- get_rif(
+  dep_var = dep_var,
+  weights = weights,
+  statistic = "custom",
+  custom_rif_function = custom_variance_function
+)
+
+</code></pre>
+
+
+</div>

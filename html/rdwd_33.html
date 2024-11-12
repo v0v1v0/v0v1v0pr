@@ -1,0 +1,140 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>readDWD.asc</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>read dwd gridded radolan asc data</h2>
+
+<h3>Description</h3>
+
+<p>read grid-interpolated radolan asc data.
+Intended to be called via <code>readDWD()</code>.<br>
+All layers (following <code>selection</code> if given) in all .tar.gz files are
+combined into a terra raster with <code>terra::rast()</code>.<br>
+To project the data, use <code>projectRasterDWD()</code>
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">readDWD.asc(
+  file,
+  exdir = NULL,
+  dividebyten = TRUE,
+  selection = NULL,
+  quiet = rdwdquiet(),
+  progbar = !quiet,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>file</code></td>
+<td>
+<p>Name of file on harddrive, like e.g.
+DWDdata/grids_germany/hourly/radolan/historical/asc/
+2018_RW-201809.tar.
+Must have been downloaded with <code>mode="wb"</code>!</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exdir</code></td>
+<td>
+<p>Directory to unzip into. Unpacked files existing therein
+will not be untarred again, saving up to 15 secs per file.
+DEFAULT: NULL (subfolder of <code>tempdir()</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dividebyten</code></td>
+<td>
+<p>Divide numerical values by 10? See readDWD.
+If dividebyten=FALSE and exdir left at NULL (tempdir), save
+the result on disc with <code>terra::writeRaster()</code>.
+Accessing out-of-memory raster objects won't work if
+exdir is removed! -&gt; Error in .local(.Object, ...)
+DEFAULT: TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>selection</code></td>
+<td>
+<p>Optionally read only a subset of the ~24*31=744 files.
+Called as <code>f[selection]</code>. DEFAULT: NULL (ignored)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quiet</code></td>
+<td>
+<p>Suppress progress messages?
+DEFAULT: FALSE through <code>rdwdquiet()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>progbar</code></td>
+<td>
+<p>Show progress bars? <code>readDWD()</code> will
+keep progbar=TRUE for asc files, even if length(file)==1.
+DEFAULT: !quiet, i.e. TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments passed to <code>terra::rast()</code></p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>data.frame
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Berry Boessenkool, <a href="mailto:berry-b@gmx.de">berry-b@gmx.de</a>, April 2019
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>readDWD()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run:  # Excluded from CRAN checks, but run in localtests
+# File selection and download:
+radbase &lt;- paste0(gridbase,"/hourly/radolan/historical/asc/")
+radfile &lt;- "2018/RW-201809.tar" # 25 MB to download
+file &lt;- dataDWD(radfile, base=radbase, joinbf=TRUE, read=FALSE)
+#asc &lt;- readDWD(file) # 4 GB in mem. ~ 20 secs unzip, 10 secs read, 2 min divide
+asc &lt;- readDWD(file, selection=1:5, dividebyten=TRUE)
+plotRadar(asc[[1]], main=names(asc)[1])
+
+viddir &lt;- paste0(tempdir(),"/RadolanVideo")
+dir.create(viddir)
+png(paste0(viddir,"/Radolan_%03d.png"), width=7, height=5, units="in", res=300)
+plotRadar(asc, layer=1:3, main=names(asc)) # 3 secs per layer
+dev.off()
+berryFunctions::openFile(paste0(viddir,"/Radolan_001.png"))
+
+# Time series of a given point in space:
+plot(unlist(asc[800,800,]), type="l", xlab="Time [hours]")
+
+# if dividebyten=FALSE, terra stores things out of memory in the exdir.
+# by default, this is in tempdir, hence you would need to save asc manually:
+# terra::writeRaster(asc, tempfile(fileext="/RW2018-09.gpkg"), overwrite=TRUE)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

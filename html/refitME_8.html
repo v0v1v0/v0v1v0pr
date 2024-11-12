@@ -1,0 +1,148 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>MCEMfit_gam</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Function for wrapping the MCEM algorithm on <code>gam</code> objects</h2>
+
+<h3>Description</h3>
+
+<p>Function for wrapping the MCEM algorithm on GAMs where predictors are subject to measurement error/error-in-variables.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">MCEMfit_gam(
+  mod,
+  family,
+  sigma.sq.u,
+  B = 50,
+  epsilon = 1e-05,
+  silent = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>mod</code></td>
+<td>
+<p>: a <code>gam</code> object (this is the naive fitted model). Make sure the first <code class="reqn">p</code> input predictor variables entered in the naive model are the specified error-contaminated variables. These <code class="reqn">p</code> predictors also need the measurement error variance to be specified in <code>sigma.sq.u</code>, see below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>: a specified family/distribution.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma.sq.u</code></td>
+<td>
+<p>: measurement error (ME) variance. A scalar if there is only one error-contaminated predictor variable, otherwise this must be stored as a vector (of ME variances) or a matrix if the ME covariance matrix is known.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B</code></td>
+<td>
+<p>: the number of Monte Carlo replication values (default is set to 50).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>epsilon</code></td>
+<td>
+<p>: convergence threshold (default is set to 0.00001).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>silent</code></td>
+<td>
+<p>: if <code>TRUE</code>, the convergence message (which tells the user if the model has converged and reports the number of iterations required) is suppressed (default is set to <code>FALSE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>: further arguments passed to <code>gam</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p><code>MCEMfit_gam</code> returns the original naive fitted model object but coefficient estimates and the covariance matrix have been replaced with the final MCEM model fit. Standard errors and the effective sample size (which diagnose how closely the proposal distribution matches the posterior, see equation (2) of Stoklosa, Hwang and Warton) have also been included as outputs.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Jakub Stoklosa, Wen-Han Hwang and David I. Warton.
+</p>
+
+
+<h3>Source</h3>
+
+<p>See <a href="https://github.com/JakubStats/refitME">https://github.com/JakubStats/refitME</a> for an RMarkdown vignette with examples.
+</p>
+
+
+<h3>References</h3>
+
+<p>Ganguli, B, Staudenmayer, J., and Wand, M. P. (2005). Additive models with predictors subject to measurement error. <em>Australian &amp; New Zealand Journal of Statistics</em>, <strong>47</strong>, 193–202.
+</p>
+<p>Wand, M. P. (2018). <span class="pkg">SemiPar</span>: Semiparametic Regression. R package version 1.0-4.2., URL <a href="https://CRAN.R-project.org/package=SemiPar">https://CRAN.R-project.org/package=SemiPar</a>.
+</p>
+<p>Stoklosa, J., Hwang, W-H., and Warton, D.I. <span class="pkg">refitME</span>: Measurement Error Modelling using Monte Carlo Expectation Maximization in R.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>MCEMfit_glm</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># A GAM example using the air pollution data set from the SemiPar package.
+
+library(refitME)
+library(SemiPar)
+library(mgcv)
+library(dplyr)
+
+data(milan.mort)
+
+dat.air &lt;- sample_n(milan.mort, 100) # Takes a random sample of size 100.
+
+Y &lt;- dat.air[, 6]  # Mortality counts.
+
+n &lt;- length(Y)
+
+z1 &lt;- (dat.air[, 1])
+z2 &lt;- (dat.air[, 4])
+z3 &lt;- (dat.air[, 5])
+w1 &lt;- log(dat.air[, 9])  # The error-contaminated predictor (total suspended particles).
+
+dat &lt;- data.frame(cbind(Y, w1, z1, z2, z3))
+
+gam_naiv &lt;- gam(Y ~ s(w1), family = "poisson", data = dat)
+
+sigma.sq.u &lt;- 0.0915 # Measurement error variance.
+
+B &lt;- 10  # Consider increasing this if you want a more accurate answer.
+
+gam_MCEM &lt;- refitME(gam_naiv, sigma.sq.u, B)
+
+plot(gam_MCEM, select = 1)
+
+detach(package:mgcv)
+
+</code></pre>
+
+
+</div>

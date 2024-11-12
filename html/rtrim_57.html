@@ -1,0 +1,456 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>trim</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate TRIM model parameters.</h2>
+
+<h3>Description</h3>
+
+<p>Given some count observations, estimate a TRIM model and use these to impute the data set if necessary.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">trim(object, ...)
+
+## S3 method for class 'data.frame'
+trim(
+  object,
+  count_col = "count",
+  site_col = "site",
+  year_col = "year",
+  month_col = NULL,
+  weights_col = NULL,
+  covar_cols = NULL,
+  model = 2,
+  changepoints = ifelse(model == 2, 1L, integer(0)),
+  overdisp = FALSE,
+  serialcor = FALSE,
+  autodelete = TRUE,
+  stepwise = FALSE,
+  covin = list(),
+  ...
+)
+
+## S3 method for class 'formula'
+trim(object, data = NULL, weights = NULL, ...)
+
+## S3 method for class 'trimcommand'
+trim(object, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>Either a <code>data.frame</code>, a <code>formula</code> or a <code>trimcommand</code>.
+If <code>object</code> is a <code>formula</code>, the dependent variable (left-hand-side)
+is treated as the 'counts' variable. The first and second independent variable
+are treated as the 'site' and 'time' variable, <b>in that specific order</b>. All
+other variables are treated as covariates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>More parameters, see below in the details</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>count_col</code></td>
+<td>
+<p><code>[character]</code> name of the column holding species counts</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>site_col</code></td>
+<td>
+<p><code>[character]</code> name of the column holding the site id</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>year_col</code></td>
+<td>
+<p><code>[character]</code> name of the column holding the time of counting</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>month_col</code></td>
+<td>
+<p><code>[character]</code> optional name of the column holding the season of counting</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights_col</code></td>
+<td>
+<p><code>[numeric]</code> Optional vector of site weights. The length of</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covar_cols</code></td>
+<td>
+<p><code>[character]</code> name(s) of column(s) holding covariates</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p><code>[numeric]</code> TRIM model type 1, 2, or 3.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>changepoints</code></td>
+<td>
+<p><code>[numeric]</code> Indices for changepoints (‘Models’).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overdisp</code></td>
+<td>
+<p><code>[logical]</code> Take overdispersion into account (See ‘Estimation options’).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>serialcor</code></td>
+<td>
+<p><code>[logical]</code> Take serial correlation into account (See ‘Estimation details’)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>autodelete</code></td>
+<td>
+<p><code>[logical]</code> Auto-delete changepoints when number of observations is too small. (See
+‘Demands on data’).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stepwise</code></td>
+<td>
+<p><code>[logical]</code> Perform stepwise refinement of changepoints.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covin</code></td>
+<td>
+<p>a list of variance-covariance matrices; one per pseudo-site.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p><code>[data.frame]</code> Data frame containing at least counts, sites, and times</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p><code>[character]</code> name of the column in <code>data</code> which respresents weights (optional)</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>All versions of <code>trim</code> support additional 'experts only' arguments:
+</p>
+
+<dl>
+<dt><code>verbose</code></dt>
+<dd>
+<p>Logical switch to temporarily enable verbose output. (use <code>option(trim_verbose=TRUE)</code>) for permanent verbosity.</p>
+</dd>
+<dt><code>constrain_overdisp</code></dt>
+<dd>
+<p>Numerical value to control overdispersion.
+</p>
+
+<ul>
+<li>
+<p> A value in the range 0..1 uses a Chi-squared oulier detection method.
+</p>
+</li>
+<li>
+<p> A value &gt;1 uses Tukey's Fence.
+</p>
+</li>
+<li>
+<p> A value of 1.0 (which is the default) results in unconstrained overdispersion.
+</p>
+</li>
+</ul>
+<p>See vignette ‘Taming overdispersion’ for more information.</p>
+</dd>
+<dt><code>conv_crit</code></dt>
+<dd>
+<p>Convergence criterion.
+Used within the iterative model estimation algorithm.
+The default value is <code>1e-5</code>.).
+May be set to higher values in case models don't converge.</p>
+</dd>
+<dt><code>max_iter</code></dt>
+<dd>
+<p>Number of iterations. Default value is <code>200</code>. May be set to higher values in case models don't converge.</p>
+</dd>
+<dt><code>alpha_method</code></dt>
+<dd>
+<p>Choose between a more precise (method 1) or a more robust (method 2) method to estimate site parameters alpha.
+The default is the the more precise method; but consider setting it to the more robust method 2 if method results in warnings.</p>
+</dd>
+<dt><code>premove</code></dt>
+<dd>
+<p>Probability of removal of changepoints (default value: 0.2). Parameter used in stepwise refinement of models. See the vignette 'Models and statistical methods in rtrim'.</p>
+</dd>
+<dt><code>penter</code></dt>
+<dd>
+<p>Probability of re-entering of changepoints (default value: 0.15). Similar use as <code>premove</code>.</p>
+</dd>
+</dl>
+<h3>Models</h3>
+
+<p>The purpose of <code>trim()</code> is to estimate population totals over time,
+based on a set of counts <code class="reqn">f_{ij}</code> at sites <code class="reqn">i=1,2,\ldots,I</code>
+and times <code class="reqn">j=1,2,\ldots,J</code>. If no count data is available at
+site and time <code class="reqn">(i,j)</code>, a value <code class="reqn">\mu_{ij}</code> will be imputed.
+</p>
+<p>In <b>Model 1</b>, the imputed values are modeled as
+</p>
+<p><code class="reqn">\ln\mu_{ij} = \alpha_i,</code>
+</p>
+<p>where <code class="reqn">\alpha_i</code> is the site effect. This model implies that the counts
+vary accross sites, not over time. The model-based time totals are equal to
+each time point and the model-based indices are all equal to one.
+</p>
+<p>In <b>Model 2</b>, the imputed values are modeled as
+</p>
+<p><code class="reqn">\ln\mu_{ij} = \alpha_i + \beta\times(j-1).</code>
+</p>
+<p>Here, <code class="reqn">\alpha_i</code> is the log-count of site <code class="reqn">i</code> averaged over time and
+<code class="reqn">\beta</code> is the mean growth factor that is shared by all sites over all of
+time. The assumption of a constant growth rate may be relaxed by passing
+a number of <code>changepoints</code> that indicate at what times the growth
+rate is allowed to change. Using a <code>wald</code> test
+one can investigate whether the changes in slope at the changepoints are
+significant. Setting <code>stepwise=TRUE</code> makes <code>trim</code> automatically
+remove changepoints where the slope does not change significantly.
+</p>
+<p>In <b>Model 3</b>, the imputed values are modeled as
+</p>
+<p><code class="reqn">\ln\mu_{ij}=\alpha_i + \beta_j</code>,
+</p>
+<p>where <code class="reqn">\beta_j</code> is the deviatiation of log-counts at time <code class="reqn">j</code>,
+averaged over all sites. To make this model identifiable, the value of
+<code class="reqn">\beta_1=0</code> by definition. Model 3 can be shown to be equivalent to
+Model 2 with a changepoint at every time point. Using a
+<code>wald</code> test, one can estimate whether the collection
+of deviations <code class="reqn">\beta_i</code> make the model differ significantly from an
+overall linear trend (Model 2 without changepoints).
+</p>
+<p>The parameters <code class="reqn">\alpha_i</code> and <code class="reqn">\gamma_j</code> are referred to
+as the <em>additive representation</em> of the coefficients. Once computed,
+they can be represented and extracted in several representations, using the
+<code>coefficients</code> function. (See also the examples
+below).
+</p>
+<p>Other model parameters can be extracted using functions such as
+<code>gof</code> (for goodness of fit), <code>summary</code>
+or <code>totals</code>. Refer to the ‘See also’ section for an overview.
+</p>
+
+
+<h3>Using yearly and monthly counts</h3>
+
+<p>In many data sets will use use only yearly count data, in which case the
+time <code class="reqn">j</code> will reflect the year number.
+An extension of <code>trim</code> is to use monthly (or any other sub-yearly) count data,
+in combination with index computations on the yearly time scale.
+</p>
+<p>In this case, counts are given as <code class="reqn">f_{i,j,m}</code> with <code class="reqn">m=1,2,\ldots,M</code> the month number.
+As before, <code class="reqn">\mu_{i,j,m}</code> will be imputed in case of missing counts.
+</p>
+<p>The contibution of month factors to the model is always similar to the way year factors are used in Model 3,
+that is,
+</p>
+<p><code class="reqn">\ln\mu_{i,j,m} = \alpha_i + \beta\times(j-1) + \gamma_m</code>
+for Model 2, and
+<code class="reqn">\ln\mu_{i,j,m} = \alpha_i + \beta_j + \gamma_m</code>
+for Model 3.
+</p>
+<p>For the same reason why <code class="reqn">\beta_1=0</code> for Model 3, <code class="reqn">\gamma_1=0</code> in case of monthly parameters.
+</p>
+
+
+<h3>Using covariates</h3>
+
+<p>In the basic case of Models 2 and 3, the growth parameter <code class="reqn">\beta</code> does
+not vary accross sites. If auxiliary information is available (for instance
+a classification of the type of soil or vegetation), the effect of these
+variables on the per-site growth rate can be taken into account.
+</p>
+<p>For <b>Model 2 with covariates</b> the growth factor <code class="reqn">\beta</code> is
+replaced with a factor
+</p>
+<p><code class="reqn">\beta_0 + \sum_{k=1}^K z_{ijk}\beta_k</code>.
+</p>
+<p>Here, <code class="reqn">\beta_0</code> is referred to as the <em>baseline</em> and <code class="reqn">z_{ijk}</code> is a
+dummy variable that combines dummy variables for all covariates. Since a
+covariate with <code class="reqn">L</code> classes is modeled by <code class="reqn">L-1</code> dummy variables, the
+value of <code class="reqn">K</code> is equal to the sum of the numbers of categories for all
+covariates minus the number of covariates. Observe that this model allows for
+a covariate to change over time at a certain sites. It is therefore possible
+to include situations for example where a site turns from farmland to rural
+area. The <code>coefficients</code> function will report every
+individual value of <code class="reqn">\beta</code>. With a <code>wald</code> test,
+the significance of contributions of covariates can be tested.
+</p>
+<p>For <b>Model 3 with covariates</b> the parameter <code class="reqn">\beta_j</code> is replaced by
+</p>
+<p><code class="reqn">\beta_{j0} + \sum_{k=1}^Kz_{ijk}\beta_{jk}.</code>
+</p>
+<p>Again, the <code class="reqn">\beta_{j0}</code> are referred to as baseline parameters and the
+<code class="reqn">\beta_{jk}</code> record mean differences in log-counts within a set of sites
+with equal values for the covariates. All coefficients can be extracted with
+<code>coefficients</code> and the significance of covariates can
+be investigated with the <code>wald</code> test.
+</p>
+
+
+<h3>Estimation options</h3>
+
+<p>In the simplest case, the counts at different times and sites are considered
+independently Poisson distributed. The (often too strict) assumption that
+counts are independent over time may be dropped, so correlation between time
+points at a certain site can be taken into account. The assumption of being
+Poisson distributed can be relaxed as well. In general, the
+variance-covariance structure of counts <code class="reqn">f_{ij}</code> at site <code class="reqn">i</code> for time
+<code class="reqn">j</code> is modeled as
+</p>
+
+<ul>
+<li>
+<p><code class="reqn">\textrm{var}(f_{ij}) = \sigma^2\mu_{ij} </code>
+</p>
+</li>
+<li>
+<p><code class="reqn">\textrm{cor}(f_{ij},f_{i,j+1}) = \rho</code> ,
+</p>
+</li>
+</ul>
+<p>where <code class="reqn">\sigma</code> is called the <em>overdispersion</em>, <code class="reqn">\mu_{ij}</code> is
+the estimated count for site <code class="reqn">i</code>, time <code class="reqn">j</code> and <code class="reqn">\rho</code> is called
+the <em>serial correlation</em>.
+</p>
+<p>If <code class="reqn">\sigma=1</code>, a pure Poisson distribution is assumed to model the
+counts. Setting <code>overdispersion = TRUE</code> makes <code>trim</code> relax this
+condition. Setting  <code>serialcor=TRUE</code> allows <code>trim</code> to assume a
+non-zero correlation between adjacent time points, thus relaxing the
+assumption of independence over time.
+</p>
+
+
+<h3>Demands on data</h3>
+
+<p>The data set must contain sufficient counts to be able to estimate the model.
+In particular
+</p>
+
+<ul>
+<li>
+<p>For model 2 without covariates there must be at least one observation
+for each time segment defined by the change points.
+</p>
+</li>
+<li>
+<p>For model 2 with covariates there must be at least one observation for
+every value of each covariate, at each time segment defined by the change
+points.
+</p>
+</li>
+<li>
+<p>For model 3 without covariates there must be at least one observation
+for each time point.
+</p>
+</li>
+<li>
+<p>For model 3 with covariates there must be at least one observation for
+every value of each covariate, at each time point.
+</p>
+</li>
+<li>
+<p>For montly data, there must be at least one observation for every month.
+</p>
+</li>
+</ul>
+<p>The function <code>check_observations</code> identifies cases where too few
+observations are present to compute a model. Setting the option
+<code>autodelete=TRUE</code> (Model 2 only) makes <code>trim</code> remove changepoints
+such that at each time piece sufficient counts are available to estimate the
+model.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><a href="../doc/Skylark_example.html">rtrim by example</a> for a gentle introduction,
+<a href="../doc/rtrim_for_TRIM_users.html">rtrim for TRIM users</a> for users of the classic Delphi-based TRIM implementation,
+and <a href="../doc/rtrim_2_extensions.html">rtrim 2 extensions</a> for the major changes from rtrim v.1 to rtrim v.2
+</p>
+<p>Other analyses: 
+<code>coef.trim()</code>,
+<code>confint.trim()</code>,
+<code>gof()</code>,
+<code>index()</code>,
+<code>now_what()</code>,
+<code>overall()</code>,
+<code>overdispersion()</code>,
+<code>plot.trim.index()</code>,
+<code>plot.trim.overall()</code>,
+<code>plot.trim.smooth()</code>,
+<code>results()</code>,
+<code>serial_correlation()</code>,
+<code>summary.trim()</code>,
+<code>totals()</code>,
+<code>trendlines()</code>,
+<code>vcov.trim()</code>,
+<code>wald()</code>
+</p>
+<p>Other modelspec: 
+<code>check_observations()</code>,
+<code>read_tcf()</code>,
+<code>read_tdf()</code>,
+<code>set_trim_verbose()</code>,
+<code>trimcommand()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(skylark)
+m &lt;- trim(count ~ site + time, data=skylark, model=2)
+summary(m)
+coefficients(m)
+
+# An example using weights
+# set up some random weights (one for each site)
+w &lt;- runif(55, 0.1, 0.9)
+# match weights to sites
+skylark$weights &lt;- w[skylark$site]
+# run model
+m &lt;- trim(count ~ site + time, data=skylark, weights="weights", model=3)
+
+# An example using change points, a covariate, and overdispersion
+# 1 is added as cp automatically
+cp &lt;- c(2,6)
+m &lt;- trim(count ~ site + time + Habitat, data=skylark, model=2, changepoints=cp, overdisp=TRUE)
+coefficients(m)
+# check significance of changes in slope
+wald(m)
+plot(overall(m))
+</code></pre>
+
+
+</div>

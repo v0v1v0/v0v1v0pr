@@ -1,0 +1,196 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>parDeriv</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Derivation of probability functions with respect to the parameters
+</h2>
+
+<h3>Description</h3>
+
+<p>Derivation of probability functions with respect to the parameters
+by using closed forms.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">parDeriv(par, x, distname, sum = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>par</code></td>
+<td>
+
+<p>Vector of parameter values.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+
+<p>Observations or data at which the derivatives are to be computed.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>distname</code></td>
+<td>
+
+<p>Name of the distribution. See <b>Details</b>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sum</code></td>
+<td>
+
+<p>Logical. If <code>TRUE</code>, a summation over the element of <code>x</code> is
+carried. Otherwise, the first dimension of the result corresponds to
+the elements of <code>x</code>.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Only a few distributions are and will be available. For now, these are:
+the two-parameter Weibull <code>c("shape", "scale")</code>, the
+two-parameter Generalised Pareto, <code>c("scale", "shape")</code> and
+the two-parameter Lomax and maxlo distributions.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list of arrays containing the first and second order derivatives.
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>derLogdens, der2Logdens</code></td>
+<td>
+<p>Derivatives of the log-density
+<code class="reqn">\log f(x)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>derSurv, der2Surv</code></td>
+<td>
+<p>Derivatives of
+the survival function <code class="reqn">S(x)</code>.</p>
+</td>
+</tr>
+</table>
+<p>  When <code>x</code> has length <code class="reqn">n</code>
+and the distribution depends on <code class="reqn">p</code> parameters, the arrays of
+first and second order derivatives have dimension <code class="reqn">n \times
+  p</code> and <code class="reqn">n \times p \times p</code> when <code>sum</code> is
+<code>FALSE</code>. If <code>sum</code> is <code>TRUE</code> the summation drops the
+first dimension and the arrays are <code class="reqn">p</code> and <code class="reqn">p \times
+  p</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Yves Deville
+</p>
+
+
+<h3>References</h3>
+
+<p>See the <em>Renext Computing Details</em> document.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>Maxlo</code> and <code>Lomax</code>.</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">set.seed(1234)
+distname &lt;- "maxlo"
+if (distname == "weibull") {
+    logL &lt;- function(par) {
+        sum(dweibull(x, shape = par["shape"], scale = par["scale"], log = TRUE))
+    }
+    sumS &lt;- function(par) {
+        sum(pweibull(x, shape = par["shape"], scale = par["scale"],
+                     lower.tail = FALSE))
+    }
+    pars &lt;- c("shape" = rexp(1), "scale" = 1000 * rexp(1))
+    x &lt;- rweibull(n = 100, shape = pars["shape"], scale = pars["scale"])
+    Der &lt;- parDeriv(par = pars, x = x, distname = "weibull") 
+} else if (distname == "gpd") {
+    require(evd)
+    logL &lt;- function(par) {
+        sum(dgpd(x, loc = 0, shape = par["shape"], scale = par["scale"],
+                 log = TRUE))
+    }
+    sumS &lt;- function(par) { 
+        sum(pgpd(x, loc = 0, shape = par["shape"], scale = par["scale"],
+                 lower.tail = FALSE))
+    }
+    pars &lt;- c("scale" = 1000 * rexp(1),
+              "shape" = runif(1, min = -0.4, max = 0.4))
+    x &lt;- rgpd(n = 100, loc = 0, shape = pars["shape"], scale = pars["scale"])
+    Der &lt;- parDeriv(par = pars, x = x, distname = "gpd")
+} else if (distname == "lomax") {
+    logL &lt;- function(par) {
+        sum(dlomax(x, shape = par["shape"], scale = par["scale"], log = TRUE))
+    }
+    sumS &lt;- function(par) { 
+        sum(plomax(x, shape = par["shape"], scale = par["scale"],
+                   lower.tail = FALSE))
+    }
+    pars &lt;- c( "shape" = 1 + rexp(1), "scale" = 1000 * rexp(1))
+    x &lt;- rlomax(n = 100, shape = pars["shape"], scale = pars["scale"])
+    Der &lt;- parDeriv(par = pars, x = x, distname = "lomax") 
+} else if (distname == "maxlo") {
+    logL &lt;- function(par) {
+        sum(dmaxlo(x, shape = par["shape"], scale = par["scale"], log = TRUE))
+    }
+    sumS &lt;- function(par) { 
+        sum(pmaxlo(x, shape = par["shape"], scale = par["scale"],
+                   lower.tail = FALSE))
+    }
+    pars &lt;- c( "shape" = 2.5 + runif(1), "scale" = 100 * rexp(1))
+    x &lt;- rmaxlo(n = 100, shape = pars["shape"], scale = pars["scale"])
+    Der &lt;- parDeriv(par = pars, x = x, distname = "maxlo") 
+}
+
+## check logdens
+H &lt;- numDeriv::hessian(func = logL, x = pars)
+colnames(H) &lt;- names(pars)
+Grad &lt;- numDeriv::grad(func = logL, x = pars)
+
+cat("gradient for log density\n")
+print(cbind(parDeriv = Der$derLogdens, num = Grad))
+
+cat("hessian for log density\n")
+print(cbind(exact = Der$der2Logdens, num = H))
+
+## check survival
+HS &lt;- numDeriv::hessian(func = sumS, x = pars)
+HS &lt;- (HS + t(HS))/2
+colnames(HS) &lt;- names(pars)
+GradS &lt;- numDeriv::grad(func = sumS, x = pars)
+
+cat("gradient for Survival\n")
+print(cbind(parDeriv = Der$derSurv, num = GradS))
+
+cat("hessian for Survival\n")
+print(cbind(exact = Der$der2Surv, num = HS))
+</code></pre>
+
+
+</div>

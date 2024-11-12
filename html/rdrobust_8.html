@@ -1,0 +1,383 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rdplot</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Data-Driven Regression Discontinuity Plots</h2>
+
+<h3>Description</h3>
+
+<p><code>rdplot</code>  implements several data-driven Regression Discontinuity (RD) plots, using either evenly-spaced or quantile-spaced partitioning. Two type of RD plots are constructed: (i) RD plots with binned sample means tracing out the underlying regression function, and (ii) RD plots with binned sample means mimicking the underlying variability of the data. For technical and methodological details see Calonico, Cattaneo and Titiunik (2015a).
+</p>
+<p>Companion commands are: <code>rdrobust</code> for point estimation and inference procedures, and <code>rdbwselect</code> for data-driven bandwidth selection.
+</p>
+<p>A detailed introduction to this command is given in Calonico, Cattaneo and Titiunik (2015b) and Calonico, Cattaneo, Farrell and Titiunik (2017). A companion <code>Stata</code> package is described in Calonico, Cattaneo and Titiunik (2014).
+</p>
+<p>For more details, and related Stata and R packages useful for analysis of RD designs, visit <a href="https://rdpackages.github.io/">https://rdpackages.github.io/</a>
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rdplot(y, x, c = 0, p = 4, nbins = NULL, binselect = "esmv",  
+          scale = NULL, kernel = "uni", weights = NULL, h = NULL, 
+          covs = NULL, covs_eval = "mean", covs_drop = TRUE, ginv.tol = 1e-20,
+          support = NULL, subset = NULL, masspoints = "adjust",
+          hide = FALSE, ci = NULL, shade = FALSE, title = NULL, 
+          x.label = NULL, y.label = NULL, x.lim = NULL, y.lim = NULL, 
+          col.dots = NULL, col.lines = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>is the dependent variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>is the running variable (a.k.a. score or forcing variable).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>c</code></td>
+<td>
+<p>specifies the RD cutoff in <code>x</code>; default is <code>c = 0</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>specifies the order of the global-polynomial used to approximate the population conditional mean functions for control and treated units; default is <code>p = 4</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nbins</code></td>
+<td>
+<p>specifies the number of bins used to the left of the cutoff, denoted <code class="reqn">J_-</code>, and to the right of the cutoff, denoted <code class="reqn">J_+</code>, respectively. If not specified, <code class="reqn">J_+</code> and <code class="reqn">J_-</code> are estimated using the method and options chosen below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>binselect</code></td>
+<td>
+<p>specifies the procedure to select the number of bins. This option is available only if <code class="reqn">J_-</code> and <code class="reqn">J_+</code> are not set manually. Options are:  
+</p>
+<p><code>es</code>: IMSE-optimal evenly-spaced method using spacings estimators.
+</p>
+<p><code>espr</code>: IMSE-optimal evenly-spaced method using polynomial regression.
+</p>
+<p><code>esmv</code>: mimicking variance evenly-spaced method using spacings estimators. This is the default option.
+</p>
+<p><code>esmvpr</code>: mimicking variance evenly-spaced method using polynomial regression.
+</p>
+<p><code>qs</code>: IMSE-optimal quantile-spaced method using spacings estimators.
+</p>
+<p><code>qspr</code>: IMSE-optimal quantile-spaced method using polynomial regression.
+</p>
+<p><code>qsmv</code>: mimicking variance quantile-spaced method using spacings estimators.
+</p>
+<p><code>qsmvpr</code>: mimicking variance quantile-spaced method using polynomial regression.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>specifies a multiplicative factor to be used with the optimal numbers of bins selected. Specifically, the number of bins used for the treatment and control groups will be <code>scale</code><code class="reqn">\times \hat{J}_+</code> and <code>scale</code><code class="reqn">\times \hat{J}_-</code>, where <code class="reqn">\hat{J}_\cdot</code> denotes the estimated optimal numbers of bins originally computed for each group; default is <code>scale = 1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kernel</code></td>
+<td>
+<p>specifies the kernel function used to construct the local-polynomial estimator(s). Options are: <code>triangular</code>, <code>epanechnikov</code>, and <code>uniform</code>. Default is <code>kernel=uniform</code> (i.e., equal/no weighting to all observations on the support of the kernel).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>is the variable used for optional weighting of the estimation procedure. The unit-specific weights multiply the kernel function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>h</code></td>
+<td>
+<p>specifies the bandwidth used to construct the (global) polynomial fits given the kernel choice <code>kernel</code>.
+If not specified, the bandwidths are chosen to span the full support of the data. If two bandwidths are specified, the first bandwidth is used for the data below the cutoff and the second bandwidth is used for the data above the cutoff.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covs</code></td>
+<td>
+<p>specifies additional covariates to be used in the polynomial regression.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covs_eval</code></td>
+<td>
+<p>sets the evaluation points for the additional covariates, when included in the estimation. Options are: <code>covs_eval = 0</code> and <code>covs_eval = "mean"</code> (default)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covs_drop</code></td>
+<td>
+<p>if TRUE, it checks for collinear additional covariates and drops them. Default is TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ginv.tol</code></td>
+<td>
+<p>tolerance used to invert matrices involving covariates when <code>covs_drop=TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>support</code></td>
+<td>
+<p>specifies an optional extended support of the running variable to be used in the construction of the bins;  default is the sample range.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subset</code></td>
+<td>
+<p>an optional vector specifying a subset of observations to be used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>masspoints</code></td>
+<td>
+<p>checks and controls for repeated observations in the running variable. Options are:
+</p>
+<p>(i)  <code>off</code>: ignores the presence of mass points; 
+</p>
+<p>(ii) <code>check</code>: looks for and reports the number of unique observations at each side of the cutoff. 
+</p>
+<p>(iii) <code>adjust</code>: sets <code>binselect()</code> as polynomial regression when mass points are present. 
+</p>
+<p>Default option is <code>masspoints=adjust</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hide</code></td>
+<td>
+<p>logical. If <code>TRUE</code>, it omits the RD plot; default is <code>hide = FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ci</code></td>
+<td>
+<p>optional graphical option to display confidence intervals of selected level for each bin.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>shade</code></td>
+<td>
+<p>optional graphical option to replace confidence intervals with shaded areas.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>title</code></td>
+<td>
+<p>optional title for the RD plot.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x.label</code></td>
+<td>
+<p>optional label for the x-axis of the RD plot.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y.label</code></td>
+<td>
+<p>optional label for the y-axis of the RD plot.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x.lim</code></td>
+<td>
+<p>optional setting for the range of the x-axis in the RD plot.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y.lim</code></td>
+<td>
+<p>optional setting for the range of the y-axis in the RD plot.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>col.dots</code></td>
+<td>
+<p>optional setting for the color of the dots in the RD plot.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>col.lines</code></td>
+<td>
+<p>optional setting for the color of the lines in the RD plot.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>binselect</code></td>
+<td>
+<p>method used to compute the optimal number of bins.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>N</code></td>
+<td>
+<p>sample sizes used to the left and right of the cutoff.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Nh</code></td>
+<td>
+<p>effective sample sizes used to the left and right of the cutoff.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>c</code></td>
+<td>
+<p>cutoff value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>order of the global polynomial used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>h</code></td>
+<td>
+<p>bandwidth used to the left and right of the cutoff.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kernel</code></td>
+<td>
+<p>kernel used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>J</code></td>
+<td>
+<p>selected number of bins to the left and right of the cutoff.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>J_IMSE</code></td>
+<td>
+<p>IMSE optimal number of bins to the left and right of the cutoff.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>J_MV</code></td>
+<td>
+<p>Mimicking variance number of bins to the left and right of the cutoff.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coef</code></td>
+<td>
+<p>matrix containing the coefficients of the <code class="reqn">p^{th}</code> order global polynomial estimated both sides of the cutoff.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coef_covs</code></td>
+<td>
+<p>coefficients of the additional covariates, only returned when <code>covs()</code> are used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>selected scale value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rscale</code></td>
+<td>
+<p>implicit scale value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bin_avg</code></td>
+<td>
+<p>average bin length.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bin_med</code></td>
+<td>
+<p>median bin length.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vars_bins</code></td>
+<td>
+<p>data frame containing the variables used to construct the bins: bin id, cutoff values, mean of x and y within each bin, cutoff points and confidence interval bounds.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vars_poly</code></td>
+<td>
+<p>data frame containing the variables used to construct the global polynomial plot.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rdplot</code></td>
+<td>
+<p>a standard <code>ggplot</code> object that can be used for further customization.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Sebastian Calonico, Columbia University, New York, NY.  <a href="mailto:sebastian.calonico@columbia.edu">sebastian.calonico@columbia.edu</a>.
+</p>
+<p>Matias D. Cattaneo, Princeton University, Princeton, NJ.  <a href="mailto:cattaneo@princeton.edu">cattaneo@princeton.edu</a>.
+</p>
+<p>Max H. Farrell, University of California, Santa Barbara, CA. <a href="mailto:maxhfarrell@ucsb.edu">maxhfarrell@ucsb.edu</a>.
+</p>
+<p>Rocio Titiunik, Princeton University, Princeton, NJ.  <a href="mailto:titiunik@princeton.edu">titiunik@princeton.edu</a>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Calonico, S., M. D. Cattaneo, M. H. Farrell, and R. Titiunik. 2017. <a href="https://rdpackages.github.io/references/Calonico-Cattaneo-Farrell-Titiunik_2017_Stata.pdf">rdrobust: Software for Regression Discontinuity Designs.</a> <em>Stata Journal</em> 17(2): 372-404. 
+</p>
+<p>Calonico, S., M. D. Cattaneo, and R. Titiunik. 2014. <a href="https://rdpackages.github.io/references/Calonico-Cattaneo-Titiunik_2014_Stata.pdf">Robust Data-Driven Inference in the Regression-Discontinuity Design.</a> <em>Stata Journal</em> 14(4): 909-946.
+</p>
+<p>Calonico, S., M. D. Cattaneo, and R. Titiunik. 2015a. <a href="https://rdpackages.github.io/references/Calonico-Cattaneo-Titiunik_2015_JASA.pdf">Optimal Data-Driven Regression Discontinuity Plots.</a> <em>Journal of the American Statistical Association</em> 110(512): 1753-1769.
+</p>
+<p>Calonico, S., M. D. Cattaneo, and R. Titiunik. 2015b. <a href="https://rdpackages.github.io/references/Calonico-Cattaneo-Titiunik_2015_R.pdf">rdrobust: An R Package for Robust Nonparametric Inference in Regression-Discontinuity Designs.</a> <em>R Journal</em> 7(1): 38-51.
+</p>
+<p>Cattaneo, M. D., B. Frandsen, and R. Titiunik. 2015. <a href="https://rdpackages.github.io/references/Cattaneo-Frandsen-Titiunik_2015_JCI.pdf">Randomization Inference in the Regression Discontinuity Design: An Application to the Study of Party Advantages in the U.S. Senate.</a> <em>Journal of Causal Inference</em> 3(1): 1-24.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>rdbwselect</code>, <code>rdrobust</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">x&lt;-runif(1000,-1,1)
+y&lt;-5+3*x+2*(x&gt;=0)+rnorm(1000)
+rdplot(y,x)
+</code></pre>
+
+
+</div>

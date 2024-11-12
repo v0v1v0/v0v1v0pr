@@ -1,0 +1,114 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>cluster_modify_pairs</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Call a function on each of the worker nodes to modify the pairs on the node</h2>
+
+<h3>Description</h3>
+
+<p>Call a function on each of the worker nodes to modify the pairs on the node
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">cluster_modify_pairs(pairs, fun, ..., new_name = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>pairs</code></td>
+<td>
+<p>an object or type <code>cluster_pairs</code> as created for example by
+<code>cluster_pair</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fun</code></td>
+<td>
+<p>a function to call on each of the worker nodes. See details on the
+arguments of this function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments are passed on to <code>fun</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>new_name</code></td>
+<td>
+<p>name of new object to assign the pairs to on the cluster
+nodes.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The function will have to accept the following arguments as its first three
+arguments:
+</p>
+
+<dl>
+<dt>pairs</dt>
+<dd>
+<p>the <code>data.table</code> with the pairs of the worker node. </p>
+</dd>
+<dt>x</dt>
+<dd>
+<p>a <code>data.table</code> with the portion of <code>x</code> present on the 
+worker node.</p>
+</dd>
+<dt>y</dt>
+<dd>
+<p>a <code>data.table</code> with <code>y</code>. </p>
+</dd>
+</dl>
+<p>The function should either return a <code>data.table</code> with the new pairs, or
+<code>NULL</code>. When a <code>data.table</code> is returned this values will replace
+the pairs when <code>new_name</code> is missing or create new pairs in the
+environment <code>new_name</code>. When the function returns <code>NULL</code> it is
+assumed that the function modified the pairs by reference (e.g. using
+<code>pairs[, new_var := new_val]</code>). Note that this also means that
+<code>new_name</code> is ignored.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Will return a <code>cluster_pairs</code> object. When <code>new_name</code> is not given
+it will return the input <code>pairs</code> invisibly. Otherwise it will return a
+new <code>cluster_pairs</code> object.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Generate some pairs
+library(parallel)
+data("linkexample1", "linkexample2")
+cl &lt;- makeCluster(2)
+
+pairs &lt;- cluster_pair(cl, linkexample1, linkexample2)
+compare_pairs(pairs, c("lastname", "firstname", "address", "sex"))
+
+# Create a new set of pairs containing a random sample of the original
+# pairs.
+sample &lt;-  cluster_call(pairs, new_name = "sample", function(pairs, ...) {
+  sel &lt;- sample(nrow(pairs), round(nrow(pairs)*0.1))
+  pairs[sel, ]
+})
+
+# Cleanup
+stopCluster(cl)
+
+</code></pre>
+
+
+</div>

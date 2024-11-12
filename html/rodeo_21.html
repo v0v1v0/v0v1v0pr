@@ -1,0 +1,195 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rodeo-class</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+<code>rodeo</code> Class</h2>
+
+<h3>Description</h3>
+
+<p>This documents the <code>rodeo</code> class to represent an ODE-based
+model. See the <code>rodeo-package</code> main page or type
+<code>help(package="rodeo")</code> for an introduction to the package of
+the same name.
+</p>
+
+
+<h3>Fields</h3>
+
+
+<dl>
+<dt><code>prosTbl</code></dt>
+<dd>
+<p>A data frame with fields 'name', 'unit', 'description', and
+'expression' defining the process rates.</p>
+</dd>
+<dt><code>stoiTbl</code></dt>
+<dd>
+<p>A data frame with fields 'variable', 'process', and 'expression'
+reprenting the stoichiometry matrix in data base format.</p>
+</dd>
+<dt><code>varsTbl</code></dt>
+<dd>
+<p>A data frame with fields 'name', 'unit', 'description' declaring
+the state variables of the model. The declared names become valid
+identifiers to be used in the expression fields of <code>prosTbl</code> or <code>stoiTbl</code>.</p>
+</dd>
+<dt><code>parsTbl</code></dt>
+<dd>
+<p>A data frame of the same structure as <code>vars</code> declaring the
+parameters of the model. The declared names become valid
+identifiers to be used in the expression fields of <code>prosTbl</code> or <code>stoiTbl</code>.</p>
+</dd>
+<dt><code>funsTbl</code></dt>
+<dd>
+<p>A data frame of the same structure as <code>vars</code> declaring any
+functions referenced in the expression fields of <code>prosTbl</code> or <code>stoiTbl</code>.</p>
+</dd>
+<dt><code>dim</code></dt>
+<dd>
+<p>Integer vector specifying the spatial dimensions.</p>
+</dd>
+<dt><code>vars</code></dt>
+<dd>
+<p>Numeric vector, holding values of state variables.</p>
+</dd>
+<dt><code>pars</code></dt>
+<dd>
+<p>Numeric vector, holding values of parameters.</p>
+</dd>
+</dl>
+<h3>Class methods</h3>
+
+<p>For most of the methods below, a separate help page is available describing
+its arguments and usage.
+</p>
+
+<ul>
+<li>
+<p><code>initialize</code> Initialization method for new objects.
+</p>
+</li>
+<li>
+<p><code>namesVars, namesPars, namesFuns, namesPros</code> Functions
+returning the names of declared state variables, parameters,
+functions, and processes, respectively (character vectors). No arguments.
+</p>
+</li>
+<li>
+<p><code>lenVars, lenPars, lenFuns, lenPros</code> Functions
+returning the number of declared state variables, parameters, functions
+and processes, respectively (integer). No arguments.
+</p>
+</li>
+<li>
+<p><code>getVarsTable, getParsTable, getFunsTable, getProsTable,
+    getStoiTable</code> Functions returning the data frames used to initialize
+the object. No arguments
+</p>
+</li>
+<li>
+<p><code>getDim</code> Returns the spatial dimensions as an integer vector.
+No arguments.
+</p>
+</li>
+<li>
+<p><code>compile</code> Compiles a Fortran library for use with
+numerical methods from packages <code>deSolve</code> or
+<code>rootSolve</code>.
+</p>
+</li>
+<li>
+<p><code>generate</code> Translate the ODE-model specification into a
+function that computes process rates and the state variables' derivatives
+(either in R or Fortran). Consider to use the high-level method
+<code>compile</code>.
+</p>
+</li>
+<li>
+<p><code>setVars</code> Assign values to state variables.
+</p>
+</li>
+<li>
+<p><code>setPars</code> Assign values to parameters.
+</p>
+</li>
+<li>
+<p><code>getVars</code> Returns the values of state variables.
+</p>
+</li>
+<li>
+<p><code>getPars</code> Returns the values of parameters.
+</p>
+</li>
+<li>
+<p><code>stoichiometry</code> Returns the stoichiometry matrix, either
+evaluated (numeric) or as text.
+</p>
+</li>
+<li>
+<p><code>plotStoichiometry</code> Plots qualitative stoichiometry
+information.
+</p>
+</li>
+</ul>
+<h3>See Also</h3>
+
+<p>See the <code>rodeo-package</code> main page or type
+<code>help(package="rodeo")</code> to find the documentation of any non-class
+methods contained in the <code>rodeo</code> package.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Example using high-level functions: Epidemiological SEIR model
+
+# Import model from workbook shipped with this package 
+m &lt;- buildFromWorkbook(system.file("models/SEIR.xlsx",
+  package="rodeo"))
+
+# Set parameters and initial state (defaults stored in workbook)
+p &lt;- m$getParsTable()
+m$setPars(setNames(p$default, p$name))
+
+v &lt;- m$getVarsTable()
+m$setVars(setNames(v$default, v$name))
+
+# Run a dynamic simulations and print parts of the result
+sim &lt;- m$dynamics(time=1:30, fortran=FALSE)
+print(head(sim))
+print(tail(sim))
+
+
+### Example using low-level functions: Bacterial growth in bioreactor
+
+# Creation of model object (data frames shipped as package data)
+data(vars, pars, funs, pros, stoi)
+model &lt;- rodeo$new(vars, pars, funs, pros, stoi, dim=c(1))
+
+# Assignment of parameters and initial values
+model$setPars(c(mu=0.8, half=0.1, yield= 0.1, vol=1000,
+  flow=50, sub_in=1))
+model$setVars(c(bac=0.01, sub=0))
+
+# Implementation of functions declared in 'funs'
+monod &lt;- function(c,h) {c/(c+h)}
+
+# Creation of derivatives function in a low-level way; calling
+# the 'compile' method is a more convenient alternative
+code &lt;- model$generate(name="derivs", lang="r")
+derivs &lt;- eval(parse(text=code))
+
+# Explicit call of an integrator from the deSolve package
+times &lt;- 0:96
+out &lt;- deSolve::ode(y=model$getVars(), times=times, func=derivs,
+  parms=model$getPars())
+colnames(out) &lt;- c("time", model$namesVars(), model$namesPros())
+plot(out)
+</code></pre>
+
+
+</div>

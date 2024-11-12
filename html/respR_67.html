@@ -1,0 +1,350 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>oxy_crit</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate critical oxygen values, such as PCrit</h2>
+
+<h3>Description</h3>
+
+<p>Identifies critical oxygen values, the oxygen tension or concentration below
+which an uptake rate transitions from independent to dependent on the oxygen
+supply, typically known as <em>PCrit</em>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">oxy_crit(
+  x,
+  method = "bsr",
+  time = NULL,
+  oxygen = NULL,
+  rate = NULL,
+  width = 0.1,
+  parallel = FALSE,
+  thin = 5000,
+  plot = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>object of class <code>inspect</code> or a <code>data.frame</code> containing either paired
+oxygen~time values, or paired rate~oxygen values. See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>string. Defaults to <code>"bsr"</code>. Critical oxygen value analysis
+method. Either <code>"bsr"</code> or <code>"segmented"</code>. See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time</code></td>
+<td>
+<p>integer or string. Defaults to 1. Specifies column number or
+column name of the time data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>oxygen</code></td>
+<td>
+<p>integer or string. Defaults to 2. Specifies column number or
+column name of the oxygen data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rate</code></td>
+<td>
+<p>integer or string. Defaults to NULL. Specifies column number or
+column name of the rate data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>width</code></td>
+<td>
+<p>numeric value between 0 and 1 representing proportion of the
+total data length. Determines the width of the rolling regression used to
+determine the rolling rate and the rolling mean of oxygen values the rate
+is paired with. Defaults to 0.1, representing 10% of total rows.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel</code></td>
+<td>
+<p>logical. Defaults to FALSE. Enables parallel processing for
+computationally intensive analyses of large datasets.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thin</code></td>
+<td>
+<p>integer. Defaults to 5000. Number of rows to subsample <code>x</code> data
+to before running <code>"bsr"</code> analysis. No effect on datasets smaller than this
+value or with <code>"segmented"</code> method. To perform no subsampling enter as
+<code>NULL</code>. See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>logical. Defaults to TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Allows additional plotting controls to be passed, such as <code>legend = FALSE</code>, <code>quiet = TRUE</code>, <code>rate.rev = FALSE</code>, and <code>panel</code>. See Plotting
+section.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>In earlier versions of <code>respR</code>, this function was known as <code>pcrit</code> or
+<code>calc_pcrit</code>. It was renamed to avoid conflicts with functions of the same
+name in another package, and also because technically the <em>P</em> in  <em>PCrit</em>
+stands for the partial <em>pressure</em> of oxygen. Since the function returns the
+value in the units of the data as entered, whether they are concentration or
+pressure units, this terminology can be technically in error. Instead, for
+the purposes of the documentation we refer to this as the <em>Critical Oxygen
+Value</em>, or "<em>COV</em>". If the units of oxygen are partial pressure units (e.g.
+kPa), this is equivalent to PCrit, otherwise they should be reported with
+this in mind.
+</p>
+
+
+<h4>Methods</h4>
+
+<p>The <code>oxy_crit()</code> function provides two methods (one of which outputs two
+results) to calculate the <em>COV</em>. These are selected using the <code>method</code> input.
+</p>
+
+
+<h5>Broken Stick Regression:    <code>method = "bsr"</code>
+</h5>
+
+<p>This is the default method, adapted from the “Broken-Stick” regression
+(<em>BSR</em>) approach, of Yeager &amp; Ultsch (1989), in which two segments of the
+data are iteratively fitted and the intersection with the smallest sum of the
+residual sum of squares between the two linear models is the estimated <em>COV</em>.
+Two slightly different ways of reporting this breakpoint are detailed by
+Yeager &amp; Ultsch (1989); the <em>intercept</em> and <em>midpoint</em>. These are usually
+very close in value, and the function returns both.
+</p>
+<p>The <code>thin</code> input influences the <em>BSR</em> analysis. The method is very
+computationally intensive, so to speed up analyses the <code>thin</code> input will
+subsample datasets longer than this input to this number or rows before
+analysis. The default value of 5000 has in testing provided a good balance
+between speed and results accuracy and repeatability. However, results may
+vary with different datasets, so users should experiment with varying the
+value. To perform no subsampling and use the entire dataset enter <code>thin = NULL</code>. It has no effect on datasets shorter than the <code>thin</code> input.
+</p>
+
+
+
+<h5>Segmented Regression:    <code>method = "segmented"</code>
+</h5>
+
+<p>The second method is a wrapper for the "Segmented" regression approach,
+available as part of the <code>segmented</code> R package (Muggeo 2008), which estimates
+the <em>COV</em> by iteratively fitting two intersecting models and selecting the
+value that minimises the “gap” between the fitted lines.
+</p>
+
+
+
+
+<h4>Inputs</h4>
+
+<p>The data input <code>x</code> should be an <code>inspect</code> object or <code>data.frame</code> containing
+oxygen~time data, or a <code>data.frame</code> containing rate~oxygen data.
+</p>
+
+
+<h5>Oxygen ~ Time data</h5>
+
+<p>This is the typical input, where a timeseries of oxygen concentrations or
+partial pressures against time has been recorded, generally down to a very
+low value of oxygen. A column of <code>time</code> and a column of <code>oxygen</code> should be
+specified. The function defaults to <code>time = 1</code> and <code>oxygen = 2</code> if no other
+inputs are entered. These can also be specified using the column names.
+</p>
+<p>If an <code>inspect</code> object is entered as the <code>x</code> input, the data frame is
+extracted automatically and column identifiers are not required since these
+were already entered in <code>inspect</code>. Note, if multiple <code>oxygen</code> columns were
+entered in <code>inspect</code> only the first entered one will be used in <code>oxy_crit</code>.
+</p>
+<p>To calculate the <em>COV</em>, the function requires data in the form of oxygen
+uptake rate against oxygen value. Therefore, the function performs a rolling
+regression on the oxygen~time data to determine rates, and pairs these
+against a rolling mean of the oxygen data. The function then performs the
+selected analysis <code>method</code> on these data. The width of the rolling regression
+and rolling mean is determined by the <code>width</code> input. The default is 0.1,
+representing 10% of the length of the data. This performs well in testing,
+however performance may vary with data that has abrupt changes in rate, or is
+particularly noisy. Users should experiment with different <code>width</code> values to
+see how it affects results, and report this with their results and analysis
+parameters.
+</p>
+
+
+
+<h5>Rate ~ Oxygen data</h5>
+
+<p>Alternatively, if existing rolling oxygen uptake rates have been calculated,
+and have appropriate paired oxygen concentration or partial pressure values,
+these can be entered with the <code>rate</code> and <code>oxygen</code> inputs specifying the
+respective columns as either numbers or the column names. In this case the
+function performs the selected analysis <code>method</code> on these data directly
+without any processing. The <code>width</code> input in this case is not relevant and is
+ignored.
+</p>
+<p>This option can only be used with data frame <code>x</code> inputs. Note, other columns
+such as time data may be present in the input, but are not required so need
+not be specified.
+</p>
+
+
+
+
+<h4>Plot</h4>
+
+<p>A plot is produced (provided <code>plot = TRUE</code>) of the input data and results.
+The top panel is the input data, either the oxygen~time timeseries, or the
+rate~oxygen series, depending on what was entered in <code>x</code>. If the former, the
+critical oxygen value is indicated by a horizontal line, or two lines in the
+case of the Broken-Stick analysis. Note, since the two <em>BSR</em> results are
+usually close in value these may overlay each other.
+</p>
+<p>The bottom plot is the rate~oxygen series upon which the analysis was
+conducted, either as input or as calculated. Critical oxygen values are
+indicated by vertical lines, and regression fits upon which the analysis was
+based by black dashed lines.
+</p>
+<p>Note, that in <code>respR</code> oxygen uptake rates are negative since they represent a
+negative slope of oxygen against time, therefore by default rates are plotted
+on a reverse y-axis so higher rates appear higher on the plot. If analysing
+already calculated rates which are positive values this behaviour can be
+reversed by passing <code>rate.rev = FALSE</code> in either the main function call or
+when calling <code>plot()</code> on the output object. There is no issue with using
+positive rate values; they will give identical critical value results in the
+analysis.
+</p>
+
+
+<h5>Additional plotting options</h5>
+
+<p>If the legend obscures parts of the plot they can be suppressed using <code>legend = FALSE</code>. Suppress console output messages with <code>quiet = TRUE</code>. Each panel
+can be plotted on its own using <code>panel = 1</code> or <code>panel = 2</code>. If using
+already-calculated, positive rate values to identify critical oxygen values,
+the y-axis of the rolling rate plot can be plotted <em>not</em> reversed by passing
+<code>rate.rev = FALSE</code> These inputs can be passed in either the main <code>oxy_crit</code>
+call or when calling <code>plot()</code> on the output object. If axis labels
+(particularly y-axis) are difficult to read, <code>las = 2</code> can be passed to make
+axis labels horizontal, and <code>oma</code> (outer margins, default <code>oma = c(0.4, 1, 1.5, 0.4)</code>), and <code>mai</code> (inner margins, default <code>mai = c(0.3, 0.15, 0.35, 0.15)</code>) used to adjust plot margins.
+</p>
+
+
+
+
+<h4>S3 Generic Functions</h4>
+
+<p>Saved output objects can be used in the generic S3 functions <code>print()</code> and
+<code>summary()</code>.
+</p>
+
+<ul>
+<li> <p><code>print()</code>: prints the critical oxygen value for the particular <code>method</code>
+used.
+</p>
+</li>
+<li> <p><code>summary()</code>: prints critical oxygen value, plus additional coefficients and
+metadata for the particular <code>method</code> used. See Yeager &amp; Ultsch (1989) and
+Muggeo (2008) for what these represent. The summary can be exported as a
+separate data frame by passing <code>export = TRUE</code>.
+</p>
+</li>
+</ul>
+<h4>More</h4>
+
+<p>For additional help, documentation, vignettes, and more visit the <code>respR</code>
+website at <a href="https://januarharianto.github.io/respR/">https://januarharianto.github.io/respR/</a>
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>Output is a <code>list</code> object of class <code>oxy_crit</code> containing input
+parameters and data, various summary data, metadata, and the primary output
+of interest <code style="white-space: pre;">⁠$crit⁠</code>, which is the critical oxygen value in the units of the
+oxygen data as entered. This can be converted to additional units using
+<code>convert_DO()</code>. Note, if the Broken-Stick analysis (<code>method == "bsr"</code>)
+has been used, <code style="white-space: pre;">⁠$crit⁠</code> will contain two results; <code style="white-space: pre;">⁠$crit.intercept⁠</code> and
+<code style="white-space: pre;">⁠$crit.midpoint⁠</code>. For full explanation of the difference between these see
+Yeager &amp; Ultsch (1989), however they are generally very close in value.
+</p>
+
+
+<h3>References</h3>
+
+<p>Yeager DP, Ultsch GR (1989) Physiological regulation and
+conformation: A BASIC program for the determination of critical points.
+Physiological Zoology 62:888–907. doi: 10.1086/physzool.62.4.30157935
+</p>
+<p>Muggeo V (2008) Segmented: an R package to fit regression models with
+broken-line relationships. R News 8:20–25.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Run on oxygen~time data.frame with default inputs
+oxy_crit(squid.rd)
+
+## Try a lower 'thin' input to speed up analysis
+oxy_crit(squid.rd, thin = 1000)
+
+## Use the Segmented method instead
+oxy_crit(squid.rd, method = "segmented")
+
+## Experiment with different 'width' input
+# Higher widths tend to oversmooth data
+oxy_crit(squid.rd, method = "segmented", width = 0.2)
+# Lower width in this case gives very similar result to default 0.1
+oxy_crit(squid.rd, method = "segmented", width = 0.05)
+
+## Run on oxygen~time data in 'inspect' object
+insp &lt;- inspect(squid.rd, time = 1, oxygen = 2)
+oxy_crit(insp)
+
+## Run on already calculated rate~oxygen data
+# Calculate a rolling rate
+rate &lt;- auto_rate(squid.rd,
+                  method = "rolling",
+                  width = 0.1,
+                  plot = FALSE)$rate
+
+## Calculate a rolling mean oxygen
+oxy &lt;- na.omit(roll::roll_mean(squid.rd[[2]],
+                               width = 0.1 * nrow(squid.rd)))
+## Combine to data.frame
+squid_rate_oxy &lt;- data.frame(oxy, rate)
+## Perform COV analysis
+oxy_crit(squid_rate_oxy, oxygen = 1, rate = 2)
+
+</code></pre>
+
+
+</div>

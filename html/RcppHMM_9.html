@@ -1,0 +1,308 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>learnEM</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Expectation-Maximization algorithm to estimate the model parameters
+</h2>
+
+<h3>Description</h3>
+
+<p>Expectation-Maximization algorithm to estimate the model parameters based on a single or multiple observed sequences.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">learnEM(hmm, sequences, iter = 100, delta = 1e-05, pseudo = 0, print = TRUE )
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>hmm</code></td>
+<td>
+<p>a list with the necessary variables to define a hidden Markov model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sequences</code></td>
+<td>
+<p>sequences of observations to be used as training set. HMM and PHMM use a matrix. GHMM uses a 3D array.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iter</code></td>
+<td>
+<p>a value that sets the maximum number of iterations to run.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>delta</code></td>
+<td>
+<p>a value set to be the minimum error considered as a convergence criteria.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pseudo</code></td>
+<td>
+<p>a value set to consider pseudo-counts.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>print</code></td>
+<td>
+<p>a logical value to print the error at each iteration.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function can be used for univariate or multivariate distributions. HMM and PHMM use a matrix with different sequences as rows and consecutive observations in the columns. GHMM uses an array with the variables as rows, consecutive observations in the columns and different sequences as slices. 
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>"list"</code> that contains the estimated hidden Markov model parameters.
+</p>
+
+
+<h3>References</h3>
+
+<p>Cited references are listed on the RcppHMM manual page.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>generateObservations</code> , <code>verifyModel</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Values for a hidden Markov model with categorical observations
+# Set the model parameters
+n &lt;- c("First","Second")
+m &lt;- c("A","T","C","G")
+A &lt;- matrix(c(0.8,0.2,
+              0.1,0.9),
+            nrow = 2,
+            byrow = TRUE)
+
+B &lt;- matrix(c(0.2, 0.2, 0.3, 0.3,
+              0.4, 0.4, 0.1, 0.1),
+            nrow = 2,
+            byrow = TRUE)
+
+Pi &lt;- c(0.5, 0.5)
+
+params &lt;- list( "Model" = "HMM",
+                "StateNames" = n,
+                "ObservationNames" = m,
+                "A" = A,
+                "B" = B,
+                "Pi" = Pi)
+
+HMM &lt;- verifyModel(params)
+
+# Data simulation
+set.seed(100)
+length &lt;- 100
+seqs &lt;- 10
+
+# Multiple sequences to be used as training set
+observationSequences&lt;- c()
+for(i in 1:seqs){
+  Y &lt;- generateObservations(HMM , length)$Y
+  observationSequences &lt;- rbind(observationSequences , Y)
+}
+
+# New model random initialization
+# Model to be trained
+set.seed(1000)
+newModel &lt;- initHMM(2,4) 
+n = c("X1","X2")
+m = c("A","T","C","G")
+newModel &lt;- setNames(newModel,
+                     list( "StateNames" = n,
+                           "ObservationNames" = m) )
+
+
+  newModel &lt;- learnEM(newModel,
+                      observationSequences,
+                      iter= 50, 
+                      delta = 1E-5,
+                      pseudo = 3,
+                      print = TRUE)
+
+
+print(newModel)   
+
+## Values for a hidden Markov model with discrete observations
+
+n &lt;- c("Low","Normal","High")
+
+A &lt;- matrix(c(0.5, 0.3,0.2,
+              0.2, 0.6, 0.2,
+              0.1, 0.3, 0.6),
+            ncol=length(n), byrow=TRUE)
+
+B &lt;- c(2600,  # First distribution with mean 2600
+       2700,  # Second distribution with mean 2700
+       2800)  # Third distribution with mean 2800
+
+Pi &lt;- rep(1/length(n), length(n))
+
+HMM.discrete &lt;- verifyModel(list("Model"="PHMM", "StateNames" = n, "A" = A, "B" = B, "Pi" = Pi))
+
+# Data simulation
+set.seed(100)
+length &lt;- 100
+seqs &lt;- 50
+
+# Multiple sequences to be evaluated
+observationSequences&lt;- c()
+for(i in 1:seqs){
+  Y &lt;- generateObservations(HMM.discrete , length)$Y
+  observationSequences &lt;- rbind(observationSequences , Y)
+}
+
+dim(observationSequences)
+# New model random initialization
+# Model to be trained
+set.seed(1000)
+newModel &lt;- initPHMM(3) 
+
+  newModel &lt;- learnEM(newModel,
+                      observationSequences,
+                      iter= 50, 
+                      delta = 1E-5,
+                      print = FALSE)
+
+
+print(newModel)   
+
+
+## Values for a hidden Markov model with continuous observations                          
+# Number of hidden states = 3
+# Univariate gaussian mixture model
+
+N = c("Low","Normal", "High")
+A &lt;- matrix(c(0.5, 0.3,0.2,
+              0.2, 0.6, 0.2,
+              0.1, 0.3, 0.6),
+            ncol= length(N), byrow = TRUE)
+
+Mu &lt;- matrix(c(0, 50, 100), ncol = length(N))
+Sigma &lt;- array(c(144, 400, 100), dim = c(1,1,length(N)))
+Pi &lt;- rep(1/length(N), length(N))
+
+HMM.cont.univariate &lt;- verifyModel(list( "Model"="GHMM", 
+                              "StateNames" = N,
+                              "A" = A, 
+                              "Mu" = Mu, 
+                              "Sigma" = Sigma, 
+                              "Pi" = Pi))
+
+# Data simulation
+set.seed(100)
+length &lt;- 100
+seqs &lt;- 50
+
+# Multiple sequences to be evaluated
+observationSequences&lt;- array(0, dim = c(1, length, seqs) )
+for(i in 1:seqs){
+  Y &lt;- generateObservations(HMM.cont.univariate , length)$Y
+  observationSequences[,,i] &lt;- Y
+}
+
+dim(observationSequences)
+
+# New model random initialization
+# Model to be trained
+set.seed(1000)
+newModel &lt;- initGHMM(3) 
+
+  newModel &lt;- learnEM(newModel,
+                      observationSequences,
+                      iter= 50, 
+                      delta = 1E-5,
+                      print = FALSE)
+
+
+print(newModel)   
+
+
+## Values for a hidden Markov model with continuous observations                          
+# Number of hidden states = 2
+# Multivariate gaussian mixture model
+# Observed vector with dimensionality of 3
+N = c("X1","X2")
+M &lt;- 3
+
+# Same number of dimensions
+Sigma &lt;- array(0, dim =c(M,M,length(N)))
+Sigma[,,1] &lt;- matrix(c(1.0,0.8,0.8,
+                       0.8,1.0,0.8,
+                       0.8,0.8,1.0), ncol = M,  
+                     byrow = TRUE)
+Sigma[,,2] &lt;- matrix(c(1.0,0.4,0.6,
+                       0.4,1.0,0.8,
+                       0.6,0.8,1.0), ncol = M,
+                     byrow = TRUE)
+Mu &lt;- matrix(c(0, 5, 
+               10, 0, 
+               5, 10), 
+             nrow = M, 
+             byrow = TRUE)
+
+A &lt;- matrix(c(0.6,0.4,
+              0.3, 0.7), 
+            ncol = length(N),
+            byrow = TRUE)
+Pi &lt;- c(0.5, 0.5)
+
+HMM.cont.multi &lt;- verifyModel(list( "Model" = "GHMM",
+                              "StateNames" = N,
+                              "A" = A, 
+                              "Mu" = Mu, 
+                              "Sigma" = Sigma, 
+                              "Pi" = Pi))
+
+# Data simulation
+set.seed(100)
+length &lt;- 100
+seqs &lt;- 50
+
+# Multiple sequences to be evaluated
+observationSequences&lt;- array(0, dim = c(M, length, seqs) )
+for(i in 1:seqs){
+  Y &lt;- generateObservations(HMM.cont.multi , length)$Y
+  observationSequences[,,i] &lt;- Y
+}
+
+dim(observationSequences)
+
+# New model random initialization
+# Model to be trained
+set.seed(1000)
+newModel &lt;- initGHMM(2, M) 
+
+  newModel &lt;- learnEM(newModel,
+                      observationSequences,
+                      iter= 50, 
+                      delta = 1E-5,
+                      print = FALSE)
+
+
+print(newModel)   
+</code></pre>
+
+
+</div>

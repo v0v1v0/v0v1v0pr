@@ -1,0 +1,282 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Multiview</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Forecasting using multiview embedding</h2>
+
+<h3>Description</h3>
+
+<p><code>Multiview</code> applies the method of <cite>Ye &amp; Sugihara</cite>
+to find optimal combinations of variables that best represent the
+dynamics.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">Multiview(pathIn = "./", dataFile = "", dataFrame = NULL,
+  lib = "", pred = "", D = 0, E = 1, Tp = 1, knn = 0, 
+  tau = -1, columns = "", target = "", multiview = 0, exclusionRadius = 0,
+  trainLib = TRUE, excludeTarget = FALSE, parameterList = FALSE,
+  verbose = FALSE, numThreads = 4, showPlot = FALSE, noTime = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>pathIn</code></td>
+<td>
+<p>path to <code>dataFile</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dataFile</code></td>
+<td>
+<p>.csv format data file name. The first column must be a time
+index or time values. The first row must be column names unless noTime is TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dataFrame</code></td>
+<td>
+<p>input data.frame. The first column must be a time
+index or time values unless noTime is TRUE. The columns must be named.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lib</code></td>
+<td>
+<p>a 2-column matrix, data.frame, 2-element vector or string of 
+row indice pairs, where each pair specifies the first and last *rows* of
+the time series to create the library.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pred</code></td>
+<td>
+<p>(same format as lib), but specifying the sections of the time 
+series to forecast.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>D</code></td>
+<td>
+<p>multivariate dimension.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>E</code></td>
+<td>
+<p>embedding dimension.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Tp</code></td>
+<td>
+<p>prediction horizon (number of time column rows).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>knn</code></td>
+<td>
+<p>number of nearest neighbors. If knn=0, knn is set to E+1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tau</code></td>
+<td>
+<p>lag of time delay embedding specified as number of
+time column rows.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>columns</code></td>
+<td>
+<p>string of whitespace separated column name(s), or vector
+of column names used to create the library. If individual column names
+contain whitespace place names in a vector, or, append ',' to the name.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target</code></td>
+<td>
+<p>column name used for prediction.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>multiview</code></td>
+<td>
+<p>number of multiview ensembles to average for the final
+prediction estimate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exclusionRadius</code></td>
+<td>
+<p>number of adjacent observation vector rows to exclude as
+nearest neighbors in prediction.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trainLib</code></td>
+<td>
+<p>logical to use in-sample (lib=pred) projections for the
+ranking of column combinations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>excludeTarget</code></td>
+<td>
+<p>logical to exclude embedded target column from combinations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parameterList</code></td>
+<td>
+<p>logical to add list of invoked parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical to produce additional console reporting.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>numThreads</code></td>
+<td>
+<p>number of CPU threads to use in multiview processing.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>showPlot</code></td>
+<td>
+<p>logical to plot results.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>noTime</code></td>
+<td>
+<p>logical to allow input data with no time column.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Multiview embedding is a method to identify variables in a
+multivariate dynamical system that are most likely to contribute to
+the observed dynamics.  It is a multistep algorithm with these general
+steps:
+</p>
+
+<ol>
+<li>
+<p> Compute D-dimensional variable combination forecasts.
+</p>
+</li>
+<li>
+<p> Rank forecasts.
+</p>
+</li>
+<li>
+<p> Compute predictions of top combinations.
+</p>
+</li>
+<li>
+<p> Compute multiview averaged prediction.
+</p>
+</li>
+</ol>
+<p>If <code>E&gt;1</code>, all variables are embedded to dimension E. 
+If <code>trainLib</code> is <code>TRUE</code> initial forecasts and ranking are
+done in-sample (<code>lib=pred</code>) and predictions using the top ranked
+combinations use the specified <code>lib</code> and <code>pred</code>.
+If <code>trainLib</code> is <code>FALSE</code> initial forecasts and ranking use
+the specified <code>lib</code> and <code>pred</code>, the step of computing
+predictions of the top combinations is skipped. 
+</p>
+
+
+<h3>Value</h3>
+
+<p>Named list with data.frames <code>[[View, Predictions]]</code>.
+</p>
+<p>data.frame <code>View</code> columns:
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+  Col_1 </td>
+<td style="text-align: left;"> column index</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+  ...   </td>
+<td style="text-align: left;"> column index</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+  Col_D </td>
+<td style="text-align: left;"> column index</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+  rho   </td>
+<td style="text-align: left;"> Pearson correlation</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+  MAE   </td>
+<td style="text-align: left;"> mean absolute error</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+  RMSE  </td>
+<td style="text-align: left;"> root mean square error</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+  name_1 </td>
+<td style="text-align: left;"> column name</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+  ...    </td>
+<td style="text-align: left;"> column name</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+  name_D </td>
+<td style="text-align: left;"> column name</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<p>If <code>parameterList = TRUE</code> a named list "parameters" is added.
+</p>
+
+
+<h3>References</h3>
+
+<p>Ye H., and G. Sugihara, 2016. Information leverage in 
+interconnected ecosystems: Overcoming the curse of dimensionality.
+Science 353:922-925.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(block_3sp)
+L = Multiview( dataFrame = block_3sp, lib = "1 100", pred = "101 190",
+E = 2, columns = "x_t y_t z_t", target = "x_t" )
+</code></pre>
+
+
+</div>

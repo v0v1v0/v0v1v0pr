@@ -1,0 +1,174 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>likelihood_subgroup_model</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Likelihood of a dataset under models with biogeography fit to a subgroup.
+</h2>
+
+<h3>Description</h3>
+
+<p>Computes the likelihood of a dataset under either the linear or exponential diversity dependent model with specified <code>sigma2</code> and slope values and with a <code>geography.object</code> formed using <code>CreateGeoObject</code>.  
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">likelihood_subgroup_model(data,phylo,geography.object,model=c("MC","DDexp","DDlin"),
+	par,return.z0=FALSE,maxN=NULL,error=NULL)
+
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>phylo</code></td>
+<td>
+  
+<p>an object of type 'phylo' (see ape documentation) produced as "map" from CreateGeobyClassObject. NB: the length of this object need not match number of items in data, since map may include tips outside of group with some part of their branch in the group
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+
+<p>a named vector of continuous data for a subgroup of interest with names corresponding to <code>phylo$tip.label</code>
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>geography.object</code></td>
+<td>
+
+<p>a list of sympatry/group membership through time created using <code>CreateGeobyClassObject</code>
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+
+<p>model chosen to fit trait data, <code>"DDlin"</code> is the diversity-dependent linear model, and <code>"DDexp"</code> is the diversity-dependent exponential model of Weir &amp; Mursleen 2013.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>par</code></td>
+<td>
+
+<p>a vector listing a value for <code>log(sig2)</code> (see Note) and either <code>b</code> (for the linear diversity dependent model) or <code>r</code> (for the exponential diversity dependent model), in that order.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return.z0</code></td>
+<td>
+
+<p>logical indicating whether to return an estimate of the trait value at the root given the parameter values (if <code>TRUE</code>, function returns root value rather than negative log-likelihood)
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxN</code></td>
+<td>
+
+<p>when fitting <code>DDlin</code> model, it is necessary to specify the maximum number of sympatric lineages to ensure that the rate returned does not correspond to negative sig2 values at any point in time (see Details).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>error</code></td>
+<td>
+
+<p>A named vector with standard errors (SE) of trait values for each species (with names matching <code>"phylo$tip.label"</code>). The default is NULL, in this case potential error is ignored in the fit. If set to NA, the SE is estimated from the data (to be used when there are no error measurements, a nuisance parameter is estimated). Note: When standard errors are provided, a nuisance parameter is also estimated.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>When specifying <code>par</code>, <code>log(sig2)</code> (see Note) must be listed before the slope parameter (<code>b</code> or <code>r</code>).
+</p>
+<p>maxN can be calculated using <code>maxN=max(vapply(geo.object$geography.object,function(x)max(rowSums(x)),1))</code>, where geo.object is the output of <code>CreateGeoObject</code>
+</p>
+
+
+<h3>Value</h3>
+
+<p>The negative log-likelihood value of the dataset (accordingly, the negative of the output should be recorded as the likelihood), given the phylogeny,  <code>sig2</code> and slope values, and <code>geography.object</code>.
+</p>
+<p>If <code>return.z0=TRUE</code>, the estimated root value for the par values is returned instead of the negative log-likelihood.
+</p>
+
+
+<h3>Note</h3>
+
+<p>To stabilize optimization, this function exponentiates the input <code>sig2</code> value, thus the user must input the log(sig2) value to compute the correct log likelihood (see example).
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Jonathan Drury <a href="mailto:jonathan.p.drury@gmail.com">jonathan.p.drury@gmail.com</a>
+</p>
+<p>Julien Clavel
+</p>
+
+
+<h3>References</h3>
+
+<p>Drury, J., Clavel, J., Manceau, M., and Morlon, H. 2016. Estimating the effect of competition on trait evolution using maximum likelihood inference. <em>Systematic Biology</em> doi 10.1093/sysbio/syw020
+</p>
+<p>Weir, J. &amp; Mursleen, S. 2012. Diversity-dependent cladogenesis and trait evolution in the adaptive radiation of the auks (Aves: Alcidae). <em>Evolution</em> 67:403-416.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>fit_t_comp</code>
+<code>CreateGeoObject</code>
+<code>likelihood_t_DD</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+data(BGB.examples)
+
+
+Canidae.phylo&lt;-BGB.examples$Canidae.phylo
+dummy.group&lt;-c(rep("B",3),rep("A",12),rep("B",2),rep("A",6),rep("B",5),rep("A",6))
+names(dummy.group)&lt;-Canidae.phylo$tip.label
+
+
+Canidae.simmap&lt;-phytools::make.simmap(Canidae.phylo, dummy.group)
+
+set.seed(123)
+Canidae.data&lt;-rnorm(length(Canidae.phylo$tip.label))
+names(Canidae.data)&lt;-Canidae.phylo$tip.label
+Canidae.A&lt;-Canidae.data[which(dummy.group=="A")]
+Canidae.geobyclass.object&lt;-CreateGeobyClassObject(phylo=Canidae.phylo, 
+	simmap=Canidae.simmap, trim.class="A", ana.events=BGB.examples$Canidae.ana.events, 
+	clado.events=BGB.examples$Canidae.clado.events,stratified=FALSE, rnd=5)
+
+par &lt;- c(log(0.01),-0.000005)
+maxN&lt;-max(vapply(Canidae.geobyclass.object$geo.object$geography.object, 
+	function(x)max(rowSums(x)),1))
+
+lh &lt;- -likelihood_subgroup_model(data=Canidae.A, phylo=Canidae.geobyclass.object$map, 
+	geography.object=Canidae.geobyclass.object$geo.object, model="DDlin", par=par, 
+	return.z0=FALSE, maxN=maxN)
+	
+	
+
+</code></pre>
+
+
+</div>

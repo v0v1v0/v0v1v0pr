@@ -1,0 +1,371 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>set_prior</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Construction of prior distributions for extreme value model parameters</h2>
+
+<h3>Description</h3>
+
+<p>Constructs a prior distribution for use as the argument <code>prior</code> in
+<code>rpost</code> and <code>rpost_rcpp</code>.  The user can either
+specify their own prior function, returning the <strong>log</strong> of the prior
+density, (using an R function or an external pointer to a compiled C++
+function) and arguments for hyperparameters or choose from a list of
+in-built model-specific priors.  Note that the arguments
+<code>model = "gev"</code>, <code>model = "pp"</code> and <code>model =="os"</code> are
+equivalent because a prior is specified is the GEV parameterisation in each
+of these cases.
+Note also that for <code>model = "pp"</code> the prior GEV parameterisation
+relates to the value of <code>noy</code> subsequently supplied to
+<code>rpost</code> or <code>rpost_rcpp</code>.
+The argument <code>model</code> is used for consistency with <code>rpost</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">set_prior(
+  prior = c("norm", "loglognorm", "mdi", "flat", "flatflat", "jeffreys", "beta", "prob",
+    "quant"),
+  model = c("gev", "gp", "pp", "os"),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>prior</code></td>
+<td>
+<p>Either
+</p>
+
+<ul>
+<li>
+<p> An R function, or a pointer to a user-supplied compiled
+C++ function, that returns the value of the log of the prior density
+(see <strong>Examples</strong>), or
+</p>
+</li>
+<li>
+<p> A character string giving the name of the prior.
+See <strong>Details</strong> for a list of priors available for each model.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>A character string.  If <code>prior</code> is a character string
+then <code>model</code> gives the extreme value model to be used.  Using
+either <code>model = "gev"</code>, <code>model = "pp"</code> or
+<code>model = "os"</code> will result in the same (GEV) parameterisation.
+If <code>prior</code> is a function then the value of <code>model</code> is stored
+so that in the subsequent call to <code>rpost</code>, consistency of the
+prior and extreme value model parameterisations can be checked.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments to be passed to the user-supplied or
+in-built prior function.  For details of the latter see <strong>Details</strong>
+and/or the relevant underlying function: <code>gp_norm</code>,
+<code>gp_mdi</code>, <code>gp_flat</code>, <code>gp_flatflat</code>,
+<code>gp_jeffreys</code>, <code>gp_beta</code>,
+<code>gev_norm</code>, <code>gev_loglognorm</code>,
+<code>gev_mdi</code>, <code>gev_flat</code>, <code>gev_flatflat</code>,
+<code>gev_beta</code>, <code>gev_prob</code>, <code>gev_quant</code>.
+All these priors have the arguments <code>min_xi</code> (prior lower bound on
+<code class="reqn">\xi</code>) and <code>max_xi</code> (prior upper bound on <code class="reqn">\xi</code>).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Of the in-built named priors available in revdbayes only
+those specified using <code>prior = "prob"</code> (<code>gev_prob</code>),
+<code>prior = "quant"</code> (<code>gev_quant</code>)
+<code>prior = "norm"</code> (<code>gev_norm</code>) or
+<code>prior = "loglognorm"</code> (<code>gev_loglognorm</code>) are proper.
+If <code>model = "gev"</code> these priors are equivalent to priors available
+in the evdbayes package, namely <code>prior.prob</code>,
+<code>prior.quant</code>, <code>prior.norm</code> and <code>prior.loglognorm</code>.
+</p>
+<p>The other in-built priors are improper, that is, the integral of the
+prior function over its support is not finite.  Such priors do not
+necessarily result in a proper posterior distribution. Northrop and
+Attalides (2016) consider the issue of posterior propriety in Bayesian
+extreme value analyses.  In most of improper priors below the prior for
+the scale parameter <code class="reqn">\sigma</code> is taken to be <code class="reqn">1/\sigma</code>,
+i.e. a flat prior for <code class="reqn">\log \sigma</code>.  Here we denote the
+scale parameter of the GP distribution by <code class="reqn">\sigma</code>, whereas we use
+<code class="reqn">\sigma_u</code> in the revdbayes vignette.
+</p>
+<p>For all in-built priors the arguments <code>min_xi</code> and <code>max_xi</code> may
+be supplied by the user.  The prior density is set to zero for any value
+of the shape parameter <code class="reqn">\xi</code> that is outside
+(<code>min_xi</code>, <code>max_xi</code>).  This will override the default values
+of <code>min_xi</code> and <code>max_xi</code> in the named priors detailed above.
+</p>
+<p><strong>Extreme value priors.</strong> It is typical to use either
+<code>prior = "prob"</code> (<code>gev_prob</code>) or
+<code>prior = "quant"</code> (<code>gev_quant</code>) to set an informative
+prior and one of the other prior (or a user-supplied function) otherwise.
+The names of the in-built extreme value priors set using <code>prior</code>
+and details of hyperparameters are:
+</p>
+
+<ul>
+<li> <p><code>"prob"</code>.  A prior for GEV parameters <code class="reqn">(\mu, \sigma, \xi)</code>
+based on Crowder (1992).  See <code>gev_prob</code> for details.
+See also Northrop et al. (2017) and Stephenson (2016).
+</p>
+</li>
+<li> <p><code>"quant"</code>.  A prior for GEV parameters <code class="reqn">(\mu, \sigma, \xi)</code>
+based on Coles and Tawn (1996). See <code>gev_quant</code> for details.
+</p>
+</li>
+<li> <p><code>"norm"</code>.
+</p>
+<p>For <code>model = "gp"</code>:
+(<code class="reqn">\log \sigma, \xi</code>), is bivariate normal
+with mean <code>mean</code> (a numeric vector of length 2) and covariance
+matrix <code>cov</code> (a symmetric positive definite 2 by 2 matrix).
+</p>
+<p>For <code>model = "gev"</code>:
+(<code class="reqn">\mu, \log \sigma, \xi</code>), is trivariate
+normal with mean <code>mean</code> (a numeric vector of length 3) and
+covariance matrix <code>cov</code> (a symmetric positive definite 3 by 3
+matrix).
+</p>
+</li>
+<li> <p><code>"loglognorm"</code>.  For <code>model = "gev"</code> only:
+(<code class="reqn">\log \mu, \log \sigma, \xi</code>), is
+trivariate normal with mean <code>mean</code> (a numeric vector of length 3)
+and covariance matrix <code>cov</code> (a symmetric positive definite 3 by 3
+matrix).
+</p>
+</li>
+<li> <p><code>"mdi"</code>.
+</p>
+<p>For <code>model = "gp"</code>: (an extended version
+of) the maximal data information (MDI) prior, that is,
+</p>
+<p style="text-align: center;"><code class="reqn">\pi(\sigma, \xi) = \sigma^{-1} \exp[-a(\xi + 1)], {\rm ~for~}
+    \sigma &gt; 0, \xi \geq -1, a \geq 0.</code>
+</p>
+
+<p>The value of <code class="reqn">a</code> is set using the argument <code>a</code>.  The default
+value is <code class="reqn">a = 1</code>, which gives the MDI prior.
+</p>
+<p>For <code>model = "gev"</code>: (an extended version
+of) the maximal data information (MDI) prior, that is,
+</p>
+<p style="text-align: center;"><code class="reqn">\pi(\mu, \sigma, \xi) = \sigma^{-1} \exp[-a(\xi + 1)],
+    {\rm ~for~} \sigma &gt; 0, \xi \geq -1, a \geq 0.</code>
+</p>
+
+<p>The value of <code class="reqn">a</code> is set using the argument <code>a</code>.  The default
+value is <code class="reqn">a = \gamma</code>, where <code class="reqn">\gamma = 0.57721</code> is Euler's
+constant, which gives the MDI prior.
+</p>
+<p>For each of these cases <code class="reqn">\xi</code> must be is bounded below
+<em>a priori</em> for the posterior to be proper
+(Northrop and Attalides, 2016).  An argument for the
+bound <code class="reqn">\xi \geq -1</code> is that for <code class="reqn">\xi &lt; -1</code> the
+GP (GEV) likelihood is unbounded above as <code class="reqn">-\sigma/\xi</code>
+(<code class="reqn">\mu - \sigma/\xi</code>)) approaches the sample maximum.  In
+maximum likelihood estimation of GP parameters (Grimshaw, 1993)
+and GEV parameters a local maximum of the likelihood
+is sought on the region
+<code class="reqn">\sigma &gt; 0, \xi \geq -1</code>.
+</p>
+</li>
+<li>
+<p><code>"flat"</code>.
+</p>
+<p>For <code>model = "gp"</code>: a flat prior for
+<code class="reqn">\xi</code> (and for <code class="reqn">\log \sigma</code>):
+</p>
+<p style="text-align: center;"><code class="reqn">\pi(\sigma, \xi) = \sigma^{-1}, {\rm ~for~} \sigma &gt; 0.</code>
+</p>
+
+<p>For <code>model = "gev"</code>: a flat prior for
+<code class="reqn">\xi</code> (and for <code class="reqn">\mu</code> and <code class="reqn">\log \sigma</code>):
+</p>
+<p style="text-align: center;"><code class="reqn">\pi(\mu, \sigma, \xi) = \sigma^{-1}, {\rm ~for~} \sigma &gt; 0.</code>
+</p>
+
+</li>
+<li> <p><code>"flatflat"</code>.
+</p>
+<p>For <code>model = "gp"</code>: flat priors for
+<code class="reqn">\sigma</code> and <code class="reqn">\xi</code>:
+</p>
+<p style="text-align: center;"><code class="reqn">\pi(\sigma, \xi) = 1, {\rm ~for~} \sigma &gt; 0.</code>
+</p>
+
+<p>For <code>model = "gev"</code>: flat priors for <code class="reqn">\mu</code>, <code class="reqn">\sigma</code>
+and <code class="reqn">\xi</code>:
+</p>
+<p style="text-align: center;"><code class="reqn">\pi(\mu, \sigma, \xi) = 1, {\rm ~for~} \sigma &gt; 0.</code>
+</p>
+
+<p>Therefore, the posterior is proportional to the likelihood.
+</p>
+</li>
+<li> <p><code>"jeffreys"</code>.  For <code>model = "gp"</code> only: the Jeffreys
+prior (Castellanos and Cabras, 2007):
+</p>
+<p style="text-align: center;"><code class="reqn">\pi(\sigma, \xi) = \sigma^{-1}(1+\xi)^{-1}(1+2\xi)^{-1/2},
+      {\rm ~for~} \sigma &gt; 0, \xi &gt; -1 / 2.</code>
+</p>
+
+<p>In the GEV case the Jeffreys prior doesn't yield a proper posterior
+for any sample size.  See Northrop and Attalides (2016) for details.
+</p>
+</li>
+<li> <p><code>"beta"</code>.
+For <code>model = "gp"</code>: a beta-type(p, q)
+prior is used for xi on the interval (<code>min_xi</code>, <code>max_xi</code>):
+</p>
+<p style="text-align: center;"><code class="reqn">\pi(\sigma, \xi) = \sigma^{-1} (\xi - {\min}_{\xi}) ^ {p-1}
+          ({\max}_{\xi} - \xi) ^ {q-1}, {\rm ~for~}
+          {\min}_{\xi} &lt; \xi &lt; {\max}_{\xi}.</code>
+</p>
+
+<p>For <code>model = "gev"</code>: similarly ...
+</p>
+<p style="text-align: center;"><code class="reqn">\pi(\mu, \sigma, \xi) = \sigma^{-1} (\xi - {\min}_{\xi}) ^ {p-1}
+          ({\max}_{\xi} - \xi) ^ {q-1}, {\rm ~for~}
+          {\min}_{\xi} &lt; \xi &lt; {\max}_{\xi}.</code>
+</p>
+
+<p>The argument <code>pq</code> is a vector containing <code>c(p,q)</code>.
+The default settings for this prior are <code>p = 6, q = 9</code> and
+<code>min_xi = -1/2, max_xi = 1/2</code>, which corresponds to the
+prior for <code class="reqn">\xi</code> proposed in Martins and Stedinger (2000, 2001).
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>A list with class <code>"evprior"</code>.  The first component is the
+input prior, i.e. either the name of the prior or a user-supplied
+function.  The remaining components contain the numeric values of any
+hyperparameters in the prior.
+</p>
+
+
+<h3>References</h3>
+
+<p>Castellanos, E. M. and Cabras, S. (2007) A default Bayesian
+procedure for the generalized Pareto distribution.
+<em>Journal of Statistical Planning and Inference</em> <strong>137(2)</strong>,
+473-483. <a href="https://doi.org/10.1016/j.jspi.2006.01.006">doi:10.1016/j.jspi.2006.01.006</a>.
+</p>
+<p>Coles, S. G. and Tawn, J. A. (1996) A Bayesian analysis of
+extreme rainfall data. <em>Appl. Statist.</em>, <strong>45</strong>, 463-478.
+</p>
+<p>Crowder, M. (1992) Bayesian priors based on parameter
+transformation using the distribution function
+<em>Ann. Inst. Statist. Math.</em>, <strong>44</strong>, 405-416.
+<a href="https://link.springer.com/article/10.1007/BF00050695">https://link.springer.com/article/10.1007/BF00050695</a>.
+</p>
+<p>Grimshaw, S. D. (1993) Computing Maximum Likelihood Estimates
+for the Generalized Pareto Distribution.  <em>Technometrics</em>,
+<strong>35(2)</strong>, 185-191.
+<a href="https://doi.org/10.1080/00401706.1993.10485040">doi:10.1080/00401706.1993.10485040</a>.
+</p>
+<p>Hosking, J. R. M. and Wallis, J. R. (1987) Parameter and
+Quantile Estimation for the Generalized Pareto Distribution.
+<em>Technometrics</em>, <strong>29(3)</strong>, 339-349.
+<a href="https://doi.org/10.2307/1269343">doi:10.2307/1269343</a>.
+</p>
+<p>Martins, E. S. and Stedinger, J. R. (2000) Generalized maximum
+likelihood generalized extreme value quantile estimators for hydrologic
+data, <em>Water Resources Research</em>, <strong>36(3)</strong>, 737-744.
+<a href="https://doi.org/10.1029/1999WR900330">doi:10.1029/1999WR900330</a>.
+</p>
+<p>Martins, E. S. and Stedinger, J. R. (2001) Generalized maximum
+likelihood Pareto-Poisson estimators for partial duration series,
+<em>Water Resources Research</em>, <strong>37(10)</strong>, 2551-2557.
+<a href="https://doi.org/10.1029/2001WR000367">doi:10.1029/2001WR000367</a>.
+</p>
+<p>Northrop, P.J. and Attalides, N. (2016) Posterior propriety in
+Bayesian extreme value analyses using reference priors
+<em>Statistica Sinica</em>, <strong>26</strong>(2), 721–743
+<a href="https://doi.org/10.5705/ss.2014.034">doi:10.5705/ss.2014.034</a>.
+</p>
+<p>Northrop, P. J., Attalides, N. and Jonathan, P. (2017)
+Cross-validatory extreme value threshold selection and uncertainty
+with application to ocean storm severity.
+<em>Journal of the Royal Statistical Society Series C: Applied
+Statistics</em>, <strong>66</strong>(1), 93-120.
+<a href="https://doi.org/10.1111/rssc.12159">doi:10.1111/rssc.12159</a>
+</p>
+<p>Stephenson, A. (2016) Bayesian inference for extreme value
+modelling.  In <em>Extreme Value Modeling and Risk Analysis: Methods
+and Applications</em> (eds D. K. Dey and J. Yan), 257-280, Chapman and Hall,
+London. <a href="https://doi.org/10.1201/b19721">doi:10.1201/b19721</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>rpost</code> and <code>rpost_rcpp</code> for sampling
+from an extreme value posterior distribution.
+</p>
+<p><code>create_prior_xptr</code> for creating an external
+pointer to a C++ function to evaluate the log-prior density.
+</p>
+<p><code>rprior_prob</code> and <code>rprior_quant</code> for
+sampling from informative prior distributions for GEV parameters.
+</p>
+<p><code>gp_norm</code>, <code>gp_mdi</code>,
+<code>gp_flat</code>, <code>gp_flatflat</code>,
+<code>gp_jeffreys</code>, <code>gp_beta</code> to see the arguments
+for priors for GP parameters.
+</p>
+<p><code>gev_norm</code>, <code>gev_loglognorm</code>,
+<code>gev_mdi</code>, <code>gev_flat</code>, <code>gev_flatflat</code>,
+<code>gev_beta</code>, <code>gev_prob</code>, <code>gev_quant</code>
+to see the arguments for priors for GEV parameters.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Normal prior for GEV parameters (mu, log(sigma), xi).
+mat &lt;- diag(c(10000, 10000, 100))
+pn &lt;- set_prior(prior = "norm", model = "gev", mean = c(0,0,0), cov = mat)
+pn
+
+# Prior for GP parameters with flat prior for xi on (-1, infinity).
+fp &lt;- set_prior(prior = "flat", model = "gp", min_xi = -1)
+fp
+
+# A user-defined prior (see the vignette for details).
+u_prior_fn &lt;- function(x, ab) {
+  if (x[1] &lt;= 0 | x[2] &lt;= -1 | x[2] &gt;= 1) {
+    return(-Inf)
+  }
+  return(-log(x[1]) + (ab[1] - 1) * log(1 + x[2]) +
+         (ab[2] - 1) * log(1 - x[2]))
+}
+up &lt;- set_prior(prior = u_prior_fn, ab = c(2, 2), model = "gp")
+
+# A user-defined prior using a pointer to a C++ function
+ptr_gp_flat &lt;- create_prior_xptr("gp_flat")
+u_prior_ptr &lt;- set_prior(prior = ptr_gp_flat, model = "gp")
+</code></pre>
+
+
+</div>

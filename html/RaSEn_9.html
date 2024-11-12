@@ -1,0 +1,385 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>RaScreen</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Variable screening via RaSE.</h2>
+
+<h3>Description</h3>
+
+<p><code>RaSE</code> is a general framework for variable screening. In RaSE screening, to select each of the B1 subspaces, B2 random subspaces are generated and the optimal one is chosen according to some criterion. Then the selected proportions (equivalently, percentages) of variables in the B1 subspaces are used as importance measure to rank these variables.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">RaScreen(
+  xtrain,
+  ytrain,
+  xval = NULL,
+  yval = NULL,
+  B1 = 200,
+  B2 = NULL,
+  D = NULL,
+  dist = NULL,
+  model = NULL,
+  criterion = NULL,
+  k = 5,
+  cores = 1,
+  seed = NULL,
+  iteration = 0,
+  cv = 5,
+  scale = FALSE,
+  C0 = 0.1,
+  kl.k = NULL,
+  classification = NULL,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>xtrain</code></td>
+<td>
+<p>n * p observation matrix. n observations, p features.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ytrain</code></td>
+<td>
+<p>n 0/1 observatons.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xval</code></td>
+<td>
+<p>observation matrix for validation. Default = <code>NULL</code>. Useful only when <code>criterion</code> = 'validation'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yval</code></td>
+<td>
+<p>0/1 observation for validation. Default = <code>NULL</code>. Useful only when <code>criterion</code> = 'validation'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B1</code></td>
+<td>
+<p>the number of weak learners. Default = 200.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B2</code></td>
+<td>
+<p>the number of subspace candidates generated for each weak learner. Default = <code>NULL</code>, which will set B2 = <code class="reqn">20*floor(p/D)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>D</code></td>
+<td>
+<p>the maximal subspace size when generating random subspaces. Default = <code>NULL</code>. It means that <code>D</code> = <code class="reqn">min(\sqrt n0, \sqrt n1, p)</code> when <code>model</code> = 'qda', and <code>D</code> = <code class="reqn">min(\sqrt n, p)</code> otherwise.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dist</code></td>
+<td>
+<p>the distribution for features when generating random subspaces. Default = <code>NULL</code>, which represents the hierarchical uniform distribution. First generate an integer <code class="reqn">d</code> from <code class="reqn">1,...,D</code> uniformly, then uniformly generate a subset with cardinality <code class="reqn">d</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>the model to use. Default = 'lda' when <code>classification</code> = TRUE and 'lm' when <code>classification</code> = FALSE.
+</p>
+
+<ul>
+<li>
+<p> lm: linear regression. Only available for regression.
+</p>
+</li>
+<li>
+<p> lda: linear discriminant analysis. <code>lda</code> in <code>MASS</code> package. Only available for classification.
+</p>
+</li>
+<li>
+<p> qda: quadratic discriminant analysis. <code>qda</code> in <code>MASS</code> package. Only available for classification.
+</p>
+</li>
+<li>
+<p> knn: k-nearest neighbor. <code>knn</code>, <code>knn.cv</code> in <code>class</code> package, <code>knn3</code> in <code>caret</code> package and <code>knnreg</code> in <code>caret</code> package.
+</p>
+</li>
+<li>
+<p> logistic: logistic regression. <code>glmnet</code> in <code>glmnet</code> package. Only available for classification.
+</p>
+</li>
+<li>
+<p> tree: decision tree. <code>rpart</code> in <code>rpart</code> package. Only available for classification.
+</p>
+</li>
+<li>
+<p> svm: support vector machine. If kernel is not identified by user, it will use RBF kernel. <code>svm</code> in <code>e1071</code> package.
+</p>
+</li>
+<li>
+<p> randomforest: random forest. <code>randomForest</code> in <code>randomForest</code> package and <code>ranger</code> in <code>ranger</code> package.
+</p>
+</li>
+<li>
+<p> kernelknn: k-nearest neighbor with different kernels. It relies on function <code>KernelKnn</code> in <code>KernelKnn</code> package. Arguments <code>method</code> and <code>weights_function</code> are required. Different choices of multiple arguments are available. See documentation of function <code>KernelKnn</code> for details.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>criterion</code></td>
+<td>
+<p>the criterion to choose the best subspace. Default = 'ric' when <code>model</code> = 'lda', 'qda'; default = 'bic' when <code>model</code> = 'lm' or 'logistic'; default = 'loo' when <code>model</code> = 'knn'; default = 'cv' and set <code>cv</code> = 5 when <code>model</code> = 'tree', 'svm', 'randomforest'.
+</p>
+
+<ul>
+<li>
+<p> ric: minimizing ratio information criterion (RIC) with parametric estimation (Tian, Y. and Feng, Y., 2020). Available for binary classification and <code>model</code> = 'lda', 'qda', or 'logistic'.
+</p>
+</li>
+<li>
+<p> nric: minimizing ratio information criterion (RIC) with non-parametric estimation (Tian, Y. and Feng, Y., 2020; ). Available for binary classification and <code>model</code> = 'lda', 'qda', or 'logistic'.
+</p>
+</li>
+<li>
+<p> training: minimizing training error/MSE. Not available when <code>model</code> = 'knn'.
+</p>
+</li>
+<li>
+<p> loo: minimizing leave-one-out error/MSE. Only available when  <code>model</code> = 'knn'.
+</p>
+</li>
+<li>
+<p> validation: minimizing validation error/MSE based on the validation data.
+</p>
+</li>
+<li>
+<p> cv: minimizing k-fold cross-validation error/MSE. k equals to the value of <code>cv</code>. Default = 5.
+</p>
+</li>
+<li>
+<p> aic: minimizing Akaike information criterion (Akaike, H., 1973). Available when <code>base</code> = 'lm' or 'logistic'.
+</p>
+<p>AIC = -2 * log-likelihood + |S| * 2.
+</p>
+</li>
+<li>
+<p> bic: minimizing Bayesian information criterion (Schwarz, G., 1978). Available when <code>model</code> = 'lm' or 'logistic'.
+</p>
+<p>BIC = -2 * log-likelihood + |S| * log(n).
+</p>
+</li>
+<li>
+<p> ebic: minimizing extended Bayesian information criterion (Chen, J. and Chen, Z., 2008; 2012). <code>gam</code> value is needed. When <code>gam</code> = 0, it represents BIC. Available when <code>model</code> = 'lm' or 'logistic'.
+</p>
+<p>eBIC = -2 * log-likelihood + |S| * log(n) + 2 * |S| * gam * log(p).
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>the number of nearest neightbors considered when <code>model</code> = 'knn' or 'kernel'. Only useful when <code>model</code> = 'knn' or 'kernel'. <code>k</code> is required to be a positive integer. Default = 5.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cores</code></td>
+<td>
+<p>the number of cores used for parallel computing. Default = 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>the random seed assigned at the start of the algorithm, which can be a real number or <code>NULL</code>. Default = <code>NULL</code>, in which case no random seed will be set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iteration</code></td>
+<td>
+<p>the number of iterations. Default = 0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cv</code></td>
+<td>
+<p>the number of cross-validations used. Default = 5. Only useful when <code>criterion</code> = 'cv'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>whether to normalize the data. Logistic, default = FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>C0</code></td>
+<td>
+<p>a positive constant used when <code>iteration</code> &gt; 1. See Tian, Y. and Feng, Y., 2021 for details. Default = 0.1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kl.k</code></td>
+<td>
+<p>the number of nearest neighbors used to estimate RIC in a non-parametric way. Default = <code>NULL</code>, which means that <code class="reqn">k0 = floor(\sqrt n0)</code> and <code class="reqn">k1 = floor(\sqrt n1)</code>. See Tian, Y. and Feng, Y., 2020 for details. Only available when <code>criterion</code> = 'nric'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>classification</code></td>
+<td>
+<p>the indicator of the problem type, which can be TRUE, FALSE or <code>NULL</code>. Default = <code>NULL</code>, which will automatically set <code>classification</code> = TRUE if the number of unique response value <code class="reqn">\le</code> 10. Otherwise, it will be set as FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list including the following items.
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>the model used in RaSE screening.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>criterion</code></td>
+<td>
+<p>the criterion to choose the best subspace for each weak learner.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B1</code></td>
+<td>
+<p>the number of selected subspaces.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B2</code></td>
+<td>
+<p>the number of subspace candidates generated for each of B1 subspaces.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>the sample size.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>the dimension of data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>D</code></td>
+<td>
+<p>the maximal subspace size when generating random subspaces.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iteration</code></td>
+<td>
+<p>the number of iterations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>selected.perc</code></td>
+<td>
+<p>A list of length (<code>iteration</code>+1) recording the selected percentages of each feature in B1 subspaces. When it is of length 1, the result will be automatically transformed to a vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>a list of scaling parameters, including the scaling center and the scale parameter for each feature. Equals to <code>NULL</code> when the data is not scaled by <code>RaScreen</code>.</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Tian, Y. and Feng, Y., 2021(a). RaSE: A variable screening framework via random subspace ensembles. Journal of the American Statistical Association, (just-accepted), pp.1-30.
+</p>
+<p>Tian, Y. and Feng, Y., 2021(b). RaSE: Random subspace ensemble classification. Journal of Machine Learning Research, 22(45), pp.1-93.
+</p>
+<p>Chen, J. and Chen, Z., 2008. Extended Bayesian information criteria for model selection with large model spaces. Biometrika, 95(3), pp.759-771.
+</p>
+<p>Chen, J. and Chen, Z., 2012. Extended BIC for small-n-large-P sparse GLM. Statistica Sinica, pp.555-574.
+</p>
+<p>Schwarz, G., 1978. Estimating the dimension of a model. The annals of statistics, 6(2), pp.461-464.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>Rase</code>, <code>RaRank</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">set.seed(0, kind = "L'Ecuyer-CMRG")
+train.data &lt;- RaModel("screening", 1, n = 100, p = 100)
+xtrain &lt;- train.data$x
+ytrain &lt;- train.data$y
+
+# test RaSE screening with linear regression model and BIC
+fit &lt;- RaScreen(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 0, model = 'lm',
+cores = 2, criterion = 'bic')
+
+# Select D variables
+RaRank(fit, selected.num = "D")
+
+
+## Not run: 
+# test RaSE screening with knn model and 5-fold cross-validation MSE
+fit &lt;- RaScreen(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 0, model = 'knn',
+cores = 2, criterion = 'cv', cv = 5)
+
+# Select n/logn variables
+RaRank(fit, selected.num = "n/logn")
+
+
+# test RaSE screening with SVM and 5-fold cross-validation MSE
+fit &lt;- RaScreen(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 0, model = 'svm',
+cores = 2, criterion = 'cv', cv = 5)
+
+# Select n/logn variables
+RaRank(fit, selected.num = "n/logn")
+
+
+# test RaSE screening with logistic regression model and eBIC (gam = 0.5). Set iteration number = 1
+train.data &lt;- RaModel("screening", 6, n = 100, p = 100)
+xtrain &lt;- train.data$x
+ytrain &lt;- train.data$y
+
+fit &lt;- RaScreen(xtrain, ytrain, B1 = 100, B2 = 100, iteration = 1, model = 'logistic',
+cores = 2, criterion = 'ebic', gam = 0.5)
+
+# Select n/logn variables from the selected percentage after one iteration round
+RaRank(fit, selected.num = "n/logn", iteration = 1)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

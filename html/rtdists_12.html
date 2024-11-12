@@ -1,0 +1,211 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>LBA-race</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>LBA race functions: Likelihood for first accumulator to win.</h2>
+
+<h3>Description</h3>
+
+<p>n1PDF and n1CDF take RTs, the distribution functions of the LBA, and
+corresponding parameter values and put them throughout the race equations and
+return the likelihood for the first accumulator winning (hence n1) in a set
+of accumulators.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">n1PDF(rt, A, b, t0, ..., st0 = 0, distribution = c("norm", "gamma",
+  "frechet", "lnorm"), args.dist = list(), silent = FALSE)
+
+n1CDF(rt, A, b, t0, ..., st0 = 0, distribution = c("norm", "gamma",
+  "frechet", "lnorm"), args.dist = list(), silent = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>rt</code></td>
+<td>
+<p>a vector of RTs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>A, b, t0</code></td>
+<td>
+<p>LBA parameters, see <code>LBA</code>. Can either be a single
+numeric vector (which will be recycled to reach <code>length(rt)</code> for
+trialwise parameters) <em>or</em> a <code>list</code> of such vectors in which each
+list element corresponds to the parameters for this accumulator (i.e., the
+list needs to be of the same length as there are accumulators). Each list
+will also be recycled to reach <code>length(rt)</code> for trialwise parameters
+per accumulator.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>two <em>named</em> drift rate parameters depending on
+<code>distribution</code> (e.g., <code>mean_v</code> and <code>sd_v</code> for
+<code>distribution=="norm"</code>). The parameters can either be given as a
+numeric vector or a list. If a numeric vector is passed each element of the
+vector corresponds to one accumulator. If a list is passed each list
+element corresponds to one accumulator allowing again trialwise driftrates.
+The shorter parameter will be recycled as necessary (and also the elements
+of the list to match the length of <code>rt</code>). See examples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>st0</code></td>
+<td>
+<p>parameter specifying the variability of <code>t0</code> (which varies
+uniformly from <code>t0</code> to <code>t0</code> + <code>st0</code>). Can be trialwise, and
+will be recycled to length of <code>rt</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>distribution</code></td>
+<td>
+<p>character specifying the distribution of the drift rate.
+Possible values are <code>c("norm", "gamma", "frechet", "lnorm")</code>, default
+is <code>"norm"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>args.dist</code></td>
+<td>
+<p>list of optional further arguments to the distribution
+functions (i.e., <code>posdrift</code> or <code>robust</code> for
+<code>distribution=="norm"</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>silent</code></td>
+<td>
+<p>logical. Should the number of accumulators used be suppressed?
+Default is <code>FALSE</code> which prints the number of accumulators.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For a set of <code class="reqn">N</code> independent accumulators <code class="reqn">i = 1...N</code>, the
+race likelihood for a given accumulator <code class="reqn">i</code> is given by 
+</p>
+<p style="text-align: center;"><code class="reqn">L(\mbox{unit }i \mbox{ wins}) = f_i(t) \times \prod_{j&lt;&gt;i} [ S_j(t)
+  ]</code>
+</p>
+<p> where <code class="reqn">f(t)</code> is the
+PDF (<code>dlba_...</code>) and <code class="reqn">S_j(t) = 1 - F_j(t)</code> is the survivor
+function, that is the complement of the CDF <code class="reqn">F(t)</code> (<code>plba_...</code>) at
+time <code class="reqn">t</code>.
+</p>
+<p>In other words, this is just the PDF/CDF for the winning accumulator at
+time <code class="reqn">t</code> times the probability that no other accumulators have finished
+at time <code class="reqn">t</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>For more user-friendly functions that return the PDF or CDF for the
+corresponding (and not first) accumulator winning see /code/linkLBA.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+## check random generated values against race functions:
+
+## 1. Without st0:
+r_lba &lt;- rLBA(1e4, A=0.5, b=1, t0 = 0.5, mean_v=c(1.2, 1), sd_v=0.2)
+x &lt;- seq(0.5, 4, length.out = 100) # for plotting
+# PDF
+y &lt;- n1PDF(x, A=0.5, b=1, t0 = 0.5, mean_v=c(1.2, 1.0), sd_v=0.2) # PDF
+hist(r_lba$rt[r_lba$response==1],probability = TRUE, breaks = "FD")
+lines(x=x,y=y/mean(r_lba$response == 1))
+# CDF
+plot(ecdf(r_lba$rt[r_lba$response==1]))
+y &lt;- n1CDF(x, A=0.5, b=1, t0 = 0.5, st0 = 0, mean_v=c(1.2, 1.0), sd_v=0.2)
+lines(x=x,y=y/mean(r_lba$response == 1), col = "red", lwd = 4.5, lty = 2)
+# KS test
+## Not run: 
+normalised_n1CDF = function(rt,...) n1CDF(rt,...)/n1CDF(rt=Inf,...) 
+ks.test(r_lba$rt[r_lba$response==1], normalised_n1CDF, A=0.5, b=1, t0 = 0.5, 
+        mean_v=c(1.2, 1.0), sd_v=0.2)
+
+## End(Not run)
+
+## Not run: 
+## Other examples (don't run to save time):
+  
+## 2. With st0 = 0.2:
+r_lba &lt;- rLBA(1e4, A=0.5, b=1, t0 = 0.5, st0 = 0.2, mean_v=c(1.2, 1), sd_v=0.2)
+x &lt;- seq(0.5, 4, length.out = 100) # for plotting
+# PDF
+y &lt;- n1PDF(x, A=0.5, b=1, t0 = 0.5, st0 = 0.2, mean_v=c(1.2, 1.0), sd_v=0.2) # PDF
+hist(r_lba$rt[r_lba$response==1],probability = TRUE, breaks = "FD")
+lines(x=x,y=y/mean(r_lba$response == 1))
+# CDF
+plot(ecdf(r_lba$rt[r_lba$response==1]))
+y &lt;- n1CDF(x, A=0.5, b=1, t0 = 0.5, st0 = 0.2, mean_v=c(1.2, 1.0), sd_v=0.2)
+lines(x=x,y=y/mean(r_lba$response == 1), col = "red", lwd = 4.5, lty = 2)
+# KS test
+normalised_n1CDF = function(rt,...) n1CDF(rt,...)/n1CDF(rt=Inf,...) 
+ks.test(r_lba$rt[r_lba$response==1], normalised_n1CDF, A=0.5, b=1, t0 = 0.5, 
+        st0 = 0.2, mean_v=c(1.2, 1.0), sd_v=0.2)
+
+
+xx &lt;- rLBA(10, A=0.5, b=1, t0 = 0.5, mean_v=1.2, sd_v=0.2)
+
+# default uses normal distribution for drift rate:
+n1PDF(xx$rt, A=0.5, b=1, t0 = 0.5, mean_v=c(1.2, 1.0), sd_v=0.2)
+
+# other distributions:
+n1PDF(xx$rt, A=0.5, b=1, t0 = 0.5, shape_v=c(1.2, 1), scale_v=c(0.2,0.3), distribution = "gamma")
+n1PDF(xx$rt, A=0.5, b=1, t0 = 0.5, shape_v=c(1.2, 1), scale_v=c(0.2,0.3), distribution = "frechet")
+n1PDF(xx$rt, A=0.5, b=1, t0 = 0.5, meanlog_v = c(0.5, 0.8), sdlog_v = 0.5, distribution = "lnorm")
+
+# add st0:
+n1PDF(xx$rt, A=0.5, b=1, t0 = 0.5, mean_v=c(1.2, 1.0), sd_v=0.2, st0 = 0.4)
+
+
+# use different A parameters for each RT:
+n1PDF(xx$rt, A=runif(10, 0.4, 0.6), 
+      b=1, t0 = 0.5, mean_v=c(1.2, 1.0), sd_v=0.2)
+
+# use different A parameters for each RT and each accumulator:
+n1PDF(xx$rt, A=list(runif(10, 0.4, 0.6), runif(10, 0.2, 0.4)), 
+      b=1, t0 = 0.5, mean_v=c(1.2, 1.0), sd_v=0.2)
+
+
+### vectorize drift rates:
+
+# vector versus list:
+v1 &lt;- n1PDF(xx$rt, A=0.5, b=1, t0 = 0.5, mean_v=c(1.2, 1.0), sd_v=0.2)
+v2 &lt;- n1PDF(xx$rt, A=0.5, b=1, t0 = 0.5, mean_v=list(1.2, 1.0), sd_v=0.2)
+identical(v1, v2)  # TRUE
+
+# drift rate per trial:
+n1PDF(xx$rt, A=0.5, b=1, t0 = 0.5, mean_v=list(rnorm(10, 1.2), rnorm(10, 1)), sd_v=0.2)
+
+# combine list with vector:
+n1PDF(xx$rt, A=0.5, b=1, t0 = 0.5, mean_v=list(rnorm(10, 1.2), rnorm(10, 1)), sd_v=c(0.2, 0.1))
+
+# t0 per trial and accumulator:
+n1PDF(xx$rt, A=0.5, b=1, t0 = c(0.5), mean_v=c(1.2, 1.0), sd_v=0.2)
+n1PDF(xx$rt, A=0.5, b=1, t0 = c(0.5, 0.6), mean_v=c(1.2, 1.0), sd_v=0.2) # per trial only
+n1PDF(xx$rt, A=0.5, b=1, t0 = list(0.5, 0.6), mean_v=c(1.2, 1.0), sd_v=0.2) # per drift rate only
+n1PDF(xx$rt, A=0.5, b=1, t0 = list(c(0.4, 0.5), c(0.5, 0.6)), mean_v=c(1.2, 1.0), sd_v=0.2)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

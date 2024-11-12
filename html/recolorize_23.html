@@ -1,0 +1,160 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>editLayers</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Edit multiple color patches using morphological operations</h2>
+
+<h3>Description</h3>
+
+<p>A wrapper for editLayer, allowing for multiple layers
+to be edited at once, either with the same morphological operation
+or specified for each layer.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">editLayers(
+  recolorize_obj,
+  layer_idx = "all",
+  operations = "clean",
+  px_sizes = 2,
+  plotting = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>recolorize_obj</code></td>
+<td>
+<p>A recolorize object from <code>recolorize</code>,
+<code>recluster</code>, or <code>imposeColors</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>layer_idx</code></td>
+<td>
+<p>A numeric vector of layer indices to be edited, or <code>"all"</code>
+(in which case all layers are edited). Corresponds to the order of the
+colors in the <code>centers</code> attribute of the recolorize object, and to the
+indices in the <code>pixel_assignments</code> attribute of the same.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>operations</code></td>
+<td>
+<p>Either a single string OR a character vector of imager
+morphological operation(s) to perform on the specified layer(s). If this is
+shorter than <code>layer_idx</code>, it is repeated to match the length of
+<code>layer_idx</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>px_sizes</code></td>
+<td>
+<p>The size(s) (in pixels) of the elements to filter. Either a
+single number OR a numeric vector. If shorter than <code>layer_idx</code>, it is
+repeated to match the length of <code>layer_idx</code>. If <code>operation = "shrink"</code> and
+<code>px_size = 2</code>, for example, the color patch will be shrunk by a 2-pixel
+radius.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plotting</code></td>
+<td>
+<p>Logical. Plot results?</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Current imager operations are:
+</p>
+
+<ul>
+<li> <p><code>grow</code>: Grow a pixset
+</p>
+</li>
+<li> <p><code>shrink</code>: Shrink a pixset
+</p>
+</li>
+<li> <p><code>fill</code>: Remove holes in an pixset. Accomplished by
+growing and then shrinking a pixset.
+</p>
+</li>
+<li> <p><code>clean</code>: Remove small isolated elements (speckle).
+Accomplished by shrinking and then growing a pixset.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>A <code>recolorize</code> object. The <code>sizes</code>, <code style="white-space: pre;">⁠pixel_assignments,⁠</code>, and
+<code>recolored_img</code> attributes will differ from the input object for the
+relevant color patches (layers) to reflect their changes.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>editLayer for editing a single layer at a time.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># load image and recolorize it
+img &lt;- system.file("extdata/corbetti.png", package = "recolorize")
+
+# first do a standard color binning
+init_fit &lt;- recolorize(img, bins = 2, plotting = FALSE)
+
+# then cluster patches by similarity
+re_fit &lt;- recluster(init_fit, cutoff = 40)
+
+# to reset graphical parameters:
+current_par &lt;- graphics::par(no.readonly = TRUE)
+
+# examine individual layers:
+layout(matrix(1:6, nrow = 2))
+layers &lt;- splitByColor(re_fit, plot_method = "color")
+
+# we can clean them all using the same parameters...
+edited_fit &lt;- editLayers(re_fit, layer_idx = "all",
+                         operations = "clean",
+                         px_sizes = 2, plotting = TRUE)
+# ...but some of those patches don't look so good
+
+# we can use different px_sizes for each layer:
+edited_fit_2 &lt;- editLayers(re_fit, layer_idx = "all",
+                           operations = "clean",
+                           px_sizes = c(1, 3, 1,
+                                        2, 1, 2),
+                           plotting = TRUE)
+
+# better yet, we can fill some layers and clean others:
+edited_fit_3 &lt;- editLayers(re_fit, layer_idx = "all",
+                           operations = c("fill", "clean",
+                                          "fill", "fill",
+                                          "fill", "clean"),
+                           px_sizes = c(2, 3,
+                                        2, 2,
+                                        4, 2))
+
+# or you could just get weird:
+edited_fit_3 &lt;- editLayers(re_fit, layer_idx = c(1:6),
+                           operations = c("fill", "clean"),
+                           px_sizes = c(10, 20))
+
+# reset graphical parameters:
+graphics::par(current_par)
+
+</code></pre>
+
+
+</div>

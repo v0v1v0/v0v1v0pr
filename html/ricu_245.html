@@ -1,0 +1,291 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>sofa_score</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>SOFA score label</h2>
+
+<h3>Description</h3>
+
+<p>The SOFA (Sequential Organ Failure Assessment) score is a commonly used
+assessment tool for tracking a patient's status during a stay at an ICU.
+Organ function is quantified by aggregating 6 individual scores,
+representing respiratory, cardiovascular, hepatic, coagulation, renal and
+neurological systems. The function <code>sofa_score()</code> is used as callback
+function to the <code>sofa</code> concept but is exported as there are a few arguments
+that can used to modify some aspects of the presented SOFA implementation.
+Internally, <code>sofa_score()</code> calls first <code>sofa_window()</code>, followed by
+<code>sofa_compute()</code> and arguments passed as <code>...</code> will be forwarded to the
+respective internally called function.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">sofa_score(
+  ...,
+  worst_val_fun = max_or_na,
+  explicit_wins = FALSE,
+  win_length = hours(24L),
+  keep_components = FALSE,
+  interval = NULL
+)
+
+sofa_resp(..., interval = NULL)
+
+sofa_coag(..., interval = NULL)
+
+sofa_liver(..., interval = NULL)
+
+sofa_cardio(..., interval = NULL)
+
+sofa_cns(..., interval = NULL)
+
+sofa_renal(..., interval = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Concept data, either passed as list or individual argument</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>worst_val_fun</code></td>
+<td>
+<p>functions used to calculate worst values over windows</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>explicit_wins</code></td>
+<td>
+<p>The default <code>FALSE</code> iterates over all time steps,
+<code>TRUE</code> uses only the last time step per patient and a vector of times will
+iterate over these explicit time points</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>win_length</code></td>
+<td>
+<p>Time-frame to look back and apply the <code>worst_val_fun</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep_components</code></td>
+<td>
+<p>Logical flag indicating whether to return the
+individual components alongside the aggregated score (with a suffix <code style="white-space: pre;">⁠_comp⁠</code>
+added to their names)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interval</code></td>
+<td>
+<p>Time series interval (only used for checking consistency
+of input data, <code>NULL</code> will use the interval of the first data object)</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The function <code>sofa_score()</code> calculates, for each component, the worst value
+over a moving window as specified by <code>win_length</code>, using the function
+passed as <code>worst_val_fun</code>. The default functions <code>max_or_na()</code> return <code>NA</code>
+instead of <code>-Inf/Inf</code> in the case where no measurement is available over an
+entire window. When calculating the overall score by summing up components
+per time-step, a <code>NA</code> value is treated as 0.
+</p>
+<p>Building on separate concepts, measurements for each component are
+converted to a component score using the definition by Vincent et. al.:</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+   <strong>SOFA score</strong> </td>
+<td style="text-align: left;"> 1 </td>
+<td style="text-align: left;"> 2 </td>
+<td style="text-align: left;"> 3 </td>
+<td style="text-align: left;"> 4 </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <strong>Respiration</strong> </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   PaO<sub>2</sub>/FiO<sub>2</sub> [mmHg] </td>
+<td style="text-align: left;"> &lt; 400 </td>
+<td style="text-align: left;"> &lt; 300 </td>
+<td style="text-align: left;"> &lt; 200 </td>
+<td style="text-align: left;"> &lt; 100 </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   and mechanical ventilation </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;"> yes </td>
+<td style="text-align: left;"> yes </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <strong>Coagulation</strong> </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   Platelets [×10<sup>3</sup>/mm<sup>3</sup>] </td>
+<td style="text-align: left;"> &lt; 150 </td>
+<td style="text-align: left;"> &lt; 100 </td>
+<td style="text-align: left;"> &lt; 50 </td>
+<td style="text-align: left;"> &lt; 20 </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <strong>Liver</strong> </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   Bilirubin [mg/dl] </td>
+<td style="text-align: left;"> 1.2-1.9 </td>
+<td style="text-align: left;"> 2.0-5.9 </td>
+<td style="text-align: left;"> 6.0-11.9 </td>
+<td style="text-align: left;"> &gt; 12.0 </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <strong>Cardiovascular</strong><sup>a</sup>
+</td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   MAP </td>
+<td style="text-align: left;"> &lt; 70 mmHg </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   or dopamine </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;"> &amp;leq;5 </td>
+<td style="text-align: left;"> &gt; 5 </td>
+<td style="text-align: left;"> &gt; 15 </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   or dobutamine </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;"> any dose </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   or epinephrine </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;"> &amp;leq;0.1 </td>
+<td style="text-align: left;"> &gt; 0.1 </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   or norepinephrine </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;"> &amp;leq;0.1 </td>
+<td style="text-align: left;"> &gt; 0.1 </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <strong>Central nervous system</strong> </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   Glasgow Coma Score </td>
+<td style="text-align: left;"> 13-14 </td>
+<td style="text-align: left;"> 10-12 </td>
+<td style="text-align: left;"> 6-9 </td>
+<td style="text-align: left;"> &lt; 6 </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <strong>Renal</strong> </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   Creatinine [mg/dl] </td>
+<td style="text-align: left;"> 1.2-1.9 </td>
+<td style="text-align: left;"> 2.0-3.4 </td>
+<td style="text-align: left;"> 3.5-4.9 </td>
+<td style="text-align: left;"> &gt; 5.0 </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   or urine output [ml/day] </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;"> &lt; 500 </td>
+<td style="text-align: left;"> &lt; 200 </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<p>Adrenergic<sup>a</sup> agents administered for at least 1h
+(doses given are in [μg/kg · min]
+</p>
+<p>At default, for each patient, a score is calculated for every time step,
+from the first available measurement to the last. In instead of a regularly
+evaluated score, only certain time points are of interest, this can be
+specified using the <code>explicit_wins</code> argument: passing for example
+<code>hours(24, 48)</code> will yield for every patient a score at hours 24 and 48
+relative to the origin of the current ID system (for example ICU stay).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>ts_tbl</code> object.
+</p>
+
+
+<h3>References</h3>
+
+<p>Vincent, J.-L., Moreno, R., Takala, J. et al. The SOFA (Sepsis-related Organ
+Failure Assessment) score to describe organ dysfunction/failure. Intensive
+Care Med 22, 707–710 (1996). https://doi.org/10.1007/BF01709751
+</p>
+
+
+</div>

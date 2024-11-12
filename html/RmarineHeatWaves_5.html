@@ -1,0 +1,326 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>exceedance</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Detect consecutive days in exceedance of a given threshold.</h2>
+
+<h3>Description</h3>
+
+<p>Detect consecutive days in exceedance of a given threshold.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">exceedance(data, x = t, y = temp, threshold = 20, below = FALSE,
+  min_duration = 5, join_across_gaps = TRUE, max_gap = 2,
+  max_pad_length = 3)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame with at least the two following columns:
+a <code>t</code> column which is a vector of dates of class <code>Date</code>,
+and a <code>temp</code> column, which is the temperature on those given
+dates. If columns are named differently, their names can be supplied as <code>x</code>
+and <code>y</code> (see below). The function will not accurately detect consecutive
+days of temperatures in exceedance of the <code>threshold</code> if missing days of
+data are not filled in with <code>NA</code>. Data of the appropriate format are created
+by the function <code>make_whole</code>, but your own data may be used
+directly if they meet the given criteria.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>This column is expected to contain a vector of dates as per the
+specification of <code>make_whole</code>. If a column headed <code>t</code> is present in
+the dataframe, this argument may be ommitted; otherwise, specify the name of
+the column with dates here.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>This is a column containing the measurement variable. If the column
+name differs from the default (i.e. <code>temp</code>), specify the name here.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threshold</code></td>
+<td>
+<p>The static threshold used to determine how many consecutive
+days are in exceedance of the temperature of interest. Default is
+<code>20</code> degrees.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>below</code></td>
+<td>
+<p>Default is <code>FALSE</code>. When set to TRUE, consecutive days of temperature
+below the <code>threshold</code> variable are calculated. When set to FALSE,
+consecutive days above the <code>threshold</code> variable are calculated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min_duration</code></td>
+<td>
+<p>Minimum duration that temperatures must be in exceedance
+of the <code>threshold</code> variable. Default is <code>5</code> days.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>join_across_gaps</code></td>
+<td>
+<p>A TRUE/FALSE statement that indicates whether
+or not to join consecutive days of temperatures in exceedance of the
+<code>threshold</code> across a small gap between groups before/after a short
+gap as specified by <code>max_gap</code>. Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_gap</code></td>
+<td>
+<p>The maximum length of the gap across which to connect
+consecutive days in exceedance of the <code>threshold</code> when
+<code>join_across_gaps</code> is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_pad_length</code></td>
+<td>
+<p>Specifies the maximum length of days over which to
+interpolate (pad) missing data (specified as <code>NA</code>) in the input
+temperature time series; i.e., any consecutive blocks of NAs with length
+greater than <code>max_pad_length</code> will be left as <code>NA</code>. Set as an
+integer. Default is <code>3</code> days.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+
+<ol>
+<li>
+<p> This function assumes that the input time series consists of continuous
+daily temperatures, with few missing values. The accompanying function
+<code>make_whole</code> aids in the preparation of a time series that is
+suitable for use with <code>exceedance</code>, although this may also be accomplished
+'by hand' as long as the criteria are met as discussed in the documentation
+to <code>make_whole</code>.
+</p>
+</li>
+<li>
+<p> Future versions seek to accomodate monthly and annual time series, too.
+</p>
+</li>
+<li>
+<p> The calculation of onset and decline rates assumes that exceedance of the
+<code>threshold</code> started a half-day before the start day and ended a half-day
+after the end-day. This is consistent with the duration definition as implemented,
+which assumes duration = end day - start day + 1.
+</p>
+</li>
+<li>
+<p> For the purposes of exceedance detection, any missing temperature values not
+interpolated over (through optional <code>max_pad_length</code>) will remain as
+<code>NA</code>. This means they will trigger the end of an exceedance if the adjacent
+temperature values are in exceedance of the <code>threshold</code>.
+</p>
+</li>
+<li>
+<p> If the function is used to detect consecutive days of temperature under
+the given <code>theshold</code>, these temperatures are then taken as being in
+exceedance below the <code>threshold</code> as there is no antonym in the English
+language for 'exceedance'.
+</p>
+</li>
+</ol>
+<p>This function is based largely on the <code>detect</code> function found in this
+package, which was ported from the Python algorithm that was written by Eric
+Oliver, Institute for Marine and Antarctic Studies, University of Tasmania,
+Feb 2015, and is documented by Hobday et al. (2016).
+</p>
+
+
+<h3>Value</h3>
+
+<p>The function will return a list of two components. The first being
+<code>threshold</code>, which shows the daily temperatures and on which specific days
+the given <code>threshold</code> was exceeded. The second component of the list is
+<code>exceedance</code>, which shows a medley of statistics for each discrete group
+of days in exceedance of the given <code>threshold</code>. Note that any additional
+columns left in the data frame given to this function will be output in the
+<code>threshold</code> component of the output. For example, if one uses
+<code>make_whole</code> to prepare a time series for analysis and leaves
+in the <code>doy</code> column, this column will appear in the output.
+</p>
+<p>The information shown in the <code>threshold</code> component is:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>t</code></td>
+<td>
+<p>The date of the temperature measurement. This variable may named
+differently if an alternative name is supplied to the function's <code>x</code>
+argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>temp</code></td>
+<td>
+<p>Temperature on the specified date [deg. C]. This variable may
+named differently if an alternative name is supplied to the function's <code>y</code>
+argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thresh</code></td>
+<td>
+<p>The static <code>threshold</code> chosen by the user [deg. C].</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thresh_criterion</code></td>
+<td>
+<p>Boolean indicating if <code>temp</code> exceeds
+<code>threshold</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>duration_criterion</code></td>
+<td>
+<p>Boolean indicating whether periods of consecutive
+<code>thresh_criterion</code> are &gt;= <code>min_duration</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exceedance</code></td>
+<td>
+<p>Boolean indicting if all criteria that define a discrete
+group in exceedance of the <code>threshold</code> are met.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exceedance_no</code></td>
+<td>
+<p>A sequential number indicating the ID and order of
+occurence of exceedances.</p>
+</td>
+</tr>
+</table>
+<p>The individual exceedances are summarised using the following metrics:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>index_start</code></td>
+<td>
+<p>Row number on which exceedance starts.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>index_stop</code></td>
+<td>
+<p>Row number on which exceedance stops.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exceedance_no</code></td>
+<td>
+<p>The same sequential number indicating the ID and
+order of the exceedance as found in the <code>threshold</code> component of the
+output list.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>duration</code></td>
+<td>
+<p>Duration of exceedance [days].</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>date_start</code></td>
+<td>
+<p>Start date of exceedance [date].</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>date_stop</code></td>
+<td>
+<p>Stop date of exceedance [date].</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>date_peak</code></td>
+<td>
+<p>Date of exceedance peak [date].</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>int_mean</code></td>
+<td>
+<p>Mean intensity [deg. C].</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>int_max</code></td>
+<td>
+<p>Maximum (peak) intensity [deg. C].</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>int_var</code></td>
+<td>
+<p>Intensity variability (standard deviation) [deg. C].</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>int_cum</code></td>
+<td>
+<p>Cumulative intensity [deg. C x days].</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rate_onset</code></td>
+<td>
+<p>Onset rate of exceedance [deg. C / day].</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rate_decline</code></td>
+<td>
+<p>Decline rate of exceedance [deg. C / day].</p>
+</td>
+</tr>
+</table>
+<p><code>int_max_abs</code>, <code>int_mean_abs</code>, <code>int_var_abs</code>, and
+<code>int_cum_abs</code> are as above except as absolute magnitudes
+rather than relative to the threshold.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Robert W. Schlegel, Albertus J. Smit
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">ts_dat &lt;- make_whole(sst_WA)
+res &lt;- exceedance(ts_dat, threshold = 25)
+# show first ten days of daily data:
+res$threshold[1:10, ]
+# show first five exceedances:
+res$exceedance[1:5, ]
+</code></pre>
+
+
+</div>

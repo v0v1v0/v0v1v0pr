@@ -1,0 +1,537 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>BC.LU.approximation.FRST</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>The fuzzy lower and upper approximations based on fuzzy rough set theory</h2>
+
+<h3>Description</h3>
+
+<p>This is a function implementing a fundamental concept of FRST: fuzzy lower and upper approximations. 
+Many options have been considered for determining lower and upper approximations, 
+such as techniques based on implicator and t-norm functions proposed by 
+(Radzikowska and Kerre, 2002).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">BC.LU.approximation.FRST(
+  decision.table,
+  IND.condAttr,
+  IND.decAttr,
+  type.LU = "implicator.tnorm",
+  control = list()
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>decision.table</code></td>
+<td>
+<p>a <code>"DecisionTable"</code> class representing the decision table. See <code>SF.asDecisionTable</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>IND.condAttr</code></td>
+<td>
+<p>a <code>"IndiscernibilityRelation"</code> class of the conditional attributes which is produced by <code>BC.IND.relation.FRST</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>IND.decAttr</code></td>
+<td>
+<p>a <code>"IndiscernibilityRelation"</code> class of the decision attribute which is produced by <code>BC.IND.relation.FRST</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type.LU</code></td>
+<td>
+<p>a string representing a chosen method to calculate lower and upper approximations. See the explanation in Section <code>Details</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>a list of other parameters. In order to understand how to express the <code>control</code> parameter, 
+see the explanation in Section <code>Details</code>. 
+The descriptions of those components and their values is as follows. 
+</p>
+ 
+<ul>
+<li> <p><code>t.tnorm</code>: a type of triangular functions which have been explained 
+</p>
+<p>in <code>BC.IND.relation.FRST</code>.
+</p>
+</li>
+<li> <p><code>t.implicator</code>: a type of implicator functions.  
+The following are values of this parameter:               
+</p>
+
+<ul>
+<li> <p><code>"kleene_dienes"</code> means <code class="reqn">max(1 - x_1, x_2)</code>.
+</p>
+</li>
+<li> <p><code>"lukasiewicz"</code> means <code class="reqn">min(1 - x_1 + x_2, 1)</code>. It is the default value. 
+</p>
+</li>
+<li> <p><code>"zadeh"</code> means <code class="reqn">max(1 - x_1, min(x_1, x_2))</code>.
+</p>
+</li>
+<li> <p><code>"gaines"</code> means <code class="reqn">(x_1 &lt;= x_2 ? 1 : x_2 / x_1)</code>.
+</p>
+</li>
+<li> <p><code>"godel"</code> means <code class="reqn">(x_1 &lt;= x_2 ? 1 : x_2)</code>.
+</p>
+</li>
+<li> <p><code>"kleene_dienes_lukasiewicz"</code> means <code class="reqn">1 - x_1 + x_1 * x_2</code>.
+</p>
+</li>
+<li> <p><code>"mizumoto"</code> means <code class="reqn">(1 - x_1 + x_1 * x_2)</code>.
+</p>
+</li>
+<li> <p><code>"dubois_prade"</code> means <code class="reqn">(x_2 == 0 ? 1 - x_1 : (x_1 == 1 ? x_2 : 1))</code>.
+</p>
+</li>
+</ul>
+<p>Where we consider the following rule: <code class="reqn">x_1 -&gt; x_2</code>. 
+</p>
+</li>
+<li> <p><code>q.some</code>: a vector of alpha and beta parameters of vaguely quantified rough set  
+for quantifier <code>some</code>. The default value is <code>q.some = c(0.1, 0.6)</code>.
+</p>
+</li>
+<li> <p><code>q.most</code>: a vector of alpha and beta parameters of vaguely quantified rough set 
+for quantifier <code>most</code>. The default value is <code>q.most = c(0.2, 1)</code>.
+</p>
+</li>
+<li> <p><code>alpha</code>: a numeric between 0 and 1 representing the threshold parameter of the fuzzy variable precision rough sets 
+(FVPRS) (see Section <code>Details</code>). The default value is 0.05.
+</p>
+</li>
+<li> <p><code>m.owa</code>: an integer number (<code class="reqn">m</code>) which is used in the OWA fuzzy rough sets (see Section <code>Details</code>). 
+</p>
+<p>The default value is <code>m.owa = round(0.5 * ncol(decision.table))</code>.
+</p>
+</li>
+<li> <p><code>w.owa</code>: a vector representing the weight vector in the OWA fuzzy rough sets (see Section <code>Details</code>).
+The default value is <code>NULL</code>, which means we use the <code>m.owa</code> type.
+</p>
+</li>
+<li> <p><code>type.rfrs</code>: a type of robust fuzzy rough sets which is one of the following methods:
+<code>"k.trimmed.min"</code>, <code>"k.mean.min"</code>, <code>"k.median.min"</code>, <code>"k.trimmed.max"</code>,
+<code>"k.mean.max"</code>, and <code>"k.median.max"</code> (see Section <code>Details</code>). The default value is <code>"k.trimmed.min"</code>.
+</p>
+</li>
+<li> <p><code>k.rfrs</code>: a number between 0 and the number of data which is used to define considered data on 
+robust fuzzy rough sets (RFRS) (see Section <code>Details</code>). The default value is 
+<code>k.rfrs = round(0.5*nrow(decision.table))</code>.
+</p>
+</li>
+<li> <p><code>beta.quasi</code>: a number between 0 and 1 representing <code class="reqn">\beta</code>-precision t-norms and t-conorms in <code class="reqn">\beta</code>-PFRS.
+The default value is 0.05.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Fuzzy lower and upper approximations as explained in <code>Introduction-FuzzyRoughSets</code> are used
+to define to what extent the set of elements can be classified into a certain class strongly or weakly. We can perform various methods by choosing the parameter <code>type.LU</code>. 
+The following is a list of all <code>type.LU</code> values: 
+</p>
+
+<ul>
+<li> <p><code>"implicator.tnorm"</code>: It means implicator/t-norm based model proposed by (Radzikowska and Kerre, 2002). 
+The explanation has been given in <code>Introduction-FuzzyRoughSets</code>.
+Other parameters in <code>control</code> related with this approach are <code>t.tnorm</code> and <code>t.implicator</code>.
+In other words, when we are using <code>"implicator.tnorm"</code> as <code>type.LU</code>, 
+we should consider parameters <code>t.tnorm</code> and <code>t.implicator</code>.
+The possible values of these parameters can be seen in the description of parameters. 
+</p>
+</li>
+<li> <p><code>"vqrs"</code>: It means vaguely quantified rough sets proposed by 
+(Cornelis et al, 2007). Basically, this concept proposed to replace fuzzy lower and upper approximations 
+based on Radzikowska and Kerre's technique (see <code>Introduction-FuzzyRoughSets</code>)
+with the following equations, respectively. 
+</p>
+<p><code class="reqn">(R_{Q_u} \downarrow A)(y) = Q_u(\frac{|R_y \cap A|}{|R_y|})</code> 
+</p>
+<p><code class="reqn">(R_{Q_l} \uparrow A)(y) = Q_l(\frac{|R_y \cap A|}{|R_y|})</code>
+</p>
+<p>where the quantifier <code class="reqn">Q_u</code> and <code class="reqn">Q_l</code> represent the terms <code>most</code> and <code>some</code>. 
+</p>
+</li>
+<li> <p><code>"owa"</code>: It refers to ordered weighted average based fuzzy rough sets. 
+This method was introduced by (Cornelis et al, 2010) and computes the approximations
+by an aggregation process proposed by (Yager, 1988). The OWA-based lower and upper approximations of 
+<code class="reqn">A</code> under <code class="reqn">R</code> with weight vectors <code class="reqn">W_l</code> and <code class="reqn">W_u</code> are defined as
+</p>
+<p><code class="reqn">(R \downarrow W_l A)(y) = OW A_{W_l}\langle I(R(x, y), A(y))\rangle</code>
+</p>
+<p><code class="reqn">(R \uparrow W_u A)(y) = OW A_{W_u}\langle T(R(x, y), A(y))\rangle</code>
+</p>
+<p>We provide two ways to define the weight vectors as follows:
+</p>
+
+<ul>
+<li> <p><code>m.owa</code>: Let <code class="reqn">m.owa</code> be <code class="reqn">m</code> and <code class="reqn">m \le n</code>, this model is defined by
+</p>
+<p><code class="reqn">W_l = &lt;w_i^l&gt; = w_{n+1-i}^l = \frac{2^{m-i}}{2^{m}-1}</code> for <code class="reqn">i = 1,\ldots, m</code> and <code class="reqn">0</code> for <code class="reqn">i = m + 1, \ldots, n</code>
+</p>
+<p><code class="reqn">W_u = &lt;w_i^u&gt; = w_i^u = \frac{2^{m - i}}{2^{m} - 1}</code> for <code class="reqn">i = 1, \ldots, m</code> and <code class="reqn">0</code> for <code class="reqn">i = m + 1, \ldots, n</code>
+</p>
+<p>where <code class="reqn">n</code> is the number of data.
+</p>
+</li>
+<li> <p><code>custom</code>: In this case, users define the own weight vector.
+It should be noted that the weight vectors <code class="reqn">&lt;w_i&gt;</code> should satisfy <code class="reqn">w_i \in [0, 1]</code> and 
+their summation is 1.
+</p>
+</li>
+</ul>
+</li>
+<li> <p><code>"fvprs"</code>: It refers to fuzzy variable precision rough sets (FVPRS) introduced by 
+(Zhao et al, 2009). It is a combination between variable precision rough sets (VPRS)
+and FRST. This function implements the construction of lower and upper approximations as follows.
+</p>
+<p><code class="reqn">(R_{\alpha} \downarrow A)(y) = inf_{A(y) \le \alpha} \mathcal{I}(R(x,y), \alpha) \wedge inf_{A(y) &gt; \alpha} \mathcal{I}(R(x,y), A(y))</code>
+</p>
+<p><code class="reqn">(R_{\alpha} \uparrow A)(y) = sup_{A(y) \ge N(\alpha)} \mathcal{T}(R(x,y), N(\alpha)) \vee sup_{A(y) &lt; N(\alpha)} \mathcal{T}(R(x,y), A(y))</code>
+</p>
+<p>where <code class="reqn">\alpha</code>, <code class="reqn">\mathcal{I}</code> and <code class="reqn">\mathcal{T}</code> are the variable precision parameter, implicator and t-norm operators, respectively.
+</p>
+</li>
+<li> <p><code>"rfrs"</code>: It refers to robust fuzzy rough sets (RFRS) proposed by (Hu et al, 2012). 
+This package provides six types of RFRS which are k-trimmed minimum, k-mean minimum, k-median minimum, 
+k-trimmed maximum, k-mean maximum, and k-median maximum. 
+Basically, these methods are a special case of ordered weighted average (OWA) where they consider 
+the weight vectors as follows.
+</p>
+
+<ul>
+<li> <p><code>"k.trimmed.min"</code>: <code class="reqn">w_i^l = 1</code> for <code class="reqn">i = n - k</code> and <code class="reqn">w_i^l = 0</code> otherwise.
+</p>
+</li>
+<li> <p><code>"k.mean.min"</code>: <code class="reqn">w_i^l = 1/k</code> for <code class="reqn">i &gt; n - k</code> and <code class="reqn">w_i^l = 0</code> otherwise.
+</p>
+</li>
+<li> <p><code>"k.median.min"</code>: <code class="reqn">w_i^l = 1</code> if k odd, <code class="reqn">i = n - (k-1)/2</code> and <code class="reqn">w_i^l = 1/2</code> if k even, <code class="reqn">i = n - k/2</code> 
+and <code class="reqn">w_i^l = 0</code> otherwise.
+</p>
+</li>
+<li> <p><code>"k.trimmed.max"</code>: <code class="reqn">w_i^u = 1</code> for <code class="reqn">i = k + 1</code> and <code class="reqn">w_i^u = 0</code> otherwise. 
+</p>
+</li>
+<li> <p><code>"k.mean.max"</code>: <code class="reqn">w_i^u = 1/k</code> for <code class="reqn">i &lt; k + 1</code> and <code class="reqn">w_i^u = 0</code> otherwise.   
+</p>
+</li>
+<li> <p><code>"k.median.max"</code>: <code class="reqn">w_i^u = 1</code> if k odd, <code class="reqn">i = (k + 1)/2</code> and <code class="reqn">w_i^u = 1/2</code> if k even, <code class="reqn">i = k/2 + 1</code> 
+or <code class="reqn">w_i^u = 0</code> otherwise.
+</p>
+</li>
+</ul>
+</li>
+<li> <p><code>"beta.pfrs"</code>: It refers to <code class="reqn">\beta</code>-precision fuzzy rough sets (<code class="reqn">\beta</code>-PFRS) proposed by 
+(Salido and Murakami, 2003). This algorithm uses <code class="reqn">\beta</code>-precision quasi-<code class="reqn">\mathcal{T}</code>-norm and 
+<code class="reqn">\beta</code>-precision quasi-<code class="reqn">\mathcal{T}</code>-conorm. The following are the <code class="reqn">\beta</code>-precision versions of fuzzy lower and upper approximations of a fuzzy set <code class="reqn">A</code> in <code class="reqn">U</code>
+</p>
+<p><code class="reqn">(R_B \downarrow A)(y) = T_{\beta_{x \in U}} \mathcal{I}(R_B(x,y), A(x))</code>
+</p>
+<p><code class="reqn">(R_B \uparrow A)(y) = S_{\beta_{x \in U}} \mathcal{T}(R_B(x,y), A(x))</code> 
+</p>
+<p>where <code class="reqn">T_{\beta}</code> and <code class="reqn">S_{\beta}</code> are <code class="reqn">\beta</code>-precision quasi-<code class="reqn">\mathcal{T}</code>-norm and <code class="reqn">\beta</code>-precision quasi-<code class="reqn">\mathcal{T}</code>-conorm.
+Given a t-norm <code class="reqn">\mathcal{T}</code>, a t-conorm <code class="reqn">S</code>, <code class="reqn">\beta \in [0,1]</code> and <code class="reqn">n \in N \setminus \{0, 1\}</code>, the corresponding 
+<code class="reqn">\beta</code>-precision quasi-t-norm <code class="reqn">T_{\beta}</code> and <code class="reqn">\beta</code>-precision-<code class="reqn">\mathcal{T}</code>-conorm <code class="reqn">S_{\beta}</code> of order <code class="reqn">n</code> are
+<code class="reqn">[0,1]^n \to [0,1]</code> mappings such that for all <code class="reqn">x = (x_1,...,x_n)</code> in <code class="reqn">[0,1]^n</code>,
+</p>
+<p><code class="reqn">T_{\beta}(x) = \mathcal{T}(y_1,...,y_{n-m})</code>,
+</p>
+<p><code class="reqn">S_{\beta}(x) = \mathcal{T}(z_1,...,z_{n-p})</code>,
+</p>
+<p>where <code class="reqn">y_i</code> is the <code class="reqn">i^{th}</code> greatest element of <code class="reqn">x</code> and <code class="reqn">z_i</code> is the <code class="reqn">i^{th}</code> smallest element of <code class="reqn">x</code>, and
+</p>
+<p><code class="reqn">m = max(i \in \{0,...,n\}|i \le (1-\beta)\sum_{j=1}^{n}x_j)</code>,
+</p>
+<p><code class="reqn">p = max(i \in \{0,...,n\}|i \le (1-\beta)\sum_{j=1}^{n}(a - x_j))</code>.
+</p>
+<p>In this package we use <code>min</code> and <code>max</code> for <code class="reqn">\mathcal{T}</code>-norm and <code class="reqn">\mathcal{T}</code>-conorm, respectively. 
+</p>
+</li>
+<li> <p><code>"custom"</code>: It refers to user-defined lower and upper approximations. An example can be seen in Section <code>Examples</code>.
+</p>
+</li>
+</ul>
+<p>The parameter <code>type.LU</code>, which is explained above, is related with parameter <code>control</code>. 
+In other words, when choosing a specific value of <code>type.LU</code>, we should take into account to set values of related components in <code>control</code>.
+The components that are considered depend on what kind of lower and upper approximations are used. 
+So, we do not need to assign all components for a particular approach but only components related with <code>type.LU</code>.
+The following is a list showing the components of each approaches.
+</p>
+
+<ul>
+<li> <p><code>type.LU = "implicator.tnorm"</code>: 
+</p>
+<p><code>control &lt;- list(t.implicator, t.tnorm)</code>
+</p>
+</li>
+<li> <p><code>type.LU = "vqrs"</code>:
+</p>
+<p><code>control &lt;- list(q.some, q.most, type.aggregation, t.tnorm)</code>
+</p>
+</li>
+<li> <p><code>type.LU = "owa"</code>:
+</p>
+<p><code>control &lt;- list(t.implicator, t.tnorm, m.owa)</code> 
+</p>
+<p>or
+</p>
+<p><code>control &lt;- list(t.implicator, t.tnorm, w.owa)</code> 
+</p>
+</li>
+<li> <p><code>type.LU = "fvprs"</code>:
+</p>
+<p><code>control &lt;- list(t.implicator, t.tnorm, alpha)</code>
+</p>
+</li>
+<li> <p><code>type.LU = "beta.pfrs"</code>: 
+</p>
+<p><code>control &lt;- list(t.implicator, t.tnorm, beta.quasi)</code>
+</p>
+</li>
+<li> <p><code>type.LU = "rfrs"</code>:
+</p>
+<p><code>control &lt;- list(t.implicator, t.tnorm, type.rfrs, k.rfrs)</code>
+</p>
+</li>
+<li> <p><code>type.LU = "custom"</code>:
+</p>
+<p><code>control &lt;- list(t.implicator, t.tnorm, FUN.lower, FUN.upper)</code>
+</p>
+</li>
+</ul>
+<p>The description of the components can be seen in the <code>control</code> parameter.
+In Section <code>Examples</code>, we provide two examples showing different cases which are
+when we have to handle a nominal decision attribute and a continuous one. 
+</p>
+<p>It should be noted that this function depends on <code>BC.IND.relation.FRST</code>
+which is a function used to calculate the fuzzy indiscernibility relation as input data. 
+So, it is obvious that before performing this function, users must execute <code>BC.IND.relation.FRST</code> first.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A class <code>"LowerUpperApproximation"</code> representing fuzzy rough set (fuzzy lower and upper approximations). It contains the following components:
+</p>
+
+<ul>
+<li> <p><code>fuzzy.lower</code>: a list showing the lower approximation classified 
+based on decision concepts for each index of objects. The value refers to
+the degree of objects included in the lower approximation.  
+In case the decision attribute is continuous, the result is in a data frame 
+with dimension (number of objects x number of objects) and the value on position <code class="reqn">(i,j)</code> 
+shows the membership of object <code class="reqn">i</code> to the lower approximation of the similarity class of object <code class="reqn">j</code>.
+</p>
+</li>
+<li> <p><code>fuzzy.upper</code>: a list showing the upper approximation classified 
+based on decision concepts for each index of objects. The value refers to
+the degree of objects included in the upper approximation. 
+In case the decision attribute is continuous values, the result is in data frame 
+with dimension (number of objects x number of objects) and the value on position <code class="reqn">(i,j)</code> 
+shows the membership of object <code class="reqn">i</code> to the upper approximation of the similarity class of object <code class="reqn">j</code>.
+</p>
+</li>
+<li> <p><code>type.LU</code>: a string representing the type of lower and upper approximation approaches.
+</p>
+</li>
+<li> <p><code>type.model</code>: a string showing the type of model which is used. In this case, it is <code>"FRST"</code> which means fuzzy rough set theory.
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>Lala Septem Riza
+</p>
+
+
+<h3>References</h3>
+
+<p>A. M. Radzikowska and E. E. Kerre, "A Comparative Study of Fuzzy Rough Sets", 
+Fuzzy Sets and Systems, vol. 126, p. 137 - 156 (2002). 
+</p>
+<p>C. Cornelis, M. De Cock, and A. Radzikowska, "Vaguely Quantified Rough Sets",
+Proceedings of 11th International Conference on Rough Sets, Fuzzy Sets,
+Data Mining and Granular Computing (RSFDGrC2007), Lecture Notes in
+Artificial Intelligence 4482, p. 87 - 94 (2007).
+</p>
+<p>C. Cornelis, N. Verbiest, and R. Jensen, "Ordered Weighted Average Based Fuzzy
+Rough Sets", Proceedings of the 5th International Conference on Rough Sets
+and Knowledge Technology (RSKT 2010), p. 78 - 85 (2010).
+</p>
+<p>J. M. F. Salido and S. Murakami, "Rough Set Analysis of a General Type of Fuzzy Data
+Using Transitive Aggregations of Fuzzy Similarity Relations", 
+Fuzzy Sets Syst., vol. 139, p. 635 - 660 (2003).
+</p>
+<p>Q. Hu, L. Zhang, S. An, D. Zhang, and D. Yu, "On Robust Fuzzy Rough Set Models",
+IEEE Trans. on Fuzzy Systems, vol. 20, no. 4, p. 636 - 651 (2012).
+</p>
+<p>R. Jensen and Q. Shen,  
+"New Approaches to Fuzzy-Rough Feature Selection", 
+IEEE Trans. on Fuzzy Systems, vol. 19, no. 4,
+p. 824 - 838 (2009).
+</p>
+<p>R. R. Yager, "On Ordered Weighted Averaging Aggregation Operators in Multicriteria
+Decision Making", IEEE Transactions on Systems, Man, and Cybernetics, vol. 18, p. 183 - 190 (1988).
+</p>
+<p>S. Y. Zhao, E. C. C. Tsang, and D. G. Chen, 
+"The Model of Fuzzy Variable Precision Rough Sets",
+IEEE Trans. Fuzzy Systems, vol. 17, no. 2,
+p. 451 - 467 (2009).
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>BC.IND.relation.RST</code>, <code>BC.LU.approximation.RST</code>, 
+and <code>BC.positive.reg.FRST</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">###########################################################
+## 1. Example: Decision table contains nominal decision attribute
+## we are using the same dataset and indiscernibility 
+## relation along this example.
+###########################################################
+dt.ex1 &lt;- data.frame(c(-0.4, -0.4, -0.3, 0.3, 0.2, 0.2), 
+                     c(-0.3, 0.2, -0.4, -0.3, -0.3, 0),
+			        c(-0.5, -0.1, -0.3, 0, 0, 0),
+			        c("no", "yes", "no", "yes", "yes", "no"))
+colnames(dt.ex1) &lt;- c("a", "b", "c", "d")
+decision.table &lt;- SF.asDecisionTable(dataset = dt.ex1, decision.attr = 4)
+
+## let us consider the first and second attributes 
+## only as conditional attributes
+condAttr &lt;- c(1, 2)
+
+## let us consider the fourth attribute as decision attribute
+decAttr &lt;- c(4)
+
+#### calculate fuzzy indiscernibility relation ####
+control.ind &lt;- list(type.aggregation = c("t.tnorm", "lukasiewicz"), 
+                    type.relation = c("tolerance", "eq.1"))
+control.dec &lt;- list(type.aggregation = c("crisp"), type.relation = "crisp")
+
+## fuzzy indiscernibility relation of conditional attribute
+IND.condAttr &lt;- BC.IND.relation.FRST(decision.table, attributes = condAttr, 
+                                     control = control.ind)
+
+## fuzzy indiscernibility relation of decision attribute 
+IND.decAttr &lt;- BC.IND.relation.FRST(decision.table, attributes = decAttr, 
+                                     control = control.dec)
+
+#### Calculate fuzzy lower and upper approximation using type.LU : "implicator.tnorm" ####	 
+control &lt;- list(t.implicator = "lukasiewicz", t.tnorm = "lukasiewicz")
+FRST.LU &lt;- BC.LU.approximation.FRST(decision.table, IND.condAttr, IND.decAttr, 
+              type.LU = "implicator.tnorm", control = control)
+
+#### Calculate fuzzy lower and upper approximation using type.LU : "vqrs" ####	 
+control &lt;- list(q.some = c(0.1, 0.6), q.most = c(0.2, 1), t.tnorm = "lukasiewicz")
+FRST.VQRS &lt;- BC.LU.approximation.FRST(decision.table, IND.condAttr, IND.decAttr, 
+              type.LU = "vqrs", control = control)
+
+#### Calculate fuzzy lower and upper approximation using type.LU : "owa" ####	 
+control &lt;- list(t.implicator = "lukasiewicz", t.tnorm = "lukasiewicz", m.owa = 3) 
+FRST.OWA.1 &lt;- BC.LU.approximation.FRST(decision.table, IND.condAttr, IND.decAttr, 
+              type.LU = "owa", control = control)
+
+#### Calculate fuzzy lower and upper approximation using type.LU : 
+#### "owa" with customized function 
+#### In this case, we are using the same weight vector as
+#### previous one with m.owa = 3
+control &lt;- list(t.implicator = "lukasiewicz", t.tnorm = "lukasiewicz", 
+               w.owa =  c(0, 0, 0, 0.14, 0.29, 0.57)) 
+FRST.OWA.2 &lt;- BC.LU.approximation.FRST(decision.table, IND.condAttr, IND.decAttr, 
+              type.LU = "owa", control = control)
+
+#### Calculate fuzzy lower and upper approximation using type.LU : "fvprs" ####	 
+control &lt;- list(t.implicator = "lukasiewicz", t.tnorm = "lukasiewicz", alpha = 0.05)
+FRST.fvprs &lt;- BC.LU.approximation.FRST(decision.table, IND.condAttr, IND.decAttr, 
+              type.LU = "fvprs", control = control)
+
+
+#### Calculate fuzzy lower and upper approximation using type.LU : "rfrs" ####	 
+control &lt;- list(t.implicator = "lukasiewicz", t.tnorm = "lukasiewicz", 
+                type.rfrs = "k.trimmed.min", k.rfrs = 0)
+FRST.rfrs &lt;- BC.LU.approximation.FRST(decision.table, IND.condAttr, IND.decAttr, 
+              type.LU = "rfrs", control = control)
+
+#### Calculate fuzzy lower and upper approximation using type.LU : "beta.pfrs" ####	 
+control &lt;- list(t.implicator = "lukasiewicz", t.tnorm = "lukasiewicz", beta.quasi = 0.05)
+FRST.beta.pfrs &lt;- BC.LU.approximation.FRST(decision.table, IND.condAttr, IND.decAttr, 
+              type.LU = "beta.pfrs", control = control)
+
+#### Calculate fuzzy lower and upper approximation using type.LU : "custom" ####	
+## In this case, we calculate approximations randomly. 
+f.lower &lt;- function(x){
+        return(min(runif(1, min = 0, max = 1) * x))	
+}
+f.upper &lt;- function(x){
+        return(max(runif(1, min = 0, max = 1) * x))
+}
+control &lt;- list(t.implicator = "lukasiewicz", t.tnorm = "lukasiewicz", FUN.lower = f.lower, 
+                FUN.upper = f.upper)
+FRST.custom &lt;- BC.LU.approximation.FRST(decision.table, IND.condAttr, IND.decAttr, 
+              type.LU = "custom", control = control)
+
+#### In this case, we use custom function for triangular norm and implicator operator
+## For example, let us define our implicator and t-norm operator as follows.
+imp.lower &lt;- function(antecedent, consequent){
+                 return(max(1 - antecedent, consequent))
+              }
+tnorm.upper &lt;- function(x, y){
+                return (x * y)
+             } 
+control.custom &lt;- list(t.implicator = imp.lower, t.tnorm = tnorm.upper)
+FRST.LU.custom &lt;- BC.LU.approximation.FRST(decision.table, IND.condAttr, IND.decAttr, 
+              type.LU = "implicator.tnorm", control = control.custom)
+
+###########################################################
+## 2. Example: Decision table contains a continuous decision attribute.
+## It should be noted that in this example, we are using
+## the same dataset and indiscernibility relation.
+## We only show one method but for other approaches 
+## the procedure is analogous to the previous example
+###########################################################
+## In this case, we are using housing dataset containing 7 objects
+data(RoughSetData)
+decision.table &lt;- RoughSetData$housing7.dt
+
+## let us consider the first and second conditional attributes only,
+## and the decision attribute at 14.
+cond.attributes &lt;- c(1, 2)
+dec.attributes &lt;- c(14)
+control.ind &lt;- list(type.aggregation = c("t.tnorm", "lukasiewicz"), 
+               type.relation = c("tolerance", "eq.1"))
+IND.condAttr &lt;- BC.IND.relation.FRST(decision.table, attributes = cond.attributes, 
+                                     control = control.ind) 
+IND.decAttr &lt;- BC.IND.relation.FRST(decision.table, attributes = dec.attributes, 
+                                    control = control.ind) 
+
+#### Calculate fuzzy lower and upper approximation using type.LU : "implicator.tnorm" ####	 
+control &lt;- list(t.implicator = "lukasiewicz", t.tnorm = "lukasiewicz")
+FRST.LU &lt;- BC.LU.approximation.FRST(decision.table, IND.condAttr, IND.decAttr, 
+              type.LU = "implicator.tnorm", control = control)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,80 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>topo_sort_tables</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Topologically sort join plan so values are available before uses.</h2>
+
+<h3>Description</h3>
+
+<p>Depends on <code>igraph</code> package.
+Please see <code>vignette('DependencySorting', package = 'rquery')</code> and <code>vignette('joinController', package= 'rquery')</code> for more details.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">topo_sort_tables(columnJoinPlan, leftTableName, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>columnJoinPlan</code></td>
+<td>
+<p>join plan</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>leftTableName</code></td>
+<td>
+<p>which table is left</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>force later arguments to bind by name</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>list with dependencyGraph and sorted columnJoinPlan
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+if (requireNamespace("DBI", quietly = TRUE) &amp;&amp; requireNamespace("RSQLite", quietly = TRUE) &amp;&amp;
+    requireNamespace('igraph', quietly = TRUE)) {
+  # note: employeeanddate is likely built as a cross-product
+  #       join of an employee table and set of dates of interest
+  #       before getting to the join controller step.  We call
+  #       such a table "row control" or "experimental design."
+  my_db &lt;- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+  RSQLite::initExtension(my_db)
+  tDesc &lt;- example_employee_date(my_db)
+  columnJoinPlan &lt;- build_join_plan(tDesc, check= FALSE)
+  # unify keys
+  columnJoinPlan$resultColumn[columnJoinPlan$resultColumn=='id'] &lt;- 'eid'
+  # look at plan defects
+  print(paste('problems:',
+              inspect_join_plan(tDesc, columnJoinPlan)))
+  # fix plan
+  sorted &lt;- topo_sort_tables(columnJoinPlan, 'employeeanddate')
+  print(paste('problems:',
+              inspect_join_plan(tDesc, sorted$columnJoinPlan)))
+  print(plot(sorted$dependencyGraph))
+  DBI::dbDisconnect(my_db)
+  my_db &lt;- NULL
+}
+
+</code></pre>
+
+
+</div>

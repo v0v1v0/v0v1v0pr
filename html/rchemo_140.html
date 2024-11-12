@@ -1,0 +1,163 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>plsr_agg</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>PLSR with aggregation of latent variables</h2>
+
+<h3>Description</h3>
+
+<p>Ensemblist approach where the predictions are calculated by averaging the predictions of PLSR models (<code>plskern</code>) built with different numbers of latent variables (LVs). 
+</p>
+<p>For instance, if argument <code>nlv</code> is set to <code>nlv = "5:10"</code>, the prediction for a new observation is the average (without weighting) of the predictions returned by the models with 5 LVS, 6 LVs, ... 10 LVs.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">
+plsr_agg(X, Y, weights = NULL, nlv)
+
+## S3 method for class 'Plsr_agg'
+predict(object, X, ...)  
+
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<p>For <code>plsr_agg</code>:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>For the main function: Training X-data (<code class="reqn">n, p</code>). — For the auxiliary function: New X-data (<code class="reqn">m, p</code>) to consider.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>Training Y-data (<code class="reqn">n, q</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>Weights (<code class="reqn">n, 1</code>) to apply to the training observations. Internally, weights are "normalized" to sum to 1. Default to <code>NULL</code> (weights are set to <code class="reqn">1 / n</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nlv</code></td>
+<td>
+<p>A character string such as "5:20" defining the range of the numbers of LVs to consider (here: the models with nb LVS = 5, 6, ..., 20 are averaged). Syntax such as "10" is also allowed (here: correponds to the single model with 10 LVs).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>For the auxiliary function: A fitted model, output of a call to the main functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>For the auxiliary function: Optional arguments. Not used.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>For <code>plsr_agg</code>:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>fm</code></td>
+<td>
+<p>list contaning the model: (<code>fm</code>)=(<code>T</code>): X-scores matrix; (<code>P</code>): X-loading matrix;(<code>R</code>): The PLS projection matrix (p,nlv); (<code>W</code>): X-loading weights matrix ;(<code>C</code>): The Y-loading weights matrix; (<code>TT</code>): the X-score normalization factor; (<code>xmeans</code>): the centering vector of X (p,1);  (<code>ymeans</code>): the centering vector of Y (q,1); (<code>weights</code>): vector of observation weights; (<code>U</code>): intermediate output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nlv</code></td>
+<td>
+<p>range of the numbers of LVs considered</p>
+</td>
+</tr>
+</table>
+<p>For <code>predict.Plsr_agg</code>:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>pred</code></td>
+<td>
+<p>Final predictions (after aggregation)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predlv</code></td>
+<td>
+<p>Intermediate predictions (Per nb. LVs)</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>In the example, <code>zfm</code> is the maximal PLSR model, and there is no sense to use gridscorelv or gridcvlv instead of gridscore or gridcv. 
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+n &lt;- 20 ; p &lt;- 4
+Xtrain &lt;- matrix(rnorm(n * p), ncol = p)
+ytrain &lt;- rnorm(n)
+Ytrain &lt;- cbind(y1 = ytrain, y2 = 100 * ytrain)
+m &lt;- 3
+Xtest &lt;- Xtrain[1:m, , drop = FALSE] 
+Ytest &lt;- Ytrain[1:m, , drop = FALSE] ; ytest &lt;- Ytest[1:m, 1]
+
+nlv &lt;- "1:3"
+
+fm &lt;- plsr_agg(Xtrain, ytrain, nlv = nlv)
+names(fm)
+
+zfm &lt;- fm$fm
+class(zfm)
+names(zfm)
+summary(zfm, Xtrain)
+
+
+res &lt;- predict(fm, Xtest)
+names(res)
+
+res$pred
+msep(res$pred, ytest)
+
+res$predlv
+
+pars &lt;- mpars(nlv = c("1:3", "2:5"))
+pars
+res &lt;- gridscore(
+    Xtrain, Ytrain, Xtest, Ytest, 
+    score = msep, 
+    fun = plsr_agg, 
+    pars = pars)
+res
+
+K = 3
+segm &lt;- segmkf(n = n, K = K, nrep = 1)
+segm
+res &lt;- gridcv(
+    Xtrain, Ytrain, 
+    segm, score = msep, 
+    fun = plsr_agg, 
+    pars = pars,
+    verb = TRUE)
+res
+
+</code></pre>
+
+
+</div>

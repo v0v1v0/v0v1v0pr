@@ -1,0 +1,160 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>RRmixed</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Mixed Effects Logistic Regression for RR Data</h2>
+
+<h3>Description</h3>
+
+<p>Uses the package <code>lme4</code> to fit a generalized linear mixed model
+(GLMM) with an adjusted link funciton.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">RRmixed(formula, data, model, p, const = 1e-04, adjust_control = FALSE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>two-sided formula including random and fixed effects (see
+below or <code>glmer</code> for details)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>an optional data frame with variables named in formula</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>type of RR design. Only 1-group RR designs are supported at the
+moment (i.e., <code>"Warner"</code>, <code>"FR"</code>, <code>"UQTknown"</code>,
+<code>"Crosswise"</code>, <code>"Triangular"</code>, <code>"Kuk"</code>, <code>"Mangat"</code>,
+<code>"custom"</code>). See <code>RRuni</code> or <code>vignette(RRreg)</code> for
+details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>randomization probability</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>const</code></td>
+<td>
+<p>the RR link function is not defined for small and/or large
+probabilities (the boundaries depend on <code>model</code> and <code>p</code>). To
+increase robustness of the estimation, these probabilities smaller and
+larger than the respective boundaries (plus/minus a constant defined via
+<code>const</code>) are smoothed by separate logit-link functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adjust_control</code></td>
+<td>
+<p>whether to adjust the control arguments for
+<code>glmer</code>, which might help in case of convergence issues for some
+models. <code>lmerControl</code> settings are changed to
+<code>nAGQ0initStep = FALSE</code> and <code>optimizer = "bobyqa"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments passed to <code>glmer</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Some examples for formula: 
+</p>
+ 
+<ul>
+<li>
+<p>random intercept: 
+<code>response ~ covariate + (1 | group)</code> 
+</p>
+</li>
+<li>
+<p>random slope: 
+<code>response ~ covariate + (0 + covariate | group)</code> 
+</p>
+</li>
+<li>
+<p>both random slope and intercept: 
+<code>response ~ covariate +(covariate | group)</code>
+</p>
+</li>
+<li>
+<p>level-2 predictor (must have constant values within groups!):
+<code>response ~ lev2 + (1|group)</code> 
+</p>
+</li>
+</ul>
+<p>Note that parameter estimation will be unstable and might fail if the
+observed responses are not in line with the model. For instance, a
+Forced-Response model (<code>model="FR"</code>) with <code>p=c(0,1/4)</code> requires
+that expected probabilities for responses are in the interval [.25,1.00]. If
+the observed proportion of responses is very low (&lt;&lt;.25), intercepts will be
+estimated to be very small (&lt;&lt;0) and/or parameter estimation might fail. See
+<code>glmer</code> for setting better starting values and
+<code>lmerControl</code> for further options to increase stability.
+</p>
+
+
+<h3>Value</h3>
+
+<p>an object of class <code>glmerMod</code>
+</p>
+
+
+<h3>References</h3>
+
+<p>van den Hout, A., van der Heijden, P. G., &amp; Gilchrist, R.
+(2007). The Logistic Regression Model with Response Variables Subject to
+Randomized Response. Computational Statistics &amp; Data Analysis, 51,
+6060–6069.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># generate data with a level-1 predictor
+set.seed(1234)
+d &lt;- data.frame(
+  group = factor(rep(LETTERS[1:20], each = 50)),
+  cov = rnorm(20 * 50)
+)
+# generate dependent data based on logistic model (random intercept):
+d$true &lt;- simulate(~ cov + (1 | group),
+  newdata = d,
+  family = binomial(link = "logit"),
+  newparams = list(
+    beta = c("(Intercept)" = -.5, cov = 1),
+    theta = c("group.(Intercept)" = .8)
+  )
+)[[1]]
+# scramble responses using RR:
+model &lt;- "FR"
+p &lt;- c(true0 = .1, true1 = .2)
+d$resp &lt;- RRgen(model = "FR", p = p, trueState = d$true)$response
+# fit model:
+mod &lt;- RRmixed(resp ~ cov + (1 | group), data = d, model = "FR", p = p)
+summary(mod)
+</code></pre>
+
+
+</div>

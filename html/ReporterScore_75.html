@@ -1,0 +1,145 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pvalue2zs</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Transfer p-value of KOs to Z-score</h2>
+
+<h3>Description</h3>
+
+<p>Transfer p-value of KOs to Z-score
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pvalue2zs(
+  ko_pvalue,
+  mode = c("directed", "mixed")[1],
+  p.adjust.method1 = "none"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>ko_pvalue</code></td>
+<td>
+<p>data.frame from <code>ko.test</code>, 'KO_id' and 'p.value' columns are required.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mode</code></td>
+<td>
+<p>'mixed' or 'directed' (default, only for two groups differential analysis or multi-groups correlation analysis.), see details in <code>pvalue2zs</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p.adjust.method1</code></td>
+<td>
+<p>p.adjust.method for 'ko.test', see <code>p.adjust</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>'<strong>mixed</strong>' mode is the original reporter-score method from Patil, K. R. et al. PNAS 2005.
+In this mode, the reporter score is <strong>undirected</strong>, and the larger the reporter score, the more significant the enrichment, but it cannot indicate the up-and-down regulation information of the pathway! (Liu, L. et al. iMeta 2023.)
+</p>
+<p>steps:
+</p>
+<p>1. Use the Wilcoxon rank sum test to obtain the P value of the significance of each KO difference between the two groups (ie <code class="reqn">P_{koi}</code>, i represents a certain KO);
+</p>
+<p>2. Using an inverse normal distribution, convert the P value of each KO into a Z value (<code class="reqn">Z_{koi}</code>), the formula:
+</p>
+<p><code class="reqn">Z_{koi}=\theta ^{-1}(1-P_{koi})</code>
+</p>
+<p>3. 'Upgrade' KO to pathway: <code class="reqn">Z_{koi}</code>, calculate the Z value of the pathway, the formula:
+</p>
+<p><code class="reqn">Z_{pathway}=\frac{1}{\sqrt{k}}\sum Z_{koi}</code>
+</p>
+<p>where k means A total of k KOs were annotated to the corresponding pathway;
+</p>
+<p>4. Evaluate the degree of significance: permutation (permutation) 1000 times, get the random distribution of <code class="reqn">Z_{pathway}</code>, the formula:
+</p>
+<p><code class="reqn">Z_{adjustedpathway}=(Z_{pathway}-\mu _k)/\sigma _k</code>
+</p>
+<p><code class="reqn">\mu _k</code> is The mean of the random distribution, <code class="reqn">\sigma _k</code> is the standard deviation of the random distribution.
+</p>
+<p>Instead, '<strong>directed</strong>' mode is a derived version of 'mixed', referenced from <code>https://github.com/wangpeng407/ReporterScore</code>.
+</p>
+<p>This approach is based on the same assumption of many differential analysis methods: the expression of most genes has no significant change.
+</p>
+<p>steps:
+</p>
+<p>1. Use the Wilcoxon rank sum test to obtain the P value of the significance of each KO difference between the two groups (ie <code class="reqn">P_{koi}</code>, i represents a certain KO), and then divide the P value by 2, that is, the range of (0,1] becomes (0,0.5], <code class="reqn">P_{koi}=P_{koi}/2</code>;
+</p>
+<p>2. Using an inverse normal distribution, convert the P value of each KO into a Z value (<code class="reqn">Z_{koi}</code>), the formula:
+</p>
+<p><code class="reqn">Z_{koi}=\theta ^{-1}(1-P_{koi})</code>
+</p>
+<p>since the above P value is less than 0.5, all Z values will be greater than 0;
+</p>
+<p>3. Considering whether each KO is up-regulated or down-regulated, calculate <code class="reqn">diff\_KO</code>,
+</p>
+<p><code class="reqn">Z_{koi}=-Z_{koi}\ \ \ \ (diff\_KO&lt;0)</code>,
+</p>
+<p>so <code class="reqn">Z_{koi}</code> is greater than 0 Up-regulation, <code class="reqn">Z_{koi}</code> less than 0 is down-regulation;
+</p>
+<p>4. 'Upgrade' KO to pathway: <code class="reqn">Z_{koi}</code>, calculate the Z value of the pathway, the formula:
+</p>
+<p><code class="reqn">Z_{pathway}=\frac{1}{\sqrt{k}}\sum Z_{koi}</code>
+</p>
+<p>where k means A total of k KOs were annotated to the corresponding pathway;
+</p>
+<p>5. Evaluate the degree of significance: permutation (permutation) 1000 times, get the random distribution of <code class="reqn">Z_{pathway}</code>, the formula:
+</p>
+<p><code class="reqn">Z_{adjustedpathway}=(Z_{pathway}-\mu _k)/\sigma _k</code>
+</p>
+<p><code class="reqn">\mu _k</code> is The mean of the random distribution, <code class="reqn">\sigma _k</code> is the standard deviation of the random distribution.
+</p>
+<p>The finally obtained <code class="reqn">Z_{adjustedpathway}</code> is the Reporter score value enriched for each pathway.
+In this mode, the Reporter score is directed, and a larger positive value represents a significant up-regulation enrichment, and a smaller negative values represent significant down-regulation enrichment.
+</p>
+<p>However, the disadvantage of this mode is that when a pathway contains about the same number of significantly up-regulates KOs and significantly down-regulates KOs, the final absolute value of Reporter score may approach 0, becoming a pathway that has not been significantly enriched.
+</p>
+
+
+<h3>Value</h3>
+
+<p>ko_stat data.frame
+</p>
+
+
+<h3>References</h3>
+
+<p>1. Patil, K. R. &amp; Nielsen, J. Uncovering transcriptional regulation of metabolism by using metabolic network topology. Proc Natl Acad Sci U S A 102, 2685–2689 (2005).
+2. Liu, L., Zhu, R. &amp; Wu, D. Misuse of reporter score in microbial enrichment analysis. iMeta n/a, e95.
+3. <code>https://github.com/wangpeng407/ReporterScore</code>
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other GRSA: 
+<code>combine_rs_res()</code>,
+<code>get_reporter_score()</code>,
+<code>ko.test()</code>,
+<code>reporter_score()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+data("KO_abundance_test")
+ko_pvalue &lt;- ko.test(KO_abundance, "Group", metadata)
+ko_stat &lt;- pvalue2zs(ko_pvalue, mode = "directed")
+
+</code></pre>
+
+
+</div>

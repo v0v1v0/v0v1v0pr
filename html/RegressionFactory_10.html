@@ -1,0 +1,121 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fbase2.inverse.gaussian.log.log</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Double-Parameter Base Log-likelihood Function for Inverse-Gaussian GLM
+</h2>
+
+<h3>Description</h3>
+
+<p>Vectorized, double-parameter base log-likelihood functions for Inverse-Gaussian GLM. The link functions map the mean and dispersion parameter to linear predictors. The base function can be supplied to the expander function <code>regfac.expand.2par</code> in order to obtain the full, high-dimensional log-likleihood and its derivatives.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fbase2.inverse.gaussian.log.log(u, v, y, fgh = 2)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>u</code></td>
+<td>
+<p>First parameter of the base log-likelihood function (usually the result of applying a link function to distribution mean). This parameter is intended to be projected onto a high-dimensional space using the familiar regression transformation of <code>u &lt;- X%*%beta</code>. In the typical use-case where the caller is <code>regfac.expand.2par</code>, a vector of values are supplied, and return objects will have the same length as <code>u</code> or <code>v</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>v</code></td>
+<td>
+<p>Second parameter of the base log-likelihood function (usually the result of applying a link function to distribution dispersion parameter). This parameter is intended to be projected onto a high-dimensional space using the familiar regression transformation of <code>v &lt;- Z%*%gamma</code>. In the typical use-case where the caller is <code>regfac.expand.2par</code>, a vector of values are supplied, and return objects will have the same length as <code>u</code> or <code>v</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Fixed slot of the base distribution, corresponding to the response variable in the regression model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fgh</code></td>
+<td>
+<p>Integer with possible values 0,1,2. If <code>fgh=0</code>, the function only calculates and returns the log-likelihood vector and no derivatives. If <code>fgh=1</code>, it returns the log-likelihood and its first derivative in a list. If <code>fgh=2</code>, it returns the log-likelihood, as well as its first and second derivatives in a list.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>If <code>fgh==0</code>, the function returns <code>-v/2 - 0.5*exp(-v-2*u)*(y - exp(u))^2/y</code>. If <code>fgh==1</code>, a list is returned with elements <code>f</code> and <code>g</code>, where <code>f</code> is the same object as in <code>fgh==0</code> and <code>g</code> is a matrix of dimensions <code>length(u)</code>-by-2, with first column being the derivative of the above expression with respect to <code>u</code>, and the second column being the derivative of the above expression with respect to <code>v</code>. If <code>fgh==2</code>, the list will include an element named <code>h</code>, which is a matrix of dimensions <code>length(u)</code>-by-3, with the first column being the second derivative of <code>f</code> with respect to <code>u</code>, the second column being the second derivative of <code>f</code> with respect to <code>v</code>, and the third column is the cross-derivative term, i.e. the derivative of <code>f</code> with respect to <code>u</code> and <code>v</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Alireza S. Mahani, Mansour T.A. Sharabiani
+</p>
+
+
+<h3>See Also</h3>
+
+<p>regfac.expand.2par
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# we use this library for univariate slice sampling
+# of multivariate distributions
+library(MfUSampler)
+library(dglm)
+
+# simulating data according to assumed generative model
+# we assume log link functions for both mean and dispersion
+# (shape parameter is inverse of dispersion)
+N &lt;- 10000
+K &lt;- 5
+X &lt;- cbind(1,matrix(runif(N*(K-1), min=-0.5, max=+0.5), ncol=K-1))
+beta &lt;- runif(K, min=-0.5, max=+0.5)
+gamma &lt;- runif(K, min=-0.5, max=+0.5)
+mean.vec &lt;- exp(X %*% beta)
+dispersion.vec &lt;- exp(X %*% gamma)
+y &lt;- rinvgauss(N, mean = mean.vec, dispersion = dispersion.vec)
+
+# model estimation using dglm package
+reg.dglm &lt;- dglm(y~X-1, dformula = ~X-1, family=inverse.gaussian(link="log"), dlink = "log")
+beta.dglm &lt;- reg.dglm$coefficients
+gamma.dglm &lt;- reg.dglm$dispersion.fit$coefficients
+
+# model estimation using RegressionFactory
+# (with univariate slice sampling)
+# defining the log-likelihood using the expander framework
+# assumng same covariates for both slots, hence we set Z=X
+# slice sampler does not need derivatives, hence we set fgh=0
+loglike.inverse.gaussian &lt;- function(coeff, X, y) {
+  regfac.expand.2par(coeff, X=X, Z=X, y=y, fbase2=fbase2.inverse.gaussian.log.log, fgh=0)
+}
+nsmp &lt;- 100
+coeff.smp &lt;- array(NA, dim=c(nsmp, 2*K)) 
+coeff.tmp &lt;- rep(0.1, 2*K)
+for (n in 1:nsmp) {
+  coeff.tmp &lt;- MfU.Sample(coeff.tmp, f=loglike.inverse.gaussian, X=X, y=y)
+  coeff.smp[n,] &lt;- coeff.tmp
+}
+beta.slice &lt;- colMeans(coeff.smp[(nsmp/2+1):nsmp, 1:K])
+gamma.slice &lt;- colMeans(coeff.smp[(nsmp/2+1):nsmp, K+1:K])
+
+# compare results
+cbind(beta.dglm, beta.slice)
+cbind(gamma.dglm, gamma.slice)
+
+
+## End(Not run)
+</code></pre>
+
+
+</div>

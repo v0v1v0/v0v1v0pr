@@ -1,0 +1,142 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>write_facts</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Write modified FACTS files.</h2>
+
+<h3>Description</h3>
+
+<p>Write modified versions of existing FACTS files.
+This function can be used to tweak properties of a FACTS file
+such as maximum sample size, number of weeks between interims,
+allocation ratios, data generation parameters,
+and analysis priors.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">write_facts(fields, values, default_dir = "_facts")
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>fields</code></td>
+<td>
+<p>Data frame defining the kind of XML data to be replaced.
+It must have one row per field definition and the following columns:
+</p>
+
+<ol>
+<li> <p><code>field</code>: custom name of the field.
+</p>
+</li>
+<li> <p><code>type</code>: value of the "type" attribute of the <code style="white-space: pre;">⁠&lt;parameterSets&gt;⁠</code> tag.
+</p>
+</li>
+<li> <p><code>set</code>: value of the "name" attribute of the <code style="white-space: pre;">⁠&lt;parameterSet&gt;⁠</code> tag.
+</p>
+</li>
+<li> <p><code>property</code>: value of the "name" attribute of the <code style="white-space: pre;">⁠&lt;property&gt;⁠</code> tag.
+</p>
+</li>
+</ol>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>values</code></td>
+<td>
+<p>Data frame defining the FACTS files to generate.
+Must have one row per FACTS file and a column called <code>facts_file</code>
+with the names of the input FACTS files. An <code>output</code> column with the
+names of the output FACTS files is recommended but not required.
+(If <code>output</code> is not specified, the output FACTS files will be
+written to automatically generated paths inside <code>default_dir</code>.)
+Other columns must have names corresponding to elements of <code>fields$field</code>
+and contain values to insert into the FACTS files. These columns could
+be vectors or lists of vectors. In the former case, each element
+is a scalar replacement to a property. In the latter case,
+an XML property receives an entire vector as an item list,
+and the vector must be the same length as the original item list.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>default_dir</code></td>
+<td>
+<p>Directory to write the output FACTS files
+if <code>values</code> has no <code>output</code> column.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>A FACTS file has a special kind of XML format.
+Most of the content sits in an overarching <code style="white-space: pre;">⁠&lt;facts&gt;⁠</code> tag,
+then a <code style="white-space: pre;">⁠&lt;parameterSets&gt;⁠</code> tag, then a
+<code style="white-space: pre;">⁠&lt;parameterSet&gt;⁠</code> tag, then a <code style="white-space: pre;">⁠&lt;property&gt;⁠</code> tag.
+For example, here is the part of a FACTS file that controls
+the weeks between interims.
+</p>
+<div class="sourceCode xml"><pre>&lt;facts&gt;
+  &lt;parameterSets type="NucleusParameterSet"&gt;
+    &lt;parameterSet name="nucleus"&gt;
+      &lt;property name="update_freq_save"&gt;4&lt;/property&gt;
+</pre></div>
+<p>To use the <code>write_facts()</code> function, you must first identify
+the parts of the FACTS file you want to modify (the <code>fields</code> argument)
+then the values that should be substituted in (the <code>values</code> argument).
+Given the XML above, to create new FACTS files with intervals
+5 and 6 instead of 4, you would set
+</p>
+<div class="sourceCode r"><pre>fields &lt;- tibble::tibble(
+  field = "my_interval",
+  type = "NucleusParameterSet",
+  set = "nucleus",
+  property = "update_freq_save"
+)
+values &lt;- tibble::tibble(
+  facts_file = "your_facts_file.facts",
+  output = "output_file.facts",
+  my_interval = c(5, 6)
+)
+</pre></div>
+<p>and then call <code>write_facts(fields = fields, values = values)</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The function writes FACTS XML files and
+returns a character vector with the paths to those files.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Identify a source FACTS file.
+facts_file &lt;- get_facts_file_example("contin.facts")
+# Create 4 new FACTS files with different numbers of max patients.
+fields &lt;- data.frame(
+  field = "my_subjects",
+  type = "NucleusParameterSet",
+  set = "nucleus",
+  property = "max_subjects"
+)
+values &lt;- data.frame(
+  facts_file = facts_file,
+  output = c("_facts/out1000.facts", "_facts/out2000.facts"),
+  my_subjects = c(1000, 2000)
+)
+default_dir &lt;- tempfile()
+write_facts(fields = fields, values = values, default_dir = default_dir)
+list.files("_facts")
+unlink("_facts", recursive = TRUE)
+</code></pre>
+
+
+</div>

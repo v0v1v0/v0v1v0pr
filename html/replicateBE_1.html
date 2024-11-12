@@ -1,0 +1,468 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ABE</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Comparative BA-calculation for Average Bioequivalence
+</h2>
+
+<h3>Description</h3>
+
+<p>This function performs the required calculations for the <abbr><span class="acronym">BE</span></abbr>
+decision via conventional (unscaled) Average Bioequivalence based on
+<abbr><span class="acronym">ANOVA</span></abbr> as recommended in the <abbr><span class="acronym">EMA</span></abbr>’s guideline.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ABE(alpha = 0.05, path.in, path.out = tempdir(), file, set = "",
+    ext, na = ".", sep = ",", dec = ".", logtrans = TRUE,
+    print = TRUE, details = FALSE, verbose = FALSE, ask = FALSE,
+    data = NULL, theta1, theta2)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+
+<p>Type I Error (<abbr><span class="acronym">TIE</span></abbr>) probability (nominal level of the test).
+Conventionally set to 0.05, resulting in a
+100(1 – 2<em>α</em>)
+confidence interval.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>path.in</code></td>
+<td>
+
+<p>Path to the data file for import.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>path.out</code></td>
+<td>
+
+<p>Path to save the result file if <code>print = TRUE</code>. You must have
+write-permission to the folder. For simplicity your home folder <code style="white-space: pre;">⁠"~/"⁠</code> can be used.<br>
+If missing, R’s standard temporary folder will be used.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>file</code></td>
+<td>
+
+<p>Name of the dataset for import (<em>without</em> extension). Must be a string
+(<em>i.e.</em>, enclosed in single or double quotation marks). The name is
+case-sensitive.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>set</code></td>
+<td>
+
+<p>Name of the sheet of an Excel-file (mandatory). Must be a string (<em>i.e.</em>,
+enclosed in single or double quotation marks). The name is case-sensitive.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ext</code></td>
+<td>
+
+<p>File-extension enclosed in single or double quotation marks.
+Acceptable are <code style="white-space: pre;">⁠"csv"⁠</code> for character delimited
+variables (<abbr><span class="acronym">CSV</span></abbr>) or <code style="white-space: pre;">⁠"xls"⁠</code>, <code style="white-space: pre;">⁠"xlsx"⁠</code> for Excel-files.<br>
+The file-extension is not case-sensitive.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na</code></td>
+<td>
+
+<p>Character string denoting missing values. Acceptable are <code style="white-space: pre;">⁠"NA"⁠</code>
+(not available), <code style="white-space: pre;">⁠"ND"⁠</code> (not determined), <code style="white-space: pre;">⁠"."⁠</code> (<abbr><span class="acronym">SAS</span></abbr>),
+<code style="white-space: pre;">⁠"Missing"⁠</code> (Phoenix WinNonlin), and <code style="white-space: pre;">⁠""⁠</code> (<abbr><span class="acronym">Excel</span></abbr>;
+empty cell). Missings will be converted to <code style="white-space: pre;">⁠NA⁠</code> in the imported
+data. Defaults to <code style="white-space: pre;">⁠"."⁠</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sep</code></td>
+<td>
+
+<p>Variable separator in the <abbr><span class="acronym">CSV</span></abbr>-file. Acceptable are <code style="white-space: pre;">⁠","⁠</code>
+(comma = <code style="white-space: pre;">⁠ASCII 44⁠</code>), <code style="white-space: pre;">⁠";"⁠</code> (semicolon = <code style="white-space: pre;">⁠ASCII 59⁠</code>),
+and <code style="white-space: pre;">⁠"\t"⁠</code> (tabulator = <code style="white-space: pre;">⁠ASCII 9⁠</code>). Defaults to <code style="white-space: pre;">⁠","⁠</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dec</code></td>
+<td>
+
+<p>Decimal separator in the <abbr><span class="acronym">CSV</span></abbr>-file. Acceptable are <code style="white-space: pre;">⁠"."⁠</code>
+(period = <code style="white-space: pre;">⁠ASCII 46⁠</code>) or <code style="white-space: pre;">⁠","⁠</code> (comma = <code style="white-space: pre;">⁠ASCII 44⁠</code>).
+Defaults to <code style="white-space: pre;">⁠"."⁠</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>logtrans</code></td>
+<td>
+
+<p>If <code>TRUE</code> (default) the raw data (provided in column <code style="white-space: pre;">⁠PK⁠</code>)
+will be internally log-transformed and used in the calculations.
+If <code>FALSE</code> the already log-transformed data (provided in the
+column <code style="white-space: pre;">⁠logPK⁠</code>) will be used in the calculations.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>print</code></td>
+<td>
+
+<p>If <code>TRUE</code> (default), the function prints its results to a
+file. If <code>FALSE</code>, returns a data frame of results.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>details</code></td>
+<td>
+
+<p>Defaults to <code>FALSE</code>. If <code>TRUE</code>, the function sends
+its results in 7-digits precision to a data frame.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+
+<p>Defaults to <code>FALSE</code>. If <code>TRUE</code> the ANOVA-table is send to
+the console.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ask</code></td>
+<td>
+
+<p>Defaults to <code>FALSE</code>. If <code>TRUE</code> the user will be asked
+whether an already existing result file should be overwritten.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+
+<p>Specification of one of the internal reference datasets (<code style="white-space: pre;">⁠rds01⁠</code> to <code style="white-space: pre;">⁠rds30⁠</code>). If given, the arguments <code style="white-space: pre;">⁠path.in⁠</code>, <code style="white-space: pre;">⁠file⁠</code>, <code style="white-space: pre;">⁠set⁠</code>,
+and <code style="white-space: pre;">⁠ext⁠</code> are ignored. For its use see the examples.<br>
+If not given, defaults to <code>NULL</code> (<em>i.e.</em>, import data
+from a file).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>theta1</code></td>
+<td>
+
+<p>Lower limit of the acceptance range. Defaults to <code style="white-space: pre;">⁠0.80⁠</code>. If missing
+will be set to <code>1/theta2</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>theta2</code></td>
+<td>
+
+<p>Upper limit of the acceptance range. Defaults to <code style="white-space: pre;">⁠1.25⁠</code>. If missing
+will be set to <code>1/theta1</code>.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The model for the treatment comparison is<br><code>lm(log(PK) ~ sequence + subject%in%sequence + period + treatment, data = data)</code><br>
+where all effects are fixed.<br><br>
+Tested designs
+</p>
+
+<ul>
+<li>
+<p> 4-period 2-sequence full replicates<br><code style="white-space: pre;">⁠TRTR | RTRT⁠</code><br><code style="white-space: pre;">⁠TRRT | RTTR⁠</code><br><code style="white-space: pre;">⁠TTRR | RRTT⁠</code>
+</p>
+</li>
+<li>
+<p> 2-period 4-sequence replicate<br><code style="white-space: pre;">⁠TR | RT | TT | RR ⁠</code> (Balaam’s design)
+</p>
+</li>
+<li>
+<p> 4-period 4-sequence full replicates<br><code style="white-space: pre;">⁠TRTR | RTRT | TRRT | RTTR⁠</code><br><code style="white-space: pre;">⁠TRRT | RTTR | TTRR | RRTT⁠</code>
+</p>
+</li>
+<li>
+<p> 3-period 2-sequence full replicates<br><code style="white-space: pre;">⁠TRT | RTR⁠</code><br><code style="white-space: pre;">⁠TRR | RTT⁠</code>
+</p>
+</li>
+<li>
+<p> 3-period (partial) replicates<br><code style="white-space: pre;">⁠TRR | RTR | RRT⁠</code><br><code style="white-space: pre;">⁠TRR | RTR ⁠</code> (extra-reference design)
+</p>
+</li>
+</ul>
+<p>Data structure
+</p>
+
+<ul><li>
+<p> Columns must have the headers <code>subject</code>, <code>period</code>,
+<code>sequence</code>, <code>treatment</code>, <code>PK</code>, and/or <code>logPK</code>.<br>
+Any order of columns is acceptable.<br>
+Uppercase and mixed case headers will be internally converted to lowercase headers.
+</p>
+
+<ul>
+<li> <p><code>subject</code> must be integer numbers or (any combination of) alphanumerics<br><code style="white-space: pre;">⁠[A-Z, a-z, -, _, #, 0-9]⁠</code>
+</p>
+</li>
+<li> <p><code>period</code> must be integer numbers.
+</p>
+</li>
+<li> <p><code>sequence</code> must be contained in the tested designs (numbers or
+<em>e.g.</em>, <code style="white-space: pre;">⁠ABAB⁠</code> are not acceptable).
+</p>
+</li>
+<li>
+<p> The Test treatment must be coded <code>T</code> and the Reference <code>R</code>.
+</p>
+</li>
+</ul>
+</li></ul>
+<h3>Value</h3>
+
+<p>Prints results to a file if argument <code>print = TRUE</code> (default).<br>
+If argument <code>print = FALSE</code>, returns a data frame with the elements:
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+    <code>Design</code> </td>
+<td style="text-align: left;"> <em>e.g.</em>, TRTR|RTRT</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>Method</code> </td>
+<td style="text-align: left;"> ABE</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>n</code> </td>
+<td style="text-align: left;"> total number of subjects</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>nTT</code> </td>
+<td style="text-align: left;"> number of subjects with two treatments of <code>T</code> (full replicates only)</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>nRR</code> </td>
+<td style="text-align: left;"> number of subjects with two treatments of <code>R</code>
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>Sub/seq</code> </td>
+<td style="text-align: left;"> number of subjects per sequence</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>Miss/seq</code> </td>
+<td style="text-align: left;"> if the design is unbalanced, number of missings per sequence</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>Miss/per</code> </td>
+<td style="text-align: left;"> if the design is incomplete, number of missings per period</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>alpha</code> </td>
+<td style="text-align: left;"> nominal level of the test</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>DF</code> </td>
+<td style="text-align: left;"> degrees of freedom of the treatment comparison</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>CVwT(%)</code> </td>
+<td style="text-align: left;"> intra-subject coefficient of variation of the test treatment (full replicates only)</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>CVwR(%)</code> </td>
+<td style="text-align: left;"> intra-subject coefficient of variation of the reference treatment</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>BE.lo(%)</code> </td>
+<td style="text-align: left;"> lower bioequivalence limit (<em>e.g.</em>, <code style="white-space: pre;">⁠ 80⁠</code>)</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>BE.hi(%)</code> </td>
+<td style="text-align: left;"> upper bioequivalence limit (<em>e.g.</em>, <code style="white-space: pre;">⁠125⁠</code>)</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>CI.lo(%)</code> </td>
+<td style="text-align: left;"> lower confidence limit of the treatment comparison</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>CI.hi(%)</code> </td>
+<td style="text-align: left;"> upper confidence limit of the treatment comparison</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>PE(%)</code> </td>
+<td style="text-align: left;"> point estimate of the treatment comparison (aka <abbr><span class="acronym">GMR</span></abbr>)</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>BE</code> </td>
+<td style="text-align: left;"> assessment whether the 100(1 – 2<em>α</em>) <abbr><span class="acronym">CI</span></abbr> lies entirely within the acceptance range (<code style="white-space: pre;">⁠pass|fail⁠</code>)
+  </td>
+</tr>
+</table>
+<h3>Warning</h3>
+
+<p>Files may contain a commentary header. If reading from a <abbr><span class="acronym">CSV</span></abbr>-file,
+<em>each</em> line of the commentary header <em>must</em> start with <code style="white-space: pre;">⁠"# "⁠</code>
+(hashmark space = <code style="white-space: pre;">⁠ASCII 35 ASCII 32⁠</code>). If reading from an Excel-file
+all lines preceding the column headers are treated as a comment.
+</p>
+
+
+<h3>Clarification</h3>
+
+<p>The ‘ASCII line chart’ in the result file gives the confidence
+limits with filled black squares and the point estimate as a white rhombus.
+If a confidence limit exceeds the drawing range, it is shown as a triangle.
+The <abbr><span class="acronym">BE</span></abbr> limits and 100% are given with single vertical lines. The
+‘resolution’ is approximatelly 0.5% and therefore, not all symbols
+might be shown. The <abbr><span class="acronym">CI</span></abbr> and <abbr><span class="acronym">PE</span></abbr> take presedence over the limits.
+</p>
+
+
+<h3>Disclaimer</h3>
+
+<p><em>Program offered for Use without any Guarantees and Absolutely No Warranty. No Liability is accepted for any Loss and Risk to Public Health Resulting from Use of this R-Code.</em>
+</p>
+
+
+<h3>Note</h3>
+
+<p>The <abbr><span class="acronym">EMA</span></abbr>’s model assumes equal [<em>sic!</em>] intra-subject
+variances of test and reference (like in 2×2×2 trials) –
+even if proven false in one of the full replicate designs (were <em>both</em>
+CV<sub>wT</sub> and
+CV<sub>wR</sub> can be estimated).
+Hence, amongst biostatisticians it is called the ‘crippled model’
+because the replicative nature of the study is ignored.<br>
+Conventional unscaled <abbr><span class="acronym">ABE</span></abbr> has to be employed for
+C<sub>max</sub> (if widening of the
+acceptance range is clinically not justifiable),
+AUC<sub>0–t</sub>,
+AUC<sub>0–72</sub> (immediate
+release products) and
+C<sub>max,ss</sub>,
+C<sub>τ,ss</sub>,
+<sub>partial</sub>AUC (if widening
+of the acceptance range is clinically not justifiable), and
+AUC<sub>0–t</sub>,
+AUC<sub>0–∞</sub>,
+AUC<sub>0–τ</sub>
+(modified release products).
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Helmut Schütz
+</p>
+
+
+<h3>References</h3>
+
+<p>European Medicines Agency, Committee for Medicinal Products for Human Use. <em>Guideline on the Investigation of Bioequivalence.</em> CPMP/EWP/QWP/1401/98 Rev. 1/ Corr **. London. 20 January 2010. <a href="https://www.ema.europa.eu/en/documents/scientific-guideline/guideline-investigation-bioequivalence-rev1_en.pdf">online</a>
+</p>
+<p>European Medicines Agency, Committee for Medicinal Products for Human Use. <em>Guideline on the pharmacokinetic and clinical evaluation of modified release dosage forms.</em> EMA/CPMP/EWP/280/96 Corr1. London. 20 November 2014. <a href="https://www.ema.europa.eu/en/documents/scientific-guideline/guideline-pharmacokinetic-clinical-evaluation-modified-release-dosage-forms_en.pdf">online</a>
+</p>
+
+
+<h3>See Also</h3>
+
+
+<table>
+<tr>
+<td style="text-align: left;">
+    <code>method.A</code> </td>
+<td style="text-align: left;"> evaluation for <abbr><span class="acronym">ABEL</span></abbr> by a fixed effects model (<abbr><span class="acronym">ANOVA</span></abbr>)</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>method.B</code> </td>
+<td style="text-align: left;"> evaluation for <abbr><span class="acronym">ABEL</span></abbr> by a linear mixed effects model
+  </td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Importing from a CSV-file, using most of the defaults: variable
+# separator comma, decimal separator period, print to file.
+# Note: You must adapt the path-variables. The example reads from
+# the data provided by the library. Write-permissions must be granted
+# for 'path.out' in order to save the result file. Here the deafault
+# (R's temporary folder) is used. If you don't know where it is,
+# type tempdir() in the console.
+path.in &lt;- paste0(find.package("replicateBE"), "/extdata/")
+ABE(path.in = path.in, file = "DS", set = "02", ext = "csv")
+# Should result in:
+#   BE-limits          :  80.00% ... 125.00%
+#   Confidence interval:  97.32% ... 107.46%  pass
+#   Point estimate     : 102.26%
+# Generate the data.frame of results (7-digits precision) and show
+# in the console. Use an internal dataset.
+x &lt;- ABE(details = TRUE, print = FALSE, data = rds02)
+print(x, row.names = FALSE)
+
+# Assuming a NTID and assess BE with narrower limits for one
+# of the internal datasets.
+ABE(data = rds02, theta1 = 0.90)
+# Should result in:
+#   BE-limits          :  90.00% ... 111.11%
+#   Confidence interval:  97.32% ... 107.46%  pass
+#   Point estimate     : 102.26%
+</code></pre>
+
+
+</div>

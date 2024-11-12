@@ -1,0 +1,182 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ModelGrid</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Transform model data into an array
+</h2>
+
+<h3>Description</h3>
+
+<p>This function takes output from <code>ReadGrib</code> or <code>DODSGrab</code> and produces an array with dimensions: levels x variables x longitudes x latitudes.
+This greatly reduces the size of the data set as well as makes it easier to manipulate.
+The data must be in a regular latitude/longitude grid (like the GFS model, for example).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ModelGrid(model.data, resolution, 
+    levels = NULL, variables = NULL, 
+    model.domain = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model.data</code></td>
+<td>
+
+<p>Output from <code>ReadGrib</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>resolution</code></td>
+<td>
+
+<p>Resolution of grid, in degrees if <code>grid.type = "latlon"</code>, in kilometers if <code>grid.type = "cartesian"</code>, as a 2 element vector <code>c(East-West, North-South)</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>levels</code></td>
+<td>
+
+<p>The model levels to include in the grid, if NULL, include all of them.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>variables</code></td>
+<td>
+
+<p>The model variables to include in grid, if NULL, include all of them.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model.domain</code></td>
+<td>
+
+<p>A vector c(LEFT LON, RIGHT LON, TOP LAT, BOTTOM LAT) of the region to include in output. 
+If NULL, include everything.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>If you set the spacing of lon.grid and/or lat.grid coarser than the downloaded model grid, you can reduce the resolution of your model, possibly making it easier to handle.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>z</code></td>
+<td>
+<p>An array of dimensions levels x variables x lon x lat; each level x variable contains the model grid of data from that variable and level</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Vector of longitudes</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Vector of latitudes</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>variables</code></td>
+<td>
+<p>The variables contained in the grid</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>levels</code></td>
+<td>
+<p>The levels contained in the grid</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model.run.date</code></td>
+<td>
+<p>When the forecast model was run</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fcst.date</code></td>
+<td>
+<p>The date of the forecast</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>Only use this function when the model grid is regular.
+For example, the GFS high resolution model is 0.5 x 0.5 degree across its domain.
+I have provided this function as a convenience since I only use it for manipulating GFS model data.
+I am not sure how well it works for other models. 
+Consider yourself warned!
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Daniel C. Bowman <a href="mailto:danny.c.bowman@gmail.com">danny.c.bowman@gmail.com</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>ReadGrib</code>, <code>DODSGrab</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+#Get some example data 
+urls.out &lt;- CrawlModels(abbrev = "gfs_0p50", depth = 1)
+model.parameters &lt;- ParseModelPage(urls.out[1])
+levels &lt;- c("2 m above ground", "100 mb")
+variables &lt;- c("TMP", "RH") #Temperature and relative humidity
+grib.info &lt;- GribGrab(urls.out[1], model.parameters$pred[1], levels, variables)
+#Extract the data
+model.data &lt;- ReadGrib(grib.info[[1]]$file.name, levels, variables)
+
+#Make it into an array
+gfs.array &lt;- ModelGrid(model.data, c(0.5, 0.5))
+
+#What variables and levels we have
+print(gfs.array$levels)
+print(gfs.array$variables)
+
+#Find minimum temperature at the ground surface, and where it is
+min.temp &lt;- min(gfs.array$z[2, 1,,] - 273.15)
+sprintf("%.1f", min.temp) #in Celsius 
+
+ti &lt;- which(gfs.array$z[2, 1,,] == min.temp + 273.15, arr.ind = TRUE)
+
+lat &lt;- gfs.array$y[ti[1,2]] #Lat of minimum temp
+lon &lt;- gfs.array$x[ti[1,1]] #Lon of minimum temp
+
+#Find maximum temperature at 100 mb atmospheric pressure
+max.temp &lt;- max(gfs.array$z[1, 1,,]) - 273.15
+sprintf("%.1f", max.temp) #Brrr!
+
+## End(Not run)
+</code></pre>
+
+
+</div>

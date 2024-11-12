@@ -1,0 +1,374 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>load_concepts</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Load concept data</h2>
+
+<h3>Description</h3>
+
+<p>Concept objects are used in <code>ricu</code> as a way to specify how a clinical
+concept, such as heart rate can be loaded from a data source. Building on
+this abstraction, <code>load_concepts()</code> powers concise loading of data with
+data source specific preprocessing hidden away from the user, thereby
+providing a data source agnostic interface to data loading. At default
+value of the argument <code>merge_data</code>, a tabular data structure (either a
+<code>ts_tbl</code> or an <code>id_tbl</code>, depending on what kind of
+concepts are requested), inheriting from
+<code>data.table</code>, is returned, representing the data
+in wide format (i.e. returning concepts as columns).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">load_concepts(x, ...)
+
+## S3 method for class 'character'
+load_concepts(
+  x,
+  src = NULL,
+  concepts = NULL,
+  ...,
+  dict_name = "concept-dict",
+  dict_dirs = NULL
+)
+
+## S3 method for class 'integer'
+load_concepts(
+  x,
+  src = NULL,
+  concepts = NULL,
+  ...,
+  dict_name = "concept-dict",
+  dict_dirs = NULL
+)
+
+## S3 method for class 'numeric'
+load_concepts(x, ...)
+
+## S3 method for class 'concept'
+load_concepts(
+  x,
+  src = NULL,
+  aggregate = NULL,
+  merge_data = TRUE,
+  verbose = TRUE,
+  ...
+)
+
+## S3 method for class 'cncpt'
+load_concepts(x, aggregate = NULL, ..., progress = NULL)
+
+## S3 method for class 'num_cncpt'
+load_concepts(x, aggregate = NULL, ..., progress = NULL)
+
+## S3 method for class 'unt_cncpt'
+load_concepts(x, aggregate = NULL, ..., progress = NULL)
+
+## S3 method for class 'fct_cncpt'
+load_concepts(x, aggregate = NULL, ..., progress = NULL)
+
+## S3 method for class 'lgl_cncpt'
+load_concepts(x, aggregate = NULL, ..., progress = NULL)
+
+## S3 method for class 'rec_cncpt'
+load_concepts(
+  x,
+  aggregate = NULL,
+  patient_ids = NULL,
+  id_type = "icustay",
+  interval = hours(1L),
+  ...,
+  progress = NULL
+)
+
+## S3 method for class 'item'
+load_concepts(
+  x,
+  patient_ids = NULL,
+  id_type = "icustay",
+  interval = hours(1L),
+  progress = NULL,
+  ...
+)
+
+## S3 method for class 'itm'
+load_concepts(
+  x,
+  patient_ids = NULL,
+  id_type = "icustay",
+  interval = hours(1L),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Object specifying the data to be loaded</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Passed to downstream methods</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>src</code></td>
+<td>
+<p>A character vector, used to subset the <code>concepts</code>; <code>NULL</code>
+means no subsetting</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>concepts</code></td>
+<td>
+<p>The concepts to be used, or <code>NULL</code>. In the latter case the
+standard ricu dictionary (obtained by calling <code>load_dictionary()</code>) is used
+for loading the objects specified in <code>x</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dict_name, dict_dirs</code></td>
+<td>
+<p>In case not concepts are passed as <code>concepts</code>,
+these are forwarded to <code>load_dictionary()</code> as <code>name</code> and <code>file</code> arguments</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aggregate</code></td>
+<td>
+<p>Controls how data within concepts is aggregated</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>merge_data</code></td>
+<td>
+<p>Logical flag, specifying whether to merge concepts into
+wide format or return a list, each entry corresponding to a concept</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Logical flag for muting informational output</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>progress</code></td>
+<td>
+<p>Either <code>NULL</code>, or a progress bar object as created by
+progress::progress_bar</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>patient_ids</code></td>
+<td>
+<p>Optional vector of patient ids to subset the fetched data
+with</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id_type</code></td>
+<td>
+<p>String specifying the patient id type to return</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interval</code></td>
+<td>
+<p>The time interval used to discretize time stamps with,
+specified as <code>base::difftime()</code> object</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>In order to allow for a large degree of flexibility (and extensibility),
+which is much needed owing to considerable heterogeneity presented by
+different data sources, several nested S3 classes are involved in
+representing a concept and <code>load_concepts()</code> follows this hierarchy of
+classes recursively when
+resolving a concept. An outline of this hierarchy can be described as
+</p>
+
+<ul>
+<li> <p><code>concept</code>: contains many <code>cncpt</code> objects (of potentially differing
+sub-types), each comprising of some meta-data and an <code>item</code> object
+</p>
+</li>
+<li> <p><code>item</code>: contains many <code>itm</code> objects (of potentially differing
+sub-types), each encoding how to retrieve a data item.
+</p>
+</li>
+</ul>
+<p>The design choice for wrapping a vector of <code>cncpt</code> objects with a container
+class <code>concept</code> is motivated by the requirement of having several different
+sub-types of <code>cncpt</code> objects (all inheriting from the parent type <code>cncpt</code>),
+while retaining control over how this homogeneous w.r.t. parent type, but
+heterogeneous w.r.t. sub-type vector of objects behaves in terms of S3
+generic functions.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An <code>id_tbl</code>/<code>ts_tbl</code> or a list thereof, depending on loaded
+concepts and the value passed as <code>merge_data</code>.
+</p>
+
+
+<h3>Concept</h3>
+
+<p>Top-level entry points are either a character vector of concept names or an
+integer vector of concept IDs (matched against <code>omopid</code> fields), which are
+used to subset a <code>concept</code> object or an entire concept dictionary, or a <code>concept</code> object. When passing a
+character/integer vector as first argument, the most important further
+arguments at that level control from where the dictionary is taken
+(<code>dict_name</code> or <code>dict_dirs</code>). At <code>concept</code> level, the most important
+additional arguments control the result structure: data merging can be
+disabled using <code>merge_data</code> and data aggregation is governed by the
+<code>aggregate</code> argument.
+</p>
+<p>Data aggregation is important for merging several concepts into a
+wide-format table, as this requires data to be unique per observation (i.e.
+by either id or combination of id and index). Several value types are
+acceptable as <code>aggregate</code> argument, the most important being <code>FALSE</code>, which
+disables aggregation, NULL, which auto-determines a suitable aggregation
+function or a string which is ultimately passed to <code>dt_gforce()</code> where it
+identifies a function such as <code>sum()</code>, <code>mean()</code>, <code>min()</code> or <code>max()</code>. More
+information on aggregation is available as aggregate().
+If the object passed as <code>aggregate</code> is scalar, it is applied to all
+requested concepts in the same way. In order to customize aggregation per
+concept, a named object (with names corresponding to concepts) of the same
+length as the number of requested concepts may be passed.
+</p>
+<p>Under the hood, a <code>concept</code> object comprises of several <code>cncpt</code> objects
+with varying sub-types (for example <code>num_cncpt</code>, representing continuous
+numeric data or <code>fct_cncpt</code> representing categorical data). This
+implementation detail is of no further importance for understanding concept
+loading and for more information, please refer to the
+<code>concept</code> documentation. The only argument that is introduced
+at <code>cncpt</code> level is <code>progress</code>, which controls progress reporting. If
+called directly, the default value of <code>NULL</code> yields messages, sent to the
+terminal. Internally, if called from <code>load_concepts()</code> at <code>concept</code> level
+(with <code>verbose</code> set to <code>TRUE</code>), a progress::progress_bar is set up in a
+way that allows nested messages to be captured and not interrupt progress
+reporting (see <code>msg_progress()</code>).
+</p>
+
+
+<h3>Item</h3>
+
+<p>A single <code>cncpt</code> object contains an <code>item</code> object, which in turn is
+composed of several <code>itm</code> objects with varying sub-types, the relationship
+<code>item</code> to <code>itm</code> being that of <code>concept</code> to <code>cncpt</code> and the rationale for
+this implementation choice is the same as previously: a container class
+used representing a vector of objects of varying sub-types, all inheriting
+form a common super-type. For more information on the <code>item</code> class, please
+refer to the relevant documentation. Arguments introduced at <code>item</code>
+level include <code>patient_ids</code>, <code>id_type</code> and <code>interval</code>. Acceptable values for
+<code>interval</code> are scalar-valued <code>base::difftime()</code> objects (see also helper
+functions such as <code>hours()</code>) and this argument essentially controls the
+time-resolution of the returned time-series. Of course, the limiting factor
+raw time resolution which is on the order of hours for data sets like
+<a href="https://physionet.org/content/mimiciii/">MIMIC-III</a> or
+<a href="https://physionet.org/content/eicu-crd">eICU</a> but can be much higher for a
+data set like <a href="https://physionet.org/content/hirid/">HiRID</a>. The argument
+<code>id_type</code> is used to specify what kind of id system should be used to
+identify different time series in the returned data. A data set like
+MIMIC-III, for example, makes possible the resolution of data to 3 nested
+ID systems:
+</p>
+
+<ul>
+<li> <p><code>patient</code> (<code>subject_id</code>): identifies a person
+</p>
+</li>
+<li> <p><code>hadm</code> (<code>hadm_id</code>): identifies a hospital admission (several of which are
+possible for a given person)
+</p>
+</li>
+<li> <p><code>icustay</code> (<code>icustay_id</code>): identifies an admission to an ICU and again has
+a one-to-many relationship to <code>hadm</code>.
+</p>
+</li>
+</ul>
+<p>Acceptable argument values are strings that match ID systems as specified
+by the data source configuration. Finally, <code>patient_ids</code>
+is used to define a patient cohort for which data can be requested. Values
+may either be a vector of IDs (which are assumed to be of the same type as
+specified by the <code>id_type</code> argument) or a tabular object inheriting from
+<code>data.frame</code>, which must contain a column named after the data set-specific
+ID system identifier (for MIMIC-III and an <code>id_type</code> argument of <code>hadm</code>,
+for example, that would be <code>hadm_id</code>).
+</p>
+
+
+<h3>Extensions</h3>
+
+<p>The presented hierarchy of S3 classes is designed with extensibility in
+mind: while the current range of functionality covers settings encountered
+when dealing with the included concepts and datasets, further data sets
+and/or clinical concepts might necessitate different behavior for data
+loading. For this reason, various parts in the cascade of calls to
+<code>load_concepts()</code> can be adapted for new requirements by defining new sub-
+classes to <code>cncpt</code> or <code>itm</code> and  providing methods for the generic function
+<code>load_concepts()</code>specific to these new classes. At <code>cncpt</code> level, method
+dispatch defaults to <code>load_concepts.cncpt()</code> if no method specific to the
+new class is provided, while at <code>itm</code> level, no default function is
+available.
+</p>
+<p>Roughly speaking, the semantics for the two functions are as follows:
+</p>
+
+<ul>
+<li> <p><code>cncpt</code>: Called with arguments <code>x</code> (the current <code>cncpt</code> object),
+<code>aggregate</code> (controlling how aggregation per time-point and ID is
+handled), <code>...</code> (further arguments passed to downstream methods) and
+<code>progress</code> (controlling progress reporting), this function should be able
+to load and aggregate data for the given concept. Usually this involves
+extracting the <code>item</code> object and calling <code>load_concepts()</code> again,
+dispatching on the <code>item</code> class with arguments <code>x</code> (the given <code>item</code>),
+arguments passed as <code>...</code>, as well as <code>progress</code>.
+</p>
+</li>
+<li> <p><code>itm</code>: Called with arguments <code>x</code> (the current object inheriting from
+<code>itm</code>, <code>patient_ids</code> (<code>NULL</code> or a patient ID selection), <code>id_type</code> (a
+string specifying what ID system to retrieve), and <code>interval</code> (the time
+series interval), this function actually carries out the loading of
+individual data items, using the specified ID system, rounding times to
+the correct interval and subsetting on patient IDs. As return value, on
+object of class as specified by the <code>target</code> entry is expected and all
+<code>data_vars()</code> should be named consistently, as data corresponding to
+multiple <code>itm</code> objects concatenated in row-wise fashion as in
+<code>base::rbind()</code>.
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">if (require(mimic.demo)) {
+dat &lt;- load_concepts("glu", "mimic_demo")
+
+gluc &lt;- concept("gluc",
+  item("mimic_demo", "labevents", "itemid", list(c(50809L, 50931L)))
+)
+
+identical(load_concepts(gluc), dat)
+
+class(dat)
+class(load_concepts(c("sex", "age"), "mimic_demo"))
+}
+
+</code></pre>
+
+
+</div>

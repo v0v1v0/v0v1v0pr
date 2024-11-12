@@ -1,0 +1,557 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rforest</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Random Forest via Rank-Based Trees for Single Sample Classification with Gene Expression Profiles
+</h2>
+
+<h3>Description</h3>
+
+<p>The function implements the ensembled rank-based trees in random forests on both binary and multi-class problems. It converts continuous gene expression profiles into
+ranked gene pairs, for which the variable importance indices are computed and adopted for dimension reduction.   The random forest implementation was directly imported from the <span class="pkg">randomForestSRC</span>
+package.  Use the command <code>package?randomForestSRC</code> for more information.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rforest(formula, data,
+  dimreduce = TRUE,
+  datrank = TRUE,
+  ntree = 500, mtry = NULL,
+  nodesize = NULL, nodedepth = NULL,
+  splitrule = NULL, nsplit = NULL,
+  importance = c(FALSE, TRUE, "none", "anti", "permute", "random"),
+  bootstrap = c("by.root", "none"),
+  membership = FALSE,
+  na.action = c("na.omit", "na.impute"), nimpute = 1,
+  perf.type = NULL,
+  xvar.wt = NULL, yvar.wt = NULL, split.wt = NULL, case.wt  = NULL,
+  forest = TRUE,
+  var.used = c(FALSE, "all.trees", "by.tree"),
+  split.depth = c(FALSE, "all.trees", "by.tree"),
+  seed = NULL,
+  statistics = FALSE,
+  ...)
+
+## convenient interface for growing a rank-based tree
+rforest.tree(formula, data, dimreduce = FALSE,
+             ntree = 1, mtry = ncol(data),
+             bootstrap = "none", ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>Object of class 'formula' describing the model to fit.
+Interaction terms are not supported. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>Data frame containing the y-outcome and x-variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dimreduce</code></td>
+<td>
+<p>Dimension reduction via variable importance weighted forests. <code>FALSE</code>
+means no dimension reduction; <code>TRUE</code> means reducing 75% variables before binary rank conversion and then fitting a weighted forest; a numeric value x% between 0 and 1 means reducing x% variables before binary rank conversion and then fitting a weighted forest.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>datrank</code></td>
+<td>
+<p> If using ranked raw data for fitting the dimension reduction model. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ntree</code></td>
+<td>
+<p>Number of trees.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mtry</code></td>
+<td>
+<p>Number of variables to possibly split at each node.
+Default is number of variables divided by 3 for regression.  For all
+other families (including unsupervised settings), the square root
+of number of variables.  Values are rounded up.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nodesize</code></td>
+<td>
+<p>Minumum size of terminal node.  The defaults are:
+survival (15), competing risk (15), regression (5), classification
+(1), mixed outcomes (3), unsupervised (3).  It is recommended to
+experiment with different <code>nodesize</code> values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nodedepth</code></td>
+<td>
+<p>Maximum depth to which a tree should be grown.
+Parameter is ignored by default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>splitrule</code></td>
+<td>
+<p>Splitting rule (see below).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nsplit</code></td>
+<td>
+<p>Non-negative integer specifying number of random splits
+for splitting a variable.  When zero, all split values are
+used (deterministic splitting), which can be slower.  By default
+10 is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>importance</code></td>
+<td>
+<p>Method for computing variable importance (VIMP); see
+below.  Default action is <code>importance="none"</code> but VIMP can
+be recovered later using <code>vimp</code> or <code>predict</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bootstrap</code></td>
+<td>
+<p>Bootstrap protocol.  Default is <code>by.root</code> which
+bootstraps the data by sampling without replacement.
+If <code>none</code>, the data is not bootstrapped (it is not possible to
+return OOB ensembles or prediction error in this case).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>membership</code></td>
+<td>
+<p>Should terminal node membership and inbag
+information be returned?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na.action</code></td>
+<td>
+<p>Action taken if the data contains <code>NA</code>'s.
+Possible values are <code>na.omit</code> or <code>na.impute</code>.  The default
+<code>na.omit</code> removes the entire record if any entry is
+<code>NA</code>. Selecting <code>na.impute</code> imputes the data (see below
+for details).  Also see the function <code>impute</code> for fast
+imputation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nimpute</code></td>
+<td>
+<p>Number of iterations of the missing data algorithm.
+Performance measures such as out-of-bag (OOB) error rates are
+optimistic if <code>nimpute</code> is greater than 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>perf.type</code></td>
+<td>
+<p>Optional character value specifying metric used
+for predicted value, variable importance (VIMP), and error rate.
+Reverts to the family default metric if not specified.
+Values allowed for
+univariate/multivariate classification are:
+<code>perf.type="misclass"</code> (default), <code>perf.type="brier"</code> and
+<code>perf.type="gmean"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xvar.wt</code></td>
+<td>
+<p>Vector of non-negative weights (does not have to sum
+to 1) representing the probability of selecting a variable for
+splitting.  Default is uniform weights.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yvar.wt</code></td>
+<td>
+<p>Used for sending in features with custom splitting.
+For expert use only.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>split.wt</code></td>
+<td>
+<p>Vector of non-negative weights used for multiplying
+the split statistic for a variable. A large value encourages the
+node to split on a specific variable. Default is uniform
+weights.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>case.wt</code></td>
+<td>
+<p>Vector of non-negative weights (does not have to sum to
+1) for sampling cases.  Observations with larger weights will be
+selected with higher probability in the bootstrap (or subsampled)
+samples.  It is generally better to use real weights rather than
+integers. See the breast data example below illustrating its use
+for class imbalanced data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>forest</code></td>
+<td>
+<p>Save key forest values?  Used for prediction on new data
+and required by many of the package functions. Turn this off if you
+are only interested in training a forest.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>var.used</code></td>
+<td>
+<p>Return statistics on number of times a variable split?
+Default is <code>FALSE</code>.  Possible values are <code>all.trees</code> which
+returns total number of splits of each variable, and <code>by.tree</code>
+which returns a matrix of number a splits for each variable for each
+tree.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>split.depth</code></td>
+<td>
+<p>Records the minimal depth for each variable.
+Default is <code>FALSE</code>.  Possible values are <code>all.trees</code> which
+returns a matrix of the average minimal depth for a variable
+(columns) for a specific case (rows), and <code>by.tree</code> which
+returns a three-dimensional array recording minimal depth for a
+specific case (first dimension) for a variable (second dimension)
+for a specific tree (third dimension).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>Negative integer specifying seed for the random number
+generator.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>statistics</code></td>
+<td>
+<p>Should split statistics be returned?  Values can be
+parsed using <code>stat.split</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments passed to or from other methods.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><em>Splitting</em>
+</p>
+
+<ol>
+<li>
+<p> Splitting rules are specified by the option <code>splitrule</code>.
+</p>
+</li>
+<li>
+<p> For all families, pure random splitting can be invoked by setting
+<code>splitrule="random"</code>.
+</p>
+</li>
+<li>
+<p> For all families, computational speed can be increased using
+randomized splitting invoked by the option <code>nsplit</code>.
+See Improving Computational Speed.
+</p>
+</li>
+</ol>
+<p><em>Available splitting rules</em>
+</p>
+
+<ol>
+<li> <p><code>splitrule="gini"</code> (default splitrule): Gini
+index splitting (Breiman et al. 1984, Chapter 4.3).
+</p>
+</li>
+<li> <p><code>splitrule="auc"</code>: AUC (area under the ROC curve) splitting
+for both two-class and multiclass setttings.  AUC splitting is
+appropriate for imbalanced data.  See <code>imbalanced</code> for
+more information.
+</p>
+</li>
+<li> <p><code>splitrule="entropy"</code>: entropy splitting (Breiman et
+al. 1984, Chapter 2.5, 4.3).
+</p>
+</li>
+</ol>
+<h3>Value</h3>
+
+<p>An object of class <code>(rfsrc, grow)</code> with the following
+components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>The original call to <code>rfsrc</code> for growing the random forest object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>The family used in the analysis.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>Sample size of the data (depends upon <code>NA</code>'s, see <code>na.action</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ntree</code></td>
+<td>
+<p>Number of trees grown.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mtry</code></td>
+<td>
+<p>Number of variables randomly selected for splitting at each node.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nodesize</code></td>
+<td>
+<p>Minimum size of terminal nodes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nodedepth</code></td>
+<td>
+<p>Maximum depth allowed for a tree.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>splitrule</code></td>
+<td>
+<p>Splitting rule used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nsplit</code></td>
+<td>
+<p>Number of randomly selected split points.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yvar</code></td>
+<td>
+<p>y-outcome values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yvar.names</code></td>
+<td>
+<p>A character vector of the y-outcome names.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xvar</code></td>
+<td>
+<p>Data frame of x-variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xvar.names</code></td>
+<td>
+<p>A character vector of the x-variable names.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xvar.wt</code></td>
+<td>
+<p>Vector of non-negative weights for dimension reduction
+which specify the probability used to select a variable for splitting a node.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>split.wt</code></td>
+<td>
+<p>Vector of non-negative weights specifying
+multiplier by which the split statistic for a covariate is adjusted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cause.wt</code></td>
+<td>
+<p>Vector of weights used for the composite competing
+risk splitting rule.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>leaf.count</code></td>
+<td>
+<p>Number of terminal nodes for each tree in the
+forest. Vector of length <code>ntree</code>.  A value of zero indicates
+a rejected tree (can occur when imputing missing data).
+Values of one indicate tree stumps.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>proximity</code></td>
+<td>
+<p>Proximity matrix recording the frequency of pairs of data points
+occur within the same terminal node.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>forest</code></td>
+<td>
+<p>If <code>forest=TRUE</code>, the forest object is returned.
+This object is used for prediction with new test data
+sets and is required for other R-wrappers.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>membership</code></td>
+<td>
+<p>Matrix recording terminal node membership where
+each column records node mebership for a case for a tree (rows).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>splitrule</code></td>
+<td>
+<p>Splitting rule used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inbag</code></td>
+<td>
+<p>Matrix recording inbag membership where each column
+contains the number of times that a case appears in the bootstrap
+sample for a tree (rows).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>var.used</code></td>
+<td>
+<p>Count of the number of times a variable is used in
+growing the forest.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>imputed.indv</code></td>
+<td>
+<p>Vector of indices for cases with missing
+values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>imputed.data</code></td>
+<td>
+<p>Data frame of the imputed data. The first
+column(s) are reserved for the y-outcomes, after which the
+x-variables are listed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>split.depth</code></td>
+<td>
+<p>Matrix (i,j) or array (i,j,k) recording the
+minimal depth for variable j for case i, either averaged over
+the forest, or by tree k.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>node.stats</code></td>
+<td>
+<p>Split statistics returned when
+<code>statistics=TRUE</code> which can be parsed using <code>stat.split</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>err.rate</code></td>
+<td>
+<p>Tree cumulative OOB error rate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>importance</code></td>
+<td>
+<p>Variable importance (VIMP) for each x-variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predicted</code></td>
+<td>
+<p>In-bag predicted value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predicted.oob</code></td>
+<td>
+<p>OOB predicted value.</p>
+</td>
+</tr>
+</table>
+<p><br></p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>class</code></td>
+<td>
+<p>In-bag predicted class labels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>class.oob</code></td>
+<td>
+<p>OOB predicted class labels.</p>
+</td>
+</tr>
+</table>
+<p><br></p>
+
+
+<h3>Author(s)</h3>
+
+<p>Ruijie Yin (Maintainer,&lt;ruijieyin428@gmail.com&gt;), Chen Ye and Min Lu
+</p>
+
+
+<h3>References</h3>
+
+<p>Lu M. Yin R. and Chen X.S. Ensemble Methods of Rank-Based Trees for Single Sample Classification with Gene Expression Profiles. Journal of Translational Medicine. 22, 140 (2024). doi: 10.1186/s12967-024-04940-2
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+data(tnbc)
+########### performance of Random Rank Forest
+obj &lt;- rforest(subtype~., data = tnbc[,c(1:10,337)])
+obj
+
+</code></pre>
+
+
+</div>

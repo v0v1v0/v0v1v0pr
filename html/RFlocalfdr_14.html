@@ -1,0 +1,168 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>plotQ</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>plotQ</h2>
+
+<h3>Description</h3>
+
+<p>produces a plot showing the q values
+</p>
+
+<ul>
+<li>
+<p> q_95, the 95th quantile of the data
+</p>
+</li>
+<li>
+<p> q using the penalized selection method of Gauran et.al 2018
+</p>
+</li>
+</ul>
+<h3>Usage</h3>
+
+<pre><code class="language-R">plotQ(imp, debug.flag = 0, temp.dir = NULL, try.counter = 3)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>imp</code></td>
+<td>
+<p>"reduction in impurity" importances from a random forest model</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>debug.flag</code></td>
+<td>
+<p>either 0 (no debugging information), 1 or 2</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>temp.dir</code></td>
+<td>
+<p>if debug flag is &gt;0 then information is written to temp.dir</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>try.counter</code></td>
+<td>
+<p>where to explain this?</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>We estiamte a value "q" such that:
+to the left of "q", the density is composed solely of NULL importance values
+to the right of "q" we have  a density that is a mixture of null and non-null  importance values.
+The method of Gauran et.al 2018 may not work in cases where the data distribution is not well modelled by a skew-normal.
+The q_95 value can be uses as a workaround in these case.
+In many cases they will be very similar
+</p>
+
+
+<h3>Value</h3>
+
+
+<ul>
+<li>
+<p> df, contains x and y, midpoints and counts from a histogram of imp
+</p>
+</li>
+<li>
+<p> final.estimates_C_0.95, the output from the fitting routine nlsLM in minpack.lm, where df has been truncated
+at the value C_0.95 (the 0.95 quantile of the skew-Normal distribution fitted to the imp histogram
+</p>
+</li>
+<li>
+<p> final.estimates_cc, as for final.estimates_C_0.95 but with cc determined by the procedure of Gauran et.al 2018
+</p>
+</li>
+<li>
+<p> temp.dir,  the directory where debugging information may be written
+</p>
+</li>
+<li>
+<p> C_0.95, the 0.95 quantile of the skew-Normal distribution fitted to the imp histogram
+</p>
+</li>
+<li>
+<p> cc,  determined by the procedure of Gauran et.al 2018
+</p>
+</li>
+<li>
+<p> fileConn, a file connectin for writing debugging information
+</p>
+</li>
+<li>
+<p> f_fit, a spline fit to the histogram
+</p>
+</li>
+<li>
+<p> ww the minimum value of the local fdr
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(imp20000)
+imp &lt;- log(imp20000$importances)
+t2 &lt;- imp20000$counts
+plot(density((imp)))
+hist(imp,col=6,lwd=2,breaks=100,main="histogram of importances")
+res.temp &lt;- determine_cutoff(imp, t2 ,cutoff=c(0,1,2,3),plot=c(0,1,2,3),Q=0.75,try.counter=1)
+plot(c(0,1,2,3),res.temp[,3])
+imp&lt;-imp[t2 &gt; 1]
+qq &lt;- plotQ(imp,debug.flag = 0)                                                          
+ppp&lt;-run.it.importances(qq,imp,debug=0)                                                       
+aa&lt;-significant.genes(ppp,imp,cutoff=0.2,debug.flag=0,do.plot=2, use_95_q=TRUE)                           
+length(aa$probabilities) #11#                                                          
+names(aa$probabilities)
+
+
+library(RFlocalfdr.data)
+data(ch22)                                                                                 
+?ch22                                                                                     
+#document how the data set is created                                                      
+plot(density(log(ch22$imp)))                                                               
+t2 &lt;-ch22$C                                                                                
+imp&lt;-log(ch22$imp)                                                                         
+#Detemine a cutoff to get a unimodal density.
+# This was calculated previously. See determine_cutoff
+imp&lt;-imp[t2 &gt; 30]
+qq &lt;- plotQ(imp,debug.flag = 0)
+
+data(smoking)
+?smoking 
+y&lt;-smoking$y
+smoking_data&lt;-smoking$rma
+y.numeric &lt;-ifelse((y=="never-smoked"),0,1)
+
+library(ranger)
+rf1 &lt;-ranger::ranger(y=y.numeric ,x=smoking_data,importance="impurity",seed=123, num.trees = 10000,
+             classification=TRUE)
+t2 &lt;-count_variables(rf1)
+imp&lt;-log(rf1$variable.importance)
+plot(density(imp),xlab="log importances",main="")
+cutoffs &lt;- c(2,3,4,5)
+res.con&lt;- determine_cutoff(imp,t2,cutoff=cutoffs,plot=c(2,3,4,5))
+
+plot(cutoffs,res.con[,3],pch=15,col="red",cex=1.5,ylab="max(abs(y - t1))")
+cutoffs[which.min(res.con[,3])]
+
+temp&lt;-imp[t2 &gt; 3]
+temp &lt;- temp - min(temp) + .Machine$double.eps
+qq &lt;- plotQ(temp)
+ppp&lt;-run.it.importances(qq,temp,debug.flag = 0)
+aa&lt;-significant.genes(ppp,temp,cutoff=0.05,debug.flag=0,do.plot=TRUE,use_95_q=TRUE)
+length(aa$probabilities) # 17
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,414 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>riskParityPortfolio</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Design of risk parity portfolios</h2>
+
+<h3>Description</h3>
+
+<p>This function designs risk parity portfolios to equalize/distribute
+the risk contributions of the different assets, which is missing if we simply
+consider the overall volatility of the portfolio as in the mean-variance
+Markowitz portfolio. In addition to the vanilla formulation, where the risk
+contributions are perfectly equalized subject to no shortselling and budget
+constraints, many other formulations are considered that allow for box
+constraints, as well as the inclusion of additional objectives like the
+expected return and overall variance. In short, this function solves the
+following problem:
+</p>
+<p><code>minimize    R(w) - lmd_mu * t(w) %*% mu + lmd_var * t(w) %*% Sigma %*% w</code>
+</p>
+<p><code>subject to  sum(w) = 1, w_lb &lt;= w &lt;= w_ub</code>,
+<code>            Cmat %*% w = cvec, Dmat %*% w &lt;= dvec</code>,
+</p>
+<p>where <code>R(w)</code> denotes the risk concentration,
+<code>t(w) %*% mu</code> is the expected return, <code>t(w) %*% Sigma %*% w</code> is the
+overall variance, <code>lmd_mu</code> and <code>lmd_var</code> are the trade-off weights
+for the expected return and the variance terms, respectively, <code>w_lb</code> and
+<code>w_ub</code> are the lower and upper bound vector values for the portfolio vector <code>w</code>,
+<code>Cmat %*% w = cvec</code> denotes arbitrary linear equality constrains, and
+<code>Dmat %*% w = dvec</code> denotes arbitrary linear inequality constrains.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">riskParityPortfolio(
+  Sigma,
+  b = NULL,
+  mu = NULL,
+  lmd_mu = 0,
+  lmd_var = 0,
+  w_lb = 0,
+  w_ub = 1,
+  Cmat = NULL,
+  cvec = NULL,
+  Dmat = NULL,
+  dvec = NULL,
+  method_init = c("cyclical-spinu", "cyclical-roncalli", "newton"),
+  method = c("sca", "alabama", "slsqp"),
+  formulation = NULL,
+  w0 = NULL,
+  theta0 = NULL,
+  gamma = 0.9,
+  zeta = 1e-07,
+  tau = NULL,
+  maxiter = 1000,
+  ftol = 1e-08,
+  wtol = 5e-07,
+  use_gradient = TRUE,
+  use_qp_solver = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Sigma</code></td>
+<td>
+<p>Covariance or correlation matrix (this is the only mandatory argument).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>b</code></td>
+<td>
+<p>Budget vector, i.e., the risk budgeting targets. The default is the
+uniform 1/N vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mu</code></td>
+<td>
+<p>Vector of expected returns (only needed if the expected return term
+is desired in the objective).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lmd_mu</code></td>
+<td>
+<p>Scalar weight to control the importance of the expected return term.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lmd_var</code></td>
+<td>
+<p>Scalar weight to control the importance of the variance term
+(only currently available for the SCA method).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w_lb</code></td>
+<td>
+<p>Lower bound (either a vector or a scalar) on the value of each
+portfolio weight.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w_ub</code></td>
+<td>
+<p>Upper bound (either a vector or a scalar) on the value of each
+portfolio weight.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Cmat</code></td>
+<td>
+<p>Equality constraints matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cvec</code></td>
+<td>
+<p>Equality constraints vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Dmat</code></td>
+<td>
+<p>Inequality constraints matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dvec</code></td>
+<td>
+<p>Inequality constraints vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method_init</code></td>
+<td>
+<p>Method to compute the vanilla solution. In case of
+additional constraints or objective terms, this solution is used as
+the initial point for the subsequent method. The default is
+<code>"cyclical-spinu"</code>. See details below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Method to solve the non-vanilla formulation. The default is <code>"sca"</code>.
+See details below. (DEPRECATED)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formulation</code></td>
+<td>
+<p>String indicating the risk concentration formulation to be used.
+It must be one of: "diag", "rc-double-index",
+"rc-over-b-double-index", "rc-over-var vs b",
+"rc-over-var", "rc-over-sd vs b-times-sd",
+"rc vs b-times-var", "rc vs theta", or
+"rc-over-b vs theta". The default is "rc-over-b-double-index".
+If <code>formulation</code> is not provided and no additional terms or
+constraints are set, such as expected return or shortselling, then the
+vanilla risk parity portfolio will be returned. If formulation is
+"diag" then the analytical solution of the risk parity optimization for
+for a diagonal covariance matrix will be returned. See details below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w0</code></td>
+<td>
+<p>Initial value for the portfolio weights. Default is a convex
+combination of the risk parity portfolio, the (uncorrelated) minimum variance
+portfolio, and the maximum return portfolio.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>theta0</code></td>
+<td>
+<p>Initial value for theta (in case formulation uses theta). If not provided,
+the optimum solution for a fixed vector of portfolio weights will be used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gamma</code></td>
+<td>
+<p>Learning rate for the SCA method.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zeta</code></td>
+<td>
+<p>Factor used to decrease the learning rate at each iteration for the SCA method.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tau</code></td>
+<td>
+<p>Regularization factor.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxiter</code></td>
+<td>
+<p>Maximum number of iterations for the SCA loop.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ftol</code></td>
+<td>
+<p>Convergence tolerance on the objective function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>wtol</code></td>
+<td>
+<p>Convergence tolerance on the values of the portfolio weights.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use_gradient</code></td>
+<td>
+<p>This parameter is meaningful only if method is either
+<code>"alabama"</code> or <code>"slsqp"</code>. If <code>TRUE</code> (default value), analytical gradients of the
+objective function will be used (strongly recommended to achieve faster results).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use_qp_solver</code></td>
+<td>
+<p>Whether or not to use the general QP solver from
+quadprog to solve each iteration of the SCA algorithm. Default is TRUE.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>By default, the problem considered is the vanilla risk parity portfolio:
+<code>w &gt;= 0, sum(w) = 1</code>, with no expected return term, and no variance term. In this case,
+the problem formulation is convex and the optimal solution is guaranteed to be achieved with
+a perfect risk concentration, i.e., <code>R(w) = 0</code>. By default, we use the formulation by
+Spinu (2013) (<code>method_init = "cyclical-spinu"</code>), but the user can also select the formulation
+by Roncalli et al. (2013) (<code>method_init = "cyclical-roncalli"</code>).
+</p>
+<p>In case of additional box constraints, expected return term, or variance term,
+then the problem is nonconvex and the global optimal solution cannot be
+guaranteed, just a local optimal. We use the efficient sucessive
+convex approximation (SCA) method proposed in Feng &amp; Palomar (2015),
+where the user can choose among many different risk concentration
+terms (through the argument <code>formulation</code>), namely:
+</p>
+
+<ul>
+<li>
+<p><code>formulation = "rc-double-index":</code> <code>sum_{i,j} (r_i - r_j)^2</code>
+</p>
+</li>
+<li>
+<p><code>formulation = "rc-vs-theta":</code> <code>sum_{i} (r_i - theta)^2</code>
+</p>
+</li>
+<li>
+<p><code>formulation = "rc-over-var-vs-b":</code> <code>sum_{i} (r_i/r - b_i)^2</code>
+</p>
+</li>
+<li>
+<p><code>formulation = "rc-over-b double-index":</code> <code>sum_{i,j} (r_i/b_i - r_j/b_j)^2</code>
+</p>
+</li>
+<li>
+<p><code>formulation = "rc-vs-b-times-var":</code> <code>sum_{i} (r_i - b_i*r)^2</code>
+</p>
+</li>
+<li>
+<p><code>formulation = "rc-over-sd vs b-times-sd":</code> <code>sum_{i} (r_i/sqrt(r) - b_i*sqrt(r))^2</code>
+</p>
+</li>
+<li>
+<p><code>formulation = "rc-over-b vs theta":</code> <code>sum_{i} (r_i/b_i - theta)^2</code>
+</p>
+</li>
+<li>
+<p><code>formulation = "rc-over-var":</code> <code>sum_{i} (r_i/r)^2</code></p>
+</li>
+</ul>
+<p>where <code>r_i = w_i*(Sigma%*%w)_i</code> is the risk contribution and
+<code>r = t(w)%*%Sigma%*%w</code> is the overall risk (i.e., variance).
+</p>
+<p>For more details, please check the vignette.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list containing possibly the following elements:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>w</code></td>
+<td>
+<p>Optimal portfolio vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>relative_risk_contribution</code></td>
+<td>
+<p>The relative risk contribution of every asset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>theta</code></td>
+<td>
+<p>Optimal value for theta (in case that it is part of
+the chosen formulation.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>obj_fun</code></td>
+<td>
+<p>Sequence of values of the objective function at each iteration.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>risk_concentration</code></td>
+<td>
+<p>Risk concentration term of the portfolio <code>R(w)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mean_return</code></td>
+<td>
+<p>Expected return term of the portoflio <code>t(w)%*%mu</code>,
+if the term is included in the optimization.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>variance</code></td>
+<td>
+<p>Variance term of the portfolio <code>t(w)%*%Sigma%*%w</code>,
+if the term is included in the optimization.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>elapsed_time</code></td>
+<td>
+<p>Elapsed time recorded at every iteration.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>convergence</code></td>
+<td>
+<p>Boolean flag to indicate whether or not the optimization converged.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>is_feasible</code></td>
+<td>
+<p>Boolean flag to indicate whether or not the computed portfolio respects the linear constraints.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Ze Vinicius and Daniel P. Palomar
+</p>
+
+
+<h3>References</h3>
+
+<p>Y. Feng, and D. P. Palomar (2015). SCRIP: Successive Convex Optimization Methods
+for Risk Parity Portfolio Design. <em>IEEE Trans. on Signal Processing</em>,
+vol. 63, no. 19, pp. 5285-5300. &lt;https://doi.org/10.1109/TSP.2015.2452219&gt;
+</p>
+<p>F. Spinu (2013). An Algorithm for Computing Risk Parity Weights.
+&lt;https://dx.doi.org/10.2139/ssrn.2297383&gt;
+</p>
+<p>T. Griveau-Billion, J. Richard, and T. Roncalli (2013). A fast algorithm for computing High-dimensional
+risk parity portfolios. &lt;https://arxiv.org/pdf/1311.4057.pdf&gt;
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(riskParityPortfolio)
+
+# create covariance matrix
+N &lt;- 5
+V &lt;- matrix(rnorm(N^2), ncol = N)
+Sigma &lt;- cov(V)
+
+# risk parity portfolio
+res &lt;- riskParityPortfolio(Sigma)
+names(res)
+#&gt; [1] "w"                 "risk_contribution"
+
+res$w
+#&gt; [1] 0.04142886 0.38873465 0.34916787 0.09124019 0.12942842
+
+res$relative_risk_contribution
+#&gt; [1] 0.2 0.2 0.2 0.2 0.2
+
+# risk budggeting portfolio
+res &lt;- riskParityPortfolio(Sigma, b = c(0.4, 0.4, 0.1, 0.05, 0.05))
+res$relative_risk_contribution
+#&gt; [1] 0.40 0.40 0.10 0.05 0.05
+
+</code></pre>
+
+
+</div>

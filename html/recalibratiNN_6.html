@@ -1,0 +1,127 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PIT_local</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Obtain local PIT-values from a model</h2>
+
+<h3>Description</h3>
+
+<p>This function calculates local Probability Integral Transform (PIT) values using localized subregions of the covariate space from the calibration set.
+The output will be used for visualization of calibration quality using the <code>gg_CD_local()</code> and <code>gg_PIT_local()</code>function.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PIT_local(
+  xcal,
+  ycal,
+  yhat,
+  mse,
+  clusters = 6,
+  p_neighbours = 0.2,
+  PIT = PIT_global
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>xcal</code></td>
+<td>
+<p>Numeric matrix or data frame of features/covariates (x-values) from the calibration dataset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ycal</code></td>
+<td>
+<p>Numeric vector representing the true observations (y-values) of the response variable from the calibration dataset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yhat</code></td>
+<td>
+<p>Numeric vector of predicted response (y-hat-values) from the calibration dataset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mse</code></td>
+<td>
+<p>Mean Squared Error calculated from the calibration dataset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>clusters</code></td>
+<td>
+<p>Integer specifying the number of partitions to create for local calibration using the k-means method. Default is set to 6.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p_neighbours</code></td>
+<td>
+<p>Proportion of xcal used to localize neighbors in the KNN method. Default is 0.2.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>PIT</code></td>
+<td>
+<p>Function used to calculate the PIT-values. Default is set to <code>PIT_global()</code> from this package, that assumes a Gaussian distribution.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>It calculates local Probability Integral Transform (PIT) values using localized subregions of the covariate space from the calibration set.
+The centroids of such regions are derived from a k-means clustering method (from the <code>stats</code> package). The local areas around these centroids
+are defined through an approximate k-nearest neighbors method from the <code>RANN</code> package.
+Then, for this subregion, the PIT-values are calculated using the <code>PIT</code> function provided by the user. At the moment this function is tested to
+work with the <code>PIT_global()</code> function from this package, which assumes a Gaussian distribution. Eventually, it can be used with other distributions.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A tibble with five columns containing unique names for each partition ("part"), "y_cal" (true observations),
+"y_hat" (predicted values), "pit" (PIT-values), and "n" (number of neighbors) for each partition.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+n &lt;- 10000
+split &lt;- 0.8
+
+mu &lt;- function(x1){
+10 + 5*x1^2
+}
+
+sigma_v &lt;- function(x1){
+ 30*x1
+}
+
+x &lt;- runif(n, 1, 10)
+y &lt;- rnorm(n, mu(x), sigma_v(x))
+
+x_train &lt;- x[1:(n*split)]
+y_train &lt;- y[1:(n*split)]
+
+x_cal &lt;- x[(n*split+1):n]
+y_cal &lt;- y[(n*split+1):n]
+
+model &lt;- lm(y_train ~ x_train)
+
+y_hat &lt;- predict(model, newdata=data.frame(x_train=x_cal))
+
+MSE_cal &lt;- mean((y_hat - y_cal)^2)
+
+PIT_local(xcal = x_cal, ycal=y_cal, yhat=y_hat, mse=MSE_cal)
+
+</code></pre>
+
+
+</div>

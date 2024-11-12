@@ -1,0 +1,191 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>MCestimLFSM</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Numerical properties of statistical estimators operating on the linear fractional stable motion.</h2>
+
+<h3>Description</h3>
+
+<p>The function is useful, for instance, when one needs to compute standard deviation of <code class="reqn">\widehat \alpha_{high}</code>
+estimator given a fixed set of parameters.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">MCestimLFSM(Nmc, s, m, M, alpha, H, sigma, fr, Inference, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Nmc</code></td>
+<td>
+<p>Number of Monte Carlo repetitions</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s</code></td>
+<td>
+<p>sequence of path lengths</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m</code></td>
+<td>
+<p>discretization. A number of points between two nearby motion points</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>M</code></td>
+<td>
+<p>truncation parameter. A number of points at which the integral representing the definition of lfsm is calculated. So, after M points back we consider the rest of the integral to be 0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>self-similarity parameter of alpha stable random motion.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>H</code></td>
+<td>
+<p>Hurst parameter</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma</code></td>
+<td>
+<p>Scale parameter of lfsm</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fr</code></td>
+<td>
+<p>frequency. Either "H" or "L"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Inference</code></td>
+<td>
+<p>statistical function to apply to sample paths</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>parameters to pass to Inference</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>MCestimLFSM  performs Monte-Carlo experiments to compute parameters according to procedure Inference.
+More specifically, for each element of s it generates Nmc lfsm sample paths with length equal to s[i], performs the statistical
+inference on each, obtaining the estimates, and then returns their different statistics. It is vital that the estimator
+returns a list of named parameters (one or several of 'sigma', 'alpha' and 'H'). MCestimLFSM uses the names to lookup the true
+parameter value and compute its bias.
+</p>
+<p>For sample path generation MCestimLFSM uses a light-weight version of path, path_fast. In order to be applied,
+function Inference must accept argument 'path' as a sample path.
+</p>
+
+
+<h3>Value</h3>
+
+<p>It returns a list containing the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a data frame, values of the estimates depending on path length s</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data_nor</code></td>
+<td>
+<p>a data frame, normalized values of the estimates depending on path length s</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>means, biases, sds</code></td>
+<td>
+<p>data frames: means, biases and standard deviations of the estimators depending on s</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Inference</code></td>
+<td>
+<p>a function used to obtain estimates</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha, H, sigma</code></td>
+<td>
+<p>the parameters for which MCestimLFSM performs path generation</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>freq</code></td>
+<td>
+<p>frequency, either 'L'  for low- or 'H' for high frequency</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">#### Set of global parameters ####
+m&lt;-25; M&lt;-60
+p&lt;-.4; p_prime&lt;-.2; k&lt;-2
+t1&lt;-1; t2&lt;-2
+NmonteC&lt;-5e1
+S&lt;-c(1e2,3e2)
+alpha&lt;-1.8; H&lt;-0.8; sigma&lt;-0.3
+
+
+# How to plot empirical density
+
+theor_3_1_H_clt&lt;-MCestimLFSM(s=S,fr='H',Nmc=NmonteC,
+                     m=m,M=M,alpha=alpha,H=H,
+                     sigma=sigma,ContinEstim,
+                     t1=t1,t2=t2,p=p,k=k)
+l_plot&lt;-Plot_dens(par_vec=c('sigma','alpha','H'),
+                  MC_data=theor_3_1_H_clt, Nnorm=1e7)
+
+
+
+# For MCestimLFSM() it is vital that the estimator returns a list of named parameters
+
+H_hat_f &lt;- function(p,k,path) {hh&lt;-H_hat(p,k,path); list(H=hh)}
+theor_3_1_H_clt&lt;-MCestimLFSM(s=S,fr='H',Nmc=NmonteC,
+                     m=m,M=M,alpha=alpha,H=H,
+                     sigma=sigma,H_hat_f,
+                     p=p,k=k)
+
+
+# The estimator can return one, two or three of the parameters.
+
+est_1 &lt;- function(path) list(H=1)
+theor_3_1_H_clt&lt;-MCestimLFSM(s=S,fr='H',Nmc=NmonteC,
+                     m=m,M=M,alpha=alpha,H=H,
+                     sigma=sigma,est_1)
+
+est_2 &lt;- function(path) list(H=0.8, alpha=1.5)
+theor_3_1_H_clt&lt;-MCestimLFSM(s=S,fr='H',Nmc=NmonteC,
+                     m=m,M=M,alpha=alpha,H=H,
+                     sigma=sigma,est_2)
+
+est_3 &lt;- function(path) list(sigma=5, H=0.8, alpha=1.5)
+theor_3_1_H_clt&lt;-MCestimLFSM(s=S,fr='H',Nmc=NmonteC,
+                     m=m,M=M,alpha=alpha,H=H,
+                     sigma=sigma,est_3)
+</code></pre>
+
+
+</div>

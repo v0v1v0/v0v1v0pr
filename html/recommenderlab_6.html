@@ -1,0 +1,189 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>realRatingMatrix</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Class "realRatingMatrix": Real-valued Rating Matrix</h2>
+
+<h3>Description</h3>
+
+<p>A matrix containing ratings (typically 1-5 stars, etc.).</p>
+
+
+<h3>Objects from the Class</h3>
+
+<p>Objects can be created by calls of the form <code>new("realRatingMatrix", data = m)</code>, where <code>m</code> is sparse matrix of class
+
+<code>dgCMatrix</code> in package <span class="pkg">Matrix</span> 
+or by coercion from a regular matrix, a data.frame containing user/item/rating triplets as rows, or
+a sparse matrix in triplet form (<code>dgTMatrix</code> in package <span class="pkg">Matrix</span>).
+</p>
+
+
+<h3>Slots</h3>
+
+
+<dl>
+<dt>
+<code>data</code>:</dt>
+<dd>
+<p>Object of class
+
+<code>"dgCMatrix"</code>, a sparse matrix
+defined in package <span class="pkg">Matrix</span>. Note that this matrix drops NAs instead
+of zeroes. Operations on <code>"dgCMatrix"</code> potentially will delete
+zeroes.</p>
+</dd>
+<dt>
+<code>normalize</code>:</dt>
+<dd>
+<p><code>NULL</code> or a list with normalizaton factors. </p>
+</dd>
+</dl>
+<h3>Extends</h3>
+
+<p>Class <code>"ratingMatrix"</code>, directly.
+</p>
+
+
+<h3>Methods</h3>
+
+
+<dl>
+<dt>coerce</dt>
+<dd>
+<p><code>signature(from = "matrix", to = "realRatingMatrix")</code>: Note that
+unknown ratings have to be encoded in the matrix as NA and not as 0 (which would mean an actual rating of 0).</p>
+</dd>
+<dt>coerce</dt>
+<dd>
+<p><code>signature(from = "realRatingMatrix", to = "matrix")</code></p>
+</dd>
+<dt>coerce</dt>
+<dd>
+<p><code>signature(from = "data.frame", to = "realRatingMatrix")</code>:
+coercion from a data.frame with three columns.
+Col 1 contains user ids, col 2 contains	item ids and
+col 3 contains ratings.</p>
+</dd>
+<dt>coerce</dt>
+<dd>
+<p><code>signature(from = "realRatingMatrix", to = "data.frame")</code>: produces user/item/rating triplets.</p>
+</dd>
+<dt>coerce</dt>
+<dd>
+<p><code>signature(from = "realRatingMatrix", to = "dgTMatrix")</code></p>
+</dd>
+<dt>coerce</dt>
+<dd>
+<p><code>signature(from = "dgTMatrix", to = "realRatingMatrix")</code></p>
+</dd>
+<dt>coerce</dt>
+<dd>
+<p><code>signature(from = "realRatingMatrix", to = "dgCMatrix")</code></p>
+</dd>
+<dt>coerce</dt>
+<dd>
+<p><code>signature(from = "dgCMatrix", to = "realRatingMatrix")</code></p>
+</dd>
+<dt>coerce</dt>
+<dd>
+<p><code>signature(from = "realRatingMatrix", to = "ngCMatrix")</code></p>
+</dd>
+<dt>binarize</dt>
+<dd>
+<p><code>signature(x = "realRatingMatrix")</code>: create a
+<code>"binaryRatingMatrix"</code> by setting all ratings larger or equal to
+the argument <code>minRating</code> as 1 and all others to 0.</p>
+</dd>
+<dt>getTopNLists</dt>
+<dd>
+<p><code>signature(x = "realRatingMatrix")</code>: create
+top-N lists from the ratings in x. Arguments are
+<code>n</code> (defaults to 10),
+<code>randomize</code> (default is <code>NULL</code>) and
+<code>minRating</code> (default is <code>NA</code>).
+Items with a rating below <code>minRating</code> will not be part of the
+top-N list. <code>randomize</code> can be used to get diversity in the
+predictions by randomly selecting items with a bias to higher rated
+items. The bias is introduced by choosing the items with a probability
+proportional to the rating <code class="reqn">(r-min(r)+1)^{randomize}</code>.
+The larger the value
+the more likely it is to get very highly rated items and a negative
+value for <code>randomize</code> will select low-rated items. </p>
+</dd>
+<dt>removeKnownRatings</dt>
+<dd>
+<p><code>signature(x = "realRatingMatrix")</code>: removes
+all ratings in <code>x</code> for which ratings are available in
+the realRatingMatrix (of same dimensions as <code>x</code>)
+passed as the argument <code>known</code>. </p>
+</dd>
+<dt>rowSds</dt>
+<dd>
+<p><code>signature(x = "realRatingMatrix")</code>: calculate
+the standard deviation of ratings for rows (users).</p>
+</dd>
+<dt>colSds</dt>
+<dd>
+<p><code>signature(x = "realRatingMatrix")</code>: calculate
+the standard deviation of ratings for columns (items).</p>
+</dd>
+</dl>
+<h3>See Also</h3>
+
+<p>See <code>ratingMatrix</code> inherited methods,
+
+<code>binaryRatingMatrix</code>,
+<code>topNList</code>,
+<code>getList</code> and <code>getData.frame</code>.
+Also see <code>dgCMatrix</code>,
+<code>dgTMatrix</code> and
+<code>ngCMatrix</code>
+in <span class="pkg">Matrix</span>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## create a matrix with ratings
+m &lt;- matrix(sample(c(NA,0:5),100, replace=TRUE, prob=c(.7,rep(.3/6,6))),
+	nrow=10, ncol=10, dimnames = list(
+	    user=paste('u', 1:10, sep=''),
+	    item=paste('i', 1:10, sep='')
+    ))
+m
+
+## coerce into a realRatingMAtrix
+r &lt;- as(m, "realRatingMatrix")
+r
+
+## get some information
+dimnames(r)
+rowCounts(r) ## number of ratings per user
+colCounts(r) ## number of ratings per item
+colMeans(r) ## average item rating
+nratings(r) ## total number of ratings
+hasRating(r) ## user-item combinations with ratings
+
+## histogram of ratings
+hist(getRatings(r), breaks="FD")
+
+## inspect a subset
+image(r[1:5,1:5])
+
+## coerce it back to see if it worked
+as(r, "matrix")
+
+## coerce to data.frame (user/item/rating triplets)
+as(r, "data.frame")
+
+## binarize into a binaryRatingMatrix with all 4+ rating a 1
+b &lt;- binarize(r, minRating=4)
+b
+as(b, "matrix")
+</code></pre>
+
+
+</div>

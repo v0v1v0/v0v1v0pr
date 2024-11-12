@@ -1,0 +1,402 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>EMM.cpp</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Equation of mixed model for one kernel, a wrapper of two methods</h2>
+
+<h3>Description</h3>
+
+<p>This function estimates maximum-likelihood (ML/REML; resticted maximum likelihood) solutions for the following mixed model.
+</p>
+<p style="text-align: center;"><code class="reqn">y = X \beta + Z u + \epsilon</code>
+</p>
+
+<p>where <code class="reqn">\beta</code> is a vector of fixed effects and <code class="reqn">u</code> is a vector of random effects with
+<code class="reqn">Var[u] = K \sigma^2_u</code>. The residual variance is <code class="reqn">Var[\epsilon] = I \sigma^2_e</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">EMM.cpp(
+  y,
+  X = NULL,
+  ZETA,
+  eigen.G = NULL,
+  eigen.SGS = NULL,
+  n.thres = 450,
+  reestimation = FALSE,
+  n.core = NA,
+  lam.len = 4,
+  init.range = c(1e-06, 100),
+  init.one = 0.5,
+  conv.param = 1e-06,
+  count.max = 20,
+  bounds = c(1e-06, 1e+06),
+  tol = NULL,
+  optimizer = "nlminb",
+  traceInside = 0,
+  REML = TRUE,
+  silent = TRUE,
+  plot.l = FALSE,
+  SE = FALSE,
+  return.Hinv = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>A <code class="reqn">n \times 1</code> vector. A vector of phenotypic values should be used. NA is allowed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>A <code class="reqn">n \times p</code> matrix. You should assign mean vector (rep(1, n)) and covariates. NA is not allowed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ZETA</code></td>
+<td>
+<p>A list of variance (relationship) matrix (K; <code class="reqn">m \times m</code>) and its design matrix (Z; <code class="reqn">n \times m</code>) of random effects. You can use only one kernel matrix.
+For example, ZETA = list(A = list(Z = Z, K = K))
+Please set names of list "Z" and "K"!</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eigen.G</code></td>
+<td>
+<p>A list with
+</p>
+
+<dl>
+<dt>$values</dt>
+<dd>
+<p>Eigen values</p>
+</dd>
+<dt>$vectors</dt>
+<dd>
+<p>Eigen vectors</p>
+</dd>
+</dl>
+<p>The result of the eigen decompsition of <code class="reqn">G = ZKZ'</code>. You can use "spectralG.cpp" function in RAINBOWR.
+If this argument is NULL, the eigen decomposition will be performed in this function.
+We recommend you assign the result of the eigen decomposition beforehand for time saving.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eigen.SGS</code></td>
+<td>
+<p>A list with
+</p>
+
+<dl>
+<dt>$values</dt>
+<dd>
+<p>Eigen values</p>
+</dd>
+<dt>$vectors</dt>
+<dd>
+<p>Eigen vectors</p>
+</dd>
+</dl>
+<p>The result of the eigen decompsition of <code class="reqn">SGS</code>, where <code class="reqn">S = I - X(X'X)^{-1}X'</code>, <code class="reqn">G = ZKZ'</code>.
+You can use "spectralG.cpp" function in RAINBOWR.
+If this argument is NULL, the eigen decomposition will be performed in this function.
+We recommend you assign the result of the eigen decomposition beforehand for time saving.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.thres</code></td>
+<td>
+<p>If <code class="reqn">n &gt;= n.thres</code>, perform EMM1.cpp. Else perform EMM2.cpp.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reestimation</code></td>
+<td>
+<p>If TRUE, EMM2.cpp is performed when the estimation by EMM1.cpp may not be accurate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.core</code></td>
+<td>
+<p>Setting n.core &gt; 1 will enable parallel execution on a machine with multiple cores.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lam.len</code></td>
+<td>
+<p>The number of initial values you set. If this number is large, the estimation will be more accurate,
+but computational cost will be large. We recommend setting this value 3 &lt;= lam.len &lt;= 6.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init.range</code></td>
+<td>
+<p>The range of the initial parameters. For example, if lam.len = 5 and init.range = c(1e-06, 1e02),
+corresponding initial heritabilities will be calculated as seq(1e-06, 1 - 1e-02, length = 5),
+and then initial lambdas will be set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init.one</code></td>
+<td>
+<p>The initial parameter if lam.len = 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>conv.param</code></td>
+<td>
+<p>The convergence parameter. If the diffrence of log-likelihood by updating the parameter "lambda"
+is smaller than this conv.param, the iteration steps will be stopped.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>count.max</code></td>
+<td>
+<p>Sometimes algorithms won't converge for some initial parameters.
+So if the iteration steps reache to this argument, you can stop the calculation even if algorithm doesn't converge.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bounds</code></td>
+<td>
+<p>Lower and Upper bounds of the parameter lambda. If the updated parameter goes out of this range,
+the parameter is reset to the value in this range.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>The tolerance for detecting linear dependencies in the columns of G = ZKZ'.
+Eigen vectors whose eigen values are less than "tol" argument will be omitted from results.
+If tol is NULL, top 'n' eigen values will be effective.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optimizer</code></td>
+<td>
+<p>The function used in the optimization process. We offer "optim", "optimx", and "nlminb" functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>traceInside</code></td>
+<td>
+<p>Perform trace for the optimzation if traceInside &gt;= 1, and this argument shows the frequency of reports.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>REML</code></td>
+<td>
+<p>You can choose which method you will use, "REML" or "ML".
+If REML = TRUE, you will perform "REML", and if REML = FALSE, you will perform "ML".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>silent</code></td>
+<td>
+<p>If this argument is TRUE, warning messages will be shown when estimation is not accurate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot.l</code></td>
+<td>
+<p>If you want to plot log-likelihood, please set plot.l = TRUE.
+We don't recommend plot.l = TRUE when lam.len &gt;= 2.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SE</code></td>
+<td>
+<p>If TRUE, standard errors are calculated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return.Hinv</code></td>
+<td>
+<p>If TRUE, the function returns the inverse of <code class="reqn">H = ZKZ' + \lambda I</code> where <code class="reqn">\lambda = \sigma^2_e / \sigma^2_u</code>. This is useful for GWAS.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+
+<dl>
+<dt>$Vu</dt>
+<dd>
+<p>Estimator for <code class="reqn">\sigma^2_u</code></p>
+</dd>
+<dt>$Ve</dt>
+<dd>
+<p>Estimator for <code class="reqn">\sigma^2_e</code></p>
+</dd>
+<dt>$beta</dt>
+<dd>
+<p>BLUE(<code class="reqn">\beta</code>)</p>
+</dd>
+<dt>$u</dt>
+<dd>
+<p>BLUP(<code class="reqn">u</code>)</p>
+</dd>
+<dt>$LL</dt>
+<dd>
+<p>Maximized log-likelihood (full or restricted, depending on method)</p>
+</dd>
+<dt>$beta.SE</dt>
+<dd>
+<p>Standard error for <code class="reqn">\beta</code> (If SE = TRUE)</p>
+</dd>
+<dt>$u.SE</dt>
+<dd>
+<p>Standard error for <code class="reqn">u^*-u</code> (If SE = TRUE)</p>
+</dd>
+<dt>$Hinv</dt>
+<dd>
+<p>The inverse of <code class="reqn">H = ZKZ' + \lambda I</code> (If return.Hinv = TRUE)</p>
+</dd>
+<dt>$Hinv2</dt>
+<dd>
+<p>The inverse of <code class="reqn">H2 = ZKZ'/\lambda + I</code> (If return.Hinv = TRUE)</p>
+</dd>
+<dt>$lambda</dt>
+<dd>
+<p>Estimators for <code class="reqn">\lambda = \sigma^2_e / \sigma^2_u</code> (If <code class="reqn">n &gt;= n.thres</code>)</p>
+</dd>
+<dt>$lambdas</dt>
+<dd>
+<p>Lambdas for each initial values (If <code class="reqn">n &gt;= n.thres</code>)</p>
+</dd>
+<dt>$reest</dt>
+<dd>
+<p>If parameter estimation may not be accurate, reest = 1, else reest = 0 (If <code class="reqn">n &gt;= n.thres</code>)</p>
+</dd>
+<dt>$counts</dt>
+<dd>
+<p>The number of iterations until convergence for each initial values (If <code class="reqn">n &gt;= n.thres</code>)</p>
+</dd>
+</dl>
+<h3>References</h3>
+
+<p>Kang, H.M. et al. (2008) Efficient Control of Population Structure
+in Model Organism Association Mapping. Genetics. 178(3): 1709-1723.
+</p>
+<p>Zhou, X. and Stephens, M. (2012) Genome-wide efficient mixed-model analysis
+for association studies. Nat Genet. 44(7): 821-824.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+### Perform genomic prediction with 10-fold cross validation
+
+  ### Import RAINBOWR
+  require(RAINBOWR)
+
+  ### Load example datasets
+  data("Rice_Zhao_etal")
+  Rice_geno_score &lt;- Rice_Zhao_etal$genoScore
+  Rice_geno_map &lt;- Rice_Zhao_etal$genoMap
+  Rice_pheno &lt;- Rice_Zhao_etal$pheno
+
+  ### View each dataset
+  See(Rice_geno_score)
+  See(Rice_geno_map)
+  See(Rice_pheno)
+
+  ### Select one trait for example
+  trait.name &lt;- "Flowering.time.at.Arkansas"
+  y &lt;- as.matrix(Rice_pheno[, trait.name, drop = FALSE])
+
+  ### Remove SNPs whose MAF &lt;= 0.05
+  x.0 &lt;- t(Rice_geno_score)
+  MAF.cut.res &lt;- MAF.cut(x.0 = x.0, map.0 = Rice_geno_map)
+  x &lt;- MAF.cut.res$x
+  map &lt;- MAF.cut.res$map
+
+  ### Estimate genomic relationship matrix (GRM)
+  K.A &lt;- calcGRM(genoMat = x)
+
+  ### Modify data
+  modify.res &lt;- modify.data(pheno.mat = y, geno.mat = x, return.ZETA = TRUE)
+  pheno.mat &lt;- modify.res$pheno.modi
+  ZETA &lt;- modify.res$ZETA
+
+
+  ### Solve linear mixed effects model
+  EMM.res &lt;- EMM.cpp(y = pheno.mat, X = NULL, ZETA = ZETA)
+  (Vu &lt;- EMM.res$Vu)   ### estimated genetic variance
+  (Ve &lt;- EMM.res$Ve)   ### estimated residual variance
+  (herit &lt;- Vu / (Vu + Ve))   ### genomic heritability
+
+  (beta &lt;- EMM.res$beta)   ### Here, this is an intercept.
+  u &lt;- EMM.res$u   ### estimated genotypic values
+  See(u)
+
+  ### Estimate marker effects from estimated genotypic values
+  x.modi &lt;- modify.res$geno.modi
+  WMat &lt;- calcGRM(genoMat = x.modi, methodGRM = "addNOIA",
+                  returnWMat = TRUE)
+  K.A &lt;- ZETA$A$K
+  if (min(eigen(K.A)$values) &lt; 1e-08) {
+    diag(K.A) &lt;- diag(K.A) + 1e-06
+  }
+
+  mrkEffectsForW &lt;- crossprod(x = WMat,
+                              y = solve(K.A)) %*% as.matrix(u)
+  mrkEffects &lt;- mrkEffectsForW / mean(scale(x.modi %*% mrkEffectsForW, scale = FALSE) / u)
+
+
+
+
+  #### Cross-validation for genomic prediction
+  noNA &lt;- !is.na(c(pheno.mat))   ### NA (missing) in the phenotype data
+
+  phenoNoNA &lt;- pheno.mat[noNA, , drop = FALSE]   ### remove NA
+  ZETANoNA &lt;- ZETA
+  ZETANoNA$A$Z &lt;- ZETA$A$Z[noNA, ]   ### remove NA
+
+
+  nFold &lt;- 10    ### # of folds
+  nLine &lt;- nrow(phenoNoNA)
+  idCV &lt;- sample(1:nLine %% nFold)   ### assign random ids for cross-validation
+  idCV[idCV == 0] &lt;- nFold
+
+  yPred &lt;- rep(NA, nLine)
+
+  for (noCV in 1:nFold) {
+    yTrain &lt;- phenoNoNA
+    yTrain[idCV == noCV, ] &lt;- NA   ### prepare test data
+
+    EMM.resCV &lt;- EMM.cpp(y = yTrain, X = NULL, ZETA = ZETANoNA)   ### prediction
+    yTest &lt;-  EMM.resCV$beta + EMM.resCV$u   ### predicted values
+
+    yPred[idCV == noCV] &lt;- (yTest[noNA])[idCV == noCV]
+  }
+
+  ### Plot the results
+  plotRange &lt;- range(phenoNoNA, yPred)
+  plot(x = phenoNoNA, y = yPred,xlim = plotRange, ylim = plotRange,
+       xlab = "Observed values", ylab = "Predicted values",
+       main = "Results of Genomic Prediction",
+       cex.lab = 1.5, cex.main = 1.5, cex.axis = 1.3)
+  abline(a = 0, b = 1, col = 2, lwd = 2, lty = 2)
+  R2 &lt;- cor(x = phenoNoNA[, 1], y = yPred) ^ 2
+  text(x = plotRange[2] - 10,
+       y = plotRange[1] + 10,
+       paste0("R2 = ", round(R2, 3)),
+       cex = 1.5)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,136 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>SchoenSmooth</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Incident/Dynamic (I/D) ROC curve, AUC and integrated AUC (iAUC)
+estimation of censored survival data</h2>
+
+<h3>Description</h3>
+
+<p>This function smooths the Schoenfeld residuals using
+Epanechnikov's optimal kernel.  
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">SchoenSmooth(fit, Stime, status, span=0.40, order=0, entry=NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>the result of fitting a Cox regression model, using the
+coxph function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Stime</code></td>
+<td>
+<p>Survival times in case of right censored data and exit
+time for left truncated data</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>status</code></td>
+<td>
+<p>Survival status</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>span</code></td>
+<td>
+<p>bandwidth parameter that controls the size of a local
+neighborhood</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>order</code></td>
+<td>
+<p>0 or 1, locally mean if 0 and local linear if 1</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>entry</code></td>
+<td>
+<p>entry time when left censored data is considered, default
+is NULL for only right censored data</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function smooths the Schoenfeld residuals to get an
+estimate of time-varying effect of the marker using
+Epanechnikov's optimal kernel using either local mean or local
+linear smoother. 
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns a list of following items:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>time</code></td>
+<td>
+<p>failure times</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+<p>estimate of time-varying parameter <code class="reqn">\beta(t)</code> at each
+unique failure time. </p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Patrick J. Heagerty </p>
+
+
+<h3>References</h3>
+
+<p>Heagerty, P.J., Zheng Y. (2005)
+Survival Model Predictive Accuracy and ROC curves
+<em>Biometrics</em>, <b>61</b>, 92 – 105</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(pbc)
+## considering only randomized patients
+pbc1 &lt;- pbc[1:312,]
+## create new censoring variable combine 0,1 as 0, 2 as 1
+survival.status &lt;- ifelse( pbc1$status==2, 1, 0)
+survival.time &lt;- pbc1$fudays
+pbc1$status1 &lt;- survival.status
+fit &lt;- coxph( Surv(fudays,status1) ~ log(bili) +
+                                     log(protime) +
+                                     edema +
+                                     albumin +
+                                     age,
+              data=pbc1 )
+eta5 &lt;- fit$linear.predictors
+x &lt;- eta5
+nobs &lt;- length(survival.time[survival.status==1])
+span &lt;- 1.5*(nobs^(-0.2))
+fitCox5 &lt;- coxph( Surv(survival.time,survival.status) ~ x )
+bfnx1.1 &lt;- SchoenSmooth( fit=fitCox5, Stime=survival.time, status=survival.status,
+                       span=span, order=1)
+bfnx1.0 &lt;- SchoenSmooth( fit=fitCox5, Stime=survival.time, status=survival.status,
+                       span=span, order=0)
+plot(bfnx1.1$time, bfnx1.1$beta, type="l", xlab="Time", ylab="beta(t)")
+lines(bfnx1.0$time, bfnx1.0$beta, lty=3)
+</code></pre>
+
+
+</div>

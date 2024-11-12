@@ -1,0 +1,258 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>new_itm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Data items</h2>
+
+<h3>Description</h3>
+
+<p>Item objects are used in <code>ricu</code> as a way to specify how individual data
+items corresponding to clinical concepts (see also <code>concept()</code>), such as
+heart rate can be loaded from a data source. Several functions are
+available for constructing <code>item</code> (and related auxiliary) objects either
+from code or by parsing a JSON formatted concept dictionary using
+<code>load_dictionary()</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">new_itm(src, ..., interval = NULL, target = NA_character_, class = "sel_itm")
+
+is_itm(x)
+
+init_itm(x, ...)
+
+## S3 method for class 'sel_itm'
+init_itm(x, table, sub_var, ids, callback = "identity_callback", ...)
+
+## S3 method for class 'hrd_itm'
+init_itm(x, table, sub_var, ids, callback = "identity_callback", ...)
+
+## S3 method for class 'col_itm'
+init_itm(x, table, unit_val = NULL, callback = "identity_callback", ...)
+
+## S3 method for class 'rgx_itm'
+init_itm(x, table, sub_var, regex, callback = "identity_callback", ...)
+
+## S3 method for class 'fun_itm'
+init_itm(x, callback, ...)
+
+## S3 method for class 'itm'
+init_itm(x, ...)
+
+new_item(x)
+
+item(...)
+
+as_item(x)
+
+is_item(x)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>src</code></td>
+<td>
+<p>The data source name</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further specification of the <code>itm</code> object (passed to
+<code>init_itm()</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interval</code></td>
+<td>
+<p>A default data loading interval (either specified as scalar
+<code>difftime</code> or string such as "00:01:00")</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target</code></td>
+<td>
+<p>Item target class (e.g. "id_tbl"), <code>NA</code> indicates no specific
+class requirement</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>class</code></td>
+<td>
+<p>Sub class for customizing <code>itm</code> behavior</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Object to query/dispatch on</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>table</code></td>
+<td>
+<p>Name of the table containing the data</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sub_var</code></td>
+<td>
+<p>Column name used for subsetting</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ids</code></td>
+<td>
+<p>Vector of ids used to subset table rows. If <code>NULL</code>, all rows are
+considered corresponding to the data item</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>callback</code></td>
+<td>
+<p>Name of a function to be called on the returned data used
+for data cleanup operations (or a string that evaluates to a function)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>unit_val</code></td>
+<td>
+<p>String valued unit to be used in case no <code>unit_var</code> is
+available for the given table</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>regex</code></td>
+<td>
+<p>String-valued regular expression which will be evaluated by
+<code>base::grepl()</code> with <code>ignore.case = TRUE</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>In order to allow for a large degree of flexibility (and extensibility),
+which is much needed owing to considerable heterogeneity presented by
+different data sources, several nested S3 classes are involved in
+representing a concept. An outline of this hierarchy can be described as
+</p>
+
+<ul>
+<li> <p><code>concept</code>: contains many <code>cncpt</code> objects (of potentially
+differing sub-types), each comprising of some meta-data and an <code>item</code>
+object
+</p>
+</li>
+<li> <p><code>item</code>: contains many <code>itm</code> objects (of potentially differing
+sub-types), each encoding how to retrieve a data item.
+</p>
+</li>
+</ul>
+<p>The design choice for wrapping a vector of <code>itm</code> objects with a container
+class <code>item</code> is motivated by the requirement of having several different
+sub-types of <code>itm</code> objects (all inheriting from the parent type <code>itm</code>),
+while retaining control over how this homogeneous w.r.t. parent type, but
+heterogeneous w.r.t. sub-type vector of objects behaves in terms of S3
+generic functions.
+</p>
+<p>The following sub-classes to <code>itm</code> are available, each representing a
+different data-scenario:
+</p>
+
+<ul>
+<li> <p><code>sel_itm</code>: The most widely used item class is intended for the situation
+where rows of interest can be identified by looking for occurrences of a
+set of IDs (<code>ids</code>) in a column (<code>sub_var</code>). An example for this is heart
+rate <code>hr</code> on mimic, where the IDs <code>211</code> and 220045<code style="white-space: pre;">⁠are looked up in the⁠</code>itemid<code style="white-space: pre;">⁠column of⁠</code>chartevents'.
+</p>
+</li>
+<li> <p><code>col_itm</code>: This item class can be used if no row-subsetting is required.
+An example for this is heart rate (<code>hr</code>) on <code>eicu</code>, where the table
+<code>vitalperiodic</code> contains an entire column dedicated to heart rate
+measurements.
+</p>
+</li>
+<li> <p><code>rgx_itm</code>: As alternative to the value-matching approach of <code>sel_itm</code>
+objects, this class identifies rows using regular expressions. Used for
+example for insulin in <code>eicu</code>, where the regular expression <code style="white-space: pre;">⁠^insulin (250.+)?\\(((ml|units)/hr)?\\)$⁠</code> is matched against the <code>drugname</code> column
+of <code>infusiondrug</code>. The regular expression is evaluated by <code>base::grepl()</code>
+with <code>ignore.case = TRUE</code>.
+</p>
+</li>
+<li> <p><code>fun_itm</code>: Intended for the scenario where data of interest is not
+directly available from a table, this <code>itm</code> class offers most flexibility.
+A function can be specified as <code>callback</code> and this function will be called
+with arguments <code>x</code> (the object itself), <code>patient_ids</code>, <code>id_type</code> and
+<code>interval</code> (see <code>load_concepts()</code>) and is expected to return an object as
+specified by the <code>target</code> entry.
+</p>
+</li>
+<li> <p><code>hrd_itm</code>: A special case of <code>sel_itm</code> for HiRID data where measurement
+units are not available as separate column, but as separate table with
+units fixed per concept.
+</p>
+</li>
+</ul>
+<p>All <code>itm</code> objects have to specify a data source (<code>src</code>) as well as a
+sub-class. Further arguments then are specific to the respective sub-class
+and encode information that define data loading, such as the table to
+query, the column name and values to use for identifying relevant rows,
+etc. The S3 generic function <code>init_itm()</code> is responsible for input
+validation of class-specific arguments as well as class initialization. A
+list of <code>itm</code> objects, created by calls to <code>new_itm()</code> can be passed to
+<code>new_item</code> in order to instantiate an <code>item</code> object. An alternative
+constructor for <code>item</code> objects is given by <code>item()</code> which calls <code>new_itm()</code>
+on the passed arguments (see examples). Finally <code>as_item()</code> can be used
+for coercion of related objects such as <code>list</code>, <code>concept</code>, and the like.
+Several additional S3 generic functions exist for manipulation of
+<code>item</code>-like objects but are marked <code>internal</code> (see
+item/concept utilities).
+</p>
+
+
+<h3>Value</h3>
+
+<p>Constructors and coercion functions return <code>itm</code> and <code>item</code> objects,
+while inheritance tester functions return logical flags.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">if (require(mimic.demo)) {
+gluc &lt;- item("mimic_demo", "labevents", "itemid", list(c(50809L, 50931L)),
+             unit_var = TRUE, target = "ts_tbl")
+
+is_item(gluc)
+
+all.equal(gluc, as_item(load_dictionary("mimic_demo", "glu")))
+
+hr1 &lt;- new_itm(src = "mimic_demo", table = "chartevents",
+               sub_var = "itemid", ids = c(211L, 220045L))
+
+hr2 &lt;- item(src = c("mimic_demo", "eicu_demo"),
+            table = c("chartevents", "vitalperiodic"),
+            sub_var = list("itemid", NULL),
+            val_var = list(NULL, "heartrate"),
+            ids = list(c(211L, 220045L), FALSE),
+            class = c("sel_itm", "col_itm"))
+
+hr3 &lt;- new_itm(src = "eicu_demo", table = "vitalperiodic",
+               val_var = "heartrate", class = "col_itm")
+
+identical(as_item(hr1), hr2[1])
+identical(new_item(list(hr1)), hr2[1])
+identical(hr2, as_item(list(hr1, hr3)))
+}
+
+</code></pre>
+
+
+</div>

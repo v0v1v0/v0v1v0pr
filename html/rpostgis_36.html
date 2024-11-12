@@ -1,0 +1,279 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pgWriteGeom</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Inserts data into a PostgreSQL table.</h2>
+
+<h3>Description</h3>
+
+<p>This function takes a take an R <code>sf</code>, a <code>SpatVector</code> or <code>sp</code> object (<code>Spatial*</code> or
+<code>Spatial*DataFrame</code>); or a regular <code>data.frame</code>, and performs the
+database insert (and table creation, when the table does not exist)
+on the database.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pgWriteGeom(
+  conn,
+  name,
+  data.obj,
+  geom = "geom",
+  df.mode = FALSE,
+  partial.match = FALSE,
+  overwrite = FALSE,
+  new.id = NULL,
+  row.names = FALSE,
+  upsert.using = NULL,
+  alter.names = FALSE,
+  encoding = NULL,
+  return.pgi = FALSE,
+  df.geom = NULL,
+  geog = FALSE
+)
+
+## S3 method for class 'pgi'
+print(x, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>conn</code></td>
+<td>
+<p>A connection object to a PostgreSQL database</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p>A character string specifying a PostgreSQL schema and
+table name (e.g., <code>name = c("schema","table")</code>). 
+If not already existing, the table will be
+created. If the table already exists, the function will check
+if all R data frame columns match database columns, and if so,
+do the insert. If not, the insert will be aborted. The
+argument <code>partial.match</code> allows for inserts with only
+partial matches of data frame and database column names, and
+<code>overwrite</code> allows for overwriting the existing database
+table.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data.obj</code></td>
+<td>
+<p>A <code>sf</code>,<code>SpatVector</code>, <code>sp</code>-class, or <code>data.frame</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>geom</code></td>
+<td>
+<p>character string. For <code>Spatial*</code> datasets, the name of
+geometry/(geography) column in the database table.  (existing or to be
+created; defaults to <code>"geom"</code>). The special name "geog" will
+automatically set <code>geog</code> to TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>df.mode</code></td>
+<td>
+<p>Logical; Whether to write the (Spatial) data frame in data frame mode 
+(preserving data frame column attributes and row.names).
+A new table must be created with this mode (or overwrite set to TRUE),
+and the <code>row.names</code>, <code>alter.names</code>, and <code>new.id</code> arguments will
+be ignored (see <code>dbWriteDataFrame</code> for more information).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>partial.match</code></td>
+<td>
+<p>Logical; allow insert on partial column
+matches between data frame and database table. If <code>TRUE</code>,
+columns in R data frame will be compared with the existing
+database table <code>name</code>.  Columns in the data frame that
+exactly match the database table will be inserted into the
+database table.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite</code></td>
+<td>
+<p>Logical; if true, a new table (<code>name</code>) will
+overwrite the existing table (<code>name</code>) in the database. Note:
+overwriting a view must be done manually (e.g., with <code>dbDrop</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>new.id</code></td>
+<td>
+<p>Character, name of a new sequential integer ID
+column to be added to the table for insert (for spatial objects without
+data frames, this column is created even if left <code>NULL</code>
+and defaults to the name <code>"gid"</code>). If <code>partial.match
+= TRUE</code> and the column does not exist in the database table,
+it will be discarded.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>row.names</code></td>
+<td>
+<p>Whether to add the data frame row names to the 
+database table. Column name will be '.R_rownames'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>upsert.using</code></td>
+<td>
+<p>Character, name of the column(s) in the database table 
+or constraint name used to identify already-existing rows in the table, which will
+be updated rather than inserted. The column(s) must have a unique constraint
+already created in the database table (e.g., a primary key). 
+Requires PostgreSQL 9.5+.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alter.names</code></td>
+<td>
+<p>Logical, whether to make database column names
+DB-compliant (remove special characters/capitalization). Default is
+<code>FALSE</code>.  (This must be set to <code>FALSE</code> to match
+with non-standard names in an existing database table.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>encoding</code></td>
+<td>
+<p>Character vector of length 2, containing the
+from/to encodings for the data (as in the function
+<code>iconv</code>). For example, if the dataset contain certain
+latin characters (e.g., accent marks), and the database is in
+UTF-8, use <code>encoding = c("latin1", "UTF-8")</code>. Left
+<code>NULL</code>, no conversion will be done.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return.pgi</code></td>
+<td>
+<p>Whether to return a formatted list of insert parameters
+(i.e., a <code>pgi</code> object; see function details.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>df.geom</code></td>
+<td>
+<p>Character vector, name of a character column in an R data.frame
+storing PostGIS geometries, this argument can be used to insert a geometry
+stored as character type in a data.frame (do not use with Spatial* data types).
+If only the column name is used (e.g., <code>df.geom = "geom"</code>), 
+the column type will be a generic (GEOMETRY); use a two-length character vector 
+(e.g., <code>df.geom = c("geom", "(POINT,4326)")</code> to also specify a 
+specific PostGIS geometry type and SRID for the column. Only recommended for
+for new tables/overwrites, since this method will change the 
+existing column type.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>geog</code></td>
+<td>
+<p>Logical; Whether to write the spatial data as a PostGIS 
+'GEOGRAPHY' type. By default, FALSE, unless <code>geom = "geog"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A list of class <code>pgi</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments not used.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>If <code>new.id</code> is specified, a new sequential integer field is
+added to the data frame for insert. For <code>spatial</code>-only
+objects (no data frame), a new ID column is created by default with name
+<code>"gid"</code>.
+</p>
+<p>This function will use <code>st_as_text</code> for geography types, and
+<code>st_as_binary</code> for geometry types.
+</p>
+<p>In the event of function or database error, the database uses
+ROLLBACK to revert to the previous state. 
+</p>
+<p>If the user specifies <code>return.pgi = TRUE</code>, and data preparation is
+successful, the function will return 
+a <code>pgi</code> object (see next paragraph), regardless of whether the
+insert was successful or not. This object can be useful for debugging, 
+or re-used as the <code>data.obj</code> in <code>pgWriteGeom</code>; 
+(e.g., when data preparation is slow, and the exact same data 
+needs to be inserted into tables in two separate
+tables or databases). If <code>return.pgi = FALSE</code>
+(default), the function will return <code>TRUE</code> for successful insert and
+<code>FALSE</code> for failed inserts.
+</p>
+<p>Use this function with <code>df.mode = TRUE</code> to save data frames from
+<code>spatial</code>-class objects to the database in "data frame mode". Along with normal 
+<code>dbwriteDataFrame</code> operation, the proj4string of the spatial 
+data will also be saved, and re-attached to the data when using 
+<code>pgGetGeom</code> to import the data. Note that other attributes
+of <code>spatial</code> objects are <strong>not</strong> saved (e.g., <code>coords.nrs</code>,
+which is used to specify the column index of x/y columns in <code>*POINT</code> and
+<code>SpatialPoints*</code>).
+</p>
+<p>pgi objects are a list containing four character strings: (1)
+in.table, the table name which will be created or inserted
+into (2) db.new.table, the SQL statement to create the new
+table, (3) db.cols.insert, a character string of the database column
+names to insert into, and (4) insert.data, a character string
+of the data to insert.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns <code>TRUE</code> if the insertion was successful,
+<code>FALSE</code> if failed, or a <code>pgi</code> object if specified.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>David Bucklin <a href="mailto:david.bucklin@gmail.com">david.bucklin@gmail.com</a> and Adrián Cidre
+González <a href="mailto:adrian.cidre@gmail.com">adrian.cidre@gmail.com</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+library(sf)
+pts &lt;- st_sf(a = 1:2, geom = st_sfc(st_point(0:1), st_point(1:2)), crs = 4326)
+
+## Insert data in new database table
+pgWriteGeom(conn, name = c("public", "my_pts"), data.obj = pts)
+
+## The same command will insert into already created table (if all R
+## columns match)
+pgWriteGeom(conn, name = c("public", "my_pts"), data.obj = pts)
+
+## If not all database columns match, need to use partial.match = TRUE,
+## where non-matching columns are not inserted
+names(pts)[1] &lt;- "b"
+pgWriteGeom(conn, name = c("public", "my_pts"), data.obj = pts,
+    partial.match = TRUE)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

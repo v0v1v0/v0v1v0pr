@@ -1,0 +1,232 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>longfft</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Long FFT Spectrogram
+</h2>
+
+<h3>Description</h3>
+
+<p>Creates hourly spectrograms,
+either alternating seismic and infrasound data or
+sequences of one component. 
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">longfft(DB, DAYS = c(233, 234), HRS = 1:24, sta = "KR1", comp = c("V",
+"I"), NPP = 6, CSCALE = FALSE, pal = rainbow(100), PS = FALSE, kind = 1,
+Iendian = 1, BIGLONG = FALSE)
+
+longreset(NPP, PS)
+
+longpstart(NPP = 6, asta = "", acomp = "", theday = 1, hr = 0)
+
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>DB</code></td>
+<td>
+<p>RSEIS Data base
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>DAYS</code></td>
+<td>
+<p>vector of Days to display 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>HRS</code></td>
+<td>
+<p>vector of hours to display
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sta</code></td>
+<td>
+<p>stations to extract
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>comp</code></td>
+<td>
+<p>component to extract
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>NPP</code></td>
+<td>
+<p>Number of plot strips per page, default = 6
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>CSCALE</code></td>
+<td>
+<p>scaling
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pal</code></td>
+<td>
+<p>palettes to use (given two will alternate these) 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>PS</code></td>
+<td>
+<p>logical, TRUE postscript output
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kind</code></td>
+<td>
+<p>data type, an integer -1, 0, 1, 2 ; 0=R(DAT) , -1=RDS, 0=RDATA, 1 = segy,
+2 = sac
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Iendian</code></td>
+<td>
+<p>Endian-ness of binary data
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>BIGLONG</code></td>
+<td>
+<p>logical, TRUE=long is 8 bytes
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>asta</code></td>
+<td>
+<p>character, one station
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>acomp</code></td>
+<td>
+<p>character, one component
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>theday</code></td>
+<td>
+<p>one day
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hr</code></td>
+<td>
+<p>one hour
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Extracts dats from the DB data base
+and plots strips of spectrograms for perusal.
+</p>
+<p>longpstart, longreset are auxilliary codes used to set up the
+postscript files and initialize the plotting.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Graphical Side effects
+</p>
+
+
+<h3>Note</h3>
+
+<p>Program is set for data being ready from external
+sources in binary (SAC, SEGY) format.
+If data is in R-format already, the code may
+not work.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Jonathan M. Lees&lt;jonathan.lees@unc.edu&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p>SPECT.drive
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+if(interactive()){
+ #####  get a time series
+     data(KH)
+     
+     amp = KH$JSTR[[1]]
+     OLDdt = KH$dt[1]
+     ####  downsample to:
+     newdt = 0.1
+     
+     JK = FAKEDATA(amp, OLDdt=OLDdt, newdt = 0.1, yr = 2000,
+              JD = 4, mi = 12, sec = 0,  Ntraces = 24,
+seed=200, noise.est=c(1, 100) , verbose=TRUE  )
+     
+    
+tdir = tempdir()
+for(i in 1:length(JK) )
+{
+    sig = JK[[i]]
+  d1 =  dateStamp(sig$DATTIM, sep='_')
+   nam1 =  paste(d1,sig$sta, sig$comp, sep='_')
+    nam2 = paste0(nam1, '.RDS')
+    nam3 = paste(tdir, nam2, sep='/')
+    saveRDS(file=nam3, sig) 
+    }
+
+LF  = list.files(path=tdir,pattern='.RDS',  full.names=TRUE)
+DB = FmakeDB(LF, kind=-1)
+IDB = infoDB(DB)
+
+   p1 &lt;- RPMG::Gcols(plow=5, phi=0,  N=100, pal="topo.colors", mingray=0.8)
+     p2 &lt;- RPMG::Gcols(plow=5, phi=0,  N=100, pal="rainbow", mingray=0.8)
+    
+longfft(DB, DAYS=5 , HRS=1:24 ,
+     sta=IDB$usta, comp=IDB$ucomp , NPP=6 , CSCALE=FALSE, 
+     pal = list(p1=p1, p2=p2), PS=FALSE ,  kind = -1,
+     Iendian=1, BIGLONG=TRUE )
+
+
+}
+
+
+</code></pre>
+
+
+</div>

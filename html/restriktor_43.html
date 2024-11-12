@@ -1,0 +1,215 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>con_weights_boot</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>function for computing the chi-bar-square weights based on 
+Monte Carlo simulation.</h2>
+
+<h3>Description</h3>
+
+<p>The null-distribution of the test statistics under 
+inequality constraints takes the form of mixtures of F-distributions. 
+This function computes these mixing weights (a.k.a chi-bar-square weights
+and level probabilities). 
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">con_weights_boot(VCOV, Amat, meq, R = 1e5L, 
+                 chunk_size = 5000L, convergence_crit = 1e-03, 
+                 seed = NULL, verbose = FALSE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>VCOV</code></td>
+<td>
+<p>variance-covariance matrix of the data for which
+the weights are to be calculated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Amat</code></td>
+<td>
+<p>constraints matrix <code class="reqn">R</code> (or a vector in 
+case of one constraint) and defines the left-hand side of the 
+constraint <code class="reqn">R\theta \ge rhs</code>, where each row represents one 
+constraint. The number of columns needs to correspond to the 
+number of parameters estimated (<code class="reqn">\theta</code>). The rows should 
+be linear independent, otherwise the function gives an 
+error. For more information about constructing the matrix <code class="reqn">R</code> 
+and <code class="reqn">rhs</code> see <code>restriktor</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>meq</code></td>
+<td>
+<p>integer (default = 0) treating the number of 
+constraints rows as equality constraints instead of inequality 
+constraints. For example, if <code>meq = 2</code>, this means that the 
+first two rows of the constraints matrix <code class="reqn">R</code> are treated as 
+equality constraints. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R</code></td>
+<td>
+<p>integer; the maximum number of bootstrap draws for 
+<code>mix_weights_bootstrap_limit</code>. 
+The default value is set to 1e5. See details for more information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chunk_size</code></td>
+<td>
+<p>integer; the chi-bar-square weights are computed for samples of
+size <code>chunk_size = 5000L</code>. This process is repeated iteratively until the 
+weights converges (see <code>convergenge_crit</code>) or the maximum is reached, i.e.,
+mix_weights_bootstrap_limit.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>convergence_crit</code></td>
+<td>
+<p>the convergence criterion for the iterative process. 
+The default is 1e-03. See details for more information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>seed value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical; if TRUE, information is shown at each 
+bootstrap draw.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional parameters for the <code>rtmvnorm</code> function. </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>## Iterative Weight Updating and Convergence Checking ##
+The function adds in each run chunks of 5000 samples (default) to compute 
+the chi-bar-square weights. After each iteration, the function checks if the 
+weights have converged. This is determined by the convergence_crit parameter.
+</p>
+<p>Convergence is assessed by comparing the absolute difference between the 
+current and previous iteration's weights against the convergence_crit. If the 
+change in weights is smaller than the convergence criterion, it indicates that 
+the weights have stabilized, suggesting convergence.
+</p>
+<p>If the weights have not converged and the <code>mix_weights_bootstrap_limit</code> has 
+not been reached, the function proceeds with adding another set of 5000 samples 
+and updates the weights accordingly.If the maximum number of iterations is 
+reached without convergence, the function returns the (non-converged) weights. 
+In this situation, it is advisible to increase the number of 
+<code>mix_weights_bootstrap_limit</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If convergence is reached, the function returns a vector with the mixing 
+weights with the following attributes:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>total_bootstrap_draws</code></td>
+<td>
+<p>total number of bootstrap draws</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>converged</code></td>
+<td>
+<p>have the chi-bar-square weights converged</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>convergence_crit</code></td>
+<td>
+<p>convergence criterium</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>wt_bar_chunk</code></td>
+<td>
+<p>matrix with the chi-bar-square weights for each iteration</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chunk_size</code></td>
+<td>
+<p>how many samples are added in each iteration</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>total_chunks</code></td>
+<td>
+<p>what is the maximum number of chunks based on 
+<code>mix_weights_bootstrap_limit</code> and <code>chunk_size</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chunk_iter</code></td>
+<td>
+<p>number of iterations run</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>error.idx</code></td>
+<td>
+<p>which bootstrap samples were not succesful</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mix_weights_bootstrap_limit</code></td>
+<td>
+<p>the maximum number of bootstrap draws</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Leonard Vanbrabant and Yves Rosseel</p>
+
+
+<h3>References</h3>
+
+<p>Silvapulle, M.J. and Sen, P.K. (2005, p.79). <em>Constrained 
+Statistical Inference</em>. Wiley, New York.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+W &lt;- matrix(c(1,0.5,0.5,1),2,2)
+Amat &lt;- rbind(c(0,1))
+meq &lt;- 0L
+wt.bar &lt;- con_weights_boot(W, Amat, meq, R = 99999)
+wt.bar
+
+# in practice you want to use are more conservative convergence criterion
+wt.bar2 &lt;- con_weights_boot(W, Amat, meq, R = 99999, convergence_crit = 1e-02)
+wt.bar2
+
+</code></pre>
+
+
+</div>

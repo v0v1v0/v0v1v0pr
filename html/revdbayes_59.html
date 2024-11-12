@@ -1,0 +1,480 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rpost_rcpp</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Random sampling from extreme value posterior distributions</h2>
+
+<h3>Description</h3>
+
+<p>Uses the <code>ru_rcpp</code> function in the
+<code>rust</code> package to simulate from the posterior distribution
+of an extreme value model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rpost_rcpp(
+  n,
+  model = c("gev", "gp", "bingp", "pp", "os"),
+  data,
+  prior,
+  ...,
+  nrep = NULL,
+  thresh = NULL,
+  noy = NULL,
+  use_noy = TRUE,
+  npy = NULL,
+  ros = NULL,
+  bin_prior = structure(list(prior = "bin_beta", ab = c(1/2, 1/2), class = "binprior")),
+  init_ests = NULL,
+  mult = 2,
+  use_phi_map = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>A numeric scalar. The size of posterior sample required.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>A character string.  Specifies the extreme value model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>Sample data, of a format appropriate to the value of
+<code>model</code>.
+</p>
+
+<ul>
+<li> <p><code>"gp"</code>. A numeric vector of threshold excesses or raw data.
+</p>
+</li>
+<li> <p><code>"bingp"</code>. A numeric vector of raw data.
+</p>
+</li>
+<li> <p><code>"gev"</code>. A numeric vector of block maxima.
+</p>
+</li>
+<li> <p><code>"pp"</code>. A numeric vector of raw data.
+</p>
+</li>
+<li> <p><code>"os"</code>. A numeric matrix or data frame. Each row should contain
+the largest order statistics for a block of data.  These need not
+be ordered: they are sorted inside <code>rpost</code>. If a block
+contains fewer than <code>dim(as.matrix(data))[2]</code> order statistics
+then the corresponding row should be padded by <code>NA</code>s. If
+<code>ros</code> is supplied then only the largest <code>ros</code> values in
+each row are used.  If a vector is supplied then this is converted
+to a matrix with one column.  This is equivalent to using
+<code>model = "gev"</code>.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior</code></td>
+<td>
+<p>A list specifying the prior for the parameters of the extreme
+value model, created by <code>set_prior</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments to be passed to <code>ru_rcpp</code>.
+Most importantly <code>trans</code> and <code>rotate</code> (see <strong>Details</strong>),
+and perhaps <code>r</code>, <code>ep</code>, <code>a_algor</code>, <code>b_algor</code>,
+<code>a_method</code>, <code>b_method</code>, <code>a_control</code>, <code>b_control</code>.
+May also be used to pass the arguments <code>n_grid</code> and/or <code>ep_bc</code>
+to <code>find_lambda</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nrep</code></td>
+<td>
+<p>A numeric scalar.  If <code>nrep</code> is not <code>NULL</code> then
+<code>nrep</code> gives the number of replications of the original dataset
+simulated from the posterior predictive distribution.
+Each replication is based on one of the samples from the posterior
+distribution.  Therefore, <code>nrep</code> must not be greater than <code>n</code>.
+In that event <code>nrep</code> is set equal to <code>n</code>.
+Currently only implemented if <code>model = "gev"</code> or <code>"gp"</code> or
+<code>"bingp"</code> or <code>"pp"</code>, i.e. <em>not</em> implemented if
+<code>model = "os"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thresh</code></td>
+<td>
+<p>A numeric scalar.  Extreme value threshold applied to data.
+Only relevant when <code>model = "gp"</code>, <code>"pp"</code> or <code>"bingp"</code>.
+Must be supplied when <code>model = "pp"</code> or <code>"bingp"</code>.
+If <code>model = "gp"</code> and <code>thresh</code> is not supplied then
+<code>thresh = 0</code> is used and <code>data</code> should contain threshold
+excesses.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>noy</code></td>
+<td>
+<p>A numeric scalar. The number of blocks of observations,
+excluding any missing values.  A block is often a year.
+Only relevant, and must be supplied, if <code>model = "pp"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use_noy</code></td>
+<td>
+<p>A logical scalar.  Only relevant if model is "pp".
+If <code>use_noy = FALSE</code> then sampling is based on a likelihood in
+which the number of blocks (years) is set equal to the number of threshold
+excesses, to reduce posterior dependence between the parameters
+(Wadsworth <em>et al</em>., 2010).
+The sampled values are transformed back to the required parameterisation
+before returning them to the user.  If <code>use_noy = TRUE</code> then the
+user's value of <code>noy</code> is used in the likelihood.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>npy</code></td>
+<td>
+<p>A numeric scalar. The mean number of observations per year
+of data, after excluding any missing values, i.e. the number of
+non-missing observations divided by total number of years' worth of
+non-missing data.
+</p>
+<p>The value of <code>npy</code> does not affect any calculation in
+<code>rpost</code>, it only affects subsequent extreme value inferences using
+<code>predict.evpost</code>.  However, setting <code>npy</code> in the call to
+<code>rpost</code> avoids the need to supply <code>npy</code> when calling
+<code>predict.evpost</code>.  This is likely to be useful only when
+<code>model = bingp</code>. See the documentation of
+<code>predict.evpost</code> for further details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ros</code></td>
+<td>
+<p>A numeric scalar.  Only relevant when <code>model = "os"</code>. The
+largest <code>ros</code> values in each row of the matrix <code>data</code> are used
+in the analysis.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bin_prior</code></td>
+<td>
+<p>A list specifying the prior for a binomial probability
+<code class="reqn">p</code>, created by <code>set_bin_prior</code>.  Only relevant if
+<code>model = "bingp"</code>.  If this is not supplied then the Jeffreys
+beta(1/2, 1/2) prior is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init_ests</code></td>
+<td>
+<p>A numeric vector.  Initial parameter estimates for search
+for the mode of the posterior distribution.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mult</code></td>
+<td>
+<p>A numeric scalar.  The grid of values used to choose the Box-Cox
+transformation parameter lambda is based on the maximum a posteriori (MAP)
+estimate +/- mult x estimated posterior standard deviation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use_phi_map</code></td>
+<td>
+<p>A logical scalar. If trans = "BC" then <code>use_phi_map</code>
+determines whether the grid of values for phi used to set lambda is
+centred on the maximum a posterior (MAP) estimate of phi
+(<code>use_phi_map = TRUE</code>), or on the initial estimate of phi
+(<code>use_phi_map = FALSE</code>).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><em>Generalised Pareto (GP)</em>: <code>model = "gp"</code>.  A model for threshold
+excesses.  Required arguments: <code>n</code>, <code>data</code> and <code>prior</code>.
+If <code>thresh</code> is supplied then only the values in <code>data</code> that
+exceed <code>thresh</code> are used and the GP distribution is fitted to the
+amounts by which those values exceed <code>thresh</code>.
+If <code>thresh</code> is not supplied then the GP distribution is fitted to
+all values in <code>data</code>, in effect <code>thresh = 0</code>.
+See also <code>gp</code>.
+</p>
+<p><em>Binomial-GP</em>: <code>model = "bingp"</code>.  The GP model for threshold
+excesses supplemented by a binomial(<code>length(data)</code>, <code class="reqn">p</code>)
+model for the number of threshold excesses.  See Northrop et al. (2017)
+for details.  Currently, the GP and binomial parameters are assumed to
+be independent <em>a priori</em>.
+</p>
+<p><em>Generalised extreme value (GEV) model</em>: <code>model = "gev"</code>.  A
+model for block maxima.  Required arguments: <code>n</code>, <code>data</code>,
+<code>prior</code>.  See also <code>gev</code>.
+</p>
+<p><em>Point process (PP) model</em>: <code>model = "pp"</code>. A model for
+occurrences of threshold exceedances and threshold excesses.  Required
+arguments: <code>n</code>, <code>data</code>, <code>prior</code>, <code>thresh</code> and
+<code>noy</code>.
+</p>
+<p><em>r-largest order statistics (OS) model</em>: <code>model = "os"</code>.
+A model for the largest order statistics within blocks of data.
+Required arguments: <code>n</code>, <code>data</code>, <code>prior</code>.  All the values
+in <code>data</code> are used unless <code>ros</code> is supplied.
+</p>
+<p><em>Parameter transformation</em>.  The scalar logical arguments (to the
+function <code>ru</code>) <code>trans</code> and <code>rotate</code> determine,
+respectively, whether or not Box-Cox transformation is used to reduce
+asymmetry in the posterior distribution and rotation of parameter
+axes is used to reduce posterior parameter dependence.  The default
+is <code>trans = "none"</code> and <code>rotate = TRUE</code>.
+</p>
+<p>See the <a href="https://CRAN.R-project.org/package=revdbayes">Introducing revdbayes vignette</a>
+for further details and examples.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object (list) of class <code>"evpost"</code>, which has the same
+structure as an object of class <code>"ru"</code> returned from
+<code>ru_rcpp</code>.  In addition this list contains
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td>
+<code>model</code>:</td>
+<td>
+<p>The argument <code>model</code> to <code>rpost</code>
+detailed above.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>data</code>:</td>
+<td>
+<p>The content depends on <code>model</code>:
+if <code>model = "gev"</code> then this is the argument <code>data</code> to
+<code>rpost</code> detailed above, with missing values removed;
+if <code>model = "gp"</code> then only the values that lie above the
+threshold are included; if <code>model = "bingp"</code> or
+<code>model = "pp"</code> then the input data are returned
+but any value lying below the threshold is set to <code>thresh</code>;
+if <code>model = "os"</code> then the order statistics used are returned
+as a single vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>prior</code>:</td>
+<td>
+<p>The argument <code>prior</code> to <code>rpost</code>
+detailed above.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>logf_rho_args</code>:</td>
+<td>
+<p>A list of arguments to the (transformed)
+target log-density.</p>
+</td>
+</tr>
+</table>
+<p>If <code>nrep</code> is not <code>NULL</code> then this list also contains
+<code>data_rep</code>, a numerical matrix with <code>nrep</code> rows.  Each
+row contains a replication of the original data <code>data</code>
+simulated from the posterior predictive distribution.
+If <code>model = "bingp"</code> or <code>"pp"</code> then the rate of threshold
+exceedance is part of the inference.  Therefore, the number of values in
+<code>data_rep</code> that lie above the threshold varies between
+predictive replications (different rows of <code>data_rep</code>).
+Values below the threshold are left-censored at the threshold, i.e. they
+are set at the threshold.
+</p>
+<p>If <code>model == "pp"</code> then this list also contains the argument
+<code>noy</code> to <code>rpost</code> detailed above.
+If the argument <code>npy</code> was supplied then this list also contains
+<code>npy</code>.
+</p>
+<p>If <code>model == "gp"</code> or <code>model == "bingp"</code> then this list also
+contains the argument <code>thresh</code> to <code>rpost</code> detailed above.
+</p>
+<p>If <code>model == "bingp"</code> then this list also contains
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td>
+<code>bin_sim_vals</code>:</td>
+<td>
+<p>An <code>n</code> by 1 numeric matrix of values
+simulated from the posterior for the binomial probability <code class="reqn">p</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>bin_logf</code>:</td>
+<td>
+<p>A function returning the log-posterior for
+<code class="reqn">p</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>bin_logf_args</code>:</td>
+<td>
+<p>A list of arguments to <code>bin_logf</code>.</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Coles, S. G. and Powell, E. A. (1996) Bayesian methods in
+extreme value modelling: a review and new developments.
+<em>Int. Statist. Rev.</em>, <strong>64</strong>, 119-136.
+</p>
+<p>Northrop, P. J., Attalides, N. and Jonathan, P. (2017)
+Cross-validatory extreme value threshold selection and uncertainty
+with application to ocean storm severity.
+<em>Journal of the Royal Statistical Society Series C: Applied
+Statistics</em>, <strong>66</strong>(1), 93-120.
+<a href="https://doi.org/10.1111/rssc.12159">doi:10.1111/rssc.12159</a>
+</p>
+<p>Stephenson, A. (2016) Bayesian Inference for Extreme Value
+Modelling. In <em>Extreme Value Modeling and Risk Analysis: Methods and
+Applications</em>, edited by D. K. Dey and J. Yan, 257-80. London:
+Chapman and Hall. <a href="https://doi.org/10.1201/b19721">doi:10.1201/b19721</a>
+value posterior using the evdbayes package.
+</p>
+<p>Wadsworth, J. L., Tawn, J. A. and Jonathan, P. (2010)
+Accounting for choice of measurement scale in extreme value modeling.
+<em>The Annals of Applied Statistics</em>, <strong>4</strong>(3), 1558-1578.
+<a href="https://doi.org/10.1214/10-AOAS333">doi:10.1214/10-AOAS333</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>set_prior</code> for setting a prior distribution.
+</p>
+<p><code>rpost</code> for posterior simulation without using
+the Rcpp package.
+</p>
+<p><code>plot.evpost</code>, <code>summary.evpost</code> and
+<code>predict.evpost</code> for the S3 <code>plot</code>, <code>summary</code>
+and <code>predict</code> methods for objects of class <code>evpost</code>.
+</p>
+<p><code>ru_rcpp</code> in the <code>rust</code>
+package for details of the arguments that can be passed to
+<code>ru_rcpp</code> and the form of the object returned by <code>rpost_rcpp</code>.
+</p>
+<p><code>find_lambda</code> in the
+<code>rust</code> package is used inside <code>rpost</code> to set the
+Box-Cox transformation parameter lambda when the <code>trans = "BC"</code>
+argument is given.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># GP model
+u &lt;- quantile(gom, probs = 0.65)
+fp &lt;- set_prior(prior = "flat", model = "gp", min_xi = -1)
+gpg &lt;- rpost_rcpp(n = 1000, model = "gp", prior = fp, thresh = u,
+                  data = gom)
+plot(gpg)
+
+# GP model, user-defined prior (same prior as the previous example)
+ptr_gp_flat &lt;- create_prior_xptr("gp_flat")
+p_user &lt;- set_prior(prior = ptr_gp_flat, model = "gp", min_xi = -1)
+gpg &lt;- rpost_rcpp(n = 1000, model = "gp", prior = p_user, thresh = u,
+                  data = gom)
+plot(gpg)
+
+# Binomial-GP model
+u &lt;- quantile(gom, probs = 0.65)
+fp &lt;- set_prior(prior = "flat", model = "gp", min_xi = -1)
+bp &lt;- set_bin_prior(prior = "jeffreys")
+bgpg &lt;- rpost_rcpp(n = 1000, model = "bingp", prior = fp, thresh = u,
+                   data = gom, bin_prior = bp)
+plot(bgpg, pu_only = TRUE)
+plot(bgpg, add_pu = TRUE)
+
+# Setting the same binomial (Jeffreys) prior by hand
+beta_prior_fn &lt;- function(p, ab) {
+  return(stats::dbeta(p, shape1 = ab[1], shape2 = ab[2], log = TRUE))
+}
+jeffreys &lt;- set_bin_prior(beta_prior_fn, ab = c(1 / 2, 1 / 2))
+bgpg &lt;- rpost_rcpp(n = 1000, model = "bingp", prior = fp, thresh = u,
+                   data = gom, bin_prior = jeffreys)
+plot(bgpg, pu_only = TRUE)
+plot(bgpg, add_pu = TRUE)
+
+# GEV model
+mat &lt;- diag(c(10000, 10000, 100))
+pn &lt;- set_prior(prior = "norm", model = "gev", mean = c(0, 0, 0), cov = mat)
+gevp  &lt;- rpost_rcpp(n = 1000, model = "gev", prior = pn, data = portpirie)
+plot(gevp)
+
+# GEV model, user-defined prior (same prior as the previous example)
+mat &lt;- diag(c(10000, 10000, 100))
+ptr_gev_norm &lt;- create_prior_xptr("gev_norm")
+pn_u &lt;- set_prior(prior = ptr_gev_norm, model = "gev", mean = c(0, 0, 0),
+                  icov = solve(mat))
+gevu &lt;- rpost_rcpp(n = 1000, model = "gev", prior = pn_u, data = portpirie)
+plot(gevu)
+
+# GEV model, informative prior constructed on the probability scale
+pip  &lt;- set_prior(quant = c(85, 88, 95), alpha = c(4, 2.5, 2.25, 0.25),
+  model = "gev", prior = "prob")
+ox_post &lt;- rpost_rcpp(n = 1000, model = "gev", prior = pip, data = oxford)
+plot(ox_post)
+
+# PP model
+pf &lt;- set_prior(prior = "flat", model = "gev", min_xi = -1)
+ppr &lt;- rpost_rcpp(n = 1000, model = "pp", prior = pf, data = rainfall,
+                  thresh = 40, noy = 54)
+plot(ppr)
+
+# PP model, user-defined prior (same prior as the previous example)
+ptr_gev_flat &lt;- create_prior_xptr("gev_flat")
+pf_u &lt;- set_prior(prior = ptr_gev_flat, model = "gev", min_xi = -1,
+                  max_xi = Inf)
+ppru &lt;- rpost_rcpp(n = 1000, model = "pp", prior = pf_u, data = rainfall,
+                   thresh = 40, noy = 54)
+plot(ppru)
+
+# PP model, informative prior constructed on the quantile scale
+piq &lt;- set_prior(prob = 10^-(1:3), shape = c(38.9, 7.1, 47),
+                 scale = c(1.5, 6.3, 2.6), model = "gev", prior = "quant")
+rn_post &lt;- rpost_rcpp(n = 1000, model = "pp", prior = piq, data = rainfall,
+                      thresh = 40, noy = 54)
+plot(rn_post)
+
+# OS model
+mat &lt;- diag(c(10000, 10000, 100))
+pv &lt;- set_prior(prior = "norm", model = "gev", mean = c(0, 0, 0), cov = mat)
+osv &lt;- rpost_rcpp(n = 1000, model = "os", prior = pv, data = venice)
+plot(osv)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,113 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>summary.rspde_result</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Summary for posteriors of field parameters for an <code>inla_rspde</code>
+model from a <code>rspde_result</code> object</h2>
+
+<h3>Description</h3>
+
+<p>Summary for posteriors of rSPDE field parameters in
+their original scales.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'rspde_result'
+summary(object, digits = 6, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>A <code>rspde_result</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>digits</code></td>
+<td>
+<p>integer, used for number formatting with signif()</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Currently not used.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Returns a <code>data.frame</code>
+containing the summary.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"> #tryCatch version
+tryCatch({
+if (requireNamespace("INLA", quietly = TRUE)){
+library(INLA)
+
+set.seed(123)
+
+m &lt;- 100
+loc_2d_mesh &lt;- matrix(runif(m * 2), m, 2)
+mesh_2d &lt;- inla.mesh.2d(
+  loc = loc_2d_mesh,
+  cutoff = 0.05,
+  max.edge = c(0.1, 0.5)
+)
+sigma &lt;- 1
+range &lt;- 0.2
+nu &lt;- 0.8
+kappa &lt;- sqrt(8 * nu) / range
+op &lt;- matern.operators(
+  mesh = mesh_2d, nu = nu,
+  range = range, sigma = sigma, m = 2,
+  parameterization = "matern"
+)
+u &lt;- simulate(op)
+A &lt;- inla.spde.make.A(
+  mesh = mesh_2d,
+  loc = loc_2d_mesh
+)
+sigma.e &lt;- 0.1
+y &lt;- A %*% u + rnorm(m) * sigma.e
+Abar &lt;- rspde.make.A(mesh = mesh_2d, loc = loc_2d_mesh)
+mesh.index &lt;- rspde.make.index(name = "field", mesh = mesh_2d)
+st.dat &lt;- inla.stack(
+  data = list(y = as.vector(y)),
+  A = Abar,
+  effects = mesh.index
+)
+rspde_model &lt;- rspde.matern(
+  mesh = mesh_2d,
+  nu.upper.bound = 2
+)
+f &lt;- y ~ -1 + f(field, model = rspde_model)
+rspde_fit &lt;- inla(f,
+  data = inla.stack.data(st.dat),
+  family = "gaussian",
+  control.predictor =
+    list(A = inla.stack.A(st.dat))
+)
+result &lt;- rspde.result(rspde_fit, "field", rspde_model)
+summary(result)
+}
+#stable.tryCatch
+}, error = function(e){print("Could not run the example")})
+
+
+</code></pre>
+
+
+</div>

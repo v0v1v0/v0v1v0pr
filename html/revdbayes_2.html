@@ -1,0 +1,160 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>binpost</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Random sampling from a binomial posterior distribution</h2>
+
+<h3>Description</h3>
+
+<p>Samples from the posterior distribution of the probability <code class="reqn">p</code>
+of a binomial distribution.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">binpost(n, prior, ds_bin, param = c("logit", "p"))
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>A numeric scalar. The size of posterior sample required.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior</code></td>
+<td>
+<p>A function to evaluate the prior, created by
+<code>set_bin_prior</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ds_bin</code></td>
+<td>
+<p>A numeric list.  Sufficient statistics for inference
+about a binomial probability <code class="reqn">p</code>.  Contains
+</p>
+
+<ul>
+<li> <p><code>n_raw</code> : number of raw observations.
+</p>
+</li>
+<li> <p><code>m</code> : number of threshold exceedances.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>param</code></td>
+<td>
+<p>A character scalar.  Only relevant if <code>prior$prior</code> is a
+(user-supplied) R function.  <code>param</code> specifies the parameterization
+of the posterior distribution that <code>ru</code> uses for
+sampling.
+</p>
+<p>If <code>param = "p"</code> the original parameterization <code class="reqn">p</code> is
+used.
+</p>
+<p>If <code>param = "logit"</code> (the default) then <code>ru</code>
+samples from the posterior for the logit of <code class="reqn">p</code>, before transforming
+back to the <code class="reqn">p</code>-scale.
+</p>
+<p>The latter tends to make the optimizations involved in the
+ratio-of-uniforms algorithm more stable and to increase the probability
+of acceptance, but at the expense of slower function evaluations.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>If <code>prior$prior == "bin_beta"</code> then the posterior for <code class="reqn">p</code>
+is a beta distribution so <code>rbeta</code> is used to
+sample from the posterior.
+</p>
+<p>If <code>prior$prior == "bin_mdi"</code> then
+rejection sampling is used to sample from the posterior with an envelope
+function equal to the density of a
+beta(<code>ds$m</code> + 1, <code>ds$n_raw - ds$m</code> + 1) density.
+</p>
+<p>If <code>prior$prior == "bin_northrop"</code> then
+rejection sampling is used to sample from the posterior with an envelope
+function equal to the posterior density that results from using a
+Haldane prior.
+</p>
+<p>If <code>prior$prior</code> is a (user-supplied) R function then
+<code>ru</code> is used to sample from the posterior using the
+generalised ratio-of-uniforms method.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object (list) of class <code>"binpost"</code> with components
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td>
+<code>bin_sim_vals</code>:</td>
+<td>
+<p>An <code>n</code> by 1 numeric matrix of values
+simulated from the posterior for the binomial
+probability <code class="reqn">p</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>bin_logf</code>:</td>
+<td>
+<p>A function returning the log-posterior for
+<code class="reqn">p</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>bin_logf_args</code>:</td>
+<td>
+<p>A list of arguments to <code>bin_logf</code>.</p>
+</td>
+</tr>
+</table>
+<p>If <code>prior$prior</code> is a (user-supplied) R function then this list
+also contains <code>ru_object</code> the object of class <code>"ru"</code>
+returned by <code>ru</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>set_bin_prior</code> for setting a prior distribution
+for the binomial probability <code class="reqn">p</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">u &lt;- quantile(gom, probs = 0.65)
+ds_bin &lt;- list()
+ds_bin$n_raw &lt;- length(gom)
+ds_bin$m &lt;- sum(gom &gt; u)
+bp &lt;- set_bin_prior(prior = "jeffreys")
+temp &lt;- binpost(n = 1000, prior = bp, ds_bin = ds_bin)
+graphics::hist(temp$bin_sim_vals, prob = TRUE)
+
+# Setting a beta prior (Jeffreys in this case) by hand
+beta_prior_fn &lt;- function(p, ab) {
+  return(stats::dbeta(p, shape1 = ab[1], shape2 = ab[2], log = TRUE))
+}
+jeffreys &lt;- set_bin_prior(beta_prior_fn, ab = c(1 / 2, 1 / 2))
+temp &lt;- binpost(n = 1000, prior = jeffreys, ds_bin = ds_bin)
+</code></pre>
+
+
+</div>

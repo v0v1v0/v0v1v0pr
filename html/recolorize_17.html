@@ -1,0 +1,141 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>colorClusters</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Generate color clusters from an image</h2>
+
+<h3>Description</h3>
+
+<p>Clusters all the pixels in an image according to the specified method and
+returns color centers, cluster assignments, and cluster sizes.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">colorClusters(
+  bg_indexed,
+  method = "histogram",
+  n = 10,
+  bins = 3,
+  color_space = "Lab",
+  ref_white = "D65"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>bg_indexed</code></td>
+<td>
+<p>A list returned by <code>backgroundIndex</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Binning scheme to use, one of either <code>kmeans</code> or <code>histogram</code>.
+Produce very different results (see details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>If <code>method = "kmeans"</code>, the number of colors to fit.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bins</code></td>
+<td>
+<p>If <code>method = "histogram"</code>, either the number of bins per color
+channel (if a single number is provided) OR a vector of length 3 with the
+number of bins for each channel.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>color_space</code></td>
+<td>
+<p>Color space in which to cluster colors, passed to
+<code>grDevices{convertColor}</code>. One of "sRGB", "Lab", or "Luv".
+Default is "Lab", a perceptually uniform (for humans) color space.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ref_white</code></td>
+<td>
+<p>Reference white for converting to different color spaces.
+D65 (the default) corresponds to standard daylight.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>kmeans</code> clustering tries to find the set of <code>n</code> clusters
+that minimize overall distances. Histogram binning divides up color space
+according to set breaks; for example, bins = 2 would divide the red, green,
+and blue channels into 2 bins each (&gt; 0.5 and &lt; 0 .5), resulting in 8
+possible ranges. A white pixel (RGB = 1, 1, 1) would fall into the R \&gt; 0.5, G
+\&gt; 0.5, B \&gt; 0.5 bin. The resulting centers represent the average color of all
+the pixels assigned to that bin.
+</p>
+<p>K-means clustering can produce more intuitive results, but because it is
+iterative, it will find slightly different clusters each time it is run, and
+their order will be arbitrary. It also tends to divide up similar colors that
+make up the majority of the image. Histogram binning will produce the same
+results every time, in the same order, and because it forces the bins to be
+dispersed throughout color space, tends to better pick up small color
+details. Bins are also comparable across images. However, this sometimes
+means returning empty bins (i.e. the white bin will be empty if clustering a
+very dark image).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with the following elements:
+</p>
+
+<ol>
+<li> <p><code>pixel_assignments</code>: A vector of color center assignments for
+each pixel.
+</p>
+</li>
+<li> <p><code>centers</code>: A matrix of color centers, in RGB color space.
+</p>
+</li>
+<li> <p><code>sizes</code>: The number of pixels assigned to each cluster.
+</p>
+</li>
+</ol>
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# make a 100x100 'image' of random colors
+img &lt;- array(runif(30000), dim = c(100, 100, 3))
+plotImageArray(img)
+
+# make a background index object:
+bg_indexed &lt;- backgroundIndex(img, backgroundCondition())
+
+# histogram clustering
+hist_clusters &lt;- colorClusters(bg_indexed, method = "hist", bins = 2)
+plotColorPalette(hist_clusters$centers)
+
+# we can use a different number of bins for each channel
+uneven_clusters &lt;- colorClusters(bg_indexed, method = "hist",
+                                 bins = c(3, 2, 1))
+plotColorPalette(uneven_clusters$centers)
+
+# using kmeans
+kmeans_clusters &lt;- colorClusters(bg_indexed, method = "kmeans",
+                                 n = 5)
+plotColorPalette(kmeans_clusters$centers)
+
+</code></pre>
+
+
+</div>

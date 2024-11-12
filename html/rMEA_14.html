@@ -1,0 +1,136 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>MEAccf</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Moving-windows lagged cross-correlation routine for <code>MEA</code> objects</h2>
+
+<h3>Description</h3>
+
+<p>This function analyzes a bivariate MEA signal represented by two time-series (subject 1 "s1", subject 2 "s2") resulting from a dyadic interaction.
+MEAccf performs windowed cross-correlations with specified increments. The cross-correlation analysis is repeated for each
+lag step, with discrete increments of 1 sample in both directions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">MEAccf(mea, lagSec, winSec, incSec, r2Z = T, ABS = T)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>mea</code></td>
+<td>
+<p>an object of class <code>MEA</code> or a list of <code>MEA</code> objects (see function <code>readMEA</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lagSec</code></td>
+<td>
+<p>an integer specifying the maximum number of lags (in seconds) for which the time-series will be shifted forwards and backwards.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>winSec</code></td>
+<td>
+<p>an integer specifying the cross-correlation window size (in seconds).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>incSec</code></td>
+<td>
+<p>an integer specifying the step size (in seconds) between successive windows. Values lower than <code>winSec</code> result in overlapping windows.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>r2Z</code></td>
+<td>
+<p>logical. The default value TRUE applies Fisher's r to Z transformation (inverse hyperbolic tangent function) to all computed correlations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ABS</code></td>
+<td>
+<p>logical. The default value TRUE transforms the (Fisher's Z-transformed) correlations to absolute values.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The choice of <code>lagSec</code> depends on the type of synchronization expected from the specific interaction. In the literature, lags of ±5 seconds have been reported by multiple authors.
+Function <code>MEAlagplot</code> can be used for visual inspection of the appropriateness of the chosen lag.
+</p>
+<p>The choice of <code>winSec</code> represents the temporal resolution of the analysis.
+The combination of <code>incSec</code> and <code>winSec</code> settings has a big impact on the results. These parameters should be chosen carefully, guided by theoretical and empirical considerations.
+</p>
+<p>If <code>r2Z</code> is TRUE, values of Fisher's Z are constrained to an upper bound of 10.
+</p>
+<p>Using absolute values (<code>ABS</code>) treats positive and negative cross-correlations as equal. The underlying assumption is that both simultaneous movement (positive correlation) and when
+one subject accelerates and the other decelerates (negative correlation), are both signs of interrelatedness and should thus contribute equally to overall synchrony.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The function returns a copy of the <code>mea</code> object in which the <code>ccf</code> and <code>ccfRes</code> objects are populated. <code>mea$ccf</code> includes the complete lagged cross-correlation table
+for each window and each lag of S1 and S2 MEA signals. <code>mea$ccfRes</code> contains various aggregate values, typically used in research:
+</p>
+
+<ul>
+<li>
+<p> lag_zero: a numeric vector containing for each window, the non-lagged cross-correlation value.
+</p>
+</li>
+<li>
+<p> all_lags: a numeric vector containing  for each window, the average across all lags.
+</p>
+</li>
+<li>
+<p> s1_lead/s2_lead: a numeric vector containing for each window, the average of positive/negative lags, summing up the strength of S1/S2 in "leading" the synchronization.
+</p>
+</li>
+<li>
+<p> s1_lead_0/s2_lead_0: the same as s1_lead/s2_lead, but including lag_zero values in the average.
+</p>
+</li>
+<li>
+<p> bestLag: for each window, the lag value (in seconds) that has the highest correlation value.
+</p>
+</li>
+<li>
+<p> grandAver: a single numeric value of the grand-average of the whole cross-correlation table.
+</p>
+</li>
+<li>
+<p> winTimes: a data frame containing the start and end times of each window in the format hh:mm:ss
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">## read a single file
+path_normal &lt;- system.file("extdata/normal/200_01.txt", package = "rMEA")
+mea_normal &lt;- readMEA(path_normal, sampRate = 25, s1Col = 1, s2Col = 2,
+                     s1Name = "Patient", s2Name = "Therapist", skip=1,
+                     idOrder = c("id","session"), idSep="_")
+
+## perform ccf analysis
+mea_ccf = MEAccf(mea_normal, lagSec = 5, winSec = 60, incSec = 30, r2Z = TRUE, ABS = TRUE)
+summary(mea_ccf)
+
+##extract ccf values
+res &lt;- getCCF(mea_ccf, type="grandAver")
+print(res)
+
+#visualize the analysis results for the first file
+MEAheatmap(mea_ccf[[1]])
+
+</code></pre>
+
+
+</div>

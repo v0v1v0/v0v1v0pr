@@ -1,0 +1,122 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ADjoint</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>AD adjoint code from R</h2>
+
+<h3>Description</h3>
+
+<p>Writing custom AD adjoint derivatives from R
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ADjoint(f, df, name = NULL, complex = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>f</code></td>
+<td>
+<p>R function representing the function value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>df</code></td>
+<td>
+<p>R function representing the reverse mode derivative.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p>Internal name of this atomic.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>complex</code></td>
+<td>
+<p>Logical; Assume complex and adcomplex types for all arguments?</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Reverse mode derivatives (adjoint code) can be implemented from R using the function <code>ADjoint</code>. It takes as input a function of a single argument <code>f(x)</code> representing the function value, and another function of <em>three</em> arguments <code>df(x, y, dy)</code> representing the adjoint derivative wrt <code>x</code> defined as <code style="white-space: pre;">⁠d/dx sum( f(x) * dy )⁠</code>. Both <code>y</code> and <code>dy</code> have the same length as <code>f(x)</code>. The argument <code>y</code> can be assumed equal to <code>f(x)</code> to avoid recalculation during the reverse pass. It should be assumed that all arguments <code>x</code>, <code>y</code>, <code>dy</code> are vectors without any attributes <em>except</em> for dimensions, which are stored on first evaluation. The latter is convenient when implementing matrix functions (see <code>logdet</code> example).
+Higher order derivatives automatically work provided that <code>df</code> is composed by functions that <code>RTMB</code> already knows how to differentiate.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A function that allows for numeric and taped evaluation.
+</p>
+
+
+<h3>Complex case</h3>
+
+<p>The argument <code>complex=TRUE</code> specifies that the functions <code>f</code> and <code>df</code> are complex differentiable (holomorphic) and that arguments <code>x</code>, <code>y</code> and <code>dy</code> should be assumed complex (or adcomplex). Recall that complex differentiability is a strong condition excluding many continuous functions e.g. <code>Re</code>, <code>Im</code>, <code>Conj</code> (see example).
+</p>
+
+
+<h3>Note</h3>
+
+<p><code>ADjoint</code> may be useful when you need a special atomic function which is not yet available in <code>RTMB</code>, or just to experiment with reverse mode derivatives.
+However, the approach may cause a <em>significant overhead</em> compared to native <code>RTMB</code> derivatives. In addition, the approach is <em>not thread safe</em>, i.e. calling R functions cannot be done in parallel using OpenMP.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">############################################################################
+## Lambert W-function defined by W(y*exp(y))=y
+W &lt;- function(x) {
+  logx &lt;- log(x)
+  y &lt;- pmax(logx, 0)
+  while (any(abs(logx - log(y) - y) &gt; 1e-9, na.rm = TRUE)) {
+      y &lt;- y - (y - exp(logx - y)) / (1 + y)
+  }
+  y
+}
+## Derivatives
+dW &lt;- function(x, y, dy) {
+   dy / (exp(y) * (1. + y))
+}
+## Define new derivative symbol
+LamW &lt;- ADjoint(W, dW)
+## Test derivatives
+(F &lt;- MakeTape(function(x)sum(LamW(x)), numeric(3)))
+F(1:3)
+F$print()                ## Note the 'name'
+F$jacobian(1:3)          ## gradient
+F$jacfun()$jacobian(1:3) ## hessian
+############################################################################
+## Log determinant
+logdet &lt;- ADjoint(
+   function(x) determinant(x, log=TRUE)$modulus,
+   function(x, y, dy) t(solve(x)) * dy,
+   name = "logdet")
+(F &lt;- MakeTape(logdet, diag(2)))
+## Test derivatives
+## Compare with numDeriv::hessian(F, matrix(1:4,2))
+F$jacfun()$jacobian(matrix(1:4,2)) ## Hessian
+############################################################################
+## Holomorphic extension of 'solve'
+matinv &lt;- ADjoint(
+   solve,
+   function(x,y,dy) -t(y) %*% dy %*% t(y),
+   complex=TRUE)
+(F &lt;- MakeTape(function(x) Im(matinv(x+AD(1i))), diag(2)))
+## Test derivatives
+## Compare with numDeriv::jacobian(F, matrix(1:4,2))
+F$jacobian(matrix(1:4,2))
+</code></pre>
+
+
+</div>

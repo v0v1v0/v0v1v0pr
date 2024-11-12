@@ -1,0 +1,196 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>writeMat</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Writes a MAT file structure</h2>
+
+<h3>Description</h3>
+
+<p>This function takes the given variables (<code>...</code>) and places them in a
+MAT file structure, which is then written to a binary connection.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## Default S3 method:
+writeMat(con, ..., fixNames=TRUE, matVersion="5", onWrite=NULL, verbose=FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>con</code></td>
+<td>
+<p>Binary <code>connection</code> to which the MAT file structure should be
+written to. A string is interpreted as filename, which then will be
+opened (and closed afterwards).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p><em>Named</em> variables to be written where the names
+must be unique.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fixNames</code></td>
+<td>
+<p>If <code>TRUE</code>, periods within names of R variables
+and fields are converted to underscores.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>matVersion</code></td>
+<td>
+<p>A <code>character</code> string specifying what MAT file format
+version to be written to the connection. If <code>"5"</code>, a MAT v5 file
+structure is written. No other formats are currently supported.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>onWrite</code></td>
+<td>
+<p>Function to be called just before starting to write to
+connection. Since the MAT file structure does not contain information
+about the total size of the structure this argument makes it possible
+to first write the structure size (in bytes) to the connection.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Either a <code>logical</code>, a <code>numeric</code>, or a <code>Verbose</code>
+object specifying how much verbose/debug information is written to
+standard output. If a Verbose object, how detailed the information is
+is specified by the threshold level of the object. If a numeric, the
+value is used to set the threshold of a new Verbose object. If <code>TRUE</code>,
+the threshold is set to -1 (minimal). If <code>FALSE</code>, no output is written
+(and neither is the R.utils package required).
+</p>
+</td>
+</tr>
+</table>
+<p>Note that <code>...</code> must <em>not</em> contain variables with names equal
+to the arguments <code>matVersion</code> and <code>onWrite</code>, which were chosen
+because we believe they are quite unique to this write method.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns (invisibly) the number of bytes written. Any bytes written by
+any onWrite function are <em>not</em> included in this count.
+</p>
+
+
+<h3>Limitations</h3>
+
+<p>Currently only the uncompressed MAT version 5 file format [6] is
+supported, that is, compressed MAT files cannot be written (only read).
+</p>
+<p>Moreover, the maximum variable size supported by the MAT version 5
+file format is 2^31 bytes [6].  In R, this limitation translates to
+2^31-1 bytes, which corresponds to for instance an integer object
+with 536870912 elements or double object with 268435456 elements.
+</p>
+
+
+<h3>Details on onWrite()</h3>
+
+<p>If specified, the <code>onWrite()</code> function is called before the
+data is written to the connection.  This function must take a <code>list</code>
+argument as the first argument.  This will hold the element <code>con</code>
+which is the opened <code>connection</code> to be written to.
+It will also hold the element <code>length</code>, which specified the
+number of bytes to be written.  See example for an illustration.
+</p>
+<p><em>Note</em>, in order to provide the number of bytes before actually
+writing the data, a two-pass procedure has to be taken, where the
+first pass is imitating a complete writing without writing anything
+to the connection but only counting the total number of bytes. Then
+in the second pass, after calling <code>onWrite()</code>, the data is written.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Henrik Bengtsson</p>
+
+
+<h3>References</h3>
+
+<p>[1] The MathWorks Inc., <em>MATLAB - MAT-File Format, version 5</em>, June 1999.<br>
+[2] The MathWorks Inc., <em>MATLAB - Application Program Interface Guide, version 5</em>, 1998.<br>
+[3] The MathWorks Inc., <em>MATLAB - MAT-File Format, version 7</em>, September 2009.<br>
+[4] The MathWorks Inc., <em>MATLAB - MAT-File Format, version R2012a</em>, September 2012.<br>
+[5] The MathWorks Inc., <em>MATLAB - MAT-File Format, version R2015b</em>, September 2015.<br>
+[6] The MathWorks Inc., <em>MATLAB - MAT-File Versions</em>, December 2015.
+<a href="https://www.mathworks.com/help/matlab/import_export/mat-file-versions.html">https://www.mathworks.com/help/matlab/import_export/mat-file-versions.html</a><br></p>
+
+
+<h3>See Also</h3>
+
+<p><code>readMat</code>().
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">A &lt;- matrix(1:27, ncol = 3)
+B &lt;- as.matrix(1:10)
+C &lt;- array(1:18, dim = c(2, 3, 3))
+
+filename &lt;- paste(tempfile(), ".mat", sep = "")
+
+writeMat(filename, A = A, B = B, C = C)
+data &lt;- readMat(filename)
+str(data)
+
+X &lt;- list(A = A, B = B, C = C)
+stopifnot(all.equal(X, data[names(X)]))
+
+unlink(filename)
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# All objects written must be named uniquely
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+tryCatch({
+  # Named
+  writeMat(filename, A = A)
+  # Not named
+  writeMat(filename, A)
+}, error = function(ex) {
+  cat("ERROR:", ex$message, "\n")
+})
+
+
+tryCatch({
+  # Uniquely named
+  writeMat(filename, A = A, B = B, C = C)
+  # Not uniquely named
+  writeMat(filename, A = A, B = B, A = C)
+}, error = function(ex) {
+  cat("ERROR:", ex$message, "\n")
+})
+
+
+## Not run: 
+# When writing to a stream connection the receiver needs to know on
+# beforehand how many bytes are available. This can be done by using
+# the 'onWrite' argument.
+onWrite &lt;- function(x)
+  writeBin(x$length, con = x$con, size = 4, endian = "little")
+  writeMat(con, A = A, B = B, onWrite = onWrite)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

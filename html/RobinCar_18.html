@@ -1,0 +1,117 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>robincar_logrank</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Robust (potentially stratified) logrank adjustment</h2>
+
+<h3>Description</h3>
+
+<p>Perform a robust covariate-adjusted logrank test ("CL") that can be stratified ("CSL") if desired.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">robincar_logrank(adj_method, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>adj_method</code></td>
+<td>
+<p>Adjustment method, one of "CL", "CSL"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments to 'robincar_tte'</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A result object with the following attributes:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>result</code></td>
+<td>
+<p>A list: "statistic" is the adjusted logrank test statistic which can be used to obtain p-values; "U" and "se" are the numerator and denominator of the test statistic, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>settings</code></td>
+<td>
+<p>The covariate adjustment settings used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>original_df</code></td>
+<td>
+<p>The dataset supplied by the user.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(magrittr)
+library(dplyr)
+library(forcats)
+set.seed(0)
+n=100
+data.simu0=data_gen(n=n,
+                    theta=0,
+                    randomization="permuted_block",
+                    p_trt=0.5,
+                    case="case2") %&gt;% mutate(strata1=sample(letters[1:3],n,replace=TRUE),
+                                             strata2=sample(LETTERS[4:5],n,replace=TRUE))
+
+out &lt;- robincar_logrank(df=data.simu0,
+                        treat_col="I1",
+                        p_trt=0.5,
+                        ref_arm=0,
+                        response_col="t",
+                        event_col="delta",
+                        covariate_cols=c("model_z1", "model_z2"),
+                        car_scheme="simple",
+                        adj_method=c("CL"))
+
+set.seed(0)
+n=100
+data.simu0=data_gen(n=n,
+                    theta=0,
+                    randomization="permuted_block",
+                    p_trt=0.5,
+                    case="case1")
+
+data.simu &lt;- data.simu0 %&gt;%
+  tidyr::pivot_longer(cols=starts_with("car_strata"),
+                      names_prefix="car_strata",
+                      names_to="strt") %&gt;%
+  filter(value==1) %&gt;% select(-value) %&gt;%
+  mutate(strt=forcats::as_factor(strt)) %&gt;%
+  select(t,strt) %&gt;%
+  left_join(data.simu0, .)
+
+out1 &lt;- robincar_logrank(df=data.simu,
+                         treat_col="I1",
+                         p_trt=0.5,
+                         ref_arm=0,
+                         response_col="t",
+                         event_col="delta",
+                         car_strata_cols="strt",
+                         covariate_cols=NULL,
+                         car_scheme=c("permuted-block"),
+                         adj_method=c("CSL")
+)
+
+</code></pre>
+
+
+</div>

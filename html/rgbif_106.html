@@ -1,0 +1,173 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>occ_download_queue</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Download requests in a queue</h2>
+
+<h3>Description</h3>
+
+<p>Download requests in a queue
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">occ_download_queue(..., .list = list(), status_ping = 10)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>any number of <code>occ_download()</code> requests</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.list</code></td>
+<td>
+<p>any number of <code>occ_download_prep()</code> requests</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>status_ping</code></td>
+<td>
+<p>(integer) seconds between pings checking status of
+the download request. generally larger numbers for larger requests.
+default: 10 (i.e., 10 seconds). must be 10 or greater</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function is a convenience wrapper around <code>occ_download()</code>,
+allowing the user to kick off any number of requests, while abiding by
+GBIF rules of 3 concurrent requests per user.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a list of <code>occ_download</code> class objects, see <code>occ_download_get()</code>
+to fetch data
+</p>
+
+
+<h3>How it works</h3>
+
+<p>It works by using lazy evaluation to collect your requests into a queue
+(but does not use lazy evaluation if use the <code>.list</code> parameter).
+Then it kicks of the first 3 requests. Then in a while loop, we check
+status of those requests, and when any request finishes (see
+<code style="white-space: pre;">⁠When is a job done?⁠</code> below), we kick off the
+next, and so on. So in theory, there may not always strictly be 3 running
+concurrently, but the function will usually provide for 3 running
+concurrently.
+</p>
+
+
+<h3>When is a job done?</h3>
+
+<p>We mark a job as done by checking the <code style="white-space: pre;">⁠/occurrence/download/⁠</code> API route
+with our <code>occ_download_meta()</code> function. If the status of the job is
+any of "succeeded", "killed", or "cancelled", then we mark the job as done
+and move on to other jobs in the queue.
+</p>
+
+
+<h3>Beware</h3>
+
+<p>This function is still in development. There's a lot of complexity
+to this problem. We'll be rolling out fixes and improvements in future
+versions of the package, so expect to have to adjust your code
+with new versions.
+</p>
+
+
+<h3>Note</h3>
+
+<p>see downloads for an overview of GBIF downloads methods
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other downloads: 
+<code>download_predicate_dsl</code>,
+<code>occ_download_cached()</code>,
+<code>occ_download_cancel()</code>,
+<code>occ_download_dataset_activity()</code>,
+<code>occ_download_datasets()</code>,
+<code>occ_download_get()</code>,
+<code>occ_download_import()</code>,
+<code>occ_download_list()</code>,
+<code>occ_download_meta()</code>,
+<code>occ_download_wait()</code>,
+<code>occ_download()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+if (interactive()) { # dont run in automated example runs, too costly
+# passing occ_download() requests via ...
+out &lt;- occ_download_queue(
+  occ_download(pred('taxonKey', 3119195), pred("year", 1976)),
+  occ_download(pred('taxonKey', 3119195), pred("year", 2001)),
+  occ_download(pred('taxonKey', 3119195), pred("year", 2001),
+    pred_lte("month", 8)),
+  occ_download(pred('taxonKey', 5229208), pred("year", 2011)),
+  occ_download(pred('taxonKey', 2480946), pred("year", 2015)),
+  occ_download(pred("country", "NZ"), pred("year", 1999),
+    pred("month", 3)),
+  occ_download(pred("catalogNumber", "Bird.27847588"),
+    pred("year", 1998), pred("month", 2))
+)
+
+# supports &lt;= 3 requests too
+out &lt;- occ_download_queue(
+  occ_download(pred("country", "NZ"), pred("year", 1999), pred("month", 3)),
+  occ_download(pred("catalogNumber", "Bird.27847588"), pred("year", 1998),
+    pred("month", 2))
+)
+
+# using pre-prepared requests via .list
+keys &lt;- c(7905507, 5384395, 8911082)
+queries &lt;- list()
+for (i in seq_along(keys)) {
+  queries[[i]] &lt;- occ_download_prep(
+    pred("taxonKey", keys[i]),
+    pred_in("basisOfRecord", c("HUMAN_OBSERVATION","OBSERVATION")),
+    pred("hasCoordinate", TRUE),
+    pred("hasGeospatialIssue", FALSE),
+    pred("year", 1993)
+  )
+}
+out &lt;- occ_download_queue(.list = queries)
+out
+
+# another pre-prepared example
+yrs &lt;- 1930:1934
+queries &lt;- list()
+for (i in seq_along(yrs)) {
+  queries[[i]] &lt;- occ_download_prep(
+    pred("taxonKey", 2877951),
+    pred_in("basisOfRecord", c("HUMAN_OBSERVATION","OBSERVATION")),
+    pred("hasCoordinate", TRUE),
+    pred("hasGeospatialIssue", FALSE),
+    pred("year", yrs[i])
+  )
+}
+out &lt;- occ_download_queue(.list = queries)
+out
+}
+## End(Not run)
+</code></pre>
+
+
+</div>

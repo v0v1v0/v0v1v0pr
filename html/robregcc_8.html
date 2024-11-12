@@ -1,0 +1,125 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>residuals</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Extract residuals estimate from the sparse version of the robregcc fitted object.</h2>
+
+<h3>Description</h3>
+
+<p>Robust residuals estimate
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'robregcc'
+residuals(object, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>robregcc fitted onject</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Other argumnts for future usage.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>residuals estimate
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"> 
+
+library(magrittr)
+library(robregcc)
+
+data(simulate_robregcc)
+X &lt;- simulate_robregcc$X;
+y &lt;- simulate_robregcc$y
+C &lt;- simulate_robregcc$C
+n &lt;- nrow(X); p &lt;- ncol(X); k &lt;-  nrow(C)
+
+Xt &lt;- cbind(1,X)                         # accounting for intercept in predictor
+C &lt;- cbind(0,C)                           # accounting for intercept in constraint
+bw &lt;- c(0,rep(1,p))                       # weight matrix to not penalize intercept 
+
+
+example_seed &lt;- 2*p+1               
+set.seed(example_seed) 
+
+# Breakdown point for tukey Bisquare loss function 
+b1 = 0.5                    # 50% breakdown point
+cc1 =  1.567                # corresponding model parameter
+b1 = 0.25; cc1 =  2.937   
+
+# Initialization [PSC analysis for compositional data]
+control &lt;- robregcc_option(maxiter=1000,tol = 1e-4,lminfac = 1e-7)
+fit.init &lt;- cpsc_sp(Xt, y,alp = 0.4, cfac = 2, b1 = b1, 
+cc1 = cc1,C,bw,1,control)  
+
+## Robust model fitting
+
+# control parameters
+control &lt;- robregcc_option()
+beta.wt &lt;- fit.init$betaR    # Set weight for model parameter beta
+beta.wt[1] &lt;- 0
+control$gamma = 1            # gamma for constructing  weighted penalty
+control$spb = 40/p           # fraction of maximum non-zero model parameter beta
+control$outMiter = 1000      # Outer loop iteration
+control$inMiter = 3000       # Inner loop iteration
+control$nlam = 50            # Number of tuning parameter lambda to be explored
+control$lmaxfac = 1          # Parameter for constructing sequence of lambda
+control$lminfac = 1e-8       # Parameter for constructing sequence of lambda 
+control$tol = 1e-20;         # tolrence parameter for converging [inner  loop]
+control$out.tol = 1e-16      # tolerence parameter for convergence [outer loop]
+control$kfold = 10           # number of fold of crossvalidation
+control$sigmafac = 2#1.345
+# Robust regression using adaptive lasso penalty
+fit.ada &lt;- robregcc_sp(Xt,y,C,
+                       beta.init = beta.wt,  cindex = 1, 
+                       gamma.init = fit.init$residuals,
+                       control = control, 
+                       penalty.index = 1, alpha = 0.95)
+
+# Robust regression using lasso penalty [Huber equivalent]   
+fit.soft &lt;- robregcc_sp(Xt,y,C, cindex = 1, 
+                        control = control, penalty.index = 2, 
+                        alpha = 0.95)
+
+
+# Robust regression using hard thresholding penalty
+control$lmaxfac = 1e2               # Parameter for constructing sequence of lambda
+control$lminfac = 1e-3              # Parameter for constructing sequence of lambda
+control$sigmafac = 2#1.345
+fit.hard &lt;- robregcc_sp(Xt,y,C, beta.init = fit.init$betaf, 
+                        gamma.init = fit.init$residuals,
+                        cindex = 1, 
+                        control = control, penalty.index = 3, 
+                        alpha = 0.95)
+                        
+                        
+residuals(fit.ada)
+residuals(fit.soft)
+residuals(fit.hard)
+
+
+
+</code></pre>
+
+
+</div>

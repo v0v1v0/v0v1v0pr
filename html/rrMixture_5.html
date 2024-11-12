@@ -1,0 +1,396 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rrmix</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Reduced-Rank Mixture Models in Multivariate Regression</h2>
+
+<h3>Description</h3>
+
+<p>‘rrmix’ is used to estimate parameters of reduced-rank mixture models in
+multivariate linear regression using the full-ranked, rank-penalized, and
+adaptive nuclear norm penalized estimators proposed by Kang et. al. (2022+).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rrmix(K = 2, X, Y, est = c("FR", "RP", "ANNP"),
+      lambda = 0, gamma = 2, ind0 = NULL, para0 = NULL, seed = NULL,
+      kmscale = FALSE, km.nstart = 20, n.init = 100, commonvar = FALSE,
+      maxiter = 1000, maxiter.int = 100, thres = 1e-05, thres.int = 1e-05,
+      visible = FALSE, para.true = NULL, ind.true = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>K</code></td>
+<td>
+<p>number of mixture components.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>n by p design matrix where n is the number of observations and
+p is the number of predictors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>n by q response matrix where n is the number of observations and
+q is the number of responses.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>est</code></td>
+<td>
+<p>character, specifying the estimation method. ‘FR’, ‘RP’, and ‘ANNP’
+refers to as the full-ranked, rank-penalized, and adaptive nuclear norm
+penalized method, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>numerical value, specifying tuning parameter. Only used in the
+estimation method of ‘RP’ and ‘ANNP’. If 0, all estimation methods (‘FR’,
+‘RP’, and ‘ANNP’) provide the same estimation results.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gamma</code></td>
+<td>
+<p>numerical value, specifying additional tuning parameter, only
+used in the estimation method of ‘ANNP’. It must be nonnegative.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ind0</code></td>
+<td>
+<p>vector of length n, specifying the initial assignment of the
+mixture membership of n observations when there is prior information on
+the membership. If ‘NULL’, K-means clustering technique is used to assign
+the membership for n observations. Default is ‘NULL’.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>para0</code></td>
+<td>
+<p>array of length K. It consists of K lists, each of which contains
+initial values of membership probability, coefficient matrix, and variance-
+covariance matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>seed number for the reproducibility of initialization results in
+the EM algorithm. Default is ‘NULL’.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kmscale</code></td>
+<td>
+<p>logical value, indicating whether Y is scaled prior to K-means
+clustering for initialization. Default is ‘FALSE’.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>km.nstart</code></td>
+<td>
+<p>number of random sets considered to perform K-means
+clustering for initialization. Default is 20.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.init</code></td>
+<td>
+<p>number of initializations to try. Two methods for initial
+clustering are used: K-means and random clustering.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>commonvar</code></td>
+<td>
+<p>logical value, indicating the homogeneity assumption of
+variance-covariance matrices across K mixture components. Default is ‘FALSE’.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxiter</code></td>
+<td>
+<p>maximum number of iterations for external iterative
+algorithm, used in all estimation methods.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxiter.int</code></td>
+<td>
+<p>maximum number of iterations for internal iterative
+algorithm, only used in the estimation method of ‘ANNP’.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thres</code></td>
+<td>
+<p>threshold value for external EM algorithm, used in all
+estimation methods. It controls the termination of the EM algorithm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thres.int</code></td>
+<td>
+<p>threshold value for internal iterative algorithm, only used
+in the estimation method of ‘ANNP’. It controls the termination of the
+internal algorithm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>visible</code></td>
+<td>
+<p>logical value, indicating whether the outputs from each iteration
+are printed. Useful when the whole algorithm takes long. Default is ‘FALSE’.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>para.true</code></td>
+<td>
+<p>array of length K. It consists of K lists, each of which
+contains a coefficient matrix and its true rank. Only used when true models
+are known, e.g., in a simulation study.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ind.true</code></td>
+<td>
+<p>vector of length n, specifying the true mixture membership
+for n observations. Only used when true models are known, e.g., in a
+simulation study.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An object of class <code>rrmix</code> containing the fitted model, including: 
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>original function call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>seed number which is set for the initilization.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.est</code></td>
+<td>
+<p>vector of length K, specifying the estimated number of
+observations in each mixture components.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>para</code></td>
+<td>
+<p>array of length K. It consists of K lists, each of which contains
+final estimates of membership probability, coefficient matrix, and variance-
+covariance matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>est.rank</code></td>
+<td>
+<p>vector of length K, specifying the estimated ranks of
+coefficient matrices.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>npar</code></td>
+<td>
+<p>number of parameters in the model, used to estimate the BIC.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.iter</code></td>
+<td>
+<p>number of iterations (external EM algorithm).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>tuning parameter for the estimation method of 'RP' or 'ANNP'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gamma</code></td>
+<td>
+<p>tuning parameter for the estimation method of 'ANNP'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ind</code></td>
+<td>
+<p>vector of length n, specifying the estimated mixture membership
+for n observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ind.true</code></td>
+<td>
+<p>vector of length n, specifying the true mixture membership
+for n observations. Only returned when the true models are known.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loglik</code></td>
+<td>
+<p>log-likelihood of the final model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>penloglik</code></td>
+<td>
+<p>penalized log-likelihood of the final model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>penalty</code></td>
+<td>
+<p>penalty in the penalized log-likelihood of the final model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bic</code></td>
+<td>
+<p>BIC of the final model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>avg.nn.iter</code></td>
+<td>
+<p>average number of iterations for internal iterative
+algorithm, only returned for the estimation method of 'ANNP'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>resmat</code></td>
+<td>
+<p>matrix containing the information for each iteration of the
+EM algorithm, e.g., iteration number, log-likelihood, penalized log-
+likelihood, difference between penalized log-likelihood values from two
+consecutive iterations, and computing time.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>class.err</code></td>
+<td>
+<p>Soft and hard classification errors for mixture membership.
+Only returned when the true models are known.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>est.err</code></td>
+<td>
+<p>estimation error from the comparison between the estimated
+and true coefficient matrices. Only returned when the true models are
+known.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pred.err</code></td>
+<td>
+<p>prediction error. Only returned when the true models are
+known.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Suyeon Kang, University of California, Riverside, <a href="mailto:skang062@ucr.edu">skang062@ucr.edu</a>;
+Weixin Yao, University of California, Riverside, <a href="mailto:weixin.yao@ucr.edu">weixin.yao@ucr.edu</a>;
+Kun Chen, University of Connecticut, <a href="mailto:kun.chen@uconn.edu">kun.chen@uconn.edu</a>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Kang, S., Chen, K., and Yao, W. (2022+). "Reduced rank estimation in mixtures
+of multivariate linear regression".
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>rrmix.sim.norm</code>, <code>initialize.para</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(rrMixture)
+
+#-----------------------------------------------------------#
+# Real Data Example: Tuna Data
+#-----------------------------------------------------------#
+require(bayesm)
+data(tuna)
+tunaY &lt;- log(tuna[, c("MOVE1", "MOVE2", "MOVE3", "MOVE4",
+                  "MOVE5", "MOVE6", "MOVE7")])
+tunaX &lt;- tuna[, c("NSALE1", "NSALE2", "NSALE3", "NSALE4",
+              "NSALE5", "NSALE6", "NSALE7",
+              "LPRICE1", "LPRICE2", "LPRICE3", "LPRICE4",
+              "LPRICE5", "LPRICE6", "LPRICE7")]
+tunaX &lt;- cbind(intercept = 1, tunaX)
+
+# Rank-penalized estimation
+
+tuna.rp &lt;- rrmix(K = 2, X = tunaX, Y = tunaY, lambda = 3, est = "RP",
+           seed = 100, n.init = 100)
+summary(tuna.rp)
+plot(tuna.rp) 
+
+# Adaptive nuclear norm penalized estimation
+
+tuna.annp &lt;- rrmix(K = 2, X = tunaX, Y = tunaY, lambda = 3, gamma = 2, est = "ANNP",
+             seed = 100, n.init = 100)
+summary(tuna.annp)
+plot(tuna.annp)       
+
+#-----------------------------------------------------------#
+# Simulation: Two Components Case
+#-----------------------------------------------------------#
+# Simulation Data
+K2mod &lt;- rrmix.sim.norm(K = 2, n = 100, p = 5, q = 5, rho = .5,
+         b = 1, shift = 1, r.star = c(1, 3), sigma = c(1, 1),
+         pr = c(.5, .5), seed = 1215)
+         
+# Rank-penalized estimation
+
+K2.rp &lt;- rrmix(K = 2, X = K2mod$X, Y = K2mod$Y, lambda = 1,
+         seed = 17, est = "RP", ind.true = K2mod$ind.true,
+         para.true = K2mod$para.true, n.init = 100)
+summary(K2.rp)
+plot(K2.rp)
+         
+# Adaptive nuclear norm penalized estimation
+
+K2.annp &lt;- rrmix(K = 2, X = K2mod$X, Y = K2mod$Y, lambda = 1,
+           seed = 17, est = "ANNP", ind.true = K2mod$ind.true,
+           para.true = K2mod$para.true, n.init = 100)
+summary(K2.annp)
+plot(K2.annp)
+</code></pre>
+
+
+</div>

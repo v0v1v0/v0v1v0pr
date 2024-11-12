@@ -1,0 +1,229 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>loo.stanfit</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Approximate leave-one-out cross-validation</h2>
+
+<h3>Description</h3>
+
+<p>A <code>loo</code> method that is customized for stanfit objects.
+The <code>loo</code> method for stanfit objects —a wrapper around the <code>array</code>
+method for <code>loo</code> in the  <span class="pkg">loo</span> package — computes PSIS-LOO CV,
+approximate leave-one-out cross-validation using Pareto smoothed importance
+sampling (Vehtari, Gelman, and Gabry, 2017a,2017b).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">  ## S3 method for class 'stanfit'
+loo(x,
+    pars = "log_lik",
+    save_psis = FALSE,
+    cores = getOption("mc.cores", 1),
+    moment_match = FALSE,
+    k_threshold = 0.7,
+    ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>An object of S4 class <code>stanfit</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pars</code></td>
+<td>
+<p>Name of transformed parameter or generated quantity in
+the Stan program corresponding to the pointwise log-likelihood. If not
+specified the default behavior is to look for <code>"log_lik"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>save_psis</code></td>
+<td>
+<p>Should the intermediate results from <code>psis</code>
+be saved in the returned object? The default is <code>FALSE</code>. This can be
+useful to avoid repeated computation when using other functions in the
+<span class="pkg">loo</span> and <span class="pkg">bayesplot</span> packages.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cores</code></td>
+<td>
+<p>Number of cores to use for parallelization. The default is 1 unless
+<code>cores</code> is specified or the <code>mc.cores</code> option
+has been set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>moment_match</code></td>
+<td>
+<p>Logical; Whether to use the moment matching algorithm for
+observations with high Pareto k values to improve accuracy. Note:
+because the moment matching algorithm relies on the <code>unconstrain_pars</code>
+method in RStan it is only available if run in the same R session as fitting the
+model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k_threshold</code></td>
+<td>
+<p>Threshold value for Pareto k values above which
+the moment matching algorithm is used. If <code>moment_match</code> is <code>FALSE</code>,
+this is ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Ignored.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Stan does not automatically compute and store the log-likelihood. It
+is up to the user to incorporate it into the Stan program if it is to be
+extracted after fitting the model. In a Stan program, the pointwise log
+likelihood can be coded as a vector in the transformed parameters block
+(and then summed up in the model block) or it can be coded entirely in the
+generated quantities block. We recommend using the generated quantities
+block so that the computations are carried out only once per iteration
+rather than once per HMC leapfrog step.
+</p>
+<p>For example, the following is the <code>generated quantities</code> block for
+computing and saving the log-likelihood for a linear regression model with
+<code>N</code> data points, outcome <code>y</code>, predictor matrix <code>X</code> (including
+column of 1s for intercept), coefficients <code>beta</code>,
+and standard deviation <code>sigma</code>:
+</p>
+<p><code>vector[N] log_lik;</code>
+</p>
+<p><code>for (n in 1:N) log_lik[n] = normal_lpdf(y[n] | X[n, ] * beta, sigma);</code>
+</p>
+<p>This function automatically uses Pareto k diagnostics for assessing
+the accuracy of importance sampling for each observation. When the
+diagnostics indicate that importance sampling for certain observations
+is inaccurate, a moment matching algorithm can be used, which can
+improve the accuracy (Paananen et al., 2020).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with class <code>c("psis_loo", "loo")</code>, as detailed in the
+<code>loo</code> documentation.
+</p>
+
+
+<h3>References</h3>
+
+<p>Vehtari, A., Gelman, A., and Gabry, J. (2017a).
+Practical Bayesian model evaluation using leave-one-out cross-validation and WAIC.
+<em>Statistics and Computing</em>. 27(5), 1413-1432.
+<code>doi:10.1007/s11222-016-9696-4</code>.
+<a href="https://arxiv.org/abs/1507.04544">https://arxiv.org/abs/1507.04544</a>,
+<a href="https://link.springer.com/article/10.1007/s11222-016-9696-4">https://link.springer.com/article/10.1007/s11222-016-9696-4</a>
+</p>
+<p>Vehtari, A., Gelman, A., and Gabry, J. (2017b).
+Pareto smoothed importance sampling. arXiv preprint:
+<a href="https://arxiv.org/abs/1507.02646">https://arxiv.org/abs/1507.02646</a>
+</p>
+<p>Yao, Y., Vehtari, A., Simpson, D., and Gelman, A. (2018).
+Using stacking to average Bayesian predictive distributions.
+Bayesian Analysis, advance publication, <code>doi:10.1214/17-BA1091</code>.
+</p>
+<p>Paananen, T., Piironen, J., Buerkner, P.-C., Vehtari, A. (2020).
+Implicitly Adaptive Importance Sampling.
+arXiv preprint:
+<a href="https://arxiv.org/abs/1906.08850">https://arxiv.org/abs/1906.08850</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+
+<ul>
+<li>
+<p> The <span class="pkg">loo</span> package documentation, including the vignettes for
+many examples (<a href="https://mc-stan.org/loo/">https://mc-stan.org/loo/</a>).
+</p>
+</li>
+<li> <p><code>loo_moment_match</code> for the moment matching algorithm.
+</p>
+</li>
+<li> <p><code>loo_model_weights</code> for model averaging/weighting via
+stacking or pseudo-BMA weighting.
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# Generate a dataset from N(0,1)
+N &lt;- 100
+y &lt;- rnorm(N, 0, 1)
+
+# Suppose we have three models for y:
+#  1) y ~ N(-1, sigma)
+#  2) y ~ N(0.5, sigma)
+#  3) y ~ N(0.6,sigma)
+#
+stan_code &lt;- "
+data {
+  int N;
+  vector[N] y;
+  real mu_fixed;
+}
+  parameters {
+  real&lt;lower=0&gt; sigma;
+}
+model {
+  sigma ~ exponential(1);
+  y ~ normal(mu_fixed, sigma);
+}
+generated quantities {
+  vector[N] log_lik;
+  for (n in 1:N) log_lik[n] = normal_lpdf(y[n]| mu_fixed, sigma);
+}"
+
+mod &lt;- stan_model(model_code = stan_code)
+fit1 &lt;- sampling(mod, data=list(N=N, y=y, mu_fixed=-1))
+fit2 &lt;- sampling(mod, data=list(N=N, y=y, mu_fixed=0.5))
+fit3 &lt;- sampling(mod, data=list(N=N, y=y, mu_fixed=0.6))
+
+# use the loo method for stanfit objects
+loo1 &lt;- loo(fit1, pars = "log_lik")
+print(loo1)
+
+# which is equivalent to
+LL &lt;- as.array(fit1, pars = "log_lik")
+r_eff &lt;- loo::relative_eff(exp(LL))
+loo1b &lt;- loo::loo.array(LL, r_eff = r_eff)
+print(loo1b)
+
+# compute loo for the other models
+loo2 &lt;- loo(fit2)
+loo3 &lt;- loo(fit3)
+
+# stacking weights
+wts &lt;- loo::loo_model_weights(list(loo1, loo2, loo3), method = "stacking")
+print(wts)
+
+# use the moment matching for loo with a stanfit object
+loo_mm &lt;- loo(fit1, pars = "log_lik", moment_match = TRUE)
+print(loo_mm)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

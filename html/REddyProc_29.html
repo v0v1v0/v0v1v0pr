@@ -1,0 +1,90 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fLoadFluxnet15</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Read a file in the format of Fluxnet 2015 release</h2>
+
+<h3>Description</h3>
+
+<p>Assigns default units to the columns and keeps variable name attributes
+as in original file.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fLoadFluxnet15(
+  file_path,
+  additional_columns = character(0),
+  colname_NEE = "NEE",
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>file_path</code></td>
+<td>
+<p>scalar string: the path to the csv file</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>additional_columns</code></td>
+<td>
+<p>character vector of columns to
+read in addition of standard columns of <code>read_from_fluxnet15</code>.
+Can be a character vector or a object return by <code>cols</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>colname_NEE</code></td>
+<td>
+<p>name (scalar string) of column that reports NEE observations</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments to <code>read_csv</code></p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">  ds_fn15 &lt;- Example_DETha98 %&gt;%
+     fConvertTimeToPosix('YDH',Year = 'Year',Day = 'DoY', Hour = 'Hour') %&gt;%
+     dplyr::mutate(
+        TIMESTAMP_END = POSIXctToBerkeleyJulianDate(DateTime),
+        season = factor(199801)
+     ) %&gt;%
+     dplyr::rename(SW_IN = "Rg", TA = "Tair", USTAR = "Ustar") %&gt;%
+     dplyr::select(dplyr::one_of(c(
+       "TIMESTAMP_END","NEE","SW_IN","TA","VPD","USTAR","season")))
+  head(ds_fn15)
+  fname &lt;- tempfile()
+  readr::write_csv(ds_fn15, fname)
+
+  # standard columns are renamed to REddyProc defaults
+  ds_eproc &lt;- fLoadFluxnet15(fname)
+  head(ds_eproc)
+  EProc &lt;- sEddyProc$new("DE-Tha", ds_eproc)
+  head(EProc$sExportData())
+
+  # Additional columns can be specified, e.g. factor column season
+  ds_eproc &lt;- fLoadFluxnet15(fname,
+    additional_columns = readr::cols(season = readr::col_factor()))
+  head(ds_eproc)
+  EProc &lt;- sEddyProc$new("DE-Tha", ds_eproc,
+    c("NEE", "Rg", "Tair", "VPD", "Ustar","season"),
+    ColNamesNonNumeric = "season"
+    )
+  head(EProc$sExportData())
+</code></pre>
+
+
+</div>

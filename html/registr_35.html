@@ -1,0 +1,338 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>registr</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Register Exponential Family Functional Data</h2>
+
+<h3>Description</h3>
+
+<p>Software for registering functional data from the exponential family of distributions.
+</p>
+<p>Function used in the registration step of an FPCA-based approach for 
+registering exponential-family, potentially incomplete functional data,
+called by <code>register_fpca</code>. 
+This method uses constrained optimization to estimate spline 
+coefficients for warping functions, where the objective function for optimization comes from 
+maximizing the EF likelihood subject to monotonicity constraints on the warping functions. 
+You have to either specify <code>obj</code>, which is a fpca 
+object from an earlier step, or <code>Y</code>, a dataframe in long format with variables 
+<code>id</code>, <code>index</code>, and <code>value</code> to indicate subject IDs, times, and observations, 
+respectively. <br><br>
+Warping functions by default are forced to start and end on the diagonal to be
+domain-preserving. This behavior can be changed by setting
+<code>incompleteness</code> to some other value than NULL and a reasonable <code>lambda_inc</code> value.
+For further details see the accompanying vignette. <br><br>
+By specifying <code>cores &gt; 1</code> the registration call can be parallelized.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">registr(
+  obj = NULL,
+  Y = NULL,
+  Kt = 8,
+  Kh = 4,
+  family = "gaussian",
+  gradient = TRUE,
+  incompleteness = NULL,
+  lambda_inc = NULL,
+  Y_template = NULL,
+  beta = NULL,
+  t_min = NULL,
+  t_max = NULL,
+  row_obj = NULL,
+  periodic = FALSE,
+  warping = "nonparametric",
+  gamma_scales = NULL,
+  cores = 1L,
+  subsample = TRUE,
+  verbose = 1,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>obj</code></td>
+<td>
+<p>Current estimate of FPC object. 
+Can be NULL only if Y argument is selected.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>Dataframe. Should have values id, value, index.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Kt</code></td>
+<td>
+<p>Number of B-spline basis functions used to estimate mean functions. Default is 8.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Kh</code></td>
+<td>
+<p>Number of B-spline basis functions used to estimate warping functions <em>h</em>. Default is 4.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>One of <code>c("gaussian","binomial","gamma","poisson")</code>. Defaults to
+<code>"gaussian"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gradient</code></td>
+<td>
+<p>If <code>TRUE</code>, uses analytic gradient to calculate derivative. 
+If <code>FALSE</code>, calculates gradient numerically. Not available for families
+<code>"gamma","poisson"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>incompleteness</code></td>
+<td>
+<p>Optional specification of incompleteness structure.
+One of <code>c("leading","trailing","full")</code>, specifying that incompleteness
+is present only in the initial measurements, only in the trailing measurements, or
+in both, respectively. For details see the accompanying vignette.
+Defaults to NULL, i.e. no incompleteness structure.
+Can only be set when <code>warping = "nonparametric"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda_inc</code></td>
+<td>
+<p>Penalization parameter to control the amount of
+overall dilation of the domain.
+The higher this lambda, the more the registered domains are forced to have the
+same length as the observed domains.
+Only used if <code>incompleteness</code> is not NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y_template</code></td>
+<td>
+<p>Optional dataframe with the same structure as <code>Y</code>.
+Only used if <code>obj</code> is NULL. If <code>Y_template</code> is NULL,
+curves are registered to the overall mean of all curves in <code>Y</code> as template function.
+If <code>Y_template</code> is specified, the template function is taken as the mean
+of all curves in <code>Y_template</code>. Default is NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+<p>Current estimates for beta for each subject. Default is NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>t_min</code></td>
+<td>
+<p>Minimum value to be evaluated on the time domain.
+if 'NULL', taken to be minimum observed value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>t_max</code></td>
+<td>
+<p>Maximum value to be evaluated on the time domain. 
+if 'NULL', taken to be maximum observed value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>row_obj</code></td>
+<td>
+<p>If NULL, the function cleans the data and calculates row indices. 
+Keep this NULL if you are using standalone <code>registr</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>periodic</code></td>
+<td>
+<p>If <code>TRUE</code>, uses periodic b-spline basis functions. Default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>warping</code></td>
+<td>
+<p>If <code>nonparametric</code> (default), inverse warping functions are estimated nonparametrically. 
+If <code>piecewise_linear2</code> they follow a piecewise linear function with 2 knots.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gamma_scales</code></td>
+<td>
+<p>Only used for <code>family = "gamma"</code>.
+Vector with one entry for each subject, containing the current estimate for the scale parameter of its
+gamma distribution. Default is NULL, which sets the starting value for the scale parameter to 1.5.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cores</code></td>
+<td>
+<p>Number of cores to be used. If <code>cores &gt; 1</code>, the registration
+call is parallelized by using <code>parallel::mclapply</code> (for Unix-based
+systems) or <code>parallel::parLapply</code> (for Windows). Defaults to 1,
+no parallelized call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subsample</code></td>
+<td>
+<p>if the number of rows of the data is greater than 
+10 million rows, the 'id' values are subsampled to get the mean coefficients.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Can be set to integers between 0 and 4 to control the level of
+detail of the printed diagnostic messages. Higher numbers lead to more detailed
+messages. Defaults to 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments passed to or from other functions</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The template function for the registration is defined by argument <code>obj</code>
+or <code>Y_template</code>, depending on if <code>obj</code> is NULL or not, respectively.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An list containing:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>The observed data. The variables <code>index</code> and <code>index_scaled</code>
+contain the new estimated time domain.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loss</code></td>
+<td>
+<p>Value of the loss function after registraton.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hinv_innerKnots</code></td>
+<td>
+<p>List of inner knots for setting up the spline bases
+for the inverse warping functions. Only contains <code>NULL</code> values for
+<code>Kh &lt;= 4</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hinv_beta</code></td>
+<td>
+<p>Matrix of B-spline basis coefficients used to construct
+subject-specific inverse warping functions. See examples on how to
+reconstruct a warping function based on <code>hinv_innerKnots</code> and
+<code>hinv_beta</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Julia Wrobel
+</p>
+<p>Julia Wrobel <a href="mailto:julia.wrobel@cuanschutz.edu">julia.wrobel@cuanschutz.edu</a>,
+Erin McDonnell <a href="mailto:eim2117@cumc.columbia.edu">eim2117@cumc.columbia.edu</a>,
+Alexander Bauer <a href="mailto:alexander.bauer@stat.uni-muenchen.de">alexander.bauer@stat.uni-muenchen.de</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">### complete binomial curves
+Y = simulate_unregistered_curves()
+register_step = registr(obj = NULL, Y = Y, Kt = 6, Kh = 4, family = "binomial", 
+                        gradient = TRUE)
+
+### incomplete Gaussian curves
+data(growth_incomplete)
+
+# Force the warping functions to start and end on the diagonal to preserve the domain
+register_step2a = registr(obj = NULL, Y = growth_incomplete, Kt = 6, Kh = 4,
+                          family = "gaussian", gradient = TRUE,
+                          incompleteness = NULL)
+if (requireNamespace("ggplot2", quietly = TRUE)) {
+  library(ggplot2)
+
+  ggplot(register_step2a$Y, aes(x = tstar, y = index, group = id)) +
+    geom_line(alpha = 0.2) +
+    ggtitle("Estimated warping functions")
+  ggplot(register_step2a$Y, aes(x = index, y = value, group = id)) +
+    geom_line(alpha = 0.2) +
+    ggtitle("Registered curves")
+}
+  
+# Example for how to recreate an estimated inverse warping function given
+# the output of registr(). Focus on id "boy01".
+id         = "boy01"
+index_obsRange_i = range(growth_incomplete$index[growth_incomplete$id == id])
+index      = seq(min(index_obsRange_i), max(index_obsRange_i), length.out = 100)
+# (note that 'index' must contain both the observed min and max in index_obsRange_i)
+Theta_h_i  = splines::bs(index, knots = register_step2a$hinv_innerKnots[[id]], intercept = TRUE)
+index_reg  = as.vector(Theta_h_i %*% register_step2a$hinv_beta[,id])
+warp_dat_i = data.frame(index_observed   = index,
+                        index_registered = index_reg)
+if (requireNamespace("ggplot2", quietly = TRUE)) {
+  ggplot(warp_dat_i, aes(x = index_observed, y = index_registered)) + geom_line() +
+    ggtitle("Extracted warping function for id 'boy01'")
+}
+
+# Allow the warping functions to not start / end on the diagonal.
+# The higher lambda_inc, the more the starting points and endpoints are
+# forced towards the diagonal.
+register_step2b = registr(obj = NULL, Y = growth_incomplete, Kt = 6, Kh = 4,
+                          family = "gaussian", gradient = TRUE,
+                          incompleteness = "full", lambda_inc = 1)
+if (requireNamespace("ggplot2", quietly = TRUE)) {
+  ggplot(register_step2b$Y, aes(x = tstar, y = index, group = id)) +
+    geom_line(alpha = 0.2) +
+    ggtitle("Estimated warping functions")
+  ggplot(register_step2b$Y, aes(x = index, y = value, group = id)) +
+    geom_line(alpha = 0.2) +
+    ggtitle("Registered curves")
+}
+
+# Define the template function only over a subset of the curves
+# (even though not very reasonable in this example)
+template_ids    = c("girl12","girl13","girl14")
+Y_template      = growth_incomplete[growth_incomplete$id %in% template_ids,]
+register_step2c = registr(obj = NULL, Y = growth_incomplete, Kt = 6, Kh = 4,
+                          family = "gaussian", gradient = TRUE,
+                          Y_template = Y_template,
+                          incompleteness = "full", lambda_inc = 1)
+if (requireNamespace("ggplot2", quietly = TRUE)) {
+  ggplot(register_step2c$Y, aes(x = index, y = value, group = id)) +
+    geom_line(alpha = 0.2) +
+    ggtitle("Registered curves")
+}
+
+
+
+</code></pre>
+
+
+</div>

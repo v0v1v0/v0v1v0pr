@@ -1,0 +1,129 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>extract_sky_points</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Extract sky points</h2>
+
+<h3>Description</h3>
+
+<p>Extract sky points for model fitting
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">extract_sky_points(r, bin, g, dist_to_plant = 3, min_raster_dist = 3)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>r</code></td>
+<td>
+<p>SpatRaster. A normalized greyscale image. Typically, the
+blue channel extracted from a canopy photograph. Please see <code>read_caim()</code>
+and <code>normalize()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bin</code></td>
+<td>
+<p>SpatRaster. This should be a preliminary binarization of
+<code>r</code> useful for masking pixels that are very likely pure sky pixels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g</code></td>
+<td>
+<p>SpatRaster built with <code>sky_grid_segmentation()</code> or
+<code>chessboard()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dist_to_plant, min_raster_dist</code></td>
+<td>
+<p>Numeric vector of length one or <code>NULL</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function will automatically sample sky pixels from the sky regions
+delimited by <code>bin</code>. The density and distribution of the sampling points is
+controlled by the arguments <code>g</code>, <code>dist_to_plant</code>, and <code>min_raster_dist</code>.
+</p>
+<p>As the first step, sky pixels from <code>r</code> are evaluated to find the pixel with
+maximum digital value (local maximum) per cell of the <code>g</code> argument. The
+<code>dist_to_plant</code> argument allows users to establish a buffer zone for <code>bin</code>,
+meaning a size reduction of the original sky regions.
+</p>
+<p>The final step is filtering these local maximum values by evaluating the
+Euclidean distances between them on the raster space. Any new point with a
+distance from existing points minor than <code>min_raster_dist</code> is discarded. Cell
+labels determine the order in which the points are evaluated.
+</p>
+<p>To skip a given filtering step, use code <code>NULL</code> as argument input. For
+instance, <code>min_raster_dist = NULL</code> will return points omitting
+the final step.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of the class <em>data.frame</em> with two columns named
+<em>row</em> and <em>col</em>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>fit_cie_sky_model()</code>
+</p>
+<p>Other Tool Functions: 
+<code>colorfulness()</code>,
+<code>correct_vignetting()</code>,
+<code>defuzzify()</code>,
+<code>extract_dn()</code>,
+<code>extract_feature()</code>,
+<code>extract_rl()</code>,
+<code>extract_sky_points_simple()</code>,
+<code>extract_sun_coord()</code>,
+<code>find_sky_pixels_nonnull()</code>,
+<code>find_sky_pixels()</code>,
+<code>masking()</code>,
+<code>optim_normalize()</code>,
+<code>percentage_of_clipped_highlights()</code>,
+<code>read_bin()</code>,
+<code>read_caim_raw()</code>,
+<code>read_caim()</code>,
+<code>write_bin()</code>,
+<code>write_caim()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+caim &lt;- read_caim()
+r &lt;- caim$Blue
+caim &lt;- normalize(caim, 0, 20847, TRUE)
+z &lt;- zenith_image(ncol(caim), lens())
+a &lt;- azimuth_image(z)
+plotRGB(caim*255)
+bin &lt;- ootb_obia(caim, z, a, HSV(239, 0.85, 0.5), gamma = NULL)
+g &lt;- sky_grid_segmentation(z, a, 10)
+sky_points &lt;- extract_sky_points(r, bin, g,
+                                 dist_to_plant = 3,
+                                 min_raster_dist = 10)
+plot(bin)
+points(sky_points$col, nrow(caim) - sky_points$row, col = 2, pch = 10)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,265 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>RAI</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Main function for Revisiting Alpha-Investing (RAI) regression.</h2>
+
+<h3>Description</h3>
+
+<p>The function rai is a wrapper that creates and manages the
+inputs and outputs of the <code>runAuction</code> function. Using
+poly=FALSE is an efficient and statistically valid way to run and terminate
+stepwise regression. The function prepareData is provided in order to make
+generating predictions on test data easier: it is used by rai to process
+the data prior to running, and is necessary to make column names and
+information match in order to use the model object returned by rai.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">prepareData(theData, poly = TRUE, startDeg = 1)
+
+is.rai(x)
+
+rai(theData, theResponse, alpha = 0.1, alg = "rai", r = 0.8,
+  poly = alg != "RH", startDeg = 1, searchType = "breadth",
+  m = 500, sigma = "step", rmse = NA, df = NA, omega = alpha,
+  reuse = (alg == "RH"), maxTest = Inf, verbose = FALSE,
+  save = TRUE, lmFit = .lm.fit)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>theData</code></td>
+<td>
+<p>matrix of covariates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>poly</code></td>
+<td>
+<p>logical. Should the algorithm look for higher-order polynomials?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>startDeg</code></td>
+<td>
+<p>This is the starting degree for polynomial regression. It
+allows the search to start with lower order polynomials such as square
+roots. This alleviates some problems with high-dimensional polynomials as a
+4th degree polynomial where startDeg=1/2 is only a quadratic on the
+original scale.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>an R object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>theResponse</code></td>
+<td>
+<p>response vector or single column matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>level of procedure.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alg</code></td>
+<td>
+<p>algorithm can be one of "rai", "raiPlus", or "RH" (Revisiting
+Holm).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>r</code></td>
+<td>
+<p>threshold parameter, with 0 &lt; r &lt; 1. RAI rejects tests which
+increase remaining R^2 by a factor r^s, where s is the epoch. Larger values
+of r yield a closer approximation to stepwise regression.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>searchType</code></td>
+<td>
+<p>A character string specifying the prioritization of
+higher-order polynomials. One of "breadth" (more base features) or "depth"
+(higher orders).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m</code></td>
+<td>
+<p>number of observations used in subsampling for variance inflation
+factor estimate of r.squared. Set m=Inf to use full data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma</code></td>
+<td>
+<p>type of error estimate used; one of "ind" or "step". If "ind",
+you must provide a numeric value for rmse and df.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rmse</code></td>
+<td>
+<p>user provided value for rmse. Must be used with sigma="ind".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>df</code></td>
+<td>
+<p>degrees of freedom for user specified rmse. Must be used with
+sigma="ind".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>omega</code></td>
+<td>
+<p>return from rejecting a test in Alpha-Investing (&lt;= alpha).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reuse</code></td>
+<td>
+<p>logical. Should repeated tests of the same covariate be
+considered a test of the same hypothesis? reusing wealth isn't implemented
+for RAI or RAIplus as the effect is negligible.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxTest</code></td>
+<td>
+<p>maximum number of tests.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical. Should auction output be printed?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>save</code></td>
+<td>
+<p>logical. Should the auction results be saved? If TRUE, returns a
+summary matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lmFit</code></td>
+<td>
+<p>The core function that will be used to estimate linear model
+fits. The default is .lm.fit, but other alternatives are possible. Note
+that it does not use formula notation as this is costly. Another
+recommended option is fastLmPure from RcppEigen or related packages.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Missing values are treated as follows: all observations with missing
+values in theResponse are removed; numeric columns in theData have missing
+values imputed by the mean of the column and an indicator column is added
+to note missingness; missing values in factor or binary columns are given
+the value "NA", which creates an additional group for missing values. Note
+that as rai is run using the output of model.matrix, it is not guaranteed
+that all categories from a factor are included in the regression. Column
+names may also be modified to be syntactically valid. The model object can
+be used to generate predictions on test data. Note that if default
+conversions were used when running rai, then they must be used again with
+prepareData for the test data prior to producing predictions.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list which includes the following components: </p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>response.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>model matrix from final model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>final model
+formula.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>features</code></td>
+<td>
+<p>list of interactions included in formula.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>summary</code></td>
+<td>
+<p>if save=TRUE, contains information on each test made by the
+algorithm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time</code></td>
+<td>
+<p>run time.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>options</code></td>
+<td>
+<p>options given to RAI:
+alg, searchType, poly, r, startDeg, alpha, omega, m.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subData</code></td>
+<td>
+<p>subset
+of columns from theData that are used in the final model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>linear model object using selected model</p>
+</td>
+</tr>
+</table>
+<p> Summary and predict
+methods are provided in order to generate further output and graphics.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">  data("CO2")
+  theResponse = CO2$uptake
+  theData = CO2[ ,-5]
+  rai_out = rai(theData, theResponse)
+  summary(rai_out)  # summary information including graphs
+</code></pre>
+
+
+</div>

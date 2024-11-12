@@ -1,0 +1,205 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>reweight.contingencytable</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Reweighting a contingency table</h2>
+
+<h3>Description</h3>
+
+<p>This function is used in the main function: rec. 
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">reweight.contingencytable(observed.table, estimated.table)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>observed.table</code></td>
+<td>
+<p>A censored contingency table. See Details section below formatting this data.frame. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estimated.table</code></td>
+<td>
+<p>A data.frame with uncensored row names and column names. </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><strong>Format for observed.table:</strong><br>
+The only symbols accepted for censored data are listed below.  Note, less than or equal to (&lt;= and LE) is not equivalent to less than (&lt; and L) and greater than or equal to (&gt;=, +, and GE) is not equivalent to greater than (&gt; and G).  Also, calculations use closed intervals.    
+</p>
+
+<ul>
+<li>
+<p> left censoring: &lt;, L, &lt;=, LE
+</p>
+</li>
+<li>
+<p> interval censoring: - or I (symbol has to be placed in the middle of the two category values)
+</p>
+</li>
+<li>
+<p> right censoring: &gt;, &gt;=, +, G, GE
+</p>
+</li>
+<li>
+<p> uncensored: no symbol (only provide category value)
+</p>
+</li>
+</ul>
+<p>The column names should be the Y category values. The first column should be the X category values and the row names can be arbitrary. The inside of the table are X * Y cross tabulation, which are either positive frequency values or probabilities. The row and column marginal totals corresponding to their X and Y category values need to be placed in this table. The top left, top right, and bottom left corners of the table should be NA or blank.  The bottom right corner can be a total cross tabulation sum value, NA, or blank. The table below is a formatted example. 
+</p>
+
+<table>
+<tr>
+<td style="text-align: center;">
+    NA </td>
+<td style="text-align: center;"> &lt;20 </td>
+<td style="text-align: center;"> 20-30 </td>
+<td style="text-align: center;"> &gt;30</td>
+<td style="text-align: center;"> NA</td>
+</tr>
+<tr>
+<td style="text-align: center;">
+    &lt;5 </td>
+<td style="text-align: center;"> 18 </td>
+<td style="text-align: center;"> 19 </td>
+<td style="text-align: center;"> 8</td>
+<td style="text-align: center;"> 45</td>
+</tr>
+<tr>
+<td style="text-align: center;">
+    5-9 </td>
+<td style="text-align: center;"> 13 </td>
+<td style="text-align: center;"> 8 </td>
+<td style="text-align: center;"> 12</td>
+<td style="text-align: center;"> 33</td>
+</tr>
+<tr>
+<td style="text-align: center;">
+    &gt;=10 </td>
+<td style="text-align: center;"> 7 </td>
+<td style="text-align: center;"> 5 </td>
+<td style="text-align: center;"> 10</td>
+<td style="text-align: center;"> 21</td>
+</tr>
+<tr>
+<td style="text-align: center;">
+    NA </td>
+<td style="text-align: center;"> 38 </td>
+<td style="text-align: center;"> 32 </td>
+<td style="text-align: center;"> 31</td>
+<td style="text-align: center;"> NA</td>
+</tr>
+<tr>
+<td style="text-align: center;">
+  </td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Interior probability cells of a censored contingency table (observed.table) is reweighted to match interior probability cells of an uncensored contingency table (estimated.table).  If observed.table consist of frequencies, the reweight.contingencytable() function changes frequencies to probabilities.    
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## going through the coding step of rec ##
+
+# first create contingency table 
+contingencytable&lt;-matrix(1:9, 
+                         nrow = 3, ncol = 3)
+rowmarginal&lt;-apply(contingencytable,1,sum)
+contingencytable&lt;-cbind(contingencytable, rowmarginal)
+colmarginal&lt;-apply(contingencytable,2,sum)
+contingencytable&lt;-rbind(contingencytable, colmarginal)
+row.names(contingencytable)[row.names(contingencytable)=="colmarginal"]&lt;-""
+contingencytable&lt;-data.frame(c("&lt;5", "5I9", "&gt;9", NA), contingencytable)
+colnames(contingencytable)&lt;-c(NA,"&lt;=19","20-30","&gt;=31", NA)
+
+# provided upper and lower bound values for table
+# X=row and Y=column
+Xlowerbound=1
+Xupperbound=15
+Ylowerbound=15
+Yupperbound=35
+
+# table of row marginals provides average x and phi x
+row.marginal.table&lt;-row.marginal(contingencytable)
+x&lt;-cnbinom.pars(row.marginal.table)
+# table of column marginals provides average y and phi y 
+column.marginal.table&lt;-column.marginal(contingencytable)
+y&lt;-cnbinom.pars(column.marginal.table)
+
+# create row and column ranges   
+rowrange&lt;-Xlowerbound:Xupperbound
+colrange&lt;-Ylowerbound:Yupperbound
+
+library(truncdist)
+# new uncensored row marginal table = truncated negative binomial distribution
+# rowrange = X is distributed given a &lt; X &lt;= b
+uncensored.row.margin&lt;-dtrunc(rowrange, mu=x$Average, size = x$Dispersion, 
+                              a = Xlowerbound-1, b = Xupperbound, spec = "nbinom")
+# new uncensored column margin table = = truncated negative binomial distribution
+# colrange = Y is distributed given a &lt; Y &lt;= b
+uncensored.column.margin&lt;-dtrunc(colrange, mu=y$Average, size = y$Dispersion,
+                                 a = Ylowerbound-1, b = Yupperbound, spec = "nbinom")
+
+# sum of truncated distributions equal 1
+sum(uncensored.row.margin)
+sum(uncensored.column.margin)
+
+# look at the seed for this example (probabilities)
+seed.output&lt;-seedmatrix(contingencytable, Xlowerbound, 
+                        Xupperbound, Ylowerbound, Yupperbound)$Probabilities
+
+# run mipfp
+# store the new margins in a list
+tgt.data&lt;-list(uncensored.row.margin, uncensored.column.margin)
+# list of dimensions of each marginal constrain
+tgt.list&lt;-list(1,2)
+# calling the estimated function
+## seed has to be in array format for mipfp package
+## ipfp is the selected seed.estimation.method
+## $p.hat gives probabilies = x.hat/sum(x.hat)
+library(mipfp)
+final1&lt;-Estimate(array(seed.output,dim=c(length(Xlowerbound:Xupperbound), 
+                 length(Ylowerbound:Yupperbound))), tgt.list, tgt.data, method="ipfp")$x.hat
+
+# filling in names of updated seed  
+final1&lt;-data.frame(final1)
+row.names(final1)&lt;-Xlowerbound:Xupperbound
+names(final1)&lt;-Ylowerbound:Yupperbound
+
+# reweight estimates to known censored interior cell probabilities 
+final1&lt;-reweight.contingencytable(observed.table = contingencytable, estimated.table = final1)
+
+# see that they sum to one
+sum(final1)
+
+# rec function outputs the same table
+# default of rec seed.estimation.method is ipfp
+# default of rec seed.matrix is the output of the seedmatrix() function
+final2&lt;-rec(X= contingencytable,
+            Xlowerbound = 1,
+            Xupperbound = 15,
+            Ylowerbound = 15,
+            Yupperbound = 35)
+
+# check that both data.frame results have same values
+all(final1 == final2$Probability.Estimates)
+</code></pre>
+
+
+</div>

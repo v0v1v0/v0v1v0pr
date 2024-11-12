@@ -1,0 +1,129 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>johnsonlewin_1946</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Johnson-Lewin model for fitting thermal performance curves</h2>
+
+<h3>Description</h3>
+
+<p>Johnson-Lewin model for fitting thermal performance curves
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">johnsonlewin_1946(temp, r0, e, eh, topt)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>temp</code></td>
+<td>
+<p>temperature in degrees centigrade</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>r0</code></td>
+<td>
+<p>scaling parameter</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>e</code></td>
+<td>
+<p>activation energy (eV)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eh</code></td>
+<td>
+<p>high temperature de-activation energy (eV)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>topt</code></td>
+<td>
+<p>optimum temperature (ºC)</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Equation:
+</p>
+<p style="text-align: center;"><code class="reqn">rate= \frac{r_0 \cdot exp^{\frac{-e}{k\cdot (temp + 273.15)}}}{1 + exp^{-\frac{e_h -\big(\frac{e_h}{(t_{opt} + 273.15)} + k \cdot ln\big(\frac{e}{e_h - e}\big) \big) \cdot (temp + 273.15)}{k \cdot (temp + 273.15)}}}</code>
+</p>
+
+<p>where <code>k</code> is Boltzmann's constant with a value of 8.62e-05.
+</p>
+<p>Start values in <code>get_start_vals</code> are derived from the data.
+</p>
+<p>Limits in <code>get_lower_lims</code> and <code>get_upper_lims</code> are derived from the data or based  extreme values that are unlikely to occur in ecological settings.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a numeric vector of rate values based on the temperatures and parameter values provided to the function
+</p>
+
+
+<h3>Note</h3>
+
+<p>Generally we found this model difficult to fit.
+</p>
+
+
+<h3>References</h3>
+
+<p>Johnson, Frank H., and Isaac Lewin. The growth rate of E. coli in relation to temperature, quinine and coenzyme. Journal of Cellular and Comparative Physiology 28.1 (1946): 47-75.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# load in ggplot
+library(ggplot2)
+
+# subset for the first TPC curve
+data('chlorella_tpc')
+d &lt;- subset(chlorella_tpc, curve_id == 1)
+
+# get start values and fit model
+start_vals &lt;- get_start_vals(d$temp, d$rate, model_name = 'johnsonlewin_1946')
+# fit model
+mod &lt;- suppressWarnings(
+nls.multstart::nls_multstart(rate~johnsonlewin_1946(temp = temp, r0, e, eh, topt),
+data = d,
+iter = c(5,5,5,5),
+start_lower = start_vals - 1,
+start_upper = start_vals + 1,
+lower = get_lower_lims(d$temp, d$rate, model_name = 'johnsonlewin_1946'),
+upper = get_upper_lims(d$temp, d$rate, model_name = 'johnsonlewin_1946'),
+supp_errors = 'Y',
+convergence_count = FALSE)
+)
+
+# look at model fit
+summary(mod)
+
+# get predictions
+preds &lt;- data.frame(temp = seq(min(d$temp), max(d$temp), length.out = 100))
+preds &lt;- broom::augment(mod, newdata = preds)
+
+# plot
+ggplot(preds) +
+geom_point(aes(temp, rate), d) +
+geom_line(aes(temp, .fitted), col = 'blue') +
+theme_bw()
+
+</code></pre>
+
+
+</div>

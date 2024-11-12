@@ -1,0 +1,147 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>vfold_cv</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>V-Fold Cross-Validation</h2>
+
+<h3>Description</h3>
+
+<p>V-fold cross-validation (also known as k-fold cross-validation) randomly
+splits the data into V groups of roughly equal size (called "folds"). A
+resample of the analysis data consists of V-1 of the folds while the
+assessment set contains the final fold. In basic V-fold cross-validation
+(i.e. no repeats), the number of resamples is equal to V.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">vfold_cv(data, v = 10, repeats = 1, strata = NULL, breaks = 4, pool = 0.1, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>v</code></td>
+<td>
+<p>The number of partitions of the data set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>repeats</code></td>
+<td>
+<p>The number of times to repeat the V-fold partitioning.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>strata</code></td>
+<td>
+<p>A variable in <code>data</code> (single character or name) used to conduct
+stratified sampling. When not <code>NULL</code>, each resample is created within the
+stratification variable. Numeric <code>strata</code> are binned into quartiles.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>breaks</code></td>
+<td>
+<p>A single number giving the number of bins desired to stratify a
+numeric stratification variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pool</code></td>
+<td>
+<p>A proportion of data used to determine if a particular group is
+too small and should be pooled into another group. We do not recommend
+decreasing this argument below its default of 0.1 because of the dangers
+of stratifying groups that are too small.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>These dots are for future extensions and must be empty.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>With more than one repeat, the basic V-fold cross-validation is
+conducted each time. For example, if three repeats are used with <code>v = 10</code>,
+there are a total of 30 splits: three groups of 10 that are generated
+separately.
+</p>
+<p>With a <code>strata</code> argument, the random sampling is conducted
+<em>within the stratification variable</em>. This can help ensure that the
+resamples have equivalent proportions as the original data set. For
+a categorical variable, sampling is conducted separately within each class.
+For a numeric stratification variable, <code>strata</code> is binned into quartiles,
+which are then used to stratify. Strata below 10% of the total are
+pooled together; see <code>make_strata()</code> for more details.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A tibble with classes <code>vfold_cv</code>, <code>rset</code>, <code>tbl_df</code>, <code>tbl</code>, and
+<code>data.frame</code>. The results include a column for the data split objects and
+one or more identification variables. For a single repeat, there will be
+one column called <code>id</code> that has a character string with the fold identifier.
+For repeats, <code>id</code> is the repeat number and an additional column called <code>id2</code>
+that contains the fold information (within repeat).
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+vfold_cv(mtcars, v = 10)
+vfold_cv(mtcars, v = 10, repeats = 2)
+
+library(purrr)
+data(wa_churn, package = "modeldata")
+
+set.seed(13)
+folds1 &lt;- vfold_cv(wa_churn, v = 5)
+map_dbl(
+  folds1$splits,
+  function(x) {
+    dat &lt;- as.data.frame(x)$churn
+    mean(dat == "Yes")
+  }
+)
+
+set.seed(13)
+folds2 &lt;- vfold_cv(wa_churn, strata = churn, v = 5)
+map_dbl(
+  folds2$splits,
+  function(x) {
+    dat &lt;- as.data.frame(x)$churn
+    mean(dat == "Yes")
+  }
+)
+
+set.seed(13)
+folds3 &lt;- vfold_cv(wa_churn, strata = tenure, breaks = 6, v = 5)
+map_dbl(
+  folds3$splits,
+  function(x) {
+    dat &lt;- as.data.frame(x)$churn
+    mean(dat == "Yes")
+  }
+)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,171 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>calcAlignment</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate alignment metric after integration</h2>
+
+<h3>Description</h3>
+
+<p>This metric quantifies how well-aligned two or more datasets are. We randomly
+downsample all datasets to have as many cells as the smallest one. We
+construct a nearest-neighbor graph and calculate for each cell how many of
+its neighbors are from the same dataset. We average across all cells and
+compare to the expected value for perfectly mixed datasets, and scale the
+value from 0 to 1. Note that in practice, alignment can be greater than 1
+occasionally.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">calcAlignment(
+  object,
+  clustersUse = NULL,
+  clusterVar = NULL,
+  nNeighbors = NULL,
+  cellIdx = NULL,
+  cellComp = NULL,
+  resultBy = c("all", "dataset", "cell"),
+  seed = 1,
+  k = nNeighbors,
+  rand.seed = seed,
+  cells.use = cellIdx,
+  cells.comp = cellComp,
+  clusters.use = clustersUse,
+  by.cell = NULL,
+  by.dataset = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>A liger object, with <code>quantileNorm</code>
+already run.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>clustersUse</code></td>
+<td>
+<p>The clusters to consider for calculating the alignment.
+Should be a vector of existing levels in <code>clusterVar</code>. Default
+<code>NULL</code>. See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>clusterVar</code></td>
+<td>
+<p>The name of one variable in <code>cellMeta(object)</code>.
+Default <code>NULL</code> uses default clusters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nNeighbors</code></td>
+<td>
+<p>Number of neighbors to use in calculating alignment.
+Default <code>NULL</code> uses <code>floor(0.01*ncol(object))</code>, with a lower bound
+of 10 in all cases except where the total number of sampled cells is less
+than 10.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cellIdx, cellComp</code></td>
+<td>
+<p>Character, logical or numeric index that can
+subscribe cells. Default <code>NULL</code>. See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>resultBy</code></td>
+<td>
+<p>Select from <code>"all"</code>, <code>"dataset"</code> or <code>"cell"</code>.
+On which level should the mean alignment be calculated. Default <code>"all"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>Random seed to allow reproducible results. Default <code>1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k, rand.seed, cells.use, cells.comp, clusters.use</code></td>
+<td>
+<p>[Deprecated] Please
+see Usage for replacement.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>by.cell, by.dataset</code></td>
+<td>
+<p>[Defunct] Use <code>resultBy</code> instead.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code class="reqn">\bar{x}</code> is the average number of neighbors belonging to any cells' same
+dataset, <code class="reqn">N</code> is the number of datasets, <code class="reqn">k</code> is the number of
+neighbors in the KNN graph.
+</p>
+<p style="text-align: center;"><code class="reqn">1 - \frac{\bar{x} - \frac{k}{N}}{k - \frac{k}{N}}</code>
+</p>
+
+<p>The selection on cells to be measured can be done in various way and
+represent different scenarios:
+</p>
+
+<ol>
+<li>
+<p>By default, all cells are considered and the alignment across all
+datasets will be calculated.
+</p>
+</li>
+<li>
+<p>Select <code>clustersUse</code> from <code>clusterVar</code> to use cells from the
+clusters of interests. This measures the alignment across all covered
+datasets within the specified clusters.
+</p>
+</li>
+<li>
+<p>Only Specify <code>cellIdx</code> for flexible selection. This measures the
+alignment across all covered datasets within the specified cells. A none-NULL
+<code>cellIdx</code> privileges over <code>clustersUse</code>.
+</p>
+</li>
+<li>
+<p>Specify <code>cellIdx</code> and <code>cellComp</code> at the same time, so that
+the original dataset source will be ignored and cells specified by each
+argument will be regarded as from each a dataset. This measures the alignment
+between cells specified by the two arguments. <code>cellComp</code> can contain
+cells already specified in <code>cellIdx</code>.
+</p>
+</li>
+</ol>
+<h3>Value</h3>
+
+<p>The alignment metric.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">if (requireNamespace("RcppPlanc", quietly = TRUE)) {
+    pbmc &lt;- pbmc %&gt;%
+    normalize %&gt;%
+    selectGenes %&gt;%
+    scaleNotCenter %&gt;%
+    runINMF %&gt;%
+    quantileNorm
+    calcAlignment(pbmc)
+}
+</code></pre>
+
+
+</div>

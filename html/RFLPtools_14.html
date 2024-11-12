@@ -1,0 +1,168 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>RFLPdist</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Compute distances for RFLP data.
+</h2>
+
+<h3>Description</h3>
+
+<p>Within each group containing RFLP-samples exhibiting a equal number of bands, 
+the distance between the molecular weights is computed.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">RFLPdist(x, distfun = dist, nrBands, LOD = 0)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p> data.frame with RFLP data; see <code>RFLPdata</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>distfun</code></td>
+<td>
+<p> function computing the distance with default <code>dist</code>;
+cf. <code>dist</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nrBands</code></td>
+<td>
+<p> if not missing, then only samples with the specified number
+of bands are considered. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>LOD</code></td>
+<td>
+<p> threshold for low-bp bands. </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For each number of bands the given distance between the molecular weights is computed. 
+The result is a named list of distances where the names correspond to the number of 
+bands which occur in each group.
+</p>
+<p>If <code>nrBands</code> is specified only samples with this number of bands are considered.
+</p>
+<p>If <code>LOD &gt; 0</code> is specified, all values below <code>LOD</code> are removed before the 
+distances are calculated.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A named list with the distances; see <code>dist</code>.
+</p>
+<p>In case <code>nrBands</code> is not missing, an object of S3 class <code>dist</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+ 
+<p>Fabienne Flessa <a href="mailto:Fabienne.Flessa@uni-bayreuth.de">Fabienne.Flessa@uni-bayreuth.de</a>,<br>
+Alexandra Kehl <a href="mailto:Alexandra.Kehl@uni-tuebingen.de">Alexandra.Kehl@uni-tuebingen.de</a>,<br>
+Matthias Kohl <a href="mailto:Matthias.Kohl@stamats.de">Matthias.Kohl@stamats.de</a> 
+</p>
+
+
+<h3>References</h3>
+
+<p>Flessa, F., Kehl, A., Kohl, M.
+Analysing diversity and community structures using PCR-RFLP: a new software application.
+Molecular Ecology Resources 2013 Jul; 13(4):726-33. 
+</p>
+<p>Poussier, Stephane; Trigalet-Demery, Danielle; Vandewalle, Peggy; Goffinet, Bruno; Luisetti, Jacques; Trigalet, Andre.
+Genetic diversity of Ralstonia solanacearum as assessed by PCR-RFLP of the hrp gene region, AFLP and 16S rRNA sequence 
+analysis, and identification of an African subdivision.
+Microbiology 2000 146:1679-1692 
+</p>
+<p>Matsumoto, Masaru; Furuya, Naruto; Takanami, Yoichi; Matsuyama, Nobuaki.  
+RFLP analysis of the PCR-amplified 28S rDNA in Rhizoctonia solani. 
+Mycoscience 1996 37:351 - 356
+</p>
+
+
+<h3>See Also</h3>
+
+ <p><code>RFLPdata</code>, <code>dist</code> </p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Euclidean distance
+data(RFLPdata)
+res &lt;- RFLPdist(RFLPdata)
+names(res) ## number of bands
+res$"6"
+
+RFLPdist(RFLPdata, nrBands = 6)
+
+## Other distances
+res1 &lt;- RFLPdist(RFLPdata, distfun = function(x) dist(x, method = "manhattan"))
+res2 &lt;- RFLPdist(RFLPdata, distfun = function(x) dist(x, method = "maximum"))
+res[[1]]
+res1[[1]]
+res2[[1]]
+
+## cut dendrogram at height 50
+clust4bd &lt;- hclust(res[[2]])
+cgroups50 &lt;- cutree(clust4bd, h=50)
+cgroups50
+
+## or
+library(MKomics)
+res3 &lt;- RFLPdist(RFLPdata, distfun = corDist)
+res3$"9"
+
+## hierarchical clustering
+par(mfrow = c(2,2))
+plot(hclust(res[[1]]), main = "Euclidean distance")
+plot(hclust(res1[[1]]), main = "Manhattan distance")
+plot(hclust(res2[[1]]), main = "Maximum distance")
+plot(hclust(res3[[1]]), main = "Pearson correlation distance")
+
+
+## Similarity matrix
+library(MKomics)
+myCol &lt;- colorRampPalette(brewer.pal(8, "RdYlGn"))(128)
+ord &lt;- order.dendrogram(as.dendrogram(hclust(res[[1]])))
+temp &lt;- as.matrix(res[[1]])
+simPlot(temp[ord,ord], col = rev(myCol), minVal = 0, 
+        labels = colnames(temp), title = "(Dis-)Similarity Plot")
+
+
+## or
+library(lattice)
+levelplot(temp[ord,ord], col.regions = rev(myCol),
+          at = do.breaks(c(0, max(temp)), 128),
+          xlab = "", ylab = "",
+          ## Rotate label of x axis
+          scales = list(x = list(rot = 90)),
+          main = "(Dis-)Similarity Plot")
+
+## multidimensional scaling
+loc &lt;- cmdscale(res[[5]])
+x &lt;- loc[,1]
+y &lt;- -loc[,2]
+plot(x, y, type="n", xlab="", ylab="", xlim = 1.05*range(x), main="Multidemsional scaling")
+text(x, y, rownames(loc), cex=0.8)
+</code></pre>
+
+
+</div>

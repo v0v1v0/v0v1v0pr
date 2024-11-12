@@ -1,0 +1,158 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>chemSig</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Chemical Variable Selection within the Floating Percentile Model</h2>
+
+<h3>Description</h3>
+
+<p>Determine which chemicals in a dataset have significantly higher concentrations
+among toxic samples by comparison to non-toxic samples
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">chemSig(
+  data,
+  paramList,
+  testType = NULL,
+  alpha.var = 0.05,
+  alpha.norm = 0.05,
+  alpha.test = 0.05,
+  alpha = NULL,
+  alternative = "less",
+  var.alternative = "two.sided",
+  var.equal = NULL,
+  warn = TRUE,
+  ExcelMode = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>data.frame containing, at a minimum, chemical concentrations as columns and a logical <code>Hit</code> column classifying toxicity</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>paramList</code></td>
+<td>
+<p>character vector of column names of chemical concentration variables in <code>data</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>testType</code></td>
+<td>
+<p>character string; whether to run parametric or non-parametric tests (default = <code>NULL</code>). See Details for more information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha.var</code></td>
+<td>
+<p>numeric value between 0 and 1; type-I error rate for testing equal variance assumption (default = <code>0.05</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha.norm</code></td>
+<td>
+<p>numeric value between 0 and 1; type-I error rate for testing normality assumption (default = <code>0.05</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha.test</code></td>
+<td>
+<p>numeric value between 0 and 1; type-I error rate for testing differences between Hit and No-hit datasets (default = <code>0.05</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>numeric value between 0 and 1; type-I error rate that, if supplied by the user, will be applied to all tests (default = <code>NULL</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alternative</code></td>
+<td>
+<p>alternative hypothesis type for equality of central tendency (default = <code>"less"</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>var.alternative</code></td>
+<td>
+<p>alternative hypothesis type for equal variance test (default = <code>"two.sided"</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>var.equal</code></td>
+<td>
+<p>logical; whether to assume equal variance (default = <code>NULL</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>warn</code></td>
+<td>
+<p>logical; whether to generate a warning associated with <code>ExcelMode</code> (default = <code>TRUE</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ExcelMode</code></td>
+<td>
+<p>logical; whether to force <code>chemSig</code> to run like the WA Department of Ecology's Excel-based floating percentile model calculator (default = <code>FALSE</code>)</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>chemSig</code> is called within <code>FPM</code> via <code>chemSigSelect</code>, which generates a subset of chemicals to
+pass into the floating percentile model algorithm. <code>chemSig</code> only returns a logical vector describing which parameters in <code>paramList</code> should be selected for
+benchmark development based on having significantly higher concentrations when <code>Hit == TRUE</code> than when <code>Hit == FALSE</code>.
+The user has the ability to manipulate several of the parameters of the selection algorithm, or they can allow <code>chemSig</code> to test for
+assumptions and use appropriate hypothesis tests based on those results. By default, <code>chemSig</code> will use <code>shapiro.test</code> to
+confirm normality, then either <code>var.test</code> if the data are normal or <code>fligner.test</code>
+if the data are non-normal to confirm equal variance. Finally, the function will use <code>t.test</code> if the data are normal (using the Welch method if unequal variance),
+<code>wilcox.test</code> if non-normal with equal variance, or <code>brunner.munzel.test</code> if non-normal with unequal variance.
+</p>
+<p>The <code>testType</code> argument can be one of <code>p</code>, <code>P</code>, <code>param</code>, <code>Param</code>, <code>parametric</code>, or <code>Parametric</code> for parametric
+test types or <code>non</code>, <code>Non</code>, <code>np</code>, <code>NP</code>, <code>nonparam</code>, <code>Nonparam</code>, <code>non-param</code>, <code>Non-param</code>, <code>nonparametric</code>, <code>Nonparametric</code>,
+<code>non-parametric</code>, <code>Non-parametric</code>, or <code>Non-Parametric</code>.
+</p>
+<p>The user has the option of providing a single <code>alpha</code> level to apply to all tests (e.g., 0.05) or to specify test-specific alpha levels via <code>alpha.var</code>, <code>alpha.norm</code>, and <code>alpha.test</code>.
+Note that <code>FPM</code> by default uses <code>alpha = 0.05</code> for all tests.
+</p>
+<p>While <code>alternative</code> and <code>var.alternative</code> can be adjusted, we strongly recommend that they not be changed from the
+default values. For example, changing <code>alternative</code> from <code>"less"</code> (default) to <code>"two.sided"</code> would result in
+the assumption that chemical concentrations could be significantly higher (as well as lower) when there is no toxicity than when there is, which is inappropriate.
+The "greater" alternative, which is never appropriate, is not an accepted input for <code>alternative</code>. Similarly, the
+assumption of equal variance relates to a <code>"two.sided"</code> argument, therefore changing the <code>var.alternative</code> to be
+<code>"less"</code> or <code>"greater"</code> would not be appropriate.
+</p>
+<p><code>ExcelMode</code> assumes <code>testType = "parametric"</code>, <code>var.equal = TRUE</code>, <code>alternative = "less"</code>, and <code>alpha = 0.1</code>. In
+actuality, the Excel-based tool uses a one-way ANOVA test to compare two levels of <code>Hit</code>, which is equivalent to a t-test so long as alpha is adjusted to 0.1.
+Thus, <code>testType</code>, <code>alternative</code>, <code>var.alternative</code>, and <code>var.equal</code> are overridden when <code>ExcelMode = TRUE</code>.
+This argument was included for those interested in using 'RFPM' as an alternative to the Excel-based calculator tool to obtain identical benchmark results. Note that
+the Excel FPM tool also includes other features which may complicate comparability such as outlier analysis. Outlier analysis is not conducted by RFPM.
+</p>
+
+
+<h3>Value</h3>
+
+<p>named logical vector
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">paramList = c("Cd", "Cu", "Fe", "Mn", "Ni", "Pb", "Zn")
+chemSig(h.tristate, paramList, "nonparametric")
+chemSig(h.tristate, paramList, "parametric")
+</code></pre>
+
+
+</div>

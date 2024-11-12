@@ -1,0 +1,125 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>gettau</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate of the scale parameter tau</h2>
+
+<h3>Description</h3>
+
+<p>An estimate of the scale parameter tau may be used for the standard errors of the coefficients in rank-based regression.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">gettau(ehat, p, scores = Rfit::wscores, delta = 0.8, hparm = 2, ...)
+gettauF0(ehat, p, scores = Rfit::wscores, delta = 0.8, hparm = 2, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>ehat</code></td>
+<td>
+<p>vector of length n: full model residuals </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>scalar: number of regression coefficients (excluding the intercept); see Details</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scores</code></td>
+<td>
+<p> object of class scores, defaults to Wilcoxon scores</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>delta</code></td>
+<td>
+<p> confidence level; see Details</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hparm</code></td>
+<td>
+<p> used in Huber's degrees of freedom correction; see Details</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p> additional arguments. currently unused </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For rank-based analyses of linear models, the estimator <code class="reqn">\hat{\tau}</code> of the scale parameter <code class="reqn">\tau</code> plays a standardizing role in the standard errors (SE) of the rank-based estimators of the regression coefficients and in the denominator of Wald-type and the drop-in-dispersion test statistics of linear hypotheses.
+<code>rfit</code> currently implements the KSM (Koul, Sievers, and McKean 1987) estimator of tau.   
+</p>
+<p>The functions <code>gettau</code> and <code>gettauF0</code> are both available to compute the KSM estimate and may be call from <code>rfit</code> and used for inference.  The default is to use the faster FORTRAN version <code>gettauF0</code> via the to option <code>TAU='F0'</code>.
+The R version, <code>gettau</code>, may be much slower especially when sample sizes are large; this version may be called from <code>rfit</code> using the option <code>TAU='R'</code>.
+</p>
+<p>The KSM estimator tauhat is a density type estimator that has the bandwidth given by <code class="reqn">t_\delta/sqrt{n}</code>,
+where <code class="reqn">t_\delta</code> is the <code class="reqn">\delta-th</code> quantile of the cdf <code class="reqn">H(y)</code> given in expression (3.7.2) of Hettmansperger and McKean (2011), with the corresponding estimator <code class="reqn">\hat{H}</code>, given in expression (3.7.7) of Hettmansperger and McKean (2011).
+</p>
+<p>Based on simulation studies, most situations where (n/p &gt;= 6), the default delta = 0.80 provides a valid rank-based
+analysis (McKean and Sheather, 1991).
+For situations with n/p &lt; 6, caution is needed as the KSM estimate is sensitive to choice of bandwidth.  McKean and Sheather (1991) recommend using a value of 0.95 for delta in such situations.
+</p>
+<p>To correct for heavy-tailed random errors, Huber (1973) proposed a degree of freedom correction for the M-estimate scale parameter.  The correction is given by <code class="reqn">K = 1 + [p*(1-h_c)/n*h_c]</code> where <code class="reqn">h_c</code> is the proportion of standardized residuals in absolute value less than the parameter <code>hparm</code>.  This correction <code class="reqn">K</code> is used as a multiplicative factor to tauhat.  The default value of hparm is set at 2.
+</p>
+<p>The usual degrees of freedom correction, <code class="reqn">\sqrt{n/(n-p)}</code>, is also used as a multiplicative factor to tauhat.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Length one numeric object.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p> Joseph McKean, John Kloke</p>
+
+
+<h3>References</h3>
+
+ 
+<p>Hettmansperger, T.P. and McKean J.W. (2011), <em>Robust Nonparametric Statistical Methods, 2nd ed.</em>, New York: Chapman-Hall.
+</p>
+<p>Huber, P.J. (1973), Robust regression: Asymptotics, conjectures and Monte Carlo, <em>Annals of Statistics</em>, 1, 799–821.
+</p>
+<p>Koul, H.L., Sievers, G.L., and McKean, J.W. (1987), An estimator of the scale parameter for the rank analysis of linear models under general score functions, <em>Scandinavian Journal of Statistics</em>, 14, 131–141.
+</p>
+<p>McKean, J. W. and Sheather, S. J. (1991), Small Sample Properties of Robust Analyses of Linear Models Based on R-Estimates: A Survey, in <em>Directions in Robust Statistics and Diagnostics, Part II</em>, Editors: W.\ Stahel and S.\ Weisberg, Springer-Verlag: New York, 1–19.
+</p>
+
+
+<h3>See Also</h3>
+
+ <p><code>rfit</code> </p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#  For a standard normal distribution the parameter tau has the value 1.023327 (sqrt(pi/3)).
+set.seed(283643659)
+n &lt;- 12; p &lt;- 6; y &lt;- rnorm(n); x &lt;- matrix(rnorm(n*p),ncol=p)
+tau1 &lt;- rfit(y~x)$tauhat; tau2 &lt;- rfit(y~x,delta=0.95)$tauhat
+c(tau1,tau2) # 0.5516708 1.0138415
+n &lt;- 120; p &lt;- 6; y &lt;- rnorm(n); x &lt;- matrix(rnorm(n*p),ncol=p)
+tau3 &lt;- rfit(y~x)$tauhat; tau4 &lt;- rfit(y~x,delta=0.95)$tauhat
+c(tau3,tau4) # 1.053974 1.041783
+</code></pre>
+
+
+</div>

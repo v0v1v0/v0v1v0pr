@@ -1,0 +1,231 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>CacheGeo</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Cache-like function for spatial domains</h2>
+
+<h3>Description</h3>
+
+<p><img src="../help/figures/lifecycle-experimental.svg" alt="experimental"></p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">CacheGeo(
+  targetFile = NULL,
+  url = NULL,
+  domain,
+  FUN,
+  destinationPath = getOption("reproducible.destinationPath", "."),
+  useCloud = getOption("reproducible.useCloud", FALSE),
+  cloudFolderID = NULL,
+  purge = FALSE,
+  useCache = getOption("reproducible.useCache"),
+  overwrite = getOption("reproducible.overwrite"),
+  action = c("nothing", "update", "replace", "append"),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>targetFile</code></td>
+<td>
+<p>The (optional) local file (or path to file)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>url</code></td>
+<td>
+<p>The (optional) url of the object on Google Drive (the only option currently).
+This is only for downloading and uploading to.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>domain</code></td>
+<td>
+<p>An sf polygon object that is the spatial area of interest. If <code>NULL</code>,
+then this will return the whole object in <code>targetFile</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>FUN</code></td>
+<td>
+<p>A function call that will be called if there is the <code>domain</code> is
+not already contained within the <code>sf</code> object at <code>url</code> or <code>targetFile</code>. This function
+call MUST return either a <code>sf</code> class object or a <code>data.frame</code> class object
+that has a geometry column (which can then be converted to <code>sf</code> with <code>st_as_sf</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>destinationPath</code></td>
+<td>
+<p>Character string of a directory in which to download
+and save the file that comes from <code>url</code> and is also where the function
+will look for <code>archive</code> or <code>targetFile</code>. NOTE (still experimental):
+To prevent repeated downloads in different locations, the user can also set
+<code>options("reproducible.inputPaths")</code> to one or more local file paths to
+search for the file before attempting to download. Default for that option is
+<code>NULL</code> meaning do not search locally.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>useCloud</code></td>
+<td>
+<p>A logical.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cloudFolderID</code></td>
+<td>
+<p>If this is specified, then it must be either 1) a googledrive
+url to a folder where the <code>targetFile</code> will be read from or written to, or
+2) a googledrive id or 3) an absolute path to a (possibly non-existent yet)
+folder on your google drive.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>purge</code></td>
+<td>
+<p>Logical or Integer. <code>0/FALSE</code> (default) keeps existing
+<code>CHECKSUMS.txt</code> file and
+<code>prepInputs</code> will write or append to it. <code>1/TRUE</code> will deleted the entire
+<code>CHECKSUMS.txt</code> file. Other options, see details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>useCache</code></td>
+<td>
+<p>Passed to <code>Cache</code> in various places.
+Defaults to <code>getOption("reproducible.useCache", 2L)</code> in <code>prepInputs</code>, and
+<code>getOption("reproducible.useCache", FALSE)</code> if calling any of the inner
+functions manually. For <code>prepInputs</code>, this mean it will use <code>Cache</code>
+only up to 2 nested levels, which includes <code>preProcess</code>. <code>postProcess</code> and
+its nested <code style="white-space: pre;">⁠*Input⁠</code> functions (e.g., <code>cropInputs</code>, <code>projectInputs</code>,
+<code>maskInputs</code>) are no longer internally cached, as <code>terra</code> processing speeds
+mean internal caching is more time consuming. We recommend caching the full
+<code>prepInputs</code> call instead (e.g. <code>prepInputs(...) |&gt; Cache()</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite</code></td>
+<td>
+<p>Logical. Should downloading and all the other actions occur
+even if they pass the checksums or the files are all there.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>action</code></td>
+<td>
+<p>A character string, with one of c("nothing", "update",
+"replace", "append"). Partial matching is used ("n" is sufficient).
+<code>nothing</code> will prevent any updating of the <code>targetFile</code>,
+i.e., "read only". <code>append</code> will add the spatial elements in domain to
+<code>targetFile</code> (and writing it back to disk). <code>update</code> will do the same as
+<code>append</code>, but will also remove any identical geometries before appending.
+<code>replace</code> does nothing currently.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Any named objects that are needed for FUN</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function is a combination of <code>Cache</code> and <code>prepInputs</code> but for spatial
+domains. This differs from <code>Cache</code> in that the current function call doesn't
+have to have an identical function call previously run. Instead, it needs
+to have had a previous function call where the <code>domain</code> being passes is
+<em>within</em> the geographic limits of the <code>targetFile</code> or file located at the <code>url</code>.
+This is similar to a geospatial operation on a remote GIS server, with 2 differences:
+</p>
+
+<ol><li>
+<p> This downloads the object first before doing the GIS locally, and 2. it will
+optionally upload an updated object if the geographic area did not yet exist.
+</p>
+</li></ol>
+<p>This has a very specific use case: assess whether an existing <code>sf</code> polygon
+or multipolygon object (local or remote) covers the spatial
+area of a <code>domain</code> of interest. If it does, then return only that
+part of the <code>sf</code> object that completely covers the <code>domain</code>.
+If it does not, then run <code>FUN</code>. It is expected that <code>FUN</code> will produce an <code>sf</code>
+polygon or multipolygon class object. The result of <code>FUN</code> will then be
+appended to the <code>sf</code> object as a new entry (feature) or it will replace
+the existing "same extent" entry in the <code>sf</code> object.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns an object that results from <code>FUN</code>, which will possibly be a subset
+of a larger spatial object that is specified with <code>targetFile</code> or <code>url</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+if (requireNamespace("sf", quietly = TRUE) &amp;&amp;
+    requireNamespace("terra", quietly = TRUE)) {
+dPath &lt;- checkPath(file.path(tempdir2()), create = TRUE)
+localFileLux &lt;- system.file("ex/lux.shp", package = "terra")
+
+  # 1 step for each layer
+  # 1st step -- get study area
+  full &lt;- prepInputs(localFileLux, destinationPath = dPath) # default is sf::st_read
+  zoneA &lt;- full[3:6, ]
+  zoneB &lt;- full[8, ] # not in A
+  zoneC &lt;- full[3, ] # yes in A
+  zoneD &lt;- full[7:8, ] # not in A, B or C
+  zoneE &lt;- full[3:5, ] # yes in A
+  # 2nd step: re-write to disk as read/write is lossy; want all "from disk" for this ex.
+  writeTo(zoneA, writeTo = "zoneA.shp", destinationPath = dPath)
+  writeTo(zoneB, writeTo = "zoneB.shp", destinationPath = dPath)
+  writeTo(zoneC, writeTo = "zoneC.shp", destinationPath = dPath)
+  writeTo(zoneD, writeTo = "zoneD.shp", destinationPath = dPath)
+  writeTo(zoneE, writeTo = "zoneE.shp", destinationPath = dPath)
+  # Must re-read to get identical columns
+  zoneA &lt;- sf::st_read(file.path(dPath, "zoneA.shp"))
+  zoneB &lt;- sf::st_read(file.path(dPath, "zoneB.shp"))
+  zoneC &lt;- sf::st_read(file.path(dPath, "zoneC.shp"))
+  zoneD &lt;- sf::st_read(file.path(dPath, "zoneD.shp"))
+  zoneE &lt;- sf::st_read(file.path(dPath, "zoneE.shp"))
+
+  # The function that is to be run. This example returns a data.frame because
+  #    saving `sf` class objects with list-like columns does not work with
+  #    many st_driver()
+  fun &lt;- function(domain, newField) {
+    domain |&gt;
+      as.data.frame() |&gt;
+      cbind(params = I(lapply(seq_len(NROW(domain)), function(x) newField)))
+  }
+
+  # Run sequence -- A, B will add new entries in targetFile, C will not,
+  #                 D will, E will not
+  for (z in list(zoneA, zoneB, zoneC, zoneD, zoneE)) {
+    out &lt;- CacheGeo(
+      targetFile = "fireSenseParams.rds",
+      domain = z,
+      FUN = fun(domain, newField = I(list(list(a = 1, b = 1:2, c = "D")))),
+      fun = fun, # pass whatever is needed into the function
+      destinationPath = dPath,
+      action = "update"
+      # , cloudFolderID = "cachedObjects" # to upload/download from cloud
+    )
+  }
+}
+
+</code></pre>
+
+
+</div>

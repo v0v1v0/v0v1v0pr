@@ -1,0 +1,216 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>remstimate</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>remstimate - optimization of tie-oriented and actor-oriented likelihood</h2>
+
+<h3>Description</h3>
+
+<p>A function for the optimization of tie-oriented and actor-oriented likelihood. There are four optimization algorithms: two Frequentists, Maximum Likelihood Estimation (<code>MLE</code>) and Adaptive Gradient Descent (<code>GDADAMAX</code>), and two Bayesian, Bayesian Sampling Importance Resampling (<code>BSIR</code>) and Hamiltonian Monte Carlo (<code>HMC</code>).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">remstimate(
+  reh,
+  stats,
+  method = c("MLE", "GDADAMAX", "BSIR", "HMC"),
+  ncores = attr(reh, "ncores"),
+  prior = NULL,
+  nsim = 1000L,
+  nchains = 1L,
+  burnin = 500L,
+  thin = 10L,
+  init = NULL,
+  epochs = 1000L,
+  L = 50L,
+  epsilon = ifelse(method == "GDADAMAX", 0.001, 0.002),
+  seed = NULL,
+  WAIC = FALSE,
+  silent = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>reh</code></td>
+<td>
+<p>a <code>remify</code> object of the processed relational event history. Output object of the function <code>remify::remify()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stats</code></td>
+<td>
+<p>a <code>remstats</code> object: when 'attr(reh,"model")' is '"tie"', <code>stats</code> is an array of statistics with dimensions <code>[M x D x P]</code>: where <code>M</code> is the number of events, <code>D</code> is the number of possible dyads (full riskset), <code>P</code> is the number of statistics; if 'attr(reh,"model")' is '"actor"', <code>stats</code> is a list that can contain up to two arrays named <code>"sender_stats"</code> and <code>"receiver_stats"</code> with dimensions <code>[M x N x P]</code>, where <code>N</code> are the actors (senders in the array <code>"sender_stats"</code>, receivers in the array <code>"receiver_stats"</code>). Furthermore, it is possible to only estimate the sender rate model or only the receiver choice model, by using the correct naming of the arrays.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>the optimization method to estimate model parameters. Methods available are: Maximum Likelihood Estimation (<code>"MLE"</code>, and also the default method), Adaptive Gradient Descent (<code>"GDADAMAX"</code>) based on the work of Diederik P. Kingma and Jimmy Ba, 2014 (&lt;doi:10.48550/arXiv.1412.6980&gt;), Bayesian Sampling Importance Resampling (<code>"BSIR"</code>), Hamiltonian Monte Carlo (<code>"HMC"</code>). (default method is <code>"MLE"</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncores</code></td>
+<td>
+<p>[<em>optional</em>] number of threads for the parallelization. (default value is <code>1</code>, which means no parallelization).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior</code></td>
+<td>
+<p>[<em>optional</em>] prior distribution when <code>method</code> is <code>"BSIR"</code>. Default value is <code>NULL</code>, which means that no prior is assumed. For the tie-oriented modeling, the argument <code>prior</code> is the name of the function in the format <code>name_package::name_density_function</code>. The parameters of the prior distribution can be supplied as inputs to the remstimate function (e.g., <code>remstimate::remstimate(reh=reh,stats=stats,method="BSIR",ncores=5,prior=mvnfast::dmvn,mu=rep(0,3),sigma=diag(3)*2,log=TRUE)</code> ). For actor-oriented modeling the argument <code>prior</code> is a named list of two objects <code>"sender_model"</code>, which calls the prior function for the sender rate model, and, <code>"receiver_model"</code>, which calls the prior function for the receiver choice model. For the specification of the prior parameters, the user must define an optional argument called <code>prior_args</code>, which is also a named list (with names <code>"sender_model"</code> and <code>"receiver_model"</code>): each list is a list of objects named after the prior arguments and with value of the prior argument (e.g., <code>prior_args$sender_model = list(mu = rep(1.5,3), sigma = diag(3)*0.5, log = TRUE)</code>). Finally, both in tie-oriented and actor-oriented modeling prior functions must have an argument that returns the value of the density on a logarithmic scale (i.e., <code>log=TRUE</code>). <code>log=TRUE</code> is already set up internally by <code>remstimate()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nsim</code></td>
+<td>
+<p>[<em>optional</em>] when <code>method</code> is <code>"HMC"</code>, <code>nsim</code> is the number of simulations (iterations) in each chain, when <code>method</code> is <code>"BSIR"</code>, then <code>nsim</code> is the number of samples from the proposal distribution. Default value is <code>1000</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nchains</code></td>
+<td>
+<p>[<em>optional</em>] number of chains to generate in the case of <code>method = "HMC"</code>. Default value is <code>1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>burnin</code></td>
+<td>
+<p>[<em>optional</em>] number of initial iterations to be added as burnin for <code>method = "HMC"</code>. Default value is <code>500</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thin</code></td>
+<td>
+<p>[<em>optional</em>] number of steps to skip in the posterior draws for <code>method = "HMC"</code>. Default value is <code>10</code>. If <code>nsim&lt;100</code>, thin is set to <code>1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init</code></td>
+<td>
+<p>[<em>optional</em>] vector of initial values if tie-oriented model, or a named list of two vectors ('sender_model' and 'receiver_model') if both models of the actor-oriented framework are specified. <code>init</code> can also be a list of only one vector (named 'sender_model' or 'receiver_model'), if the interest is to estimate one specific model of the actor-oriented framework. <code>init</code> is used for the methods <code>"GDADAMAX"</code> and <code>"HMC"</code>. If <code>init</code> is <code>NULL</code>, then it will be assigned internally.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>epochs</code></td>
+<td>
+<p>[<em>optional</em>] It is the number of iteration used in the method <code>"GDADAMAX"</code>. Default value is <code>1000</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>L</code></td>
+<td>
+<p>[<em>optional</em>] number of leap-frog steps to use in the method <code>"HMC"</code>. Default value is <code>50</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>epsilon</code></td>
+<td>
+<p>[<em>optional</em>] It is a parameter used in two methods: if <code>method</code> is <code>"GDADAMAX"</code>, it represents the inter-iteration difference of the loss function and it is used as stop-rule within the algorithm (default value is <code>0.001</code>), if <code>method</code> is <code>"HMC"</code> (default value is <code>0.002</code>), it is a parameter used in the leap-frog algorithm and it is proportional to the step size.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>[<em>optional</em>] seed value for reproducibility. If <code>NULL</code>, seed will be assigned by the machine and saved in the output object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>WAIC</code></td>
+<td>
+<p>[<em>optional</em>] logical value. The Watanabe Akaike's Information Criterion (WAIC) will be calculated is <code>WAIC = TRUE</code>. The default number of simulations used to calculate the WAIC is 500. In order to specify  a different number of simulations, the user must supply an additional argument <code>nsimWAIC</code> to the function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>silent</code></td>
+<td>
+<p>[<em>optional</em>-not-yet-implemented] a <code>TRUE/FALSE</code> value. If <code>FALSE</code>, progress of optimization status will be printed out.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional parameters. They can be parameters of other functions defined as input in some of the arguments above. (e.g., arguments of the <code>prior</code> distribution)</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>'remstimate' S3 object.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# ------------------------------------ #
+#       tie-oriented model: "MLE"      #
+# ------------------------------------ #
+
+# loading data
+data(tie_data)
+
+# processing event sequence with remify
+tie_reh &lt;- remify::remify(edgelist = tie_data$edgelist, model = "tie")
+  
+# specifying linear predictor
+tie_model &lt;- ~ 1 + 
+               remstats::indegreeSender()+
+               remstats::inertia()+
+               remstats::reciprocity() 
+
+# calculating statistics
+tie_reh_stats &lt;- remstats::remstats(reh = tie_reh, 
+                                    tie_effects = tie_model)
+
+# running estimation
+tie_mle &lt;- remstimate::remstimate(reh = tie_reh,
+                                  stats = tie_reh_stats,
+                                  method = "MLE",
+                                  ncores = 1)
+# summary
+summary(tie_mle)
+
+# ------------------------------------ #
+#      actor-oriented model: "MLE"     #
+# ------------------------------------ #
+
+# loading data
+data(ao_data)
+
+# processing event sequence with remify
+ao_reh &lt;- remify::remify(edgelist = ao_data$edgelist, model = "actor")
+  
+# specifying linear predictor (for sender rate and receiver choice model)
+rate_model &lt;- ~ 1 + remstats::indegreeSender()
+choice_model &lt;- ~ remstats::inertia() + remstats::reciprocity()
+
+# calculating statistics
+ao_reh_stats &lt;- remstats::remstats(reh = ao_reh, 
+                                   sender_effects = rate_model, 
+                                   receiver_effects = choice_model)
+
+# running estimation
+ao_mle &lt;- remstimate::remstimate(reh = ao_reh,
+                                 stats = ao_reh_stats,
+                                 method = "MLE",
+                                 ncores = 1)
+# summary
+summary(ao_mle)
+
+# ------------------------------------ #
+#   for more examples check vignettes  #
+# ------------------------------------ #
+
+</code></pre>
+
+
+</div>

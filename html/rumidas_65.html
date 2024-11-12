@@ -1,0 +1,287 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ugmfit</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Methods for obtaining (and evaluating) a variety of GARCH-MIDAS-based models</h2>
+
+<h3>Description</h3>
+
+<p>Estimates several GARCH-MIDAS-based models, according to two errors' conditional distributions: Normal and Student-t, and
+the presence of asymmetric terms in the short- and long-run components.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ugmfit(
+  model,
+  skew,
+  distribution,
+  daily_ret,
+  mv_m,
+  mv_m_2 = NULL,
+  K,
+  K_2 = NULL,
+  lag_fun = "Beta",
+  X = NULL,
+  out_of_sample = NULL,
+  vol_proxy = NULL,
+  R = 100
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>Model to estimate. Valid choices are: "GM" for GARCH-MIDAS, "GMX" for GARCH-MIDAS-X,
+"DAGM" for Double Asymmetric GARCH-MIDAS (DAGM), "DAGM2M" for DAGM with two MIDAS variables, and "DAGMX" for DAGM-X</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>skew</code></td>
+<td>
+<p>The skewness parameter to include in the short–run equation. Valid choices are: "YES" and "NO"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>distribution</code></td>
+<td>
+<p>The conditional density to use for the innovations. At the moment, valid choices are "norm" and "std",
+for the Normal and Student-t distribution, respectively</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>daily_ret</code></td>
+<td>
+<p>Daily returns, which must be an "xts" objectparamter</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mv_m</code></td>
+<td>
+<p>(first) MIDAS variable already transformed into a matrix, through <code>mv_into_mat</code> function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mv_m_2</code></td>
+<td>
+<p><strong>optional</strong> second MIDAS variable already transformed into a matrix, through <code>mv_into_mat</code> function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K</code></td>
+<td>
+<p>Number of (lagged) realizations of the (first) MIDAS variable to consider</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K_2</code></td>
+<td>
+<p><strong>optional</strong> Number of (lagged) realizations of the (second) MIDAS variable to consider</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lag_fun</code></td>
+<td>
+<p><strong>optional</strong> Lag function to use. Valid choices are "Beta" (by default) and "Almon",
+for the Beta and Exponential Almon lag functions, respectively</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p><strong>optional</strong> Additional "X" variable, which must be an "xts" object. Moreover, "X" must be observed for the same days of daily_ret</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>out_of_sample</code></td>
+<td>
+<p><strong>optional</strong> A positive integer indicating the number of periods before the last to keep for out of sample forecasting</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vol_proxy</code></td>
+<td>
+<p><strong>optional</strong> If present, the 'vol_proxy' is the volatility proxy used for the in-sample and out-of-sample (again, if present) evaluation.
+It could be the realized variance. If it left unspecified, vol_proxy is replaced by the squared daily returns</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R</code></td>
+<td>
+<p><strong>optional</strong>.  A positive integer indicating the number of replications used to find the best starting values.
+Equal to 100 by default</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Function <code>ugmfit</code> implements the estimation and evaluation of the GARCH–MIDAS–based models, with and without the asymmetric term
+linked to negative lagged daily returns, according to two distributions for the error term. The general framework assumes that:
+</p>
+<p style="text-align: center;"><code class="reqn">r_{i,t}= \sqrt{\tau_t \times g_{i,t} } \epsilon_{i,t},</code>
+</p>
+
+<p>where
+</p>
+
+<ul>
+<li> <p><code class="reqn">r_{i,t}</code> is the daily return for the <code class="reqn">i</code>-th day (<code class="reqn">i = 1, \ldots, N_t</code>)
+of the period <code class="reqn">t</code> (for example, a week, a month or a quarter; <code class="reqn">t = 1 , \ldots, T</code>);
+</p>
+</li>
+<li> <p><code class="reqn">\tau_{t}</code> is the long-run component, varying each period <code class="reqn">t</code>;
+</p>
+</li>
+<li> <p><code class="reqn">g_{i,t}</code> is the short–run term, varying each day <code class="reqn">i</code> of the period <code class="reqn">t</code>;
+</p>
+</li>
+<li> <p><code class="reqn">\epsilon_{i,t}</code> is an <code class="reqn">iid</code> error term which has a zero mean and unit variance.
+</p>
+</li>
+</ul>
+<p>The short–run component of the GARCH–MIDAS (parameter "model" set to "GM"), DAGM (parameter "model" set to "DAGM"), and DAGM with two
+MIDAS variables (parameter "model" set to "DAGM2M") models is as follows.
+When the parameter "skew" is present (set to "YES"):
+</p>
+<p style="text-align: center;"><code class="reqn">g_{i,t} = \left(1-\alpha-\gamma/2-\beta\right) + \left(\alpha + \gamma \cdot I_{\left(r_{i-1,t}  &lt; 0 \right)}\right) \frac{\left(r_{i-1,t}\right)^2}{\tau_t} + \beta g_{i-1,t},</code>
+</p>
+
+<p>where <code class="reqn">I_{(\cdot)}</code> is an indicator function.
+The short–run component of the GARCH–MIDAS–X (parameter "model" set to "GMX") and DAGM–X (parameter "model" set to "DAGMX"),
+when the parameter "skew" is set to "YES", is:
+</p>
+<p style="text-align: center;"><code class="reqn">g_{i,t} = \left(1-\alpha-\gamma/2-\beta\right) + \left(\alpha + \gamma \cdot I_{\left(r_{i-1,t}  &lt; 0 \right)}\right) \frac{\left(r_{i-1,t}\right)^2}{\tau_t} + \beta g_{i-1,t} + z \cdot \left(X_{i-1,t}- E(X_{i-1,t})\right).</code>
+</p>
+
+<p>When, for the models GARCH–MIDAS, GARCH–MIDAS–X, DAGM, and DAGM–X, the parameter "skew" is set to "NO", parameter <code class="reqn">\gamma</code> disappears.
+For details on the GARCH–MIDAS–X and DAGM–X models, see Amendola et al. (2021).
+The long-run component of the GARCH-MIDAS and GARCH–MIDAS–X models is:
+</p>
+<p style="text-align: center;"><code class="reqn">\tau_{t} = \exp \left\{ m + \theta \sum_{j=1}^K \delta_{j}(\omega) X_{t-j}\right\},</code>
+</p>
+
+<p>where <code class="reqn">X_{t}</code> is the MIDAS term and <code class="reqn">\delta_{j}(\omega)</code> is the chosen weighting function,
+which can be the Beta (<code>beta_function</code>) or Exponential Almon lag (<code>exp_almon</code>) functions.
+The long-run component of the DAGM and DAGM–X models is:
+</p>
+<p style="text-align: center;"><code class="reqn">\tau_t   =  \exp \left(m + \theta^{+}  \sum_{k=1}^K \delta_k(\omega)^{+}  X_{t-k} I_{\left( X_{t-k} \geq 0 \right)} +  \theta^{-}  \sum_{k=1}^K \delta_k(\omega)^{-} X_{t-k} I_{\left( X_{t-k} &lt; 0 \right)} \right).</code>
+</p>
+
+
+
+<h3>Value</h3>
+
+<p><code>ugmfit</code> returns an object of class 'rumidas'. The function <code>summary.rumidas</code>
+can be used to print a summary of the results. Moreover, an object of class 'rumidas' is a list containing the following components:
+</p>
+
+<ul>
+<li>
+<p> model: The model used for the estimation.
+</p>
+</li>
+<li>
+<p> rob_coef_mat: The matrix of estimated coefficients, with the QML standard errors.
+For details, see: Bollerslev and Wooldridge (1992).
+</p>
+</li>
+<li>
+<p> obs: The number of daily observations used for the (in-sample) estimation.
+</p>
+</li>
+<li>
+<p> period: The period of the in-sample estimation.
+</p>
+</li>
+<li>
+<p> loglik: The value of the log-likelihood at the maximum.
+</p>
+</li>
+<li>
+<p> inf_criteria: The AIC and BIC information criteria.
+</p>
+</li>
+<li>
+<p> loss_in_s: The in-sample MSE and QLIKE averages, calculated considering the distance with respect to the volatility proxy (if provided) or the squared daily returns.
+</p>
+</li>
+<li>
+<p> est_in_s: The one-step-ahead volatility, for the in-sample period, that is: <code class="reqn">\sqrt{\hat{\tau}_t \times \hat{g}_{i,t} }</code>.
+</p>
+</li>
+<li>
+<p> est_lr_in_s: The one-step-ahead long-run volatility, for the in-sample period.
+</p>
+</li>
+<li>
+<p> loss_oos: The out-of-sample MSE and QLIKE averages, calculated considering the distance with respect to the volatility proxy (if provided) or the squared daily returns.
+</p>
+</li>
+<li>
+<p> est_oos: The one-step-ahead volatility, for the out-of-sample period, that is: <code class="reqn">\sqrt{\hat{\tau}_t \times \hat{g}_{i,t} }</code>.
+</p>
+</li>
+<li>
+<p> est_lr_oos: The one-step-ahead long-run volatility, for the out-of-sample period.
+</p>
+</li>
+</ul>
+<h3>References</h3>
+
+<p>Amendola A, Candila V, Gallo GM (2021).
+“Choosing the frequency of volatility components within the Double Asymmetric GARCH–MIDAS–X model.”
+<em>Economic and Statistics</em>.
+<a href="https://doi.org/10.1016/j.ecosta.2020.11.001">doi:10.1016/j.ecosta.2020.11.001</a>.<br><br> Bollerslev T, Wooldridge JM (1992).
+“Quasi-maximum likelihood estimation and inference in dynamic models with time-varying covariances.”
+<em>Econometric Reviews</em>, <b>11</b>, 143–172.
+<a href="https://doi.org/10.1080/07474939208800229">doi:10.1080/07474939208800229</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>mv_into_mat</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# estimate a GARH-MIDAS model, without the skewness parameter
+r_t&lt;-sp500['2008']
+mv_m&lt;-mv_into_mat(r_t,diff(indpro),K=12,"monthly") 
+fit&lt;-ugmfit(model="GM",skew="NO",distribution="norm",r_t,mv_m,K=12)
+fit
+summary.rumidas(fit)
+names(fit)
+
+# to see the estimated coefficients with the QML standard errors:
+fit$rob_coef_mat
+
+# estimate a DAGM model, with the skewness parameter, 
+# including the volatility proxy (realized variance), and
+# leaving the last 100 observations for the out-of-sample evaluation
+r_t&lt;-sp500['2002/2020']
+mv_m&lt;-mv_into_mat(r_t,diff(indpro),K=12,"monthly") 
+fit_2&lt;-ugmfit(model="DAGM",skew="YES",distribution="norm",r_t,
+mv_m,K=12,vol_proxy=rv5['2002/2020'],out_of_sample=100)
+fit_2
+summary.rumidas(fit_2)
+# estimate a GM-X model, without the skewness parameter
+r_t&lt;-sp500['2010/2013']
+X&lt;-vix['2010/2013'] 
+mv_m&lt;-mv_into_mat(r_t,diff(indpro),K=36,"monthly") 
+fit_3&lt;-ugmfit(model="GMX",skew="NO",distribution="norm",r_t,mv_m,K=36,X=X)
+summary.rumidas(fit_3)
+
+</code></pre>
+
+
+</div>

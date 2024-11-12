@@ -1,0 +1,179 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pcccd_classifier</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Pure and Proper Class Cover Catch Digraph Classifier</h2>
+
+<h3>Description</h3>
+
+<p><code>pcccd_classifier</code> fits a Pure and Proper Class Cover Catch
+Digraph (PCCCD) classification model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pcccd_classifier(x, y, proportion = 1)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>feature matrix or dataframe.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>class factor variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>proportion</code></td>
+<td>
+<p>proportion of covered samples. A real number between <code class="reqn">(0,1]</code>.
+1 by default. Smaller numbers results in less dominant samples.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Multiclass framework for PCCCD. PCCCD determines target class dominant points
+set <code class="reqn">S</code> and their circular cover area by determining balls
+<code class="reqn">B(x^{\text{target}}, r_{i})</code> with radii r using minimum amount of
+dominant point which satisfies <code class="reqn">X^{\text{non-target}}\cap \bigcup_{i}
+B_{i} = \varnothing</code> (pure) and <code class="reqn">X^{\text{target}}\subset \bigcup_{i}
+B_{i}</code> (proper).
+</p>
+<p>This guarantees that balls of target class never covers any non-target
+samples (pure) and balls cover all target samples (proper).
+</p>
+<p>For detail, please refer to Priebe et al. (2001), Priebe et al. (2003),
+and Manukyan and Ceyhan (2016).
+</p>
+<p>Note: Much faster than <code>cccd</code> package.
+</p>
+
+
+<h3>Value</h3>
+
+<p>an object of "cccd_classifier" which includes:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>i_dominant_list</code></td>
+<td>
+<p>dominant sample indexes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x_dominant_list</code></td>
+<td>
+<p>dominant samples from feature matrix, x</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>radii_dominant_list</code></td>
+<td>
+<p>Radiuses of the circle for dominant samples</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>class_names</code></td>
+<td>
+<p>class names</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k_class</code></td>
+<td>
+<p>number of classes</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>proportions</code></td>
+<td>
+<p>proportions each class covered</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Fatih Saglam, saglamf89@gmail.com
+</p>
+
+
+<h3>References</h3>
+
+<p>Priebe, C. E., DeVinney, J., &amp; Marchette, D. J. (2001). On the distribution
+of the domination number for random class cover catch digraphs. Statistics &amp;
+Probability Letters, 55(3), 239–246. https://doi.org/10.1016/s0167-7152(01)00129-8
+</p>
+<p>Priebe, C. E., Marchette, D. J., DeVinney, J., &amp; Socolinsky, D. A. (2003).
+Classification Using Class Cover Catch Digraphs. Journal of Classification,
+20(1), 3–23. https://doi.org/10.1007/s00357-003-0003-7
+</p>
+<p>Manukyan, A., &amp; Ceyhan, E. (2016). Classification of imbalanced data with a
+geometric digraph family. Journal of Machine Learning Research, 17(1),
+6504–6543. https://jmlr.org/papers/volume17/15-604/15-604.pdf
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">n &lt;- 1000
+x1 &lt;- runif(n, 1, 10)
+x2 &lt;- runif(n, 1, 10)
+x &lt;- cbind(x1, x2)
+y &lt;- as.factor(ifelse(3 &lt; x1 &amp; x1 &lt; 7 &amp; 3 &lt; x2 &amp; x2 &lt; 7, "A", "B"))
+
+m_pcccd &lt;- pcccd_classifier(x = x, y = y)
+
+# dataset
+plot(x, col = y, asp = 1)
+
+# dominant samples of first class
+x_center &lt;- m_pcccd$x_dominant_list[[1]]
+
+# radii of balls for first class
+radii &lt;- m_pcccd$radii_dominant_list[[1]]
+
+# balls
+for (i in 1:nrow(x_center)) {
+xx &lt;- x_center[i, 1]
+yy &lt;- x_center[i, 2]
+r &lt;- radii[i]
+theta &lt;- seq(0, 2*pi, length.out = 100)
+xx &lt;- xx + r*cos(theta)
+yy &lt;- yy + r*sin(theta)
+lines(xx, yy, type = "l", col = "green")
+}
+
+# testing the performance
+i_train &lt;- sample(1:n, round(n*0.8))
+
+x_train &lt;- x[i_train,]
+y_train &lt;- y[i_train]
+
+x_test &lt;- x[-i_train,]
+y_test &lt;- y[-i_train]
+
+m_pcccd &lt;- pcccd_classifier(x = x_train, y = y_train)
+pred &lt;- predict(object = m_pcccd, newdata = x_test)
+
+# confusion matrix
+table(y_test, pred)
+
+# test accuracy
+sum(y_test == pred)/nrow(x_test)
+
+</code></pre>
+
+
+</div>

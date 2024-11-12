@@ -1,0 +1,182 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>transform_fun</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Item callback utilities</h2>
+
+<h3>Description</h3>
+
+<p>For concept loading, item callback functions are used in order to handle
+item-specific post-processing steps, such as converting measurement units,
+mapping a set of values to another or for more involved data
+transformations, like turning absolute drug administration rates into rates
+that are relative to body weight. Item callback functions are called by
+<code>load_concepts()</code> with arguments <code>x</code> (the data), a variable number of name/
+string pairs specifying roles of columns for the given item, followed by
+<code>env</code>, the data source environment as <code>src_env</code> object.
+Item callback functions can be specified by their name or using function
+factories such as <code>transform_fun()</code>, <code>apply_map()</code> or <code>convert_unit()</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">transform_fun(fun, ...)
+
+binary_op(op, y)
+
+comp_na(op, y)
+
+set_val(val)
+
+apply_map(map, var = "val_var")
+
+convert_unit(fun, new, rgx = NULL, ignore_case = TRUE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>fun</code></td>
+<td>
+<p>Function(s) used for transforming matching values</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments passed to downstream function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>op</code></td>
+<td>
+<p>Function taking two arguments, such as <code>+</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Value passed as second argument to function <code>op</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>val</code></td>
+<td>
+<p>Value to replace every element of x with</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>map</code></td>
+<td>
+<p>Named atomic vector used for mapping a set of values (the names
+of <code>map</code>) to a different set (the values of <code>map</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>var</code></td>
+<td>
+<p>Argument which is used to determine the column the mapping is
+applied to</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>new</code></td>
+<td>
+<p>Name(s) of transformed units</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rgx</code></td>
+<td>
+<p>Regular expression(s) used for identifying observations based on
+their current unit of measurement, <code>NULL</code> means everything</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ignore_case</code></td>
+<td>
+<p>Forwarded to <code>base::grep()</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The most forward setting is where a function is simply referred to by its
+name. For example in eICU, age is available as character vector due to
+ages 90 and above being represented by the string "&gt; 89". A function such
+as the following turns this into a numeric vector, replacing occurrences of
+"&gt; 89" by the number 90.
+</p>
+<div class="sourceCode"><pre>eicu_age &lt;- function(x, val_var, ...) {
+  data.table::set(
+    data.table::set(x, which(x[[val_var]] == "&gt; 89"), j = val_var,
+                    value = 90),
+    j = val_var,
+    value = as.numeric(x[[val_var]])
+  )
+}
+</pre></div>
+<p>This function then is specified as item callback function for items
+corresponding to eICU data sources of the <code>age</code> concept as
+</p>
+<div class="sourceCode"><pre>item(src = "eicu_demo", table = "patient", val_var = "age",
+     callback = "eicu_age", class = "col_itm")
+</pre></div>
+<p>The string passed as <code>callback</code> argument is evaluated, meaning that an
+expression can be passed which evaluates to a function that in turn can be
+used as callback. Several function factories are provided which return
+functions suitable for use as item callbacks: <code>transform_fun()</code> creates a
+function that transforms the <code>val_var</code> column using the function supplied
+as <code>fun</code> argument, <code>apply_map()</code> can be used to map one set of values to
+another (again using the <code>val_var</code> column) and <code>convert_unit()</code> is intended
+for converting a subset of rows (identified by matching <code>rgx</code> against the
+<code>unit_var</code> column) by applying <code>fun</code> to the <code>val_var</code> column and setting
+<code>new</code> as the transformed unit name (arguments are not limited to scalar
+values). As transformations require unary functions, two utility function,
+<code>binary_op()</code> and <code>comp_na()</code> are provided which can be used to fix the
+second argument of binary functions such as <code>*</code> or <code>==</code>. Taking all this
+together, an item callback function for dividing the <code>val_var</code> column by 2
+could be specified as <code style="white-space: pre;">⁠"transform_fun(binary_op(⁠</code>/<code style="white-space: pre;">⁠, 2))"⁠</code>. The supplied
+function factories create functions that operate on the data using
+by-reference semantics. Furthermore, during concept
+loading, progress is reported by a progress::progress_bar. In order to
+signal a message without disrupting the current loading status, see
+<code>msg_progress()</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Callback function factories such as <code>transform_fun()</code>, <code>apply_map()</code>
+or <code>convert_unit()</code> return functions suitable as item callback functions,
+while transform function generators such as <code>binary_op()</code>, <code>comp_na()</code>
+return functions that apply a transformation to a vector.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">dat &lt;- ts_tbl(x = rep(1:2, each = 5), y = hours(rep(1:5, 2)), z = 1:10)
+
+subtract_3 &lt;- transform_fun(binary_op(`-`, 3))
+subtract_3(data.table::copy(dat), val_var = "z")
+
+gte_4 &lt;- transform_fun(comp_na(`&gt;=`, 4))
+gte_4(data.table::copy(dat), val_var = "z")
+
+map_letters &lt;- apply_map(setNames(letters[1:9], 1:9))
+res &lt;- map_letters(data.table::copy(dat), val_var = "z")
+res
+
+not_b &lt;- transform_fun(comp_na(`!=`, "b"))
+not_b(res, val_var = "z")
+
+</code></pre>
+
+
+</div>

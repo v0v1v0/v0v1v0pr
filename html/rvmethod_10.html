@@ -1,0 +1,125 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>hgrv</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Apply the Hermite-Gaussian Radial Velocity (HGRV) Estimation Method</h2>
+
+<h3>Description</h3>
+
+<p>This function applies the HGRV method as given in 
+<a href="https://arxiv.org/abs/2005.14083">Holzer et al. (2020)</a> to a given observed spectrum, using
+the estimated template from the <code>estimate_template</code> function and the
+<code>parameters</code> component of the output from the <code>Gaussfit</code> function.
+The result is an estimate of the relative radial velocity present in the
+observed spectrum in units of m/s.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">hgrv(obs_wvl, obs_flx, tmp_wvl, tmp_flx, Features, obs_err = NULL, cntm = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>obs_wvl</code></td>
+<td>
+<p>the vector of wavelengths of the observed spectrum</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>obs_flx</code></td>
+<td>
+<p>the vector of normalized flux of the observed spectrum</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tmp_wvl</code></td>
+<td>
+<p>the vector of wavelengths of the template spectrum</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tmp_flx</code></td>
+<td>
+<p>the vector of normalized flux of the template spectrum</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Features</code></td>
+<td>
+<p>a dataframe with the wavelength bounds and fitted Gaussian parameters for each absorption feature. The <code>parameters</code> component of the output from the <code>Gaussfit</code> function provides this.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>obs_err</code></td>
+<td>
+<p>the vector of uncertainties in the normalized flux of the observed spectrum (must be the same length as <code>obs_wvl</code> and <code>obs_flx</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cntm</code></td>
+<td>
+<p>the vector of continuum values used to normalize the flux of the observed spectrum (must be the same length as <code>obs_wvl</code> and <code>obs_flx</code>)</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>a list with the following components
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>rv</code></td>
+<td>
+<p>the estimated radial velocity in units of m/s</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rv_err</code></td>
+<td>
+<p>the standard error of the estimated radial velocity in units of m/s</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>the number of data points used in the weighted linear regression</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a list with the observed wavelengths (<code>wvl</code>), the difference
+flux (<code>diff_flux</code>), the explanatory variable constructed as a sum of
+first-degree generalized Hermite-Gaussian functions (<code>hgvar</code>), and the
+weights (<code>weights</code>) used in the regression.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(template)
+ftrs = findabsorptionfeatures(template$Wavelength,
+                              template$Flux,
+                              pix_range = 8, gamma = 0.05,
+                              alpha = 0.07, minlinedepth = 0.015)
+gapp = Gaussfit(template$Wavelength, template$Flux, ftrs)
+data(observed_spec)
+hgrv_output = hgrv(observed_spec$Wavelength, observed_spec$Flux,
+                   template$Wavelength, template$Flux, gapp$parameters,
+                   obs_err = observed_spec$Uncertainty)
+plot(hgrv_output$data$hgvar, hgrv_output$data$diff_flux)
+abline(a=0, b=hgrv_output$rv)
+abline(a=0, b=hgrv_output$rv - 3*hgrv_output$rv_err, lty=2)
+abline(a=0, b=hgrv_output$rv + 3*hgrv_output$rv_err, lty=2)
+
+</code></pre>
+
+
+</div>

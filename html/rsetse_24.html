@@ -1,0 +1,242 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>setse_auto</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>SETSe embedding with automatic drag and timestep selection</h2>
+
+<h3>Description</h3>
+
+<p>Embeds/smooths a feature network using the SETSe algorithm automatically finding convergence parameters using a grid search.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">setse_auto(
+  g,
+  force = "force",
+  distance = "distance",
+  edge_name = "edge_name",
+  k = "k",
+  tstep = 0.02,
+  mass = 1,
+  max_iter = 1e+05,
+  tol = 0.002,
+  sparse = FALSE,
+  hyper_iters = 100,
+  hyper_tol = 0.01,
+  hyper_max = 30000,
+  drag_min = 0.01,
+  drag_max = 100,
+  tstep_change = 0.2,
+  sample = 100,
+  static_limit = NULL,
+  verbose = FALSE,
+  include_edges = TRUE,
+  noisy_termination = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>g</code></td>
+<td>
+<p>An igraph object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>force</code></td>
+<td>
+<p>A character string. This is the node attribute that contains the force the nodes exert on the network.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>distance</code></td>
+<td>
+<p>A character string. The edge attribute that contains the original/horizontal distance between nodes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>edge_name</code></td>
+<td>
+<p>A character string. This is the edge attribute that contains the edge_name of the edges.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>A character string. This is k for the moment don't change it.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tstep</code></td>
+<td>
+<p>A numeric. The time interval used to iterate through the network dynamics.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mass</code></td>
+<td>
+<p>A numeric. This is the mass constant of the nodes in normalised networks this is set to 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_iter</code></td>
+<td>
+<p>An integer. The maximum number of iterations before stopping. Larger networks usually need more iterations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>A numeric. The tolerance factor for early stopping.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sparse</code></td>
+<td>
+<p>Logical. Whether or not the function should be run using sparse matrices. must match the actual matrix, this could prob be automated</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hyper_iters</code></td>
+<td>
+<p>integer. The hyper parameter that determines the number of iterations allowed to find an acceptable convergence value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hyper_tol</code></td>
+<td>
+<p>numeric. The convergence tolerance when trying to find the minimum value</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hyper_max</code></td>
+<td>
+<p>integer. The maximum number of iterations that SETSe will go through whilst searching for the minimum.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drag_min</code></td>
+<td>
+<p>integer. A power of ten. The lowest drag value to be used in the search</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drag_max</code></td>
+<td>
+<p>integer. A power of ten. if the drag exceeds this value the tstep is reduced</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tstep_change</code></td>
+<td>
+<p>numeric. A value between 0 and 1 that determines how much the time step will be reduced by default value is 0.5</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sample</code></td>
+<td>
+<p>Integer. The dynamics will be stored only if the iteration number is a multiple of the sample. 
+This can greatly reduce the size of the results file for large numbers of iterations. Must be a multiple of the max_iter</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>static_limit</code></td>
+<td>
+<p>Numeric. The maximum value the static force can reach before the algorithm terminates early. This
+prevents calculation in a diverging system. The value should be set to some multiple greater than one of the force in the system.
+If left blank the static limit is the system absolute mean force.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Logical. This value sets whether messages generated during the process are suppressed or not.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>include_edges</code></td>
+<td>
+<p>logical. An optional variable on whether to calculate the edge tension and strain. Default is TRUE.
+included for ease of integration into the bicomponent functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>noisy_termination</code></td>
+<td>
+<p>Stop the process if the static force does not monotonically decrease.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This is one of the most commonly used SETSe functions. It automatically selects the convergence time-step and drag values
+to ensure efficient convergence.
+</p>
+<p>The noisy_termination parameter is used as in some cases the convergence process can get stuck in the noisy zone of SETSe space.
+To prevent this the process is stopped early if the static force does not monotonically decrease.  On large networks this 
+greatly speeds up the search for good parameter values. It increases the chance of successful convergence. 
+More detail on auto-SETSe can be found in the paper "The spring bounces back" (Bourne 2020).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list containing 5 dataframes.
+</p>
+
+<ol>
+<li>
+<p> The network dynamics describing several key figures of the network during the convergence process, this includes the static_force
+</p>
+</li>
+<li>
+<p> The node embeddings. Includes all data on the nodes the forces exerted on them position and dynamics at simulation termination
+</p>
+</li>
+<li>
+<p> time taken. the amount of time taken per component, includes the edge and nodes of each component
+</p>
+</li>
+<li>
+<p> The edge embeddings. Includes all data on the edges as well as the strain and tension values.
+</p>
+</li>
+<li>
+<p> memory_df A dataframe recording the iteration history of the convergence of each component.
+</p>
+</li>
+</ol>
+<h3>See Also</h3>
+
+<p>Other setse: 
+<code>setse_auto_hd()</code>,
+<code>setse_bicomp()</code>,
+<code>setse_expanded()</code>,
+<code>setse()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+set.seed(234) #set the random see for generating the network
+g &lt;- generate_peels_network(type = "E")
+embeddings &lt;- g %&gt;%
+prepare_edges(k = 500, distance = 1) %&gt;%
+#prepare the network for a binary embedding
+prepare_categorical_force(., node_names = "name",
+                     force_var = "class") %&gt;%
+#embed the network using auto_setse
+  setse_auto(., force = "class_A")
+
+</code></pre>
+
+
+</div>

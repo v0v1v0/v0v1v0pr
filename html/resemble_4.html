@@ -1,0 +1,362 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>dissimilarity</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Dissimilarity computation between matrices</h2>
+
+<h3>Description</h3>
+
+<script id="MathJax-script" async src="../../mathjaxr/doc/mathjax/es5/tex-chtml-full.js"></script><p>This is a wrapper to integrate the different dissimilarity functions of the
+offered by package.It computes the dissimilarities between observations in
+numerical matrices by using an specifed dissmilarity measure.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">dissimilarity(Xr, Xu = NULL,
+              diss_method = c("pca", "pca.nipals", "pls", "mpls",
+                              "cor", "euclid", "cosine", "sid"),
+              Yr = NULL, gh = FALSE, pc_selection = list("var", 0.01),
+              return_projection = FALSE, ws = NULL,
+              center = TRUE, scale = FALSE, documentation = character(),
+              ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Xr</code></td>
+<td>
+<p>a matrix of containing <code>n</code> observations/rows and <code>p</code>
+variables/columns.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Xu</code></td>
+<td>
+<p>an optional matrix containing data of a second set of observations
+with <code>p</code> variables/columns.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>diss_method</code></td>
+<td>
+<p>a character string indicating the method to be used to
+compute the dissimilarities between observations. Options are:
+</p>
+
+<ul>
+<li>
+<p><code>"pca"</code>: Mahalanobis distance
+computed on the matrix of scores of a Principal Component (PC)
+projection of <code>Xr</code> (and <code>Xu</code> if provided). PC projection is
+done using the singular value decomposition (SVD) algorithm.
+See <code>ortho_diss</code> function.
+</p>
+</li>
+<li>
+<p><code>"pca.nipals"</code>: Mahalanobis distance
+computed on the matrix of scores of a Principal Component (PC)
+projection of <code>Xr</code> (and <code>Xu</code> if provided). PC projection is
+done using the non-linear iterative partial least squares (nipals)
+algorithm. See <code>ortho_diss</code> function.
+</p>
+</li>
+<li>
+<p><code>"pls"</code>: Mahalanobis distance
+computed on the matrix of scores of a partial least squares projection
+of <code>Xr</code> (and <code>Xu</code> if provided). In this case, <code>Yr</code> is
+always required. See <code>ortho_diss</code> function.
+</p>
+</li>
+<li>
+<p><code>"mpls"</code>: Mahalanobis distance
+computed on the matrix of scores of a modified partial least squares
+projection (Shenk and Westerhaus, 1991; Westerhaus, 2014)
+of <code>Xr</code> (and <code>Xu</code> if provided). In this case, <code>Yr</code> is
+always required. See <code>ortho_diss</code> function.
+</p>
+</li>
+<li>
+<p><code>"cor"</code>: based on the correlation coefficient
+between observations. See <code>cor_diss</code> function.
+</p>
+</li>
+<li>
+<p><code>"euclid"</code>: Euclidean distance
+between observations. See <code>f_diss</code> function.
+</p>
+</li>
+<li>
+<p><code>"cosine"</code>: Cosine distance
+between observations. See <code>f_diss</code> function.
+</p>
+</li>
+<li>
+<p><code>"sid"</code>: spectral information divergence between
+observations. See <code>sid</code> function.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Yr</code></td>
+<td>
+<p>a numeric matrix of <code>n</code> observations used as side information of
+<code>Xr</code> for the <code>ortho_diss</code> methods (i.e. <code>pca</code>,
+<code>pca.nipals</code> or <code>pls</code>). It is required when:
+</p>
+
+<ul>
+<li>
+<p><code>diss_method = "pls"</code>
+</p>
+</li>
+<li>
+<p><code>diss_method = "pca"</code> with <code>"opc"</code> used as the method
+in the <code>pc_selection</code> argument. See <code>ortho_diss.</code>
+</p>
+</li>
+<li>
+<p><code>gh = TRUE</code>
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gh</code></td>
+<td>
+<p>a logical indicating if the Mahalanobis distance (in the pls score
+space) between each observation and the pls centre/mean must be
+computed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pc_selection</code></td>
+<td>
+<p>a list of length 2 to be passed onto the
+<code>ortho_diss</code> methods. It is required if the method selected in
+<code>diss_method</code> is any of <code>"pca"</code>, <code>"pca.nipals"</code> or
+<code>"pls"</code> or if <code>gh = TRUE</code>. This argument is used for
+optimizing the number of components (principal components or pls factors)
+to be retained. This list must contain two elements in the following order:
+<code>method</code> (a character indicating the method for selecting the number of
+components) and <code>value</code> (a numerical value that complements the selected
+method). The methods available are:
+</p>
+
+<ul>
+<li>
+<p><code>"opc"</code>: optimized principal component selection based on
+Ramirez-Lopez et al. (2013a, 2013b). The optimal number of components
+(of set of observations) is the one for which its distance matrix
+minimizes the differences between the <code>Yr</code> value of each
+observation and the <code>Yr</code> value of its closest observation. In this
+case <code>value</code> must be a value ((larger than 0 and
+below the minimum dimension of <code>Xr</code> or <code>Xr</code> and <code>Xu</code>
+combined) indicating the maximum
+number of principal components to be tested. See the
+<code>ortho_projection</code> function for more details.
+</p>
+</li>
+<li>
+<p><code>"cumvar"</code>: selection of the principal components based
+on a given cumulative amount of explained variance. In this case,
+<code>value</code> must be a value (larger than 0 and below or equal to 1)
+indicating the minimum amount of cumulative variance that the
+combination of retained components should explain.
+</p>
+</li>
+<li>
+<p><code>"var"</code>: selection of the principal components based
+on a given amount of explained variance. In this case,
+<code>value</code> must be a value (larger than 0 and below or equal to 1)
+indicating the minimum amount of variance that a single component
+should explain in order to be retained.
+</p>
+</li>
+<li>
+<p><code>"manual"</code>: for manually specifying a fix number of
+principal components. In this case, <code>value</code> must be a value
+(larger than 0 and
+below the minimum dimension of <code>Xr</code> or <code>Xr</code> and <code>Xu</code>
+combined).
+indicating the minimum amount of variance that a component should
+explain in order to be retained.
+</p>
+</li>
+</ul>
+<p>The default is <code>list(method = "var", value = 0.01)</code>.
+</p>
+<p>Optionally, the <code>pc_selection</code> argument admits <code>"opc"</code> or
+<code>"cumvar"</code> or <code>"var"</code> or <code>"manual"</code> as a single character
+string. In such a case the default <code>"value"</code> when either <code>"opc"</code> or
+<code>"manual"</code> are used is 40. When <code>"cumvar"</code> is used the default
+<code>"value"</code> is set to 0.99 and when <code>"var"</code> is used, the default
+<code>"value"</code> is set to 0.01.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return_projection</code></td>
+<td>
+<p>a logical indicating if the projection(s) must be
+returned. Projections are used if the <code>ortho_diss</code> methods are
+called (i.e. <code>diss_method = "pca"</code>, <code>diss_method = "pca.nipals"</code> or
+<code>diss_method = "pls"</code>) or when <code>gh = TRUE</code>.
+In case <code>gh = TRUE</code> and a <code>ortho_diss</code> method is used (in the
+<code>diss_method</code> argument), both projections are returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ws</code></td>
+<td>
+<p>an odd integer value which specifies the window size, when
+<code>diss_method = "cor"</code> (<code>cor_diss</code> method) for moving
+correlation dissimilarity. If <code>ws = NULL</code> (default), then the window
+size will be equal to the number of variables (columns), i.e. instead moving
+correlation, the normal correlation will be used. See <code>cor_diss</code>
+function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>center</code></td>
+<td>
+<p>a logical indicating if <code>Xr</code> (and <code>Xu</code> if provided)
+must be centered. If <code>Xu</code> is provided the data is centered around the
+mean of the pooled <code>Xr</code> and <code>Xu</code> matrices (\(Xr \cup Xu\)). For
+dissimilarity computations based on <code>diss_method = pls</code>, the data is
+always centered.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>a logical indicating if <code>Xr</code> (and <code>Xu</code> if
+provided) must be  scaled. If <code>Xu</code> is provided the data is scaled based
+on the standard deviation of the the pooled <code>Xr</code> and <code>Xu</code> matrices
+(\(Xr \cup Xu\)). If <code>center = TRUE</code>, scaling is applied after
+centering.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>documentation</code></td>
+<td>
+<p>an optional character string that can be used to
+describe anything related to the <code>mbl</code> call (e.g. description of the
+input data). Default: <code>character()</code>. NOTE: his is an experimental
+argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>other arguments passed to the dissimilarity functions
+(<code>ortho_diss</code>, <code>cor_diss</code>, <code>f_diss</code> or
+<code>sid</code>).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function is a wrapper for <code>ortho_diss</code>, <code>cor_diss</code>,
+<code>f_diss</code>, <code>sid</code>. Check the documentation of these
+functions for further details.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with the following components:
+</p>
+
+<ul>
+<li>
+<p><code>dissimilarity</code>: the resulting dissimilarity matrix.
+</p>
+</li>
+<li>
+<p><code>projection</code>: an <code>ortho_projection</code> object. Only output
+if <code>return_projection = TRUE</code> and if <code>diss_method = "pca"</code>,
+<code>diss_method = "pca.nipals"</code>,  <code>diss_method = "pls"</code> or
+<code>diss_method = "mpls"</code>.
+This object contains the projection used to compute
+the dissimilarity matrix. In case of local dissimilarity matrices,
+the projection corresponds to the global projection used to select the
+neighborhoods (see <code>ortho_diss</code> function for further
+details).
+</p>
+</li>
+<li>
+<p><code>gh</code>: a list containing the GH distances as well as the
+pls projection used to compute the GH.
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p><a href="https://orcid.org/0000-0002-5369-5120">Leonardo Ramirez-Lopez</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>Shenk, J., Westerhaus, M., and Berzaghi, P. 1997. Investigation of a LOCAL
+calibration procedure for near infrared instruments. Journal of Near Infrared
+Spectroscopy, 5, 223-232.
+</p>
+<p>Westerhaus, M. 2014. Eastern Analytical Symposium Award for outstanding
+Wachievements in near infrared spectroscopy: my contributions to
+Wnear infrared spectroscopy. NIR news, 25(8), 16-20.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>ortho_diss</code> <code>cor_diss</code> <code>f_diss</code>
+<code>sid</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(prospectr)
+data(NIRsoil)
+
+# Filter the data using the first derivative with Savitzky and Golay
+# smoothing filter and a window size of 11 spectral variables and a
+# polynomial order of 4
+sg &lt;- savitzkyGolay(NIRsoil$spc, m = 1, p = 4, w = 15)
+
+# Replace the original spectra with the filtered ones
+NIRsoil$spc &lt;- sg
+
+Xu &lt;- NIRsoil$spc[!as.logical(NIRsoil$train), ]
+Yu &lt;- NIRsoil$CEC[!as.logical(NIRsoil$train)]
+
+Yr &lt;- NIRsoil$CEC[as.logical(NIRsoil$train)]
+Xr &lt;- NIRsoil$spc[as.logical(NIRsoil$train), ]
+
+Xu &lt;- Xu[!is.na(Yu), ]
+Xr &lt;- Xr[!is.na(Yr), ]
+
+Yu &lt;- Yu[!is.na(Yu)]
+Yr &lt;- Yr[!is.na(Yr)]
+
+dsm_pca &lt;- dissimilarity(
+  Xr = Xr, Xu = Xu,
+  diss_method = c("pca"),
+  Yr = Yr, gh = TRUE,
+  pc_selection = list("opc", 30),
+  return_projection = TRUE
+)
+</code></pre>
+
+
+</div>

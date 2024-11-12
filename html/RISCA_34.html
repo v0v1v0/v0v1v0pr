@@ -1,0 +1,152 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>roc.binary</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+ROC Curves For Binary Outcomes.
+</h2>
+
+<h3>Description</h3>
+
+<p>This function allows for the estimation of ROC curve by taking into account possible confounding factors. Two methods are implemented: i) the standardized and weighted ROC based on an IPW estimator, and ii) the placement values ROC.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">roc.binary(status, variable, confounders,  data, precision, estimator)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>status</code></td>
+<td>
+<p>A character string with the name of the variable in <code>data</code> which represents the disease status indicator (for instance: 0=healthy, 1=diseased).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>variable</code></td>
+<td>
+<p>A character string with the name of the variable in <code>data</code> which represents the diagnostic/prognostic variable under interest. For the standardized and weighted ROC method, the variable must be previously standardized according to the covariates among the controls as proposed by Le Borgne et al. (2017).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>confounders</code></td>
+<td>
+<p>An object of class "formula". More precisely only the right part with an expression of the form <code>~ model</code>, where <code>model</code> is the linear predictor of the logistic regressions performed for each cut-off value. The user can use <code>~1</code> to obtain the crude estimation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>An object of the class <code>data.frame</code> containing the variables previously detailed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>precision</code></td>
+<td>
+<p>A numeric vector with values between 0 and 1. The values represent the x-axis (1-specificity) of the ROC graph for which the user want to obtain the corresponding sensitivities. 0 and 1 are not allowed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estimator</code></td>
+<td>
+<p>Two possible estimators can be used: "ipw" and "pv". IPW is based on the Inverse Probability Weigthing theory as proposed by Le Borgne et al. (2017). This estimator applied on a variable  standardized according to the covariates among the controls allows to obtain a standardized and weighted ROC. The IPW estimator is selected by default. The user can also use the placement values (pv) estimator as proposed by Pepe and Cai (Biometrics, 2004).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function computes confounder-adjusted ROC curve for uncensored data. We adapted the usual estimator by considering the individual probabilities to be diseased, given the possible confounding factors. The standardized and weighted ROC is obtained by both providing a variable under interest standardized according to the possible confounding factors and using "ipw" in the option <code>estimator</code>. The user can also use the estimator first proposed by Pepe and Cai (2004) which is based on placement values.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>table</code></td>
+<td>
+<p>This data frame presents the sensitivities and specificities. <code>J</code> represents the Youden index.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>auc</code></td>
+<td>
+<p>The area under the ROC curve.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Y. Foucher &lt;Yohann.Foucher@univ-poitiers.fr&gt;
+</p>
+
+
+<h3>References</h3>
+
+<p>Blanche et al. (2013) Review and comparison of roc curve estimators for a time-dependent outcome with marker-dependent censoring. Biometrical Journal, 55, 687-704. &lt;doi:10.1002/bimj.201200045&gt;
+</p>
+<p>Pepe and Cai. (2004) The analysis of placement values for evaluating discriminatory measures. Biometrics, 60(2), 528-35. &lt;doi:10.1111/j.0006-341X.2004.00200.x&gt;
+</p>
+<p>Le Borgne et al. Standardized and weighted time-dependent ROC curves to evaluate the intrinsic prognostic capacities of a marker by taking into account confounding factors. Stat Methods Med Res. 27(11):3397-3410, 2018. &lt;doi: 10.1177/ 0962280217702416&gt;.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# import and attach the data example
+
+data(dataDIVAT3)
+
+# A subgroup analysis to reduce the time needed for this exemple
+
+dataDIVAT3 &lt;- dataDIVAT3[1:400,]
+
+# The ROC curve to evaluate the crude capacities of the recipient age for the
+# prognosis of post kidney transplant mortality (we ignore the censoring process)
+
+roc1 &lt;- roc.binary(status="death", variable="ageR", confounders=~1,
+data=dataDIVAT3, precision=seq(0.1,0.9, by=0.1) )
+
+# The corresponding ROC graph with basic options
+
+plot(roc1, xlab="1-specificity", ylab="sensibility")
+
+# The corresponding ROC graph with color and symbols
+
+plot(roc1, col=2, pch=2, type="b", xlab="1-specificity", ylab="sensibility")
+
+# The standardized and weighted ROC curve to evaluate the capacities
+# of the recipient age for the prognosis of post kidney transplant
+# mortality by taking into account the donor age and the recipient
+# gender (we ignore the censoring process).
+
+# 1. Standardize the marker according to the covariates among the controls
+lm1 &lt;- lm(ageR ~ ageD + sexeR, data=dataDIVAT3[dataDIVAT3$death == 0,])
+dataDIVAT3$ageR_std &lt;- (dataDIVAT3$ageR - (lm1$coef[1] + lm1$coef[2] *
+ dataDIVAT3$ageD + lm1$coef[3] * dataDIVAT3$sexeR)) / sd(lm1$residuals)
+
+# 2. Compute the sensitivity and specificity from the proposed IPW estimators
+roc2 &lt;- roc.binary(status="death", variable="ageR_std",
+ confounders=~bs(ageD, df=3) + sexeR, data=dataDIVAT3, precision=seq(0.1,0.9, by=0.1))
+
+# The corresponding ROC graph
+
+plot(roc2, col=2, pch=2, lty=2, type="b", xlab="1-specificity", ylab="sensibility")
+
+lines(roc1, col=1, pch=1, type="b")
+
+legend("bottomright", lty=1:2, lwd=1, pch=1:2, col=1:2,
+ c(paste("Crude estimation, (AUC=", round(roc1$auc, 2), ")", sep=""),
+ paste("Adjusted estimation, (AUC=", round(roc2$auc, 2), ")", sep="") ) ) 
+</code></pre>
+
+
+</div>

@@ -1,0 +1,92 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rsfar</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Simulation of a Seasonal Functional Autoregressive SFAR(1) process.</h2>
+
+<h3>Description</h3>
+
+<p>Simulation of a SFAR(1) process on a Hilbert space of L2[0,1].
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rsfar(phi, seasonal, Z)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>phi</code></td>
+<td>
+<p>a kernel function corresponding to the seasonal autoregressive operator.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seasonal</code></td>
+<td>
+<p>a positive integer variable specifying the seasonal period.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Z</code></td>
+<td>
+<p>the functional noise object of the class 'fd'.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A sample of functional time series from a SFAR(1) model of the class 'fd'.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Set up Brownian motion noise process
+N &lt;- 300 # the length of the series
+n &lt;- 200 # the sample rate that each function will be sampled
+u &lt;- seq(0, 1, length.out = n) # argvalues of the functions
+d &lt;- 15 # the number of basis functions
+basis &lt;- create.fourier.basis(c(0, 1), d) # the basis system
+sigma &lt;- 0.05 # the stdev of noise norm
+Z0 &lt;- matrix(rnorm(N * n, 0, sigma), nr = n, nc = N)
+Z0[, 1] &lt;- 0
+Z_mat &lt;- apply(Z0, 2, cumsum) # N standard Brownian motion
+Z &lt;- smooth.basis(u, Z_mat, basis)$fd
+
+# Compute the standardized constant of a kernel function with respect to a given HS norm.
+gamma0 &lt;- function(norm, kr) {
+  f &lt;- function(x) {
+    g &lt;- function(y) {
+      kr(x, y)^2
+    }
+    return(integrate(g, 0, 1)$value)
+  }
+  f &lt;- Vectorize(f)
+  A &lt;- integrate(f, 0, 1)$value
+  return(norm / A)
+}
+# Definition of parabolic integral kernel:
+norm &lt;- 0.99
+kr &lt;- function(x, y) {
+  2 - (2 * x - 1)^2 - (2 * y - 1)^2
+}
+c0 &lt;- gamma0(norm, kr)
+phi &lt;- function(x, y) {
+  c0 * kr(x, y)
+}
+
+# Simulating a path from an SFAR(1) process
+s &lt;- 5 # the period number
+X &lt;- rsfar(phi, s, Z)
+plot(X)
+</code></pre>
+
+
+</div>

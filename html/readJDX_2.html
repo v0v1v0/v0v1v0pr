@@ -1,0 +1,309 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>readJDX</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Import a File Written in the JCAMP-DX Format</h2>
+
+<h3>Description</h3>
+
+<p>This function supervises the entire import process.
+Not all official formats are supported, see the vignettes.
+Prior to release, this package is checked against a very large number of files in the
+author's collection.  However, the JCAMP-DX standard allows many variations and it is
+difficult to anticipate all permutations.  Error messages will
+generally let you know what's going on.  If you have a file that you feel should be
+supported but gives an error, please file an issue at Github and share the file.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">readJDX(file = "", SOFC = TRUE, debug = 0)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>file</code></td>
+<td>
+<p>Character.  The file name to import.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SOFC</code></td>
+<td>
+<p>Logical.  "Stop on Failed Check"
+The default is <code>TRUE</code> i.e. stop when something is not right.
+This ensures that correct data is returned.  Change to <code>FALSE</code> at your own risk.
+NOTE: Only certain checks can be skipped via this option, as there are some
+parameters that must be available and correct in order to return <em>any</em> answer.
+For instance, one must end up with the same number of X and Y values.
+This option is provided for those <span class="pkg">advanced
+users</span> who have carefully checked their original files and want to skip the
+required checks.  It may also be useful for troubleshooting.
+The JCAMP-DX standard typically requires
+several checks of the data as it is decompressed.  These checks are essential
+to obtaining the correct results.  However, some JCAMP-DX writing programs
+do not follow the standard to the letter.  For instance we have observed that
+not all JCAMP-DX writers put FIRSTY into the metadata, even though it is required by
+the standard.  In other cases values in the file have low precision (see section on precision).
+Another example we have observed is NMR files where the X values are the count/index of data points,
+and FIRSTY is given in Hz.  Since the field strength and center of the sweep frequency are needed
+to convert to ppm, and these are parameters not required in the standard, one cannot return an
+answer in either ppm or Hz automatically.
+In cases like this, one can set <code>SOFC = FALSE</code> and then manually convert the X axis.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>debug</code></td>
+<td>
+<p>Integer.  The level of debug reporting desired.  For those options giving
+a lot of output, you may wish to consider directing the output via <code>sinkall</code>
+and then search the results for the problematic lines.
+</p>
+
+<ul>
+<li>
+<p> 1 or higher = import progress is reported.
+</p>
+</li>
+<li>
+<p> 2 = details about the variable lists, compression formats and
+parameters that were found.
+</p>
+</li>
+<li>
+<p> 3 = print the extracted X values (huge output!).
+</p>
+</li>
+<li>
+<p> 4 = detailed info on the Y value processing (huge output!).
+</p>
+</li>
+<li>
+<p> 5 = detailed info about processing the Y values when DUP is in use (huge output!).
+</p>
+</li>
+<li>
+<p> 6 = detailed info about processing the Y values when DIF is in use (huge output!).
+</p>
+</li>
+</ul>
+<p>In cases when an error is about to stop execution, you get additional information regardless of
+the <code>debug</code> value.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list, as follows:
+</p>
+
+<ul>
+<li>
+<p> The first element is a data frame summarizing the pieces of the imported file.
+</p>
+</li>
+<li>
+<p> The second element is the file metadata.
+</p>
+</li>
+<li>
+<p> The third element is a integer vector giving the comment lines found
+(exclusive of the metdata, which typically contains many comments).
+</p>
+</li>
+</ul>
+<p>Additional elements contain the extracted data as follows:
+</p>
+
+<ul>
+<li>
+<p> If the file contains one non-NMR spectrum, or a processed NMR spectrum (i.e. only 
+the final real data), a single data frame.
+</p>
+</li>
+<li>
+<p> If the file contains the real and imaginary
+parts of a 1D NMR spectrum, there will be two data frames, one containing the real portion
+and the other the imaginary portion.
+</p>
+</li>
+<li>
+<p> In all cases above, the data frame has elements <code>x</code> and <code>y</code>.
+</p>
+</li>
+<li>
+<p> In the case of 2D NMR data, additional named list elements are returned including
+the F2 frequency values, the F1 frequency values, and a matrix containing the 2D data.
+</p>
+</li>
+<li>
+<p> In the case of LC-MS or GC-MS data, a data frame is returned for each time point.
+The data frame has elements <code>mz</code> and <code>int</code> (intensity). Each time point
+is named with the time from the file.
+</p>
+</li>
+</ul>
+<h3>Included Data Files</h3>
+
+<p>The examples make use of data files included with the package:
+</p>
+
+<ul>
+<li>
+<p> File <code>SBO.jdx</code> is an IR spectrum of Smart Balance Original spread (a butter
+substitute). The spectrum is presented in transmission format, and was recorded on a
+ThermoFisher instrument.  The file uses AFFN compression, and was written
+with the JCAMP-DX 5.01 standard. Note that even though the Y-axis was recorded in
+percent transmission, in the JDX file it is stored on [0...1].
+</p>
+</li>
+<li>
+<p> File <code>PCRF.jdx</code> is a 1H NMR spectrum of a hexane extract of a reduced fat potato chip.
+The spectrum was recorded on a JEOL instrument.  The file uses SQZ DIF DUP compression,
+and was written with the JCAMP-DX 6.00 standard.
+</p>
+</li>
+<li>
+<p> File <code>PCRF_line265.jdx</code> has a deliberate error in it.
+</p>
+</li>
+<li>
+<p> File <code>isasspc1.jdx</code> is a 2D NMR file recorded on a JEOL GX 400 instrument.
+The file is freely available at <a href="http://www.jcamp-dx.org/">http://www.jcamp-dx.org/</a>.
+</p>
+</li>
+<li>
+<p> File <code>MiniDIFDUP.JDX</code> is a small demonstration file, used in the vignettes to
+illustrate the decompression process.  It is derived from a freely available file.
+</p>
+</li>
+</ul>
+<h3>Precision</h3>
+
+<p>Internally, this package uses a tolerance factor when comparing values during certain checks.
+This is desirable because the original values in the files
+are text strings of varying lengths which get converted to numerical values by <code>R</code>.  Occasionally
+values in the file, such as FIRSTY, are stored with low precision, and the computation of the
+value to be compared occurs with much greater precision.  In these cases the check can fail
+even when the tolerance is pretty loose.  In these cases one might consider setting
+<code>SOFC = FALSE</code> to allow the calculation to proceed.  If you do this, be certain to check
+the results carefully as described under <code>SOFC</code>.
+</p>
+
+
+<h3>Y Value Check</h3>
+
+<p>The standard requires a "Y Value Check" when in DIF mode.  Extra Y values have been appended to each
+line to use in the check, and the last Y value on a line must equal the first Y value on the next line
+<em>IFF</em> one is in DIF mode.  After a successful check, the extra Y value must be removed.  In actual practice,
+some vendors, at least some of the time, seem to differ as to the meaning of
+"being in DIF mode".  In turn, this determines how the Y value check should proceed.
+</p>
+
+<ul>
+<li>
+<p> The standard says "When, and only when, the last ordinate of a line is in DIF form ...
+The first ordinate of the next line ... is always an actual value, equal to the last
+calculated ordinate of the previous line". See section 5.8.3 of the 1988 publication.
+</p>
+</li>
+<li>
+<p> Taking this definition literally, the Y value check (and removal of the extra value),
+should occur when one sees e.g. ... DIF DIF DIF (end of line). Let's call
+this "literal DIF".  A literal DIF is easy to detect and act on.
+</p>
+</li>
+<li>
+<p> In other cases, something like ... DIF DUP DUP (end of line) is considered to be in DIF mode
+for Y value check purposes. In these cases we have look backwards to see if we are in DIF mode.
+Let's call this "relayed DIF".
+</p>
+</li>
+<li>
+<p> However, some vendors may treat ... DIF DUP DUP (end of line) as not in DIF mode, and hence
+one should not do the Y value check and not remove any values, as this vendor would not have
+added an extra Y value.
+</p>
+</li>
+<li>
+<p> In addition to these three possibilities, <code>readJDX</code> through versions 0.3.xx used a different
+definition, namely if there were any DIF entries anywhere on the line, then DIF mode was
+assumed and the Y value check carried out.  This worked for many files, but not all.
+</p>
+</li>
+<li>
+<p> In the 0.4.xx series, <code>readJDX</code> detects both the literal and relayed definitions and
+tries to keep moving forward as much as possible.
+</p>
+</li>
+</ul>
+<h3>Performance</h3>
+
+<p><code>readJDX</code> is not particularly fast.  Priority has been given to assuring correct answers,
+helpful debugging messages and understandable code.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Do <code>browseVignettes("readJDX")</code> for background information,
+references, supported formats, and details about the roles of each function.
+If you have a multiblock file (which contains multiple spectra, but not 2D NMR,
+LC-MS or GC-MS data sets), please see
+<code>splitMultiblockDX</code> for a function to break such files into
+individual files which can then be processed in the normal way.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># IR spectrum
+sbo &lt;- system.file("extdata", "SBO.jdx", package = "readJDX")
+chk &lt;- readJDX(sbo)
+plot(chk[[4]]$x, chk[[4]]$y / 100,
+  type = "l", main = "Original Smart Balance Spread",
+  xlab = "wavenumber", ylab = "Percent Transmission"
+)
+
+# 1H NMR spectrum
+pcrf &lt;- system.file("extdata", "PCRF.jdx", package = "readJDX")
+chk &lt;- readJDX(pcrf)
+plot(chk[[4]]$x, chk[[4]]$y,
+  type = "l", main = "Reduced Fat Potato Chip Extract",
+  xlab = "ppm", ylab = "Intensity"
+)
+
+# Capturing processing for troubleshooting
+mdd &lt;- system.file("extdata", "MiniDIFDUP.JDX", package = "readJDX")
+tf &lt;- tempfile(pattern = "Troubleshooting", fileext = "txt")
+sinkall(tf)
+chk &lt;- readJDX(mdd, debug = 6)
+sinkall() # close the file connection
+file.show(tf)
+
+# 2D HETCORR spectrum
+## Not run: 
+nmr2d &lt;- system.file("extdata", "isasspc1.dx", package = "readJDX")
+chk &lt;- readJDX(nmr2d)
+contour(chk$Matrix, drawlabels = FALSE) # default contours not optimal
+
+## End(Not run)
+
+## Not run: 
+# Line 265 has an N -&gt; G error.  Try with various levels of debug.
+# Even with debug = 0 you get useful diagnostic info.
+problem &lt;- system.file("extdata", "PCRF_line265.jdx", package = "readJDX")
+chk &lt;- readJDX(problem)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,132 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>readDWD.multia</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>read multi_annual dwd data</h2>
+
+<h3>Description</h3>
+
+<p>read multi_annual dwd data.
+Intended to be called via <code>readDWD()</code>.<br>
+All other observational data at <code>dwdbase</code> can be read
+with <code>readDWD.data()</code>, except for the multi_annual and
+subdaily/standard_format data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">readDWD.multia(
+  file,
+  fileEncoding = "latin1",
+  comment.char = "\032",
+  quiet = rdwdquiet(),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>file</code></td>
+<td>
+<p>Name of file on harddrive, like e.g.
+DWDdata/multi_annual_mean_81-10_Temperatur_1981-2010_aktStandort.txt or
+DWDdata/multi_annual_mean_81-10_Temperatur_1981-2010_Stationsliste_aktStandort.txt</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fileEncoding</code></td>
+<td>
+<p><code>read.table()</code> file encoding.
+DEFAULT: "latin1"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>comment.char</code></td>
+<td>
+<p><code>read.table()</code> comment character.
+DEFAULT: "\032" (needed 2019-04 to ignore the binary
+control character at the end of multi_annual files)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quiet</code></td>
+<td>
+<p>Ignored.
+DEFAULT: FALSE through <code>rdwdquiet()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments passed to <code>read.table()</code></p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>data.frame
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Berry Boessenkool, <a href="mailto:berry-b@gmx.de">berry-b@gmx.de</a>, Feb 2019
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>readDWD()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run:  # Excluded from CRAN checks, but run in localtests
+
+# Temperature aggregates (2019-04 the 9th file, 2022-05 the 8th):
+durl &lt;- selectDWD(res="multi_annual", per="mean_81-10")[8]
+murl &lt;- selectDWD(res="multi_annual", per="mean_81-10", meta=TRUE)[8]
+ma_temp &lt;- dataDWD(durl, fileEncoding="")
+ma_meta &lt;- dataDWD(murl, fileEncoding="")
+
+head(ma_temp)
+head(ma_meta)
+
+ma &lt;- merge(ma_meta, ma_temp, all=TRUE)
+berryFunctions::linReg(ma$Stationshoehe, ma$Jahr, main="annual average ~ elevation")
+op &lt;- par(mfrow=c(3,4), mar=c(0.1,2,2,0), mgp=c(3,0.6,0))
+for(m in colnames(ma)[8:19])
+  {
+  berryFunctions::linReg(ma$Stationshoehe, ma[,m], xaxt="n", xlab="", ylab="", main=m)
+  abline(h=0)
+  }
+par(op)
+
+par(bg=8)
+berryFunctions::colPoints(ma$geogr..Laenge, ma$geogr..Breite, ma$Jahr, add=F, asp=1.4)
+
+DEU &lt;- terra::vect(system.file("extdata/DEU.gpkg", package="rdwd"))
+pdf("MultiAnn.pdf", width=8, height=10)
+par(bg="grey90")
+for(m in colnames(ma)[8:19])
+  {
+  terra::plot(DEU, border="grey40")
+  berryFunctions::colPoints(ma[-262,]$geogr..Laenge, ma[-262,]$geogr..Breite, ma[-262,m],
+                            asp=1.4, # Range=range(ma[-262,8:19]),
+                            col=berryFunctions::divPal(200, rev=TRUE), zlab=m, add=T)
+  }
+dev.off()
+berryFunctions::openFile("MultiAnn.pdf")
+
+## End(Not run)
+</code></pre>
+
+
+</div>

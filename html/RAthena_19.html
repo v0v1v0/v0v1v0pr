@@ -1,0 +1,142 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>dbConvertTable</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Simple wrapper to convert Athena backend file types</h2>
+
+<h3>Description</h3>
+
+<p>Utilises AWS Athena to convert AWS S3 backend file types. It also also to create more efficient file types i.e. "parquet" and "orc" from SQL queries.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">dbConvertTable(conn, obj, name, ...)
+
+## S4 method for signature 'AthenaConnection'
+dbConvertTable(
+  conn,
+  obj,
+  name,
+  partition = NULL,
+  s3.location = NULL,
+  file.type = c("NULL", "csv", "tsv", "parquet", "json", "orc"),
+  compress = TRUE,
+  data = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>conn</code></td>
+<td>
+<p>An <code>AthenaConnection</code> object, produced by [DBI::dbConnect()]</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>obj</code></td>
+<td>
+<p>Athena table or <code>SQL</code> DML query to be converted. For <code>SQL</code>, the query need to be wrapped with <code>DBI::SQL()</code> and
+follow AWS Athena DML format <a href="https://docs.aws.amazon.com/athena/latest/ug/select.html">link</a></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p>Name of destination table</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Extra parameters, currently not used</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>partition</code></td>
+<td>
+<p>Partition Athena table</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s3.location</code></td>
+<td>
+<p>location to store output file, must be in s3 uri format for example ("s3://mybucket/data/").</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>file.type</code></td>
+<td>
+<p>File type for <code>name</code>, currently support ["NULL","csv", "tsv", "parquet", "json", "orc"].
+<code>"NULL"</code> will let Athena set the file type for you.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>compress</code></td>
+<td>
+<p>Compress <code>name</code>, currently can only compress ["parquet", "orc"] (<a href="https://docs.aws.amazon.com/athena/latest/ug/create-table-as.html">AWS Athena CTAS</a>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>If <code>name</code> should be created with data or not.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p><code>dbConvertTable()</code> returns <code>TRUE</code> but invisible.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# Note:
+# - Require AWS Account to run below example.
+# - Different connection methods can be used please see `RAthena::dbConnect` documnentation
+
+library(DBI)
+library(RAthena)
+
+# Demo connection to Athena using profile name
+con &lt;- dbConnect(athena())
+
+# write iris table to Athena in defualt delimited format
+dbWriteTable(con, "iris", iris)
+
+# convert delimited table to parquet
+dbConvertTable(con,
+  obj = "iris",
+  name = "iris_parquet",
+  file.type = "parquet"
+)
+
+# Create partitioned table from non-partitioned
+# iris table using SQL DML query
+dbConvertTable(con,
+  obj = SQL("select
+                            iris.*,
+                            date_format(current_date, '%Y%m%d') as time_stamp
+                          from iris"),
+  name = "iris_orc_partitioned",
+  file.type = "orc",
+  partition = "time_stamp"
+)
+
+# disconnect from Athena
+dbDisconnect(con)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

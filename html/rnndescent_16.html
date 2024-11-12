@@ -1,0 +1,324 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rpf_build</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create a random projection forest nearest neighbor index</h2>
+
+<h3>Description</h3>
+
+<p>Builds a "forest" of Random Projection Trees (Dasgupta and Freund, 2008),
+which can later be searched to find approximate nearest neighbors.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rpf_build(
+  data,
+  metric = "euclidean",
+  use_alt_metric = TRUE,
+  n_trees = NULL,
+  leaf_size = 10,
+  max_tree_depth = 200,
+  margin = "auto",
+  n_threads = 0,
+  verbose = FALSE,
+  obs = "R"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>Matrix of <code>n</code> items to generate the index for, with observations
+in the rows and features in the columns. Optionally, input can be passed
+with observations in the columns, by setting <code>obs = "C"</code>, which should be
+more efficient. Possible formats are <code>base::data.frame()</code>, <code>base::matrix()</code>
+or <code>Matrix::sparseMatrix()</code>. Sparse matrices should be in <code>dgCMatrix</code>
+format. Dataframes will be converted to <code>numerical</code> matrix format
+internally, so if your data columns are <code>logical</code> and intended to be used
+with the specialized binary <code>metric</code>s, you should convert it to a logical
+matrix first (otherwise you will get the slower dense numerical version).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>metric</code></td>
+<td>
+<p>Type of distance calculation to use. One of:
+</p>
+
+<ul>
+<li> <p><code>"braycurtis"</code>
+</p>
+</li>
+<li> <p><code>"canberra"</code>
+</p>
+</li>
+<li> <p><code>"chebyshev"</code>
+</p>
+</li>
+<li> <p><code>"correlation"</code> (1 minus the Pearson correlation)
+</p>
+</li>
+<li> <p><code>"cosine"</code>
+</p>
+</li>
+<li> <p><code>"dice"</code>
+</p>
+</li>
+<li> <p><code>"euclidean"</code>
+</p>
+</li>
+<li> <p><code>"hamming"</code>
+</p>
+</li>
+<li> <p><code>"hellinger"</code>
+</p>
+</li>
+<li> <p><code>"jaccard"</code>
+</p>
+</li>
+<li> <p><code>"jensenshannon"</code>
+</p>
+</li>
+<li> <p><code>"kulsinski"</code>
+</p>
+</li>
+<li> <p><code>"sqeuclidean"</code> (squared Euclidean)
+</p>
+</li>
+<li> <p><code>"manhattan"</code>
+</p>
+</li>
+<li> <p><code>"rogerstanimoto"</code>
+</p>
+</li>
+<li> <p><code>"russellrao"</code>
+</p>
+</li>
+<li> <p><code>"sokalmichener"</code>
+</p>
+</li>
+<li> <p><code>"sokalsneath"</code>
+</p>
+</li>
+<li> <p><code>"spearmanr"</code> (1 minus the Spearman rank correlation)
+</p>
+</li>
+<li> <p><code>"symmetrickl"</code> (symmetric Kullback-Leibler divergence)
+</p>
+</li>
+<li> <p><code>"tsss"</code> (Triangle Area Similarity-Sector Area Similarity or TS-SS
+metric)
+</p>
+</li>
+<li> <p><code>"yule"</code>
+</p>
+</li>
+</ul>
+<p>For non-sparse data, the following variants are available with
+preprocessing: this trades memory for a potential speed up during the
+distance calculation. Some minor numerical differences should be expected
+compared to the non-preprocessed versions:
+</p>
+
+<ul>
+<li> <p><code>"cosine-preprocess"</code>: <code>cosine</code> with preprocessing.
+</p>
+</li>
+<li> <p><code>"correlation-preprocess"</code>: <code>correlation</code> with preprocessing.
+</p>
+</li>
+</ul>
+<p>For non-sparse binary data passed as a <code>logical</code> matrix, the following
+metrics have specialized variants which should be substantially faster than
+the non-binary variants (in other cases the logical data will be treated as
+a dense numeric vector of 0s and 1s):
+</p>
+
+<ul>
+<li> <p><code>"dice"</code>
+</p>
+</li>
+<li> <p><code>"hamming"</code>
+</p>
+</li>
+<li> <p><code>"jaccard"</code>
+</p>
+</li>
+<li> <p><code>"kulsinski"</code>
+</p>
+</li>
+<li> <p><code>"matching"</code>
+</p>
+</li>
+<li> <p><code>"rogerstanimoto"</code>
+</p>
+</li>
+<li> <p><code>"russellrao"</code>
+</p>
+</li>
+<li> <p><code>"sokalmichener"</code>
+</p>
+</li>
+<li> <p><code>"sokalsneath"</code>
+</p>
+</li>
+<li> <p><code>"yule"</code>
+</p>
+</li>
+</ul>
+<p>Note that if <code>margin = "explicit"</code>, the metric is only used to determine
+whether an "angular" or "Euclidean" distance is used to measure the
+distance between split points in the tree.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use_alt_metric</code></td>
+<td>
+<p>If <code>TRUE</code>, use faster metrics that maintain the
+ordering of distances internally (e.g. squared Euclidean distances if using
+<code>metric = "euclidean"</code>). Probably the only reason to set this to <code>FALSE</code> is
+if you suspect that some sort of numeric issue is occurring with your data
+in the alternative code path. Only applies if the implicit <code>margin</code> method
+is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_trees</code></td>
+<td>
+<p>The number of trees to use in the RP forest. A larger number
+will give more accurate results at the cost of a longer computation time.
+The default of <code>NULL</code> means that the number is chosen based on the number
+of observations in <code>data</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>leaf_size</code></td>
+<td>
+<p>The maximum number of items that can appear in a leaf. This
+value should be chosen to match the expected number of neighbors you will
+want to retrieve when running queries (e.g. if you want find 50 nearest
+neighbors set <code>leaf_size = 50</code>) and should not be set to a value smaller
+than <code>10</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_tree_depth</code></td>
+<td>
+<p>The maximum depth of the tree to build (default = 200).
+If the maximum tree depth is exceeded then the leaf size of a tree may
+exceed <code>leaf_size</code> which can result in a large number of neighbor distances
+being calculated. If <code>verbose = TRUE</code> a message will be logged to indicate
+that the leaf size is large. However, increasing the <code>max_tree_depth</code> may
+not help: it may be that there is something unusual about the distribution
+of your data set under your chose <code>metric</code> that makes a tree-based
+initialization inappropriate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>margin</code></td>
+<td>
+<p>A character string specifying the method used to  assign points
+to one side of the hyperplane or the other. Possible values are:
+</p>
+
+<ul>
+<li> <p><code>"explicit"</code> categorizes all distance metrics as either Euclidean or
+Angular (Euclidean after normalization), explicitly calculates a hyperplane
+and offset, and then calculates the margin based on the dot product with
+the hyperplane.
+</p>
+</li>
+<li> <p><code>"implicit"</code> calculates the distance from a point to each of the
+points defining the normal vector. The margin is calculated by comparing the
+two distances: the point is assigned to the side of the hyperplane that
+the normal vector point with the closest distance belongs to.
+</p>
+</li>
+<li> <p><code>"auto"</code> (the default) picks the margin method depending on whether a
+binary-specific <code>metric</code> such as <code>"bhammming"</code> is chosen, in which case
+<code>"implicit"</code> is used, and <code>"explicit"</code> otherwise: binary-specific metrics
+involve storing the data in a way that isn't very efficient for the
+<code>"explicit"</code> method and the binary-specific metric is usually a lot faster
+than the generic equivalent such that the cost of two distance calculations
+for the margin method is still faster.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_threads</code></td>
+<td>
+<p>Number of threads to use.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>If <code>TRUE</code>, log information to the console.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>obs</code></td>
+<td>
+<p>set to <code>"C"</code> to indicate that the input <code>data</code> orientation stores
+each observation as a column. The default <code>"R"</code> means that observations are
+stored in each row. Storing the data by row is usually more convenient, but
+internally your data will be converted to column storage. Passing it
+already column-oriented will save some memory and (a small amount of) CPU
+usage.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>a forest of random projection trees as a list. Each tree in the
+forest is a further list, but is not intended to be examined or manipulated
+by the user. As a normal R data type, it can be safely serialized and
+deserialized with <code>base::saveRDS()</code> and <code>base::readRDS()</code>. To use it for
+querying pass it as the <code>forest</code> parameter of <code>rpf_knn_query()</code>. The forest
+does not store any of the <code>data</code> passed into build the tree, so if you
+are going to search the forest, you will also need to store the <code>data</code> used
+to build it and provide it during the search.
+</p>
+
+
+<h3>References</h3>
+
+<p>Dasgupta, S., &amp; Freund, Y. (2008, May).
+Random projection trees and low dimensional manifolds.
+In <em>Proceedings of the fortieth annual ACM symposium on Theory of computing</em>
+(pp. 537-546).
+<a href="https://doi.org/10.1145/1374376.1374452">doi:10.1145/1374376.1374452</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>rpf_knn_query()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Build a forest of 10 trees from the odd rows
+iris_odd &lt;- iris[seq_len(nrow(iris)) %% 2 == 1, ]
+iris_odd_forest &lt;- rpf_build(iris_odd, n_trees = 10)
+
+iris_even &lt;- iris[seq_len(nrow(iris)) %% 2 == 0, ]
+iris_even_nn &lt;- rpf_knn_query(
+  query = iris_even, reference = iris_odd,
+  forest = iris_odd_forest, k = 15
+)
+</code></pre>
+
+
+</div>

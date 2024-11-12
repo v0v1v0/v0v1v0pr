@@ -1,0 +1,207 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>predict.dfunc</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Predict method for dfunc objects</h2>
+
+<h3>Description</h3>
+
+<p>Predict likelihood parameters for distance function objects
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'dfunc'
+predict(object, newdata = NULL, type = c("parameters"), distances = NULL, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>An estimated dfunc object.  See <code>dfuncEstim</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newdata</code></td>
+<td>
+<p>A data frame containing new values of 
+the covariates at which predictions are to be computed. If <code>newdata</code>
+is NULL, predictions are made at values of the observed
+covariates and results in one prediction (either parameters or 
+distance function, see parameter <code>type</code>) for every observed distance. 
+If <code>newdata</code> is not NULL and the model does not contains covariates, 
+this routine returns one prediction (either parameters or 
+distance function) for each row in <code>newdata</code>, but 
+columns and values in <code>newdata</code> are ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>The type of predictions desired. 
+</p>
+
+<ul>
+<li> <p><b>If <code>type</code> = "parameters"</b>: Return 
+predicted parameters of the likelihood function, one value for each observation
+(row) in <code>newdata</code>.  If <code>newdata</code> is NULL, return one predicted parameter
+value for every detection in <code>object$detections</code>.
+</p>
+</li>
+<li> <p><b>If <code>type</code> is not "parameters"</b>: Return  
+scaled distance functions. Distance functions are evaluated at the distances   
+specified in <code>distances</code>. The number of distance functions returned 
+depends on <code>newdata</code> and whether <code>object</code> contains covariates:
+</p>
+
+<ul>
+<li>
+<p> If <code>object</code> does NOT contain covariates, the distance 
+function does not vary (by covariate) and only one distance function
+will be returned, even if <code>newdata</code> is specified.
+</p>
+</li>
+<li>
+<p> If <code>object</code> contains covariates, one distance function 
+will be returned for each observation (row) in <code>newdata</code>. 
+If <code>newdata</code> is NULL, one distance function will be returned 
+for every detection in <code>object$detections</code>. 
+</p>
+</li>
+</ul>
+</li>
+</ul>
+<p>If <code>object</code> is a smoothed distance function, it does not have parameters
+and this routine will always return a scaled distance function. That is, 
+<code>type</code> = "parameters" when <code>object</code> is smoothed 
+does not make sense and the smoothed distance function estimate will be returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>distances</code></td>
+<td>
+<p>A vector of distances when distance functions 
+are requested.  <code>distances</code> must have measurement units. 
+Any distances outside the observation 
+strip (<code>object$w.lo</code> to <code>object$w.hi</code>) are discarded.  If 
+<code>distances</code> is NULL, this routine uses a sequence of 200 evenly 
+spaced distances between 
+<code>object$w.lo</code> and <code>object$w.hi</code>, inclusive</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Included for compatibility with generic <code>predict</code> methods.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A matrix containing one of two types of predictions: 
+</p>
+
+<ul>
+<li> <p><b>If <code>type</code> is "parameters"</b>, the returned matrix 
+contains predicted likelihood parameters. The extent of the first dimension (rows) in 
+the returned matrix is equal to either the number of detection distances 
+in <code>object$detections</code> 
+or number of rows in <code>newdata</code>. 
+The returned matrix's second dimension (columns) is 
+the number of parameters in the likelihood 
+plus the number of expansion terms.  Without expansion terms, the number 
+of columns in the returned matrix 
+is either 1 or 2 depending on the likelihood (e.g., <code>halfnorm</code> has 
+one parameter, <code>hazrate</code> has two). See the help 
+for each likelihoods to interpret the returned parameter values.
+</p>
+</li>
+<li> <p><b>If <code>type</code> is not "parameters"</b>, the returned matrix 
+contains scaled distance functions.  The extent of the first 
+dimension (rows) is either the number of distances specified in <code>distance</code>
+or 200 if <code>distances</code> is not specified.
+The extent of the second dimension (columns) is: 
+</p>
+
+<ul>
+<li>
+<p> 1: if <code>object</code> does NOT contain covariates.
+</p>
+</li>
+<li>
+<p> the number of detections: if <code>object</code> contains covariates and <code>newdata</code> is NULL.
+</p>
+</li>
+<li>
+<p> the number of rows in <code>newdata</code>: if <code>object</code> contains covariates 
+and <code>newdata</code> is specified.
+</p>
+</li>
+</ul>
+<p>All distance functions in columns of the return are scaled 
+to <code>object$g.x.scale</code> at <code>object$x.scl</code>.
+</p>
+<p>When <code>type</code> is not "parameters", the returned matrix has 
+additional attributes containing the distances 
+at which the functions are scaled and ESW's.  
+<code>attr(return, "x0")</code> is the vector of distances at which each 
+distance function in <code>&lt;return&gt;</code> is scaled. i.e., the vector of 
+<code>x.scl</code>.
+<code>attr(return, "scaler")</code> is a vector scaling factors  
+corresponding to each 
+distance function in <code>return</code>. i.e., the vector of 
+<code>1/f(x.scl)</code> where <code>f()</code> is the unscaled distance function. 
+If <code>object</code> contains line transects, <code>attr(return, "scaler")</code>
+is a vector of ESW corresponding to each distance function.
+</p>
+</li>
+</ul>
+<h3>See Also</h3>
+
+<p><code>halfnorm.like</code>, <code>negexp.like</code>, 
+<code>uniform.like</code>, <code>hazrate.like</code>, <code>Gamma.like</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(sparrowDetectionData)
+data(sparrowSiteData)
+# No covariates
+dfuncObs &lt;- dfuncEstim(formula = dist ~ 1
+                     , detectionData = sparrowDetectionData
+                     , w.hi = units::as_units(100, "m"))
+predict(dfuncObs)
+# values in newdata ignored because no covariates
+predict(dfuncObs, newdata = data.frame(x = 1:5)) 
+
+predict(dfuncObs, type = "dfunc") # one function
+
+d &lt;- units::set_units(c(0, 20, 40), "ft")
+predict(dfuncObs, distances = d, type = "dfunc") 
+
+# Covariates
+dfuncObs &lt;- dfuncEstim(formula = dist ~ observer
+                     , detectionData = sparrowDetectionData
+                     , siteData = sparrowSiteData
+                     , w.hi = units::as_units(100, "m"))
+predict(dfuncObs)  # 356 X 1
+
+Observers &lt;- data.frame(observer = levels(sparrowSiteData$observer))
+predict(dfuncObs, newdata = Observers) # 5 X 1
+
+predict(dfuncObs, type = "dfunc") # 200 X 356
+predict(dfuncObs, newdata = Observers, type = "dfunc") # 200 X 5
+predict(dfuncObs, newdata = Observers, distances = d, type = "dfunc") # 3 X 5
+
+</code></pre>
+
+
+</div>

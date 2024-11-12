@@ -1,0 +1,193 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>NegLogInt_Fn</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Perform SS implementation of Laplace Approximation</h2>
+
+<h3>Description</h3>
+
+<p>(Attempt to) perform the SS implementation of the Laplace Approximation
+from Thorson, Hicks and Methot (2014) ICES J. Mar. Sci.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">NegLogInt_Fn(
+  File = NA,
+  Input_SD_Group_Vec,
+  CTL_linenum_List,
+  ESTPAR_num_List,
+  PAR_num_Vec,
+  Int_Group_List = list(1),
+  StartFromPar = TRUE,
+  Intern = TRUE,
+  ReDoBiasRamp = FALSE,
+  BiasRamp_linenum_Vec = NULL,
+  CTL_linenum_Type = NULL,
+  systemcmd = FALSE,
+  exe = "ss"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>File</code></td>
+<td>
+<p>Directory containing Stock Synthesis files
+(e.g., "C:/Users/James Thorson/Desktop/")</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Input_SD_Group_Vec</code></td>
+<td>
+<p>Vector where each element is the standard deviation
+for a group of random effects (e.g., a model with a single group of random
+effects will have Input_SD_Group_Vec be a vector of length one)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>CTL_linenum_List</code></td>
+<td>
+<p>List (same length as <code>Input_SD_Group_Vec</code>),
+where each
+element is a vector giving the line number(s) for the random effect standard
+deviation parameter or penalty in the CTL file (and where each line will
+correspond to a 7-parameter or 14-parameter line).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ESTPAR_num_List</code></td>
+<td>
+<p>List (same length as <code>Input_SD_Group_Vec</code>),
+where each
+element is a vector giving the parameter number for the random effect
+coefficients in that group of random effects. These "parameter numbers"
+correspond to the number of these parameters in the list of parameters in the
+".cor" output file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>PAR_num_Vec</code></td>
+<td>
+<p>Vector giving the number in the ".par" vector for each
+random effect coefficient.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Int_Group_List</code></td>
+<td>
+<p>List where each element is a vector, providing a way of
+grouping different random effect groups into a single category. Although
+this input is still required, it is no has the former input Version has been
+hardwired to Version = 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>StartFromPar</code></td>
+<td>
+<p>Logical flag (TRUE or FALSE) saying whether to start each
+round of optimization from a ".par" file (I recommend TRUE)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Intern</code></td>
+<td>
+<p>Logical flag saying whether to display all ss3 runtime output
+in the R terminal</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ReDoBiasRamp</code></td>
+<td>
+<p>Logical flag saying whether to re-do the bias ramp
+(using <code>SS_fitbiasramp()</code>) each time Stock Synthesis is run.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>BiasRamp_linenum_Vec</code></td>
+<td>
+<p>Vector giving the line numbers from the CTL file
+that contain the information about the bias ramp.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>CTL_linenum_Type</code></td>
+<td>
+<p>Character vector (same length as
+<code>Input_SD_Group_Vec</code>),
+where each element is either "Short_Param", "Long_Penalty", "Long_Penalty".
+Default is NULL, and if not explicitly specified the program will attempt to
+detect these automatically based on the length of relevant lines from the CTL
+file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>systemcmd</code></td>
+<td>
+<p>Should R call SS using "system" function instead of "shell".
+This may be required when running R in Emacs on Windows. Default = FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exe</code></td>
+<td>
+<p>SS executable name (excluding extension), either "ss" or "ss3".
+This string is used for both calling the executable and also finding the
+output files like ss.par. For 3.30, it should always be "ss" since the
+output file names are hardwired in the TPL code.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>James Thorson
+</p>
+
+
+<h3>References</h3>
+
+<p>Thorson, J.T., Hicks, A.C., and Methot, R.D. 2014. Random
+effect estimation of time-varying factors in Stock Synthesis. ICES J. Mar.
+Sci.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>read.admbFit()</code>, <code>getADMBHessian()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# need the full path because wd is changed in function
+direc &lt;- "C:/Models/LaplaceApprox/base"
+if ("Optimization_record.txt" %in% list.files(direc)) {
+  file.remove(file.path(direc, "Optimization_record.txt"))
+}
+Opt &lt;- optimize(
+  f = NegLogInt_Fn,
+  interval = c(0.001, 0.12),
+  maximum = FALSE,
+  File = direc,
+  Input_SD_Group_Vec = 1,
+  CTL_linenum_List = list(127:131),
+  ESTPAR_num_List = list(86:205),
+  Int_Group_List = 1,
+  PAR_num_Vec = NA,
+  Intern = TRUE
+)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

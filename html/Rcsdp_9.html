@@ -1,0 +1,299 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>csdp</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Solve semidefinite program with CSDP</h2>
+
+<h3>Description</h3>
+
+<p>Interface to CSDP semidefinite programming library. The general statement of the primal problem is
+</p>
+<p style="text-align: center;"><code class="reqn">\max\, \mathrm{tr}(CX)</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">\mathrm{s.t.}\; A(X) = b</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">X \succeq 0</code>
+</p>
+
+<p>with
+<code class="reqn">A(X)_i = \mathrm{tr}(A_iX)</code>
+where <code class="reqn">X \succeq 0</code> means X is positive
+semidefinite, <code class="reqn">C</code> and all <code class="reqn">A_i</code> are symmetric matrices of the same
+size and <code class="reqn">b</code> is a
+vector of length <code class="reqn">m</code>. 
+</p>
+<p>The dual of the problem is
+</p>
+<p style="text-align: center;"><code class="reqn">\min\, b'y</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">\mathrm{s.t.}\; A'(y) - C = Z</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">Z \succeq 0</code>
+</p>
+
+<p>where
+<code class="reqn">A'(y) = \sum_{i=1}^m y_i A_i.</code>
+</p>
+<p>Matrices <code class="reqn">C</code> and <code class="reqn">A_i</code> are assumed to be block diagonal
+structured, and must be specified that way (see Details). 
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">csdp(C, A, b, K,control=csdp.control())
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>C</code></td>
+<td>
+<p>A list defining the block diagonal cost matrix <code class="reqn">C</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>A</code></td>
+<td>
+<p>A list of length <code class="reqn">m</code> containing block diagonal constraint matrices
+<code class="reqn">A_i</code>. Each constraint matrix <code class="reqn">A_i</code> is specified by a list
+of blocks as explained in the Details section.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>b</code></td>
+<td>
+<p>A numeric vector of length <code class="reqn">m</code> containing the right hand side of the constraints.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K</code></td>
+<td>
+<p>Describes the domain of each block of the sdp problem. It is a list with the following elements:
+</p>
+
+<dl>
+<dt>type:</dt>
+<dd>
+<p>A character vector with entries <code>"s"</code> or
+<code>"l"</code> indicating the type of each block. If the <code>j</code>th entry
+is <code>"s"</code>, then the <code>j</code>th block is a positive semidefinite matrix.
+otherwise, it is a vector with non-negative entries.</p>
+</dd>
+<dt>size:</dt>
+<dd>
+<p>A vector of integers indicating the dimension of each
+block.</p>
+</dd>      
+</dl>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>Control parameters passed to csdp. See CSDP documentation.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>All problem matrices are assumed to be of block diagonal structure,
+and must be specified as follows:
+</p>
+
+<ol>
+<li>
+<p> If there are <code>nblocks</code> blocks specified by <code>K</code>, then
+the matrix must be a list with <code>nblocks</code> components.
+</p>
+</li>
+<li>
+<p> If <code>K$type == "s"</code> then the <code>j</code>th element of the list must define a symmetric
+matrix of size <code>K$size</code>. It can be an object of class
+<code>"matrix"</code>, <code>"simple_triplet_sym_matrix"</code>, or a valid
+class from the class hierarchy in the <code>"Matrix"</code> package.
+</p>
+</li>
+<li>
+<p> If <code>K$type == "l"</code> then the <code>j</code>th element of the list
+must be a numeric vector of length <code>K$size</code>.
+</p>
+</li>
+</ol>
+<p>This function checks that the blocks in arguments <code>C</code> and <code>A</code> agree with
+the sizes given in argument <code>K</code>. It also checks that the
+lengths of arguments <code>b</code> and <code>A</code>
+are equal. It does not check for symmetry in the problem data.
+</p>
+<p><code>csdp_minimal</code> is a minimal wrapper to the C code underlying <code>csdp</code>. It assumes that the arguments 
+<code>sum.block.sizes</code>, <code>nconstraints</code>, <code>nblocks</code>, <code>block.types</code>, and <code>block.sizes</code>
+are provided as if they were created by <code>Rcsdp:::prob.info</code> and that the arguments <code>C</code>, <code>A</code>, and 
+<code>b</code> are provided as if they were created by <code>Rcsdp:::prepare.data</code>. This function may be useful when 
+calling the csdp functionality iteratively and most of the optimization details stays the same. For example, when the
+control file created by <code>Rcsdp:::write.control.file</code> stays the same across iterations, but it would be recreated
+on each iteration by <code>csdp</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>Optimal primal solution <code class="reqn">X</code>. A list containing blocks in the
+same structure as explained above. Each element is of class
+<code>"matrix"</code> or a numeric vector as appropriate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Z</code></td>
+<td>
+<p>Optimal dual solution <code class="reqn">Z</code>. A list containing blocks in the same
+structure as explained above. Each element is of class
+<code>"matrix"</code>
+or a numeric vector as appropriate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Optimal dual solution <code class="reqn">y</code>. A vector of the same length as
+argument <code>b</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pobj</code></td>
+<td>
+<p>Optimal primal objective value</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dobj</code></td>
+<td>
+<p>Optimal dual objective value</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>status</code></td>
+<td>
+<p>Status of returned solution.
+</p>
+
+<dl>
+<dt>0:</dt>
+<dd>
+<p>Success. Problem solved to full accuracy</p>
+</dd>
+<dt>1:</dt>
+<dd>
+<p>Success. Problem is primal infeasible</p>
+</dd>
+<dt>2:</dt>
+<dd>
+<p>Success. Problem is dual infeasible</p>
+</dd>
+<dt>3:</dt>
+<dd>
+<p>Partial Success. Solution found but full accuracy was
+not achieved</p>
+</dd>
+<dt>4:</dt>
+<dd>
+<p>Failure. Maximum number of iterations reached</p>
+</dd>
+<dt>5:</dt>
+<dd>
+<p>Failure. Stuck at edge of primal feasibility</p>
+</dd>
+<dt>6:</dt>
+<dd>
+<p>Failure. Stuch at edge of dual infeasibility</p>
+</dd>
+<dt>7:</dt>
+<dd>
+<p>Failure. Lack of progress</p>
+</dd>
+<dt>8:</dt>
+<dd>
+<p>Failure. <code class="reqn">X</code> or <code class="reqn">Z</code> (or Newton system <code class="reqn">O</code>) is singular</p>
+</dd>
+<dt>9:</dt>
+<dd>
+<p>Failure. Detected NaN or Inf values</p>
+</dd>
+</dl>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Hector Corrada Bravo. CSDP written by Brian Borchers. </p>
+
+
+<h3>References</h3>
+
+
+<ul>
+<li> <p><a href="https://github.com/coin-or/Csdp/">https://github.com/coin-or/Csdp/</a>
+</p>
+</li>
+<li>
+<p> Borchers, B.:<br><em>CSDP, A C Library for Semidefinite Programming</em> Optimization Methods and Software  11(1):613-623, 1999<br><a href="http://euler.nmt.edu/~brian/csdppaper.pdf">http://euler.nmt.edu/~brian/csdppaper.pdf</a>
+</p>
+</li>
+<li>
+<p> Lu, F., Lin, Y., and Wahba, G.:<br><em>Robust Manifold Unfolding with Kernel Regularization</em> TR
+1108, October, 2005. <br><a href="http://pages.stat.wisc.edu/~wahba/ftp1/tr1108rr.pdf">http://pages.stat.wisc.edu/~wahba/ftp1/tr1108rr.pdf</a>
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">  C &lt;- list(matrix(c(2,1,
+                     1,2),2,2,byrow=TRUE),
+            matrix(c(3,0,1,
+                     0,2,0,
+                     1,0,3),3,3,byrow=TRUE),
+            c(0,0))
+A &lt;- list(list(matrix(c(3,1,
+                        1,3),2,2,byrow=TRUE),
+               matrix(0,3,3),
+               c(1,0)),
+          list(matrix(0,2,2),
+               matrix(c(3,0,1,
+                        0,4,0,
+                        1,0,5),3,3,byrow=TRUE),
+               c(0,1)))
+
+  b &lt;- c(1,2)
+  K &lt;- list(type=c("s","s","l"),size=c(2,3,2))
+  csdp(C,A,b,K)
+
+# Manifold Unrolling broken stick example
+# using simple triplet symmetric matrices
+X &lt;- matrix(c(-1,-1,
+              0,0,
+              1,-1),nc=2,byrow=TRUE);
+d &lt;- as.vector(dist(X)^2);
+d &lt;- d[-2]
+
+C &lt;- list(.simple_triplet_diag_sym_matrix(1,3))
+A &lt;- list(list(simple_triplet_sym_matrix(i=c(1,2,2),j=c(1,1,2),v=c(1,-1,1),n=3)),
+          list(simple_triplet_sym_matrix(i=c(2,3,3),j=c(2,2,3),v=c(1,-1,1),n=3)),
+          list(matrix(1,3,3)))
+
+K &lt;- list(type="s",size=3)
+csdp(C,A,c(d,0),K)
+</code></pre>
+
+
+</div>

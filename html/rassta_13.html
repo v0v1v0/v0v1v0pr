@@ -1,0 +1,135 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>strata</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create Stratification Units</h2>
+
+<h3>Description</h3>
+
+<p>Stratification units are created from the spatial intersection of raster
+layers representing different sets of classification units. Each set of
+classification units is related to a particular landscape factor (e.g.,
+topography, climate) or to a particular spatial scale for a single landscape
+factor (e.g., micro-climate, macro-topography). Each resulting stratification
+unit is considered to represent a distinct landscape configuration in terms
+of multiple landscape factors/factor scales (represented by the
+classification units). This function automatically assigns a unique numeric
+code to each stratification unit. For <em>x</em> stratification unit, the
+numeric code represents the unique combination of classification units whose
+spatial intersection resulted in <em>x</em>. See <strong>Examples</strong> to get a
+better idea of the logic behind the code assignment process.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">strata(cu.rast, to.disk = FALSE, outdir = ".", su.name, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>cu.rast</code></td>
+<td>
+<p>SpatRaster, as in <code>rast</code>. Multi-layer
+SpatRaster for which each layer represents a set of classification units
+for a particular landscape factor or factor scale. Integer cell values
+(i.e., numeric identifiers) are expected.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>to.disk</code></td>
+<td>
+<p>Boolean. Write the resulting raster layer of stratification
+units to disk? Default: FALSE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outdir</code></td>
+<td>
+<p>Character. If <em>to.disk = TRUE</em>, string specifying the path
+for the output raster layer of stratification units. Default: "."</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>su.name</code></td>
+<td>
+<p>Character. If <em>to.disk = TRUE</em>, file name (including
+extension) for the output raster layer of stratification units.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments as for <code>writeRaster</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>When printing <em>su.rast$code.mult</em>, the output shows the multiplier
+used for each landscape factor/factor scale. From this output, one can manually
+replicate the creation of stratification units through simple raster algebra.
+To do so, a weighted sum of the SpatRasters containing the classification
+units for each landscape factor/factor scale should be performed using the
+multipliers as weights. Note that the weights do not imply relative
+importance. The weights are required only to preserve a logical structure of
+the landscape factors/factor scales in the resulting numeric code.
+</p>
+
+
+<h3>Value</h3>
+
+<p><strong>su.rast</strong>: Single-layer SpatRaster representing the stratification
+units occurring across geographic space. The cell values in this raster layer
+represents the numeric codes of stratification units.
+</p>
+<p><strong>code.mult</strong>: Multipliers used for the creation of the numeric codes.
+See <strong>Details</strong>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Functions for Landscape Stratification: 
+<code>som_gap()</code>,
+<code>som_pam()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">require(terra)
+p &lt;- system.file("exdat", package = "rassta")
+# Multi-layer SpatRast with classification units (Cus)
+## Three sets (i.e., landscape factors): geology, climate and topography
+fcu &lt;- list.files(path = p,
+                  pattern = "geology.tif|climate.tif|topography.tif",
+                  full.names = TRUE
+                 )
+cu &lt;- terra::rast(fcu)
+# Stratification units (SUs)
+su &lt;- strata(cu.rast = cu)
+# Plot the stratification units
+if(interactive()){plot(su$su.rast, type = "classes")}
+#
+# Note code structure from SUs and corresponding values from CUs
+z &lt;- c(su$su.rast, cu)[46,61]   # Example of one cell (row = 45, column = 45)
+su$code.mult                    # Multipliers
+z[c("SU", names(su$code.mult))] # Code structure
+
+# Note what happens when some landscape factors have cell values greater...
+#... than 1 digit (i.e., more than 9 distinct classification units)
+cu &lt;- c(cu[[1]], cu[[2]]^4, cu[[3]]^2)
+su &lt;- strata(cu.rast = cu)
+su$code.mult
+c(su$su.rast, cu[[names(su$code.mult)]])[46,61]
+
+</code></pre>
+
+
+</div>

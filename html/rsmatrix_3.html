@@ -1,0 +1,148 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rs_matrix</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Shiller's repeat-sales matrices</h2>
+
+<h3>Description</h3>
+
+<p>Create a function to compute the <code class="reqn">Z</code>, <code class="reqn">X</code>, <code class="reqn">y</code>, and <code class="reqn">Y</code>
+matrices in Shiller (1991, sections I-II) from sales-pair data in order to
+calculate a repeat-sales price index.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rs_matrix(t2, t1, p2, p1, f = NULL, sparse = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>t2, t1</code></td>
+<td>
+<p>A pair of vectors giving the time period of the second and
+first sale, respectively. Usually a vector of dates, but other values are
+possible if they can be coerced to character vectors and sorted in
+chronological order (i.e., with <code>order()</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p2, p1</code></td>
+<td>
+<p>A pair of numeric vectors giving the price of the second and
+first sale, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>f</code></td>
+<td>
+<p>An optional factor the same length as <code>t1</code> and <code>t2</code>, or a
+vector to be turned into a factor, that is used to group sales.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sparse</code></td>
+<td>
+<p>Should sparse matrices from the <span class="pkg">Matrix</span> package be used
+(faster for large datasets), or regular dense matrices (the default)?</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The function returned by <code>rs_matrix()</code> computes a generalization of the
+matrices in Shiller (1991, sections I-II) that are applicable to grouped
+data. These are useful for calculating separate indexes for many, say,
+cities without needing an explicit loop.
+</p>
+<p>The <code class="reqn">Z</code>, <code class="reqn">X</code>, and <code class="reqn">Y</code> matrices are not well defined if either
+<code>t1</code> or <code>t2</code> have missing values, and an error is thrown in this
+case. Similarly, it should always be the case that <code>t2 &gt; t1</code>, otherwise
+a warning is given.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A function that takes a single argument naming the desired matrix.
+It returns one of two matrices (<code class="reqn">Z</code> and <code class="reqn">X</code>) or two vectors
+(<code class="reqn">y</code> and <code class="reqn">Y</code>), either regular matrices if <code>sparse = FALSE</code>, or sparse
+matrices of class <code>dgCMatrix</code> if <code>sparse = TRUE</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Bailey, M. J., Muth, R. F., and Nourse, H. O. (1963). A regression method
+for real estate price index construction.
+<em>Journal of the American Statistical Association</em>, 53(304):933-942.
+</p>
+<p>Shiller, R. J. (1991). Arithmetic repeat sales price estimators.
+<em>Journal of Housing Economics</em>, 1(1):110-126.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>rs_pairs()</code> for turning sales data into sales pairs.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Make some data
+x &lt;- data.frame(
+  date = c(3, 2, 3, 2, 3, 3),
+  date_prev = c(1, 1, 2, 1, 2, 1),
+  price = 6:1,
+  price_prev = 1
+)
+
+# Calculate matrices
+mat &lt;- with(x, rs_matrix(date, date_prev, price, price_prev))
+Z &lt;- mat("Z") # Z matrix
+X &lt;- mat("X") # X matrix
+y &lt;- mat("y") # y vector
+Y &lt;- mat("Y") # Y vector
+
+# Calculate the GRS index in Bailey, Muth, and Nourse (1963)
+b &lt;- solve(crossprod(Z), crossprod(Z, y))[, 1]
+# or b &lt;- qr.coef(qr(Z), y)
+(grs &lt;- exp(b) * 100)
+
+# Standard errors
+vcov &lt;- rs_var(y - Z %*% b, Z)
+sqrt(diag(vcov)) * grs # delta method
+
+# Calculate the ARS index in Shiller (1991)
+b &lt;- solve(crossprod(Z, X), crossprod(Z, Y))[, 1]
+# or b &lt;- qr.coef(qr(crossprod(Z, X)), crossprod(Z, Y))
+(ars &lt;- 100 / b)
+
+# Standard errors
+vcov &lt;- rs_var(Y - X %*% b, Z, X)
+sqrt(diag(vcov)) * ars^2 / 100 # delta method
+
+# Works with grouped data
+x &lt;- data.frame(
+  date = c(3, 2, 3, 2),
+  date_prev = c(2, 1, 2, 1),
+  price = 4:1,
+  price_prev = 1,
+  group = c("a", "a", "b", "b")
+)
+
+mat &lt;- with(x, rs_matrix(date, date_prev, price, price_prev, group))
+b &lt;- solve(crossprod(mat("Z"), mat("X")), crossprod(mat("Z"), mat("Y")))[, 1]
+100 / b
+
+</code></pre>
+
+
+</div>

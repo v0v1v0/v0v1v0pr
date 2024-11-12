@@ -1,0 +1,218 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>data_dir</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>File system utilities</h2>
+
+<h3>Description</h3>
+
+<p>Determine the location where to place data meant to persist between
+individual sessions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">data_dir(subdir = NULL, create = TRUE)
+
+src_data_dir(srcs)
+
+auto_attach_srcs()
+
+config_paths()
+
+get_config(name, cfg_dirs = config_paths(), combine_fun = c, ...)
+
+set_config(x, name, dir = file.path("inst", "extdata", "config"), ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>subdir</code></td>
+<td>
+<p>A string specifying a directory that will be made sure to
+exist below the data directory.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>create</code></td>
+<td>
+<p>Logical flag indicating whether to create the specified
+directory</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>srcs</code></td>
+<td>
+<p>Character vector of data source names, an object for which an
+<code>src_name()</code> method is defined or an arbitrary-length list thereof.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p>File name of the configuration file (<code>.json</code> will be appended)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cfg_dirs</code></td>
+<td>
+<p>Character vector of directories searched for config files</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>combine_fun</code></td>
+<td>
+<p>If multiple files are found, a function for combining
+returned lists</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Passed to <code>jsonlite::read_json()</code> or <code>jsonlite::write_json()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Object to be written</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dir</code></td>
+<td>
+<p>Directory to write the file to (created if non-existent)</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For data, the default location depends on the operating system as</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+   <strong>Platform</strong> </td>
+<td style="text-align: left;"> <strong>Location</strong> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   Linux </td>
+<td style="text-align: left;"> <code style="white-space: pre;">⁠~/.local/share/ricu⁠</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   macOS </td>
+<td style="text-align: left;"> <code style="white-space: pre;">⁠~/Library/Application Support/ricu⁠</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   Windows </td>
+<td style="text-align: left;"> <code style="white-space: pre;">⁠%LOCALAPPDATA%/ricu⁠</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<p>If the default storage directory does not exists, it will only be created
+upon user consent (requiring an interactive session).
+</p>
+<p>The environment variable <code>RICU_DATA_PATH</code> can be used to overwrite the
+default location. If desired, this variable can be set in an R startup file
+to make it apply to all R sessions. For example, it could be set within:
+</p>
+
+<ul>
+<li>
+<p> A project-local <code>.Renviron</code>;
+</p>
+</li>
+<li>
+<p> The user-level <code>.Renviron</code>;
+</p>
+</li>
+<li>
+<p> A file at <code style="white-space: pre;">⁠$(R RHOME)/etc/Renviron.site⁠</code>.
+</p>
+</li>
+</ul>
+<p>Any directory specified as environment variable will recursively be created.
+</p>
+<p>Data source directories typically are sub-directories to <code>data_dir()</code> named
+the same as the respective dataset. For demo datasets corresponding to
+<code>mimic</code> and <code>eicu</code>, file location however deviates from this scheme. The
+function <code>src_data_dir()</code> is used to determine the expected data location
+of a given dataset.
+</p>
+<p>Configuration files used both for data source configuration, as well as for
+dictionary definitions potentially involve multiple files that are read and
+merged. For that reason, <code>get_config()</code> will iterate over directories
+passed as <code>cfg_dirs</code> and look for the specified file (with suffix <code>.json</code>
+appended and might be missing in some of the queried directories). All
+found files are read by <code>jsonlite::read_json()</code> and the resulting lists are
+combined by reduction with the binary function passed as <code>combine_fun</code>.
+</p>
+<p>With default arguments, <code>get_config()</code> will simply concatenate lists
+corresponding to files found in the default config locations as returned by
+<code>config_paths()</code>: first the directory specified by the environment variable
+<code>RICU_CONFIG_PATH</code> (if set), followed by the directory at
+</p>
+<div class="sourceCode"><pre>system.file("extdata", "config", package = "ricu")
+</pre></div>
+<p>Further arguments are passed to <code>jsonlite::read_json()</code>, which is called
+with slightly modified defaults: <code>simplifyVector = TRUE</code>,
+<code>simplifyDataFrame = FALSE</code> and <code>simplifyMatrix = FALSE</code>.
+</p>
+<p>The utility function <code>set_config()</code> writes the list passed as <code>x</code> to file
+<code>dir/name.json</code>, using <code>jsonlite::write_json()</code> also with slightly modified
+defaults (which can be overridden by passing arguments as <code>...</code>): <code>null = "null"</code>, <code>auto_unbox = TRUE</code> and <code>pretty = TRUE</code>.
+</p>
+<p>Whenever the package namespace is attached, a summary of dataset
+availability is printed using the utility functions <code>auto_attach_srcs()</code>
+and <code>src_data_avail()</code>. While the former simply returns a character vector
+of data sources that are configures for automatically being set up on
+package loading, the latter returns a summary of the number of available
+tables per dataset.m Finally, <code>is_data_avail()</code> returns a named logical
+vector indicating which data sources have all required data available.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Functions <code>data_dir()</code>, <code>src_data_dir()</code> and <code>config_paths()</code> return
+file paths as character vectors, <code>auto_attach_srcs()</code> returns a character
+vector of data source names, <code>src_data_avail()</code> returns a <code>data.frame</code>
+describing availability of data sources and <code>is_data_avail()</code> a named
+logical vector. Configuration utilities <code>get_config()</code> and <code>set_config()</code>
+read and write list objects to/from JSON format.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">Sys.setenv(RICU_DATA_PATH = tempdir())
+identical(data_dir(), tempdir())
+
+dir.exists(file.path(tempdir(), "some_subdir"))
+some_subdir &lt;- data_dir("some_subdir")
+dir.exists(some_subdir)
+
+cfg &lt;- get_config("concept-dict")
+
+identical(
+  cfg,
+  get_config("concept-dict",
+             system.file("extdata", "config", package = "ricu"))
+)
+
+</code></pre>
+
+
+</div>

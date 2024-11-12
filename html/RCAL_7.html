@@ -1,0 +1,124 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>glm.nreg</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Non-regularied M-estimation for fitting generalized linear models</h2>
+
+<h3>Description</h3>
+
+<p>This function implements non-regularizd M-estimation for fitting generalized linear models with continuous or binary responses, including maximum likelihood, 
+calibrated estimation, and covariate-balancing estimation in the latter case of fitting propensity score models.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">glm.nreg(y, x, iw = NULL, loss = "cal", init = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>An <code class="reqn">n</code> x <code class="reqn">1</code> response vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>An <code class="reqn">n</code> x <code class="reqn">p</code> matix of covariates, excluding a constant.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iw</code></td>
+<td>
+<p>An <code class="reqn">n</code> x <code class="reqn">1</code> weight vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loss</code></td>
+<td>
+<p>A loss function used, which can be specified as "gaus" for continuous responses, or "ml", "cal", or "bal" for binary responses.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init</code></td>
+<td>
+<p>A <code class="reqn">(p+1)</code> x <code class="reqn">1</code> vector of initial values (the intercept and coefficients).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Least squares estimation is implemented by calling <code>lm</code> for continuous responses (<code>loss</code>="gaus"). For binary responses, 
+maximum likelihood estimation (<code>loss</code>="ml") is implemented by calling <code>glm</code>. Calibrated estimation (<code>loss</code>="cal") is implemented by 
+using a trust-region algorithm in the R package <span class="pkg">trust</span> to minimize the calibration loss, i.e., (6) in Tan (2020). 
+Covariate-balancing estimation (<code>loss</code>="bal") in Imai and Ratkovic (2014) is implemented by using <span class="pkg">trust</span> to minimize (36) in Tan (2020a).
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>coef</code></td>
+<td>
+<p>The <code class="reqn">(p+1)</code> x <code class="reqn">1</code> vector of estimated intercept and coefficients.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>The <code class="reqn">n</code> x <code class="reqn">1</code> vector of fitted values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>conv</code></td>
+<td>
+<p>Logical; 1 if loss="gaus" for continuous responses or convergence is obtained within 1000 iterations by <code>glm</code> with loss="ml" or <code>trust</code> with loss="cal" or "bal" for binary responses.</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Imai, K. and Ratkovic, M. (2014) Covariate balancing propensity score, <em>Journal of the Royal Statistical Society</em>, Ser. B, 76, 243-263.
+</p>
+<p>Tan, Z. (2020) Regularized calibrated estimation of propensity scores with model misspecification and high-dimensional data, <em>Biometrika</em>, 107, 137–158.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(simu.data)
+n &lt;- dim(simu.data)[1]
+p &lt;- dim(simu.data)[2]-2
+
+y &lt;- simu.data[,1]
+tr &lt;- simu.data[,2]
+x &lt;- simu.data[,2+1:p]
+x &lt;- scale(x)
+
+# include only 10 covariates
+x2 &lt;- x[,1:10]
+
+ps.ml &lt;- glm.nreg(y=tr, x=x2, loss="ml")
+check.ml &lt;- mn.ipw(x2, tr, ps.ml$fit)
+check.ml
+
+ps.cal &lt;- glm.nreg(y=tr, x=x2, loss="cal")
+check.cal &lt;- mn.ipw(x2, tr, ps.cal$fit)
+check.cal  # should be numerically 0
+
+ps.bal &lt;- glm.nreg(y=tr, x=x2, loss="bal")
+check.bal &lt;- mn.ipw(x2, tr, ps.bal$fit)
+check.bal
+
+</code></pre>
+
+
+</div>

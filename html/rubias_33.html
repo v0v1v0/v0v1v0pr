@@ -1,0 +1,135 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>list_diploid_params</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Collect essential data values before mixture proportion estimation</h2>
+
+<h3>Description</h3>
+
+<p>Takes all relevant information created in previous steps of data conversion pipeline,
+and combines into a single list which serves as input for further calculations
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">list_diploid_params(
+  AC_list,
+  I_list,
+  PO,
+  coll_N,
+  RU_vec,
+  RU_starts,
+  alle_freq_prior = list(const_scaled = 1)
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>AC_list</code></td>
+<td>
+<p>a list of allele count matrices; output from <code>a_freq_list</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>I_list</code></td>
+<td>
+<p>a list of genotype vectors; output from <code>allelic_list</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>PO</code></td>
+<td>
+<p>a vector of collection (population of origin) indices
+for every individual in the sample, in order identical to <code>I_list</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coll_N</code></td>
+<td>
+<p>a vector of the total number of individuals in each collection,
+in order of appearance in the dataset</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>RU_vec</code></td>
+<td>
+<p>a vector of collection indices, sorted by reporting unit</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>RU_starts</code></td>
+<td>
+<p>a vector of indices, designating the first collection for each
+reporting unit in RU_vec</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alle_freq_prior</code></td>
+<td>
+<p>a one-element named list specifying the prior to be used when
+generating Dirichlet parameters for genotype likelihood calculations. The name of the
+list item determines the type of prior used, with options <code>"const"</code>, <code>"scaled_const"</code>,
+and <code>"empirical"</code>. If <code>"const"</code>, the listed number will be taken as a constant
+added to the count for each allele, locus, and collection.
+If <code>"scaled_const"</code>, the listed number will be divided by the number of alleles at a locus,
+then added to the allele counts. If <code>"empirical"</code>, the listed number will be multiplied
+by the relative frequency of each allele across all populations, then added to the allele counts.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Genotypes represented in <code>I_list</code> are converted into a single long vector,
+ordered by locus, individual, and gene copy, with <code>NA</code> values represented as 0s.
+Similarly, <code>AC_list</code> is unlisted to <code>AC</code>, ordered by locus, collection,
+and allele. <code>DP</code> is a list of Dirichlet priors for likelihood calculations, created
+by adding the values calculated from <code>alle_freq_prior</code> to each allele
+<code>sum_AC</code> and <code>sum_DP</code> are the summed allele values for each locus
+of their parent vectors, ordered by locus and collection.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>list_diploid_params</code> returns a list of the information necessary
+for the calculation of genotype likelihoods in MCMC:
+</p>
+<p><code>L</code>, <code>N</code>, and <code>C</code> represent the number of loci, individual genotypes,
+and collections, respectively. <code>A</code> is a vector of the number of alleles at each
+locus, and <code>CA</code> is the cumulative sum of <code>A</code>. <code>coll</code>, <code>coll_N</code>,
+<code>RU_vec</code>, and <code>RU_starts</code> are copied directly from input.
+</p>
+<p><code>I</code>, <code>AC</code>, <code>sum_AC</code>, <code>DP</code>, and <code>sum_DP</code> are vectorized
+versions of data previously represented as lists and matrices; indexing macros
+use <code>L</code>, <code>N</code>, <code>C</code>, <code>A</code>, and <code>CA</code> to access these vectors
+in later Rcpp-based calculations.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">example(allelic_list)
+PO &lt;- as.integer(factor(ale_long$clean_short$collection))
+coll_N &lt;- as.vector(table(PO))
+
+Colls_by_RU &lt;- dplyr::count(ale_long$clean_short, repunit, collection) %&gt;%
+   dplyr::filter(n &gt; 0) %&gt;%
+   dplyr::select(-n)
+ PC &lt;- rep(0, length(unique((Colls_by_RU$repunit))))
+ for(i in 1:nrow(Colls_by_RU)) {
+   PC[Colls_by_RU$repunit[i]] &lt;- PC[Colls_by_RU$repunit[i]] + 1
+ }
+RU_starts &lt;- c(0, cumsum(PC))
+RU_vec &lt;- as.integer(Colls_by_RU$collection)
+param_list &lt;- list_diploid_params(ale_ac, ale_alle_list, PO, coll_N, RU_vec, RU_starts)
+
+</code></pre>
+
+
+</div>

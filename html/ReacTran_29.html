@@ -1,0 +1,652 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>tran.volume.1D</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+1-D, 2-D and 3-D Volumetric Advective-Diffusive Transport in an Aquatic System
+</h2>
+
+<h3>Description</h3>
+
+<p>Estimates the volumetric transport term (i.e. the rate of change of the
+concentration due to diffusion and advection) in a 1-D, 2-D or 3-D model of
+an aquatic system (river, estuary).
+</p>
+<p>Volumetric transport implies the use of flows (mass per unit of time) rather
+than fluxes (mass per unit of area per unit of time) as is done in
+<code>tran.1D</code>, <code>tran.2D</code> or <code>tran.3D</code>.
+</p>
+<p>The <code>tran.volume.xD</code> routines are particularly suited for modelling
+channels (like rivers, estuaries) where the cross-sectional area changes,
+but where this area change needs not to be explicitly modelled as such.
+</p>
+<p>Another difference with <code>tran.1D</code> is that the <code>tran.volume.1D</code> 
+routine also allows lateral water or lateral mass input (as from side rivers 
+or diffusive lateral ground water inflow).
+</p>
+<p>The <code>tran.volume.2D</code> routine can check for water balance and assume an
+in- or efflux in case the net flows in and out of a box are not = 0
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">tran.volume.1D(C, C.up = C[1], C.down = C[length(C)],
+               C.lat = C, F.up = NULL, F.down = NULL, F.lat = NULL,
+               Disp,	flow = 0, flow.lat = NULL, AFDW = 1,
+               V = NULL, full.check = FALSE, full.output = FALSE)
+
+tran.volume.2D(C, C.x.up = C[1, ], C.x.down = C[nrow(C), ], 
+               C.y.up = C[, 1], C.y.down = C[, ncol(C)], 
+               C.z = C, masscons = TRUE, 
+               F.x.up = NULL, F.x.down = NULL, 
+               F.y.up = NULL, F.y.down = NULL, 
+               Disp.grid = NULL, Disp.x = NULL, Disp.y = Disp.x, 
+               flow.grid = NULL, flow.x = NULL, flow.y = NULL, 
+               AFDW.grid = NULL, AFDW.x = 1, AFDW.y = AFDW.x,         
+               V = NULL, full.check = FALSE, full.output = FALSE) 
+
+tran.volume.3D(C,  C.x.up = C[1, , ], C.x.down = C[dim(C)[1], , ],                
+               C.y.up = C[, 1, ], C.y.down = C[, dim(C)[2], ], 
+               C.z.up = C[, , 1], C.z.down = C[, , dim(C)[3]], 
+               F.x.up = NULL, F.x.down = NULL,  
+               F.y.up = NULL, F.y.down = NULL, 
+               F.z.up = NULL, F.z.down = NULL,         
+               Disp.grid = NULL, 
+               Disp.x = NULL, Disp.y = Disp.x, Disp.z = Disp.x,      
+               flow.grid = NULL, flow.x = 0, flow.y = 0, flow.z = 0, 
+               AFDW.grid = NULL, AFDW.x = 1, AFDW.y = AFDW.x, 
+               AFDW.z = AFDW.x,                 
+               V = NULL, full.check = FALSE, full.output = FALSE) 
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>C </code></td>
+<td>
+<p>tracer concentration, defined at the centre of the grid cells.
+A vector of length N [M/L3] (tran.volume.1D), 
+a matrix of dimension Nr*Nc (tran.volume.2D) or 
+an Nx*Ny*Nz array (tran.volume.3D) [M/L3].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>C.up </code></td>
+<td>
+<p>tracer concentration at the upstream interface. 
+One value [M/L3].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>C.down </code></td>
+<td>
+<p>tracer concentration at downstream interface. One value [M/L3].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>C.lat </code></td>
+<td>
+<p>tracer concentration in the lateral input, defined at
+grid cell centres. One value, a vector of length N, or a
+list as defined by <code>setup.prop.1D</code> [M/L3].
+The default is  <code>C.lat = C</code>, (a zero-gradient condition).
+Setting <code>C.lat=0</code>, together with a positive <code>F.lat</code> will
+lead to dilution of the tracer concentration in the
+grid cells.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>C.x.up </code></td>
+<td>
+<p>concentration at upstream boundary in x-direction;
+vector of length Ny (2D) or matrix of dimensions Ny*Nz (3D) [M/L3].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>C.x.down </code></td>
+<td>
+<p>concentration at downstream boundary in x-direction;
+vector of length Ny (2D) or matrix of dimensions Ny*Nz (3D) [M/L3].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>C.y.up </code></td>
+<td>
+<p>concentration at upstream boundary in y-direction;
+vector of length Nx (2D) or matrix of dimensions Nx*Nz (3D) [M/L3].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>C.y.down </code></td>
+<td>
+<p>concentration at downstream boundary in y-direction;
+vector of length Nx (2D) or matrix of dimensions Nx*Nz (3D) [M/L3].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>C.z.up </code></td>
+<td>
+<p>concentration at upstream boundary in z-direction;
+matrix of dimensions Nx*Ny [M/L3].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>C.z.down </code></td>
+<td>
+<p>concentration at downstream boundary in z-direction;
+matrix of dimensions Nx*Ny [M/L3].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>C.z </code></td>
+<td>
+<p>concentration at boundary in z-direction for 2-D models where
+<code>masscons</code> = TRUE. Matrix of dimensions Nx*Ny [M/L3].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>masscons </code></td>
+<td>
+<p>When <code>TRUE</code>, will check flow balance in 2D model. 
+The flow in the third direction will then be estimated.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>F.up </code></td>
+<td>
+<p>total tracer input at the upstream interface. One value [M/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>F.down </code></td>
+<td>
+<p>total tracer input at downstream interface. One value [M/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>F.lat </code></td>
+<td>
+<p>total lateral tracer input, defined at grid cell centres.
+One value, a vector of length N, or a 1D list property as defined by <code>setup.prop.1D</code>,[M/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>F.x.up </code></td>
+<td>
+<p>total tracer input at the upstream interface in x-direction.
+positive = INTO model domain. A vector of length Ny (2D) or a matrix of dimensions Ny*Nz (3D)  [M/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>F.x.down </code></td>
+<td>
+<p>total tracer input at downstream interface in x-direction. positive = INTO model domain. A vector of length Ny (2D) or a matrix of dimensions Ny*Nz (3D)  [M/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>F.y.up </code></td>
+<td>
+<p>total tracer input at the upstream interface in y-direction.
+positive = INTO model domain. A vector of length Nx (2D) or a matrix of dimensions Nx*Nz (3D)  [M/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>F.y.down </code></td>
+<td>
+<p>total tracer input at downstream interface in y-direction. positive = INTO model domain. A vector of length Nx (2D) or a matrix of dimensions Nx*Nz (3D)  [M/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>F.z.up </code></td>
+<td>
+<p>total tracer input at the upstream interface in z-direction.
+positive = INTO model domain. A matrix of dimensions Nx*Ny    [M/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>F.z.down </code></td>
+<td>
+<p>total tracer input at downstream interface in z-direction. positive = INTO model domain. A matrix of dimensions Nx*Ny [M/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Disp.grid </code></td>
+<td>
+<p>BULK dispersion coefficients defined on all grid cell
+interfaces. For <code>tran.volume.2D</code>, should contain two matrices, x.int (dimension (Nx+1)*Ny)  and y.int (dimension Nx * (Ny+1)). 
+For tran.volume.3D should contain three arrays x.int (dim = (Nx+1)*Ny*Nz), y.int (dim = Nx*(Ny+1)*Nz), and z.int (dim = Nx*Ny*(Nz+1))
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Disp </code></td>
+<td>
+<p>BULK dispersion coefficient, defined on grid cell interfaces.
+One value, a vector of length N+1, or a 1D list property as defined by <code>setup.prop.1D</code> [L3/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Disp.x </code></td>
+<td>
+<p>BULK dispersion coefficient in x-direction, defined on grid cell interfaces. One value, a vector of length (Nx+1), a <code>prop.1D</code> list created by <code>setup.prop.1D</code>, a (Nx+1)* Ny matrix (2D) or a  Nx*(Ny+1)*Nz array (3D)   [L3/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Disp.y </code></td>
+<td>
+<p>BULK dispersion coefficient in y-direction, defined on grid cell
+interfaces. One value, a vector of length (Ny+1),
+a <code>prop.1D</code> list created by <code>setup.prop.1D</code>,
+or a Nx*(Ny+1) matrix (2D) or a Nx*(Ny+1)*Nz array  (3D)[L3/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Disp.z </code></td>
+<td>
+<p>BULK dispersion coefficient in z-direction, defined on grid cell
+interfaces. One value, a vector of length (Nz+1), or a Nx*Ny*(Nz+1) array   [L3/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flow </code></td>
+<td>
+<p>water flow rate, defined on grid cell interfaces. One value, a vector of length N+1, or a list as defined by <code>setup.prop.1D</code> [L3/T]. 
+If <code>flow.lat</code> is not <code>NULL</code> the <code>flow</code> should be one value containing the flow rate at the upstream boundary. 
+If <code>flow.lat</code> is <code>NULL</code> then <code>flow</code> can be either one value, a vector or a list.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flow.lat </code></td>
+<td>
+<p>lateral water flow rate [L3/T] into each volume box, defined at grid cell centres. One value, a vector of
+length N, or a list as defined by <code>setup.prop.1D</code>. If <code>flow.lat</code> has a value, then
+<code>flow</code> should be the flow rate at the upstream interface (one value).
+For each grid cell, the <code>flow</code> at the downstream side of a grid cell is 
+then estimated by water balance (adding <code>flow.lat</code> in the cell to 
+flow rate at the upstream side of the grid cell). If <code>flow.lat</code> is <code>NULL</code>, then it is determined by water balance 
+from <code>flow</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flow.grid </code></td>
+<td>
+<p>flow rates defined on all grid cell
+interfaces. Can be positive (downstream flow) or negative (upstream flow).
+Should contain elements x.int, y.int, z.int (3-D), arrays with the values on the
+interfaces in x, y and z-direction  [L3/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flow.x </code></td>
+<td>
+<p>flow rates in the x-direction, defined on grid cell
+interfaces. Can be positive (downstream flow) or negative (upstream flow).
+One value, a vector of length (Nx+1),
+a <code>prop.1D</code> list created by <code>setup.prop.1D</code> (2D),
+a (Nx+1)*Ny matrix (2D) or a (Nx+1)*Ny*Nz array (3D) [L3/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flow.y </code></td>
+<td>
+<p>flow rates in the y-direction, defined on grid cell
+interfaces. Can be positive (downstream flow) or negative (upstream flow).
+One value, a vector of length (Ny+1),
+a <code>prop.1D</code> list created by <code>setup.prop.1D</code> (2D),
+a Nx*(Ny+1) matrix (2D) or a Nx*(Ny+1)*Nz array [L3/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flow.z </code></td>
+<td>
+<p>flow rates in the z-direction, defined on grid cell
+interfaces. Can be positive (downstream flow) or negative (upstream flow).
+One value, a vector of length (Nz+1),
+or a Nx*Ny*(Nz+1) array [L3/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>AFDW </code></td>
+<td>
+<p>weight used in the finite difference scheme for advection,
+defined on grid cell interfaces; backward = 1, centred = 0.5, forward = 0;
+default is backward. One value, a vector of length N+1, or a
+list as defined by <code>setup.prop.1D</code> [-]. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>AFDW.grid </code></td>
+<td>
+<p>weight used in the finite difference scheme for advection
+in the x-direction, defined on grid cell interfaces; backward = 1,
+centred = 0.5, forward = 0; default is backward.
+For <code>tran.volume.3D</code> should contain elements x.int, y.int, z.int (3D),  for <code>tran.volume.2D</code> should contain elements x.int and y.int. [-].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>AFDW.x </code></td>
+<td>
+<p>weight used in the finite difference scheme for advection
+in the x-direction, defined on grid cell interfaces; backward = 1,
+centred = 0.5, forward = 0; default is backward.
+One value, a vector of length (Nx+1),
+a <code>prop.1D</code> list created by <code>setup.prop.1D</code>,
+a (Nx+1)*Ny matrix (2D) or a (Nx+1)*Ny*Nz array (3D) [-].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>AFDW.y </code></td>
+<td>
+<p>weight used in the finite difference scheme for advection
+in the y-direction, defined on grid cell interfaces; backward = 1,
+centred = 0.5, forward = 0; default is backward.
+One value, a vector of length (Ny+1),
+a <code>prop.1D</code> list created by <code>setup.prop.1D</code>,
+a Nx*(Ny+1) matrix (2D) or a Nx*(Ny+1)*Nz array [-].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>AFDW.z </code></td>
+<td>
+<p>weight used in the finite difference scheme for advection
+in the z-direction, defined on grid cell interfaces; backward = 1,
+centred = 0.5, forward = 0; default is backward.
+One value, a vector of length (Nz+1),
+a <code>prop.1D</code> list created by <code>setup.prop.1D</code>,
+or a Nx*Ny*(Nz+1) array [-].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>V </code></td>
+<td>
+<p>grid cell volume, defined at grid cell centres [L3]. One value, a
+vector of length N, or a list as defined by <code>setup.prop.1D</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>full.check </code></td>
+<td>
+<p>logical flag enabling a full check of the consistency
+of the arguments (default = <code>FALSE</code>; <code>TRUE</code> slows down execution
+by 50 percent).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>full.output </code></td>
+<td>
+<p>logical flag enabling a full return of the output
+(default = <code>FALSE</code>; <code>TRUE</code> slows down execution by 20 percent).
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The <b>boundary conditions</b> are of type
+</p>
+
+<ul>
+<li>
+<p> 1. zero-gradient (default)
+</p>
+</li>
+<li>
+<p> 2. fixed concentration
+</p>
+</li>
+<li>
+<p> 3. fixed input
+</p>
+</li>
+</ul>
+<p>The <em>bulk dispersion coefficient</em> (<code>Disp</code>) and the <em>flow rate</em>
+(<code>flow</code>) can be either one value or a vector of length N+1, defined at
+all grid cell interfaces, including upstream and downstream boundary.
+</p>
+<p>The spatial discretisation is given by the volume of each box (<code>V</code>),
+which can be one value or a vector of length N+1, defined at the centre of
+each grid cell.
+</p>
+<p>The water flow is mass conservative. Over each volume box, the routine
+calculates internally the downstream outflow of water in terms of the
+upstream inflow and the lateral inflow.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>dC </code></td>
+<td>
+<p>the rate of change of the concentration C due to transport,
+defined in the centre of each grid cell [M/L3/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>F.up </code></td>
+<td>
+<p>mass flow across the upstream boundary, positive = INTO
+model domain. One value [M/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>F.down </code></td>
+<td>
+<p>mass flow across the downstream boundary, positive = OUT
+of model domain. One value [M/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>F.lat </code></td>
+<td>
+<p>lateral mass input per volume box, positive = INTO model
+domain. A vector of length N [M/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flow </code></td>
+<td>
+<p>water flow across the interface of each grid cell. A vector
+of length N+1 [L3/T]. Only provided when (<code>full.output</code> = <code>TRUE</code>
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flow.up </code></td>
+<td>
+<p>water flow across the upstream (external) boundary, positive = INTO
+model domain. One value [L3/T]. Only provided when (<code>full.output</code> = <code>TRUE</code>)
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flow.down </code></td>
+<td>
+<p>water flow across the downstream (external) boundary, positive = OUT
+of model domain. One value [L3/T]. Only provided when
+(<code>full.output</code> = <code>TRUE</code>)
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flow.lat </code></td>
+<td>
+<p>lateral water input on each volume box, positive = INTO model
+domain. A vector of length N [L3/T]. Only provided when
+(<code>full.output</code> = <code>TRUE</code>)
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>F </code></td>
+<td>
+<p>mass flow across at the interface of each grid cell. A vector
+of length N+1 [M/T]. Only provided when (<code>full.output</code> = <code>TRUE</code>)
+</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Filip Meysman &lt;filip.meysman@nioz.nl&gt;,
+Karline Soetaert &lt;karline.soetaert@nioz.nl&gt;
+</p>
+
+
+<h3>References</h3>
+
+<p>Soetaert and Herman (2009) A practical guide to ecological modelling -
+using R as a simulation platform. Springer.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>tran.1D</code>
+</p>
+<p><code>advection.volume.1D</code>, for more sophisticated advection schemes
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## =============================================================================
+##  EXAMPLE : organic carbon (OC) decay in a widening estuary
+## =============================================================================
+
+# Two scenarios are simulated: the baseline includes only input 
+# of organic matter upstream. The second scenario simulates the 
+# input of an important side river half way the estuary.  
+
+#====================#
+# Model formulation  #
+#====================#
+
+river.model &lt;- function (t = 0, OC, pars = NULL) {
+
+  tran &lt;- tran.volume.1D(C = OC, F.up = F.OC, F.lat = F.lat,
+          Disp = Disp, flow = flow.up, flow.lat = flow.lat, 
+          V = Volume, full.output = TRUE) 
+
+  reac &lt;- - k*OC
+  return(list(dCdt = tran$dC + reac, Flow = tran$flow))
+}
+
+#======================#
+# Parameter definition #
+#======================#
+
+# Initialising morphology estuary: 
+
+nbox          &lt;- 500     # number of grid cells
+lengthEstuary &lt;- 100000  # length of estuary [m]
+BoxLength     &lt;- lengthEstuary/nbox # [m]
+Distance      &lt;- seq(BoxLength/2, by = BoxLength, len =nbox) # [m]
+Int.Distance  &lt;- seq(0, by = BoxLength, len = (nbox+1))      # [m]
+
+# Cross sectional area: sigmoid function of estuarine distance [m2]
+CrossArea &lt;- 4000 + 72000 * Distance^5 /(Distance^5+50000^5)
+
+# Volume of boxes                          (m3)
+Volume  &lt;- CrossArea*BoxLength
+
+# Transport coefficients
+Disp    &lt;- 1000   # m3/s, bulk dispersion coefficient
+flow.up  &lt;- 180    # m3/s, main river upstream inflow
+flow.lat.0  &lt;- 180    # m3/s, side river inflow
+
+F.OC    &lt;- 180               # input organic carbon [mol s-1]
+F.lat.0 &lt;- 180              # lateral input organic carbon [mol s-1]
+
+k       &lt;- 10/(365*24*3600)  # decay constant organic carbon [s-1]
+
+
+#====================#
+# Model solution     #
+#====================#
+#scenario 1: without lateral input
+F.lat    &lt;- rep(0, length.out = nbox)
+flow.lat &lt;- rep(0, length.out = nbox)
+
+Conc1 &lt;- steady.1D(runif(nbox), fun = river.model, nspec = 1, name = "OC")   
+
+#scenario 2: with lateral input
+F.lat &lt;- F.lat.0 * dnorm(x =Distance/lengthEstuary,
+                         mean = Distance[nbox/2]/lengthEstuary, 
+                         sd = 1/20, log = FALSE)/nbox 
+flow.lat &lt;- flow.lat.0 * dnorm(x = Distance/lengthEstuary,
+                               mean = Distance[nbox/2]/lengthEstuary, 
+                               sd = 1/20, log = FALSE)/nbox 
+
+Conc2 &lt;- steady.1D(runif(nbox), fun = river.model, nspec = 1, name = "OC")   
+
+#====================#
+# Plotting output    #
+#====================#
+# use S3 plot method
+plot(Conc1, Conc2, grid = Distance/1000, which = "OC", 
+     mfrow = c(2, 1), lwd = 2, xlab = "distance [km]", 
+     main = "Organic carbon decay in the estuary",
+     ylab = "OC Concentration [mM]")
+       
+plot(Conc1, Conc2, grid = Int.Distance/1000, which = "Flow", 
+     mfrow = NULL, lwd = 2, xlab = "distance [km]", 
+     main = "Longitudinal change in the water flow rate",
+     ylab = "Flow rate [m3 s-1]")  
+
+legend ("topright", lty = 1:2, col = 1:2, lwd = 2,
+        c("baseline", "+ side river input"))
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,124 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pp_weights</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Get posterior weights for each record post record-linkage using posterior prototyping.</h2>
+
+<h3>Description</h3>
+
+<p>Get posterior weights for each record post record-linkage using posterior prototyping.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pp_weights(
+  data,
+  posterior_linkage,
+  rep_method,
+  parallel = TRUE,
+  cores = NULL,
+  ...,
+  scale = FALSE,
+  save_loc = NULL,
+  verbose = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame of records to be represented.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>posterior_linkage</code></td>
+<td>
+<p>A matrix of size m x n, indicating the posterior cluster ids post-record linkage,
+each row represents the cluster assignment for each record in <code>data</code> for 1 iteration of the sampler.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rep_method</code></td>
+<td>
+<p>Which method to use for representation. Valid options include "proto_minimax" and "proto_random".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel</code></td>
+<td>
+<p>Logical flag if to use parallel computation or not (via <code>foreach</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cores</code></td>
+<td>
+<p>If specified, the number of cores to use with <code>foreach</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional parameters sent to cluster representation function. See
+minimax or random methods. If passing a probability to
+the random method, must be list of the same length as the number of iterations in lambda and within each must be
+a list of the same length as the number of clusters. Within each should be a vector of probabilities, the same length
+as the number of rows in the cluster <code>prob[[iteration][[cluster]]</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>If "proto_minimax" method is specified, logical flag to indicate if the column-type
+distance function should be scaled so that each distance takes value in [0, 1]. Defaults to
+FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>save_loc</code></td>
+<td>
+<p>Location to save intermediate progress. If NULL, no intermediate progress is saved.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Flag for progress messages.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+data(rl_reg1)
+
+# make a fake posterior distribution for the linkage
+m &lt;- 10
+n &lt;- nrow(rl_reg1)
+post_link &lt;- matrix(sample(seq_len(n), n*m, replace = TRUE), nrow = m)
+
+# get the posterior prototyping weights
+col_type &lt;- c("string", "string", "numeric", "numeric", "numeric", "categorical", "ordinal",
+    "numeric", "numeric")
+orders &lt;- list(education = c("Less than a high school diploma", "High school graduates, no college",
+    "Some college or associate degree", "Bachelor's degree only", "Advanced degree"))
+weights &lt;- c(.25, .25, .05, .05, .1, .15, .05, .05, .05)
+
+
+pp_weight &lt;- pp_weights(rl_reg1, post_link, "proto_minimax", distance = dist_col_type,
+    col_type = col_type, weights = weights, orders = orders, scale = TRUE, parallel = FALSE)
+
+# threshold by posterior prototyping weights
+head(rl_reg1[pp_weight &gt; 0.5, ])
+
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,123 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>get_flow_length</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Derive a flow length to streams and outlets</h2>
+
+<h3>Description</h3>
+
+<p>Given a (hydrologically corrected, see <code>fill_sinks</code>) DEM, this function produces a flow accumulation grid which shows the upstream area that flows into each cell in the DEM. Note that this function calls <code>r.stream.distance</code>, which is a GRASS GIS add-on. It can be installed through the GRASS GUI.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">get_flow_length(
+  str_rast,
+  flow_dir,
+  out,
+  to_outlet = FALSE,
+  overwrite = FALSE,
+  max_memory = 300
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>str_rast</code></td>
+<td>
+<p>Rasterized unary streams file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flow_dir</code></td>
+<td>
+<p>Flow direction raster.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>out</code></td>
+<td>
+<p>A file name for the output raster of flow lengths.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>to_outlet</code></td>
+<td>
+<p>Calculate parameters for outlets flag. Defaults to <code>FALSE</code> for streams.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite</code></td>
+<td>
+<p>Overwrite flag. Defaults to <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_memory</code></td>
+<td>
+<p>Max memory used in memory swap mode (MB). Defaults to <code>300</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Nothing. A file with the name <code>out</code> will be written to GRASS's current workspace.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Will only run if GRASS is running
+if(check_running()){
+# Load data set
+dem &lt;- system.file("extdata", "dem.tif", package = "rdwplus")
+sites &lt;- system.file("extdata", "site.shp", package = "rdwplus")
+stream_shp &lt;- system.file("extdata", "streams.shp", package = "rdwplus")
+
+# Set environment parameters and import data to GRASS
+set_envir(dem)
+raster_to_mapset(rasters = dem, as_integer = FALSE)
+vector_to_mapset(vectors = c(sites, stream_shp))
+
+# Create binary stream
+rasterise_stream("streams", "streams_rast.tif", overwrite = TRUE)
+
+# Burn dem
+burn_in(dem = "dem.tif", stream = "streams_binary.tif",
+        out = "dem_burn.tif", burn = 10, overwrite = TRUE)
+
+# Fill sinks
+fill_sinks(dem = "dem_burn.tif", out_dem = "dem_fill.tif", out_fd = "fd1.tif", overwrite = TRUE)
+
+# Derive flow accumulation and direction grids
+derive_flow(dem = "dem_fill.tif", flow_dir = "fdir.tif",
+            flow_acc = "facc.tif", overwrite = TRUE)
+
+# Derive watershed
+get_watersheds(sites = "site", flow_dir = "fdir.tif", out = "wshed.tif", overwrite = T)
+
+# Set mask
+set_mask("wshed.tif")
+
+# Get flow length
+get_flow_length(
+  str_rast = "streams_rast.tif",
+  flow_dir = "fdir.tif",
+  out = "flowlength.tif",
+  to_outlet = TRUE,
+  overwrite = TRUE
+)
+
+# Plot
+plot_GRASS("flowlength.tif", col = topo.colors(15))
+}
+</code></pre>
+
+
+</div>

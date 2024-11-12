@@ -1,0 +1,319 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>occ_download</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Spin up a download request for GBIF occurrence data.</h2>
+
+<h3>Description</h3>
+
+<p>Spin up a download request for GBIF occurrence data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">occ_download(
+  ...,
+  body = NULL,
+  type = "and",
+  format = "DWCA",
+  user = NULL,
+  pwd = NULL,
+  email = NULL,
+  curlopts = list()
+)
+
+occ_download_prep(
+  ...,
+  body = NULL,
+  type = "and",
+  format = "DWCA",
+  user = NULL,
+  pwd = NULL,
+  email = NULL,
+  curlopts = list()
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>For <code>occ_download()</code> and <code>occ_download_prep()</code>, one or more
+objects of class <code>occ_predicate</code> or <code>occ_predicate_list</code>, created by
+<code style="white-space: pre;">⁠pred*⁠</code> functions (see download_predicate_dsl). If you use this, don't
+use <code>body</code> parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>body</code></td>
+<td>
+<p>if you prefer to pass in the payload yourself, use this
+parameter. If you use this, don't pass anything to the dots. Accepts
+either an R list, or JSON. JSON is likely easier, since the JSON
+library <span class="pkg">jsonlite</span> requires that you unbox strings that shouldn't
+be auto-converted to arrays, which is a bit tedious for large queries.
+optional</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>(character) One of equals (=), and (&amp;), or (|), lessThan (&lt;),
+lessThanOrEquals (&lt;=), greaterThan (&gt;), greaterThanOrEquals (&gt;=), in,
+within, not (!), like, isNotNull</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>format</code></td>
+<td>
+<p>(character) The download format. One of 'DWCA' (default),
+'SIMPLE_CSV', or 'SPECIES_LIST'</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>user</code></td>
+<td>
+<p>(character) User name within GBIF's website. Required. See
+"Authentication" below</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pwd</code></td>
+<td>
+<p>(character) User password within GBIF's website. Required. See
+"Authentication" below</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>email</code></td>
+<td>
+<p>(character) Email address to receive download notice done
+email. Required. See "Authentication" below</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>curlopts</code></td>
+<td>
+<p>list of named curl options passed on to
+<code>HttpClient</code>. see <code>curl::curl_options</code>
+for curl options</p>
+</td>
+</tr>
+</table>
+<h3>geometry</h3>
+
+<p>When using the geometry parameter, make sure that your well known text
+(WKT) is formatted as GBIF expects it. They expect WKT to have a
+counter-clockwise winding order. For example, the following is clockwise
+<code style="white-space: pre;">⁠POLYGON((-19.5 34.1, -25.3 68.1, 35.9 68.1, 27.8 34.1, -19.5 34.1))⁠</code>,
+whereas they expect the other order:
+<code style="white-space: pre;">⁠POLYGON((-19.5 34.1, 27.8 34.1, 35.9 68.1, -25.3 68.1, -19.5 34.1))⁠</code>
+</p>
+<p>note that coordinate pairs are <code style="white-space: pre;">⁠longitude latitude⁠</code>, longitude first, then
+latitude
+</p>
+<p>you should not get any results if you supply WKT that has clockwise
+winding order.
+</p>
+<p>also note that <code>occ_search()</code>/<code>occ_data()</code> behave differently with
+respect to WKT in that you can supply clockwise WKT to those
+functions but they treat it as an exclusion, so get all data not
+inside the WKT area.
+</p>
+
+
+<h3>Methods</h3>
+
+
+<ul>
+<li> <p><code>occ_download_prep</code>: prepares a download request, but DOES NOT execute it.
+meant for use with <code>occ_download_queue()</code>
+</p>
+</li>
+<li> <p><code>occ_download</code>: prepares a download request and DOES execute it
+</p>
+</li>
+</ul>
+<h3>Authentication</h3>
+
+<p>For <code>user</code>, <code>pwd</code>, and <code>email</code> parameters, you can set them in one of
+three ways:
+</p>
+
+<ul>
+<li>
+<p> Set them in your <code>.Rprofile</code> file with the names <code>gbif_user</code>,
+<code>gbif_pwd</code>, and <code>gbif_email</code>
+</p>
+</li>
+<li>
+<p> Set them in your <code>.Renviron</code>/<code>.bash_profile</code> (or similar) file with the
+names <code>GBIF_USER</code>, <code>GBIF_PWD</code>, and <code>GBIF_EMAIL</code>
+</p>
+</li>
+<li>
+<p> Simply pass strings to each of the parameters in the function
+call
+</p>
+</li>
+</ul>
+<p>We strongly recommend the second option - storing your details as
+environment variables as it's the most widely used way to store secrets.
+</p>
+<p>See <code>?Startup</code> for help.
+</p>
+
+
+<h3>Query length</h3>
+
+<p>GBIF has a limit of 12,000 characters for a download query. This means
+that you can have a pretty long query, but at some point it may lead to an
+error on GBIF's side and you'll have to split your query into a few.
+</p>
+
+
+<h3>Note</h3>
+
+<p>see downloads for an overview of GBIF downloads methods
+</p>
+
+
+<h3>References</h3>
+
+<p>See the API docs
+<a href="https://www.gbif.org/developer/occurrence#download">https://www.gbif.org/developer/occurrence#download</a> for more info,
+and the predicates docs
+<a href="https://www.gbif.org/developer/occurrence#predicates">https://www.gbif.org/developer/occurrence#predicates</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other downloads: 
+<code>download_predicate_dsl</code>,
+<code>occ_download_cached()</code>,
+<code>occ_download_cancel()</code>,
+<code>occ_download_dataset_activity()</code>,
+<code>occ_download_datasets()</code>,
+<code>occ_download_get()</code>,
+<code>occ_download_import()</code>,
+<code>occ_download_list()</code>,
+<code>occ_download_meta()</code>,
+<code>occ_download_queue()</code>,
+<code>occ_download_wait()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# occ_download(pred("basisOfRecord", "LITERATURE"))
+# occ_download(pred("taxonKey", 3119195), pred_gt("elevation", 5000))
+# occ_download(pred_gt("decimalLatitude", 50))
+# occ_download(pred_gte("elevation", 9000))
+# occ_download(pred_gte('decimalLatitude", 65))
+# occ_download(pred("country", "US"))
+# occ_download(pred("institutionCode", "TLMF"))
+# occ_download(pred("catalogNumber", 217880))
+# occ_download(pred("gbifId", 142317604)) 
+
+# download format
+# z &lt;- occ_download(pred_gte("decimalLatitude", 75),
+#  format = "SPECIES_LIST")
+
+# res &lt;- occ_download(pred("taxonKey", 7264332), pred("hasCoordinate", TRUE))
+
+# pass output directly, or later, to occ_download_meta for more information
+# occ_download(pred_gt('decimalLatitude', 75)) %&gt;% occ_download_meta
+
+# Multiple queries
+# occ_download(pred_gte("decimalLatitude", 65),
+#  pred_lte("decimalLatitude", -65), type="or")
+# gg &lt;- occ_download(pred("depth", 80), pred("taxonKey", 2343454),
+#  type="or")
+# x &lt;- occ_download(pred_and(pred_within("POLYGON((-14 42, 9 38, -7 26, -14 42))"),
+#  pred_gte("elevation", 5000)))
+
+# complex example with many predicates
+# shows example of how to do date ranges for both year and month
+# res &lt;- occ_download(
+#  pred_gt("elevation", 5000),
+#  pred_in("basisOfRecord", c('HUMAN_OBSERVATION','OBSERVATION','MACHINE_OBSERVATION')),
+#  pred("country", "US"),
+#  pred("hasCoordinate", TRUE),
+#  pred("hasGeospatialIssue", FALSE),
+#  pred_gte("year", 1999),
+#  pred_lte("year", 2011),
+#  pred_gte("month", 3),
+#  pred_lte("month", 8)
+# )
+
+# Using body parameter - pass in your own complete query
+## as JSON
+query1 &lt;- '{"creator":"sckott",
+  "notification_address":["stuff1@gmail.com"],
+  "predicate":{"type":"and","predicates":[
+    {"type":"equals","key":"TAXON_KEY","value":"7264332"},
+    {"type":"equals","key":"HAS_COORDINATE","value":"TRUE"}]}
+ }'
+# res &lt;- occ_download(body = query1, curlopts=list(verbose=TRUE))
+
+## as a list
+library(jsonlite)
+query &lt;- list(
+  creator = unbox("sckott"),
+  notification_address = "stuff1@gmail.com",
+  predicate = list(
+    type = unbox("and"),
+    predicates = list(
+      list(type = unbox("equals"), key = unbox("TAXON_KEY"),
+        value = unbox("7264332")),
+      list(type = unbox("equals"), key = unbox("HAS_COORDINATE"),
+        value = unbox("TRUE"))
+    )
+  )
+)
+# res &lt;- occ_download(body = query, curlopts = list(verbose = TRUE))
+
+# Prepared query
+occ_download_prep(pred("basisOfRecord", "LITERATURE"))
+occ_download_prep(pred("basisOfRecord", "LITERATURE"), format = "SIMPLE_CSV")
+occ_download_prep(pred("basisOfRecord", "LITERATURE"), format = "SPECIES_LIST")
+occ_download_prep(pred_in("taxonKey", c(2977832, 2977901, 2977966, 2977835)))
+occ_download_prep(pred_within("POLYGON((-14 42, 9 38, -7 26, -14 42))"))
+
+## a complicated example
+occ_download_prep(
+  pred_in("basisOfRecord", c("MACHINE_OBSERVATION", "HUMAN_OBSERVATION")),
+  pred_in("taxonKey", c(2498343, 2481776, 2481890)),
+  pred_in("country", c("GB", "IE")),
+  pred_or(pred_lte("year", 1989), pred("year", 2000))
+)
+
+# x = occ_download(
+#   pred_in("basisOfRecord", c("MACHINE_OBSERVATION", "HUMAN_OBSERVATION")),
+#   pred_in("taxonKey", c(9206251, 3112648)),
+#   pred_in("country", c("US", "MX")),
+#   pred_and(pred_gte("year", 1989), pred_lte("year", 1991))
+# )
+# occ_download_meta(x)
+# z &lt;- occ_download_get(x)
+# df &lt;- occ_download_import(z)
+# str(df)
+# library(dplyr)
+# unique(df$basisOfRecord)
+# unique(df$taxonKey)
+# unique(df$countryCode)
+# sort(unique(df$year))
+
+## End(Not run)
+</code></pre>
+
+
+</div>

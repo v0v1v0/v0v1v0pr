@@ -1,0 +1,117 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>flinn_1991</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Flinn model for fitting thermal performance curves</h2>
+
+<h3>Description</h3>
+
+<p>Flinn model for fitting thermal performance curves
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">flinn_1991(temp, a, b, c)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>temp</code></td>
+<td>
+<p>temperature in degrees centigrade</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>a</code></td>
+<td>
+<p>parameter that controls the height of the curve</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>b</code></td>
+<td>
+<p>parameter that controls the slope of the initial increase of the curve</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>c</code></td>
+<td>
+<p>parameter that controls the position and steepness of the decline of the curve</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Equation:
+</p>
+<p style="text-align: center;"><code class="reqn">rate= \frac{1}{1+a+b \cdot temp+c \cdot temp^2}</code>
+</p>
+
+<p>Start values in <code>get_start_vals</code> are derived from previous methods from the literature.
+</p>
+<p>Limits in <code>get_lower_lims</code> and <code>get_upper_lims</code> are based on extreme values that are unlikely to occur in ecological settings.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a numeric vector of rate values based on the temperatures and parameter values provided to the function
+</p>
+
+
+<h3>Note</h3>
+
+<p>Generally we found this model easy to fit.
+</p>
+
+
+<h3>References</h3>
+
+<p>Flinn PW Temperature-dependent functional response of the parasitoid Cephalonomia waterstoni (Gahan) (Hymenoptera, Bethylidae) attacking rusty grain beetle larvae (Coleoptera, Cucujidae). Environmental Entomology, 20, 872–876, (1991)
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># load in ggplot
+library(ggplot2)
+
+# subset for the first TPC curve
+data('chlorella_tpc')
+d &lt;- subset(chlorella_tpc, curve_id == 1)
+
+# get start values and fit model
+start_vals &lt;- get_start_vals(d$temp, d$rate, model_name = 'flinn_1991')
+# fit model
+mod &lt;- nls.multstart::nls_multstart(rate~flinn_1991(temp = temp, a, b, c),
+data = d,
+iter = c(4,4,4),
+start_lower = start_vals - 1,
+start_upper = start_vals + 1,
+lower = get_lower_lims(d$temp, d$rate, model_name = 'flinn_1991'),
+upper = get_upper_lims(d$temp, d$rate, model_name = 'flinn_1991'),
+supp_errors = 'Y',
+convergence_count = FALSE)
+
+# look at model fit
+summary(mod)
+
+# get predictions
+preds &lt;- data.frame(temp = seq(min(d$temp), max(d$temp), length.out = 100))
+preds &lt;- broom::augment(mod, newdata = preds)
+
+# plot
+ggplot(preds) +
+geom_point(aes(temp, rate), d) +
+geom_line(aes(temp, .fitted), col = 'blue') +
+theme_bw()
+</code></pre>
+
+
+</div>

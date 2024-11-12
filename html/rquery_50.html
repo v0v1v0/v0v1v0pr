@@ -1,0 +1,83 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>normalize_cols</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Build an optree pipeline that normalizes a set of columns so each column sums to one in each partition.</h2>
+
+<h3>Description</h3>
+
+<p>This is an example of building up a desired pre-prepared pipeline fragment from relop nodes.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">normalize_cols(source, columns, ..., partitionby = NULL, env = parent.frame())
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>source</code></td>
+<td>
+<p>relop tree or data.frame source.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>columns</code></td>
+<td>
+<p>character, columns to normalize.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>force later arguments to bind by name.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>partitionby</code></td>
+<td>
+<p>partitioning (window function) column names to define partitions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>env</code></td>
+<td>
+<p>environment to look for values in.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# by hand logistic regression example
+scale &lt;- 0.237
+d &lt;- mk_td("survey_table",
+                  c("subjectID", "surveyCategory", "assessmentTotal"))
+optree &lt;- d %.&gt;%
+  extend(.,
+             probability %:=%
+               exp(assessmentTotal * scale))  %.&gt;%
+  normalize_cols(.,
+                 "probability",
+                 partitionby = 'subjectID') %.&gt;%
+  pick_top_k(.,
+             partitionby = 'subjectID',
+             orderby = c('probability', 'surveyCategory'),
+             reverse = c('probability')) %.&gt;%
+  rename_columns(., 'diagnosis' %:=% 'surveyCategory') %.&gt;%
+  select_columns(., c('subjectID',
+                      'diagnosis',
+                      'probability')) %.&gt;%
+  orderby(., 'subjectID')
+cat(format(optree))
+
+</code></pre>
+
+
+</div>

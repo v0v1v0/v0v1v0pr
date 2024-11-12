@@ -1,0 +1,129 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>if_else_block</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Build a sequence of statements simulating an if/else block-<code>if(){}else{}</code>.</h2>
+
+<h3>Description</h3>
+
+<p>This device uses expression-<code>ifelse(,,)</code> to simulate the
+more powerful per-row block-<code>if(){}else{}</code>.  The difference is
+expression-<code>ifelse(,,)</code> can choose per-row what value to express,
+whereas block-<code>if(){}else{}</code> can choose per-row where to assign multiple
+values. By simulation we mean: a sequence of quoted mutate expressions
+are emitted that implement the transform.  These expressions can then
+be optimized into a minimal number of no-dependency
+blocks by <code>extend_se</code> for efficient execution.
+The idea is the user can write legible code in this notation, and
+the translation turns it into safe and efficient code suitable for
+execution either on <code>data.frame</code>s or at a big data scale using
+<code>RPostgreSQL</code> or <code>sparklyr</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">if_else_block(testexpr, ..., thenexprs = NULL, elseexprs = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>testexpr</code></td>
+<td>
+<p>character containing the test expression.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>force later arguments to bind by name.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thenexprs</code></td>
+<td>
+<p>named character then assignments (altering columns, not creating).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>elseexprs</code></td>
+<td>
+<p>named character else assignments (altering columns, not creating).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Note: <code>ifebtest_*</code>
+is a reserved column name for this procedure.
+</p>
+
+
+<h3>Value</h3>
+
+<p>sequence of statements for extend_se().
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>if_else_op</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+if (requireNamespace("DBI", quietly = TRUE) &amp;&amp; requireNamespace("RSQLite", quietly = TRUE)) {
+  # Example: clear one of a or b in any row where both are set.
+  # Land random selections early to avoid SQLite bug.
+  my_db &lt;- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+  d &lt;- rq_copy_to(
+    my_db,
+    'd',
+    data.frame(i = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
+               a = c(0, 0, 1, 1, 1, 1, 1, 1, 1, 1),
+               b = c(0, 1, 0, 1, 1, 1, 1, 1, 1, 1),
+               r = runif(10),
+               edited = 0),
+    temporary=TRUE, overwrite=TRUE)
+
+  program &lt;- if_else_block(
+    testexpr = qe((a+b)&gt;1),
+    thenexprs = c(
+      if_else_block(
+        testexpr = qe(r &gt;= 0.5),
+        thenexprs = qae(a %:=% 0),
+        elseexprs = qae(b %:=% 0)),
+      qae(edited %:=% 1)))
+  print(program)
+
+  optree &lt;- extend_se(d, program)
+  cat(format(optree))
+
+  sql &lt;- to_sql(optree, my_db)
+  cat(sql)
+
+  print(DBI::dbGetQuery(my_db, sql))
+
+  # Why we need to land the random selection early
+  # for SQLIte:
+  q &lt;- "SELECT r AS r1, r AS r2 FROM (
+          SELECT random() AS r FROM (
+             SELECT * from ( VALUES(1),(2) )
+          ) a
+       ) b"
+  print(DBI::dbGetQuery(my_db, q))
+
+  DBI::dbDisconnect(my_db)
+}
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,206 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>tangent-elliptical</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Tangent elliptical distribution</h2>
+
+<h3>Description</h3>
+
+<p>Density and simulation of the Tangent Elliptical (TE)
+distribution on
+<code class="reqn">S^{p-1}:=\{\mathbf{x}\in R^p:||\mathbf{x}||=1\}</code>, <code class="reqn">p\ge 2</code>. The distribution arises
+by considering the
+tangent-normal decomposition with
+multivariate signs distributed as an
+Angular Central Gaussian distribution.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">d_TE(x, theta, g_scaled, d_V, Lambda, log = FALSE)
+
+r_TE(n, theta, r_V, Lambda)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>locations in <code class="reqn">S^{p-1}</code> to evaluate the density. Either a
+matrix of size <code>c(nx, p)</code> or a vector of length <code>p</code>. Normalized
+internally if required (with a <code>warning</code> message).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>theta</code></td>
+<td>
+<p>a unit norm vector of size <code>p</code> giving the axis of
+rotational symmetry.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g_scaled</code></td>
+<td>
+<p>the <em>scaled</em> angular density <code class="reqn">c_g g</code>. In the
+form <br><code>g_scaled &lt;- function(t, log = TRUE) {...}</code>. See examples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d_V</code></td>
+<td>
+<p>the density <code class="reqn">f_V</code>. In the form
+<code>d_V &lt;- function(v, log = TRUE) {...}</code>. See examples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Lambda</code></td>
+<td>
+<p>the shape matrix <code class="reqn">\boldsymbol{\Lambda}</code> of the
+ACG used in the multivariate signs. A symmetric and positive definite
+matrix of size <code>c(p - 1, p - 1)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>log</code></td>
+<td>
+<p>flag to indicate if the logarithm of the density (or the
+normalizing constant) is to be computed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>sample size, a positive integer.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>r_V</code></td>
+<td>
+<p>a function for simulating <code class="reqn">V</code>. Its first argument must be
+the sample size. See examples.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The functions are wrappers for <code>d_tang_norm</code> and
+<code>r_tang_norm</code> with <code>d_U = d_ACG</code> and
+<code>r_U = r_ACG</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Depending on the function:
+</p>
+
+<ul>
+<li> <p><code>d_TE</code>: a vector of length <code>nx</code> or <code>1</code> with the
+evaluated density at <code>x</code>.
+</p>
+</li>
+<li> <p><code>r_TE</code>: a matrix of size <code>c(n, p)</code> with the random sample.
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>Eduardo García-Portugués, Davy Paindaveine, and Thomas Verdebout.
+</p>
+
+
+<h3>References</h3>
+
+<p>García-Portugués, E., Paindaveine, D., Verdebout, T. (2020) On optimal tests
+for rotational symmetry against new classes of hyperspherical distributions.
+<em>Journal of the American Statistical Association</em>, 115(532):1873–1887.
+<a href="https://doi.org/10.1080/01621459.2019.1665527">doi:10.1080/01621459.2019.1665527</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>tang-norm-decomp</code>,
+<code>tangent-vMF</code>, <code>ACG</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Simulation and density evaluation for p = 2
+
+# Parameters
+p &lt;- 2
+n &lt;- 1e3
+theta &lt;- c(rep(0, p - 1), 1)
+Lambda &lt;- matrix(0.5, nrow = p - 1, ncol = p - 1)
+diag(Lambda) &lt;- 1
+kappa_V &lt;- 2
+
+# Required functions
+r_V &lt;- function(n) r_g_vMF(n = n, p = p, kappa = kappa_V)
+g_scaled &lt;- function(t, log) {
+  g_vMF(t, p = p - 1, kappa = kappa_V, scaled = TRUE, log = log)
+}
+
+# Sample and color according to density
+x &lt;- r_TE(n = n, theta = theta, r_V = r_V, Lambda = Lambda)
+col &lt;- viridisLite::viridis(n)
+r &lt;- runif(n, 0.95, 1.05) # Radius perturbation to improve visualization
+dens &lt;- d_TE(x = x, theta = theta, g_scaled = g_scaled, Lambda = Lambda)
+plot(r * x, pch = 16, col = col[rank(dens)])
+
+## Simulation and density evaluation for p = 3
+
+# Parameters
+p &lt;- 3
+n &lt;- 5e3
+theta &lt;- c(rep(0, p - 1), 1)
+Lambda &lt;- matrix(0.5, nrow = p - 1, ncol = p - 1)
+diag(Lambda) &lt;- 1
+kappa_V &lt;- 2
+
+# Sample and color according to density
+x &lt;- r_TE(n = n, theta = theta, r_V = r_V, Lambda = Lambda)
+col &lt;- viridisLite::viridis(n)
+dens &lt;- d_TE(x = x, theta = theta, g_scaled = g_scaled, Lambda = Lambda)
+if (requireNamespace("rgl")) {
+  rgl::plot3d(x, col = col[rank(dens)], size = 5)
+}
+
+## A non-vMF angular function: g(t) = 1 - t^2. It is sssociated to the
+## Beta(1/2, (p + 1)/2) distribution.
+
+# Scaled angular function
+g_scaled &lt;- function(t, log) {
+  log_c_g &lt;- lgamma(0.5 * p) + log(0.5 * p / (p - 1)) - 0.5 * p * log(pi)
+  log_g &lt;- log_c_g + log(1 - t^2)
+  switch(log + 1, exp(log_g), log_g)
+}
+
+# Simulation
+r_V &lt;- function(n) {
+  sample(x = c(-1, 1), size = n, replace = TRUE) *
+    sqrt(rbeta(n = n, shape1 = 0.5, shape2 = 0.5 * (p + 1)))
+}
+
+# Sample and color according to density
+kappa_V &lt;- 1
+Lambda &lt;- matrix(0.75, nrow = p - 1, ncol = p - 1)
+diag(Lambda) &lt;- 1
+x &lt;- r_TE(n = n, theta = theta, r_V = r_V, Lambda = Lambda)
+col &lt;- viridisLite::viridis(n)
+dens &lt;- d_TE(x = x, theta = theta, g_scaled = g_scaled, Lambda = Lambda)
+if (requireNamespace("rgl")) {
+  rgl::plot3d(x, col = col[rank(dens)], size = 5)
+}
+</code></pre>
+
+
+</div>

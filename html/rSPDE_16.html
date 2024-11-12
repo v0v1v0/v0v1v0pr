@@ -1,0 +1,109 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>bru_get_mapper.inla_rspde</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>rSPDE inlabru mapper</h2>
+
+<h3>Description</h3>
+
+<p>rSPDE inlabru mapper
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">bru_get_mapper.inla_rspde(model, ...)
+
+ibm_n.bru_mapper_inla_rspde(mapper, ...)
+
+ibm_values.bru_mapper_inla_rspde(mapper, ...)
+
+ibm_jacobian.bru_mapper_inla_rspde(mapper, input, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>An <code>inla_rspde</code> for which to construct or extract a mapper</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Arguments passed on to other methods</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mapper</code></td>
+<td>
+<p>A <code>bru_mapper_inla_rspde</code> object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>input</code></td>
+<td>
+<p>The values for which to produce a mapping matrix</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R"> #devel version
+if (requireNamespace("INLA", quietly = TRUE) &amp;&amp; 
+     requireNamespace("inlabru", quietly = TRUE)){
+library(INLA)
+library(inlabru)
+
+set.seed(123)
+m &lt;- 100
+loc_2d_mesh &lt;- matrix(runif(m * 2), m, 2)
+mesh_2d &lt;- inla.mesh.2d(
+  loc = loc_2d_mesh,
+  cutoff = 0.05,
+  max.edge = c(0.1, 0.5)
+)
+sigma &lt;- 1
+range &lt;- 0.2
+nu &lt;- 0.8
+kappa &lt;- sqrt(8 * nu) / range
+op &lt;- matern.operators(
+  mesh = mesh_2d, nu = nu,
+  range = range, sigma = sigma, m = 2,
+  parameterization = "matern"
+)
+u &lt;- simulate(op)
+A &lt;- inla.spde.make.A(
+  mesh = mesh_2d,
+  loc = loc_2d_mesh
+)
+sigma.e &lt;- 0.1
+y &lt;- A %*% u + rnorm(m) * sigma.e
+y &lt;- as.vector(y)
+
+data_df &lt;- data.frame(y=y, x1 = loc_2d_mesh[,1],
+                       x2 = loc_2d_mesh[,2])
+coordinates(data_df) &lt;- c("x1", "x2")
+rspde_model &lt;- rspde.matern(
+  mesh = mesh_2d,
+  nu_upper_bound = 2
+)
+
+cmp &lt;- y ~ Intercept(1) + 
+           field(coordinates, model = rspde_model)
+
+
+rspde_fit &lt;- bru(cmp, data = data_df)
+summary(rspde_fit)
+}
+#devel.tag
+
+</code></pre>
+
+
+</div>

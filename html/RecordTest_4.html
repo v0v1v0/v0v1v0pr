@@ -1,0 +1,260 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>change.point</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Change-point Detection Tests Based on Records</h2>
+
+<h3>Description</h3>
+
+<p>Performs change-point detection tests based on the record
+occurrence. The hypothesis of the classical record model (i.e., of IID 
+continuous RVs) is tested against the alternative hypothesis that after a 
+certain time the series stops being IID.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">change.point(
+  X,
+  weights = function(t) 1,
+  record = c("upper", "lower", "d", "s"),
+  correct = c("none", "fisher", "vrbik"),
+  permutation.test = FALSE,
+  simulate.p.value = FALSE,
+  B = 1000
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>A numeric vector, matrix (or data frame).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>A function indicating the weight given to the different 
+records according to their position in the series. Castillo-Mateo (2022)
+showed that the weights that get more power for this test are 
+<code class="reqn">\omega_t = \sqrt{t^2 / (t - 1)}</code>, i.e., 
+<code>weights = function(t) ifelse(t == 1, 0, sqrt(t^2 / (t - 1)))</code> if
+<code>record = "upper"</code> or <code>= "lower"</code>.
+<code class="reqn">\omega_t = \sqrt{t}</code>, i.e., <code>weights = function(t) sqrt(t)</code> if
+<code>record = "d"</code> and <code class="reqn">\omega_t = \sqrt{t^2 / (t-2)}</code>, i.e., 
+<code>weights = function(t) ifelse(t %in% 1:2, 0, sqrt(t^2 / (t-2)))</code> if
+<code>record = "s"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>record</code></td>
+<td>
+<p>A character string that indicates the type of statistic used.
+The statistic with <code>"upper"</code> or <code>= "lower"</code> records, or the 
+statistic with the difference, <code>"d"</code>, or the sum, <code>"s"</code>, of 
+upper and lower records.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>correct</code></td>
+<td>
+<p>A character string that indicates the continuity correction
+in the Kolmogorov distribution made to the statistic: "fisher" (Fisher and
+Robbins 2019), "vrbik" (Vrbik 2020) or "none" (the default) if no 
+correction is made. The former shows better size and power, but if the 
+value of the statistic is too large it becomes <code>NaN</code> and p-value 
+<code>NA</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>permutation.test</code></td>
+<td>
+<p>Logical. Indicates whether to compute p-values by
+permutation simulation (Castillo-Mateo et al. 2023). It does not require 
+that the columns of <code>X</code> be independent. If <code>TRUE</code> and 
+<code>simulate.p.value = TRUE</code>, permutations take precedence and 
+permutations are performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>simulate.p.value</code></td>
+<td>
+<p>Logical. Indicates whether to compute p-values by
+Monte Carlo simulation. If <code>permutation.test = TRUE</code>, permutations    
+take precedence and permutations are performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B</code></td>
+<td>
+<p>If <code>permutation.test = TRUE</code> or <code>simulate.p.value = TRUE</code>,
+an integer specifying the number of replicates used in the permutation or    
+Monte Carlo estimation.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The test is implemented as given by Castillo-Mateo (2022). The null 
+hypothesis is that 
+</p>
+<p style="text-align: center;"><code class="reqn">H_0: p_t = 1/t, \qquad t=1,\ldots,T,</code>
+</p>
+
+<p>where <code class="reqn">p_t</code> is the probability of (upper and/or lower) record at time 
+<code class="reqn">t</code>. The two-sided alternative hypothesis is that 
+</p>
+<p style="text-align: center;"><code class="reqn">H_1: p_t = 1/t, \quad t=1,\ldots,t_0, \qquad p_t \neq 1/t, \quad t=t_0+1,\ldots,T,</code>
+</p>
+
+<p>for a change-point <code class="reqn">t_0</code>.
+</p>
+<p>The variables used for the statistic are
+</p>
+<p style="text-align: center;"><code class="reqn">K^{\omega}_T = \max_{1\le t \le T} \left| \frac{N_{t}^{\omega} - \textrm{E}(N_{t}^{\omega})}{\sqrt{\textrm{VAR}(N_{T}^{\omega})}} - \frac{\textrm{VAR}(N_{t}^{\omega})}{\textrm{VAR}(N_{T}^{\omega})} \frac{N_{T}^{\omega} - \textrm{E}(N_{T}^{\omega})}{\sqrt{\textrm{VAR}(N_{T}^{\omega})}} \right|,</code>
+</p>
+
+<p>where <code class="reqn">N_{t}^\omega = \sum_{m=1}^M \sum_{j=1}^t \omega_j I_{jm}</code>, and
+the estimated change-point <code class="reqn">\hat{t}_0</code> is the value <code class="reqn">t</code> where 
+<code class="reqn">K^{\omega}_T</code> attains its maximum.
+</p>
+<p>Argument <code>record</code> indicates if the <code class="reqn">I_{tm}</code>'s are the 
+<code>"upper"</code> or <code>"lower"</code> record indicators (see 
+<code>I.record</code>). If <code>record = "d"</code> or <code>= "s"</code>,
+<code class="reqn">N_{t}^\omega</code> is substituted in the expressions above by 
+<code class="reqn">d_{t}^{\omega,(F)} = N_{t}^{\omega,(FU)} - N_{t}^{\omega,(FL)}</code> or 
+<code class="reqn">s_{t}^{\omega,(F)} = N_{t}^{\omega,(FU)} + N_{t}^{\omega,(FL)}</code>, 
+respectively.
+</p>
+<p>The p-value is calculated by means of the asymptotic Kolmogorov
+distribution. When <code class="reqn">\omega_t \neq 1</code>, the asymptotic result is not 
+fulfilled. In that case, the p-value should be simulated using 	
+permutation or Monte Carlo simulations with the option 	
+<code>permutation.test = TRUE</code> or <code>simulate.p.value = TRUE</code>, 	
+respectively. Permutations is the only method of calculating p-values that	
+does not require that the columns of <code>X</code> be independent.	
+</p>
+<p>As the Kolmogorov distribution is an asymptotic result, it has been seen 	
+that the size and power may be a little below than expected, to correct 	
+this, any of the continuity corrections can be used:
+</p>
+<p>If <code>correct = "fisher"</code>,
+</p>
+<p style="text-align: center;"><code class="reqn">K_T = - \sqrt{T} \log\left(1 - \frac{K_T}{\sqrt{T}}\right).</code>
+</p>
+
+<p>If <code>correct = "vrbik"</code>,
+</p>
+<p style="text-align: center;"><code class="reqn">K_T = K_T + \frac{1}{6\sqrt{T}} + \frac{K_T - 1}{4T}.</code>
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>A <code>"htest"</code> object with elements:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>statistic</code></td>
+<td>
+<p>Value of the test statistic.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p.value</code></td>
+<td>
+<p>P-value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alternative</code></td>
+<td>
+<p>The alternative hypothesis.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estimate</code></td>
+<td>
+<p>The estimated change-point time.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>A character string indicating the type of test performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data.name</code></td>
+<td>
+<p>A character string giving the name of the data.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Jorge Castillo-Mateo
+</p>
+
+
+<h3>References</h3>
+
+<p>Castillo-Mateo J (2022).
+“Distribution-Free Changepoint Detection Tests Based on the Breaking of Records.”
+<em>Environmental and Ecological Statistics</em>, <strong>29</strong>(3), 655-676.
+<a href="https://doi.org/10.1007/s10651-022-00539-2">doi:10.1007/s10651-022-00539-2</a>.
+</p>
+<p>Castillo-Mateo J, Cebrián AC, Asín J (2023).
+“Statistical Analysis of Extreme and Record-Breaking Daily Maximum Temperatures in Peninsular Spain during 1960–2021.”
+<em>Atmospheric Research</em>, <strong>293</strong>, 106934.
+<a href="https://doi.org/10.1016/j.atmosres.2023.106934">doi:10.1016/j.atmosres.2023.106934</a>.
+</p>
+<p>Fisher TJ, Robbins MW (2019). 
+“A Cheap Trick to Improve the Power of a Conservative Hypothesis Test.”
+<em>The American Statistician</em>, <strong>73</strong>(3), 232-242.
+<a href="https://doi.org/10.1080/00031305.2017.1395364">doi:10.1080/00031305.2017.1395364</a>.
+</p>
+<p>Vrbik J (2020). 
+“Deriving CDF of Kolmogorov-Smirnov Test Statistic.”
+<em>Applied Mathematics</em>, <strong>11</strong>(3), 227-246.
+<a href="https://doi.org/10.4236/am.2020.113018">doi:10.4236/am.2020.113018</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>records</code>, <code>foster.test</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">change.point(ZaragozaSeries)
+
+change.point(series_split(TX_Zaragoza$TX), record = "d", 	
+  weights = function(t) sqrt(t), 
+  permutation.test = TRUE, B = 50)
+
+change.point(ZaragozaSeries, record = "d", 
+  weights = function(t) sqrt(t), simulate.p.value = TRUE)
+
+test.result &lt;- change.point(rowMeans(ZaragozaSeries))
+test.result
+
+## Not run: Load package ggplot2 to plot the changepoint
+#library("ggplot2")
+#records(rowMeans(ZaragozaSeries)) + 
+#  ggplot2::geom_vline(xintercept = test.result$estimate, colour = "red")
+
+</code></pre>
+
+
+</div>

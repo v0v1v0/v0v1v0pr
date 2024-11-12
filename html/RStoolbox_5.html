@@ -1,0 +1,158 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>coregisterImages</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Image to Image Co-Registration based on Mutual Information</h2>
+
+<h3>Description</h3>
+
+<p>Shifts an image to match a reference image. Matching is based on maximum
+mutual information.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">coregisterImages(
+  img,
+  ref,
+  shift = 3,
+  shiftInc = 1,
+  nSamples = 100,
+  reportStats = FALSE,
+  verbose,
+  nBins = 100,
+  master = deprecated(),
+  slave = deprecated(),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>img</code></td>
+<td>
+<p>SpatRaster. Image to shift to match reference image. <code>img</code> and <code>ref</code> must have equal numbers of bands.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ref</code></td>
+<td>
+<p>SpatRaster. Reference image. <code>img</code> and <code>ref</code> must have equal numbers of bands.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>shift</code></td>
+<td>
+<p>Numeric or matrix. If numeric, then shift is the maximal absolute radius (in pixels of <code>img</code> resolution) which <code>img</code> is shifted (<code>seq(-shift, shift, by=shiftInc)</code>). 
+If shift is a matrix it must have two columns (x shift and y shift), then only these shift values will be tested.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>shiftInc</code></td>
+<td>
+<p>Numeric. Shift increment (in pixels, but not restricted to integer). Ignored if <code>shift</code> is a matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nSamples</code></td>
+<td>
+<p>Integer. Number of samples to calculate mutual information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reportStats</code></td>
+<td>
+<p>Logical. If <code>FALSE</code> it will return only the shifted images. Otherwise it will return the shifted image in a list containing stats such as mutual information per shift and joint histograms.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Logical. Print status messages. Overrides global RStoolbox.verbose option.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nBins</code></td>
+<td>
+<p>Integer. Number of bins to calculate joint histogram.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>master</code></td>
+<td>
+<p>DEPRECATED! Argument was renamed. Please use <code>ref</code> from now on.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>slave</code></td>
+<td>
+<p>DEPRECATED! Argument was renamed. Please use <code>img</code> from now on.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments passed to <code>writeRaster</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Currently only a simple linear x - y shift is considered and tested. No higher order shifts (e.g. rotation, non-linear transformation) are performed. This means that your imagery
+should already be properly geometrically corrected.
+</p>
+<p><a href="https://en.wikipedia.org/wiki/Mutual_information">Mutual information</a> is a similarity metric originating from information theory.
+Roughly speaking, the higher the mutual information of two data-sets, the higher is their shared information content, i.e. their similarity.
+When two images are exactly co-registered their mutual information is maximal. By trying different image shifts, we aim to find the best overlap which maximises the mutual information.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>reportStats=FALSE</code> returns a SpatRaster (x-y shifted image).
+<code>reportStats=TRUE</code> returns a list containing a data.frame with mutual information per shift ($MI), the shift of maximum MI ($bestShift),
+the joint histograms per shift in a list ($jointHist) and the shifted image ($coregImg).
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(terra)
+library(ggplot2)
+library(reshape2)
+reference &lt;- rlogo
+## Shift reference 2 pixels to the right and 3 up
+missreg &lt;- shift(reference,  2,  3)
+
+## Compare shift
+p &lt;- ggR(reference, sat = 1, alpha = .5) 
+p + ggR(missreg, sat = 1, hue = .5, alpha = 0.5, ggLayer=TRUE) 
+
+## Coregister images (and report statistics)
+coreg &lt;- coregisterImages(missreg, ref = reference,
+                         nSamples = 500, reportStats = TRUE)
+
+## Plot mutual information per shift
+ggplot(coreg$MI) + geom_raster(aes(x,y,fill=mi))
+
+## Plot joint histograms per shift (x/y shift in facet labels)
+ 
+df &lt;- melt(coreg$jointHist)   
+df$L1 &lt;- factor(df$L1, levels = names(coreg$jointHist))
+df[df$value == 0, "value"] &lt;- NA ## don't display p = 0
+ggplot(df) + geom_raster(aes(x = Var2, y = Var1,fill=value)) + facet_wrap(~L1) + 
+       scale_fill_gradientn(name = "p", colours =  heat.colors(10), na.value = NA)
+
+## Compare correction
+ggR(reference, sat = 1, alpha = .5) +
+  ggR(coreg$coregImg, sat = 1, hue = .5, alpha = 0.5, ggLayer=TRUE) 
+</code></pre>
+
+
+</div>

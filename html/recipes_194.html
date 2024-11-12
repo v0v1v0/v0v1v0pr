@@ -1,0 +1,202 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>step_interact</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create interaction variables</h2>
+
+<h3>Description</h3>
+
+<p><code>step_interact()</code> creates a <em>specification</em> of a recipe step that will create
+new columns that are interaction terms between two or more variables.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">step_interact(
+  recipe,
+  terms,
+  role = "predictor",
+  trained = FALSE,
+  objects = NULL,
+  sep = "_x_",
+  keep_original_cols = TRUE,
+  skip = FALSE,
+  id = rand_id("interact")
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>recipe</code></td>
+<td>
+<p>A recipe object. The step will be added to the
+sequence of operations for this recipe.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>terms</code></td>
+<td>
+<p>A traditional R formula that contains interaction
+terms. This can include <code>.</code> and selectors. See <code>selections()</code>
+for more details, and consider using <code>tidyselect::starts_with()</code> when
+dummy variables have been created.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>role</code></td>
+<td>
+<p>For model terms created by this step, what analysis role should
+they be assigned? By default, the new columns created by this step from
+the original variables will be used as <em>predictors</em> in a model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trained</code></td>
+<td>
+<p>A logical to indicate if the quantities for
+preprocessing have been estimated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>objects</code></td>
+<td>
+<p>A list of <code>terms</code> objects for each
+individual interaction.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sep</code></td>
+<td>
+<p>A character value used to delineate variables in an
+interaction (e.g. <code>var1_x_var2</code> instead of the more
+traditional <code>var1:var2</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep_original_cols</code></td>
+<td>
+<p>A logical to keep the original variables in the
+output. Defaults to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>skip</code></td>
+<td>
+<p>A logical. Should the step be skipped when the
+recipe is baked by <code>bake()</code>? While all operations are baked
+when <code>prep()</code> is run, some operations may not be able to be
+conducted on new data (e.g. processing the outcome variable(s)).
+Care should be taken when using <code>skip = TRUE</code> as it may affect
+the computations for subsequent operations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id</code></td>
+<td>
+<p>A character string that is unique to this step to identify it.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>step_interact</code> can create interactions between
+variables. It is primarily intended for <strong>numeric data</strong>;
+categorical variables should probably be converted to dummy
+variables using <code>step_dummy()</code> prior to being used for
+interactions.
+</p>
+<p>Unlike other step functions, the <code>terms</code> argument should
+be a traditional R model formula but should contain no inline
+functions (e.g. <code>log</code>). For example, for predictors
+<code>A</code>, <code>B</code>, and <code>C</code>, a formula such as
+<code>~A:B:C</code> can be used to make a three way interaction
+between the variables. If the formula contains terms other than
+interactions (e.g. <code>(A+B+C)^3</code>) only the interaction terms
+are retained for the design matrix.
+</p>
+<p>The separator between the variables defaults to "<code style="white-space: pre;">⁠_x_⁠</code>" so
+that the three way interaction shown previously would generate a
+column named <code>A_x_B_x_C</code>. This can be changed using the
+<code>sep</code> argument.
+</p>
+<p>When dummy variables are created and are used in interactions,
+selectors can help specify the interactions succinctly. For
+example, suppose a factor column <code>X</code> gets converted to dummy
+variables <code>x_2</code>, <code>x_3</code>, ..., <code>x_6</code> using <code>step_dummy()</code>. If
+you wanted an interaction with numeric column <code>z</code>, you could
+create a set of specific interaction effects (e.g.
+<code>x_2:z + x_3:z</code> and so on) or you could use
+<code>starts_with("x_"):z</code>. When <code>prep()</code> evaluates this step,
+<code>starts_with("x_")</code> resolves to <code>(x_2 + x_3 + x_4 + x_5 + x_6)</code>
+so that the formula is now <code>(x_2 + x_3 + x_4 + x_5 + x_6):z</code> and
+all two-way interactions are created.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An updated version of <code>recipe</code> with the new step added to the
+sequence of any existing operations.
+</p>
+
+
+<h3>Tidying</h3>
+
+<p>When you <code>tidy()</code> this step, a tibble is returned with
+columns <code>terms</code> and <code>id</code>:
+</p>
+
+<dl>
+<dt>terms</dt>
+<dd>
+<p>character, the selectors or variables selected</p>
+</dd>
+<dt>id</dt>
+<dd>
+<p>character, id of this step</p>
+</dd>
+</dl>
+<h3>Case weights</h3>
+
+<p>The underlying operation does not allow for case weights.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+data(penguins, package = "modeldata")
+penguins &lt;- penguins %&gt;% na.omit()
+
+rec &lt;- recipe(flipper_length_mm ~ ., data = penguins)
+
+int_mod_1 &lt;- rec %&gt;%
+  step_interact(terms = ~ bill_depth_mm:bill_length_mm)
+
+# specify all dummy variables succinctly with `starts_with()`
+int_mod_2 &lt;- rec %&gt;%
+  step_dummy(sex, species, island) %&gt;%
+  step_interact(terms = ~ body_mass_g:starts_with("species"))
+
+int_mod_1 &lt;- prep(int_mod_1, training = penguins)
+int_mod_2 &lt;- prep(int_mod_2, training = penguins)
+
+dat_1 &lt;- bake(int_mod_1, penguins)
+dat_2 &lt;- bake(int_mod_2, penguins)
+
+names(dat_1)
+names(dat_2)
+
+tidy(int_mod_1, number = 1)
+tidy(int_mod_2, number = 2)
+
+</code></pre>
+
+
+</div>

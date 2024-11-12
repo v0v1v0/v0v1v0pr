@@ -1,0 +1,180 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>etSeq</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Sequence of event tables</h2>
+
+<h3>Description</h3>
+
+<p>This combines a sequence of event tables.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">etSeq(..., samples = c("clear", "use"), waitII = c("smart", "+ii"), ii = 24)
+
+## S3 method for class 'rxEt'
+seq(...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>The event tables and optionally time between event
+tables, called waiting times in this help document.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>samples</code></td>
+<td>
+<p>How to handle samples when repeating an event
+table.  The options are:
+</p>
+
+<ul>
+<li> <p><code>"clear"</code> Clear sampling records before combining the datasets
+</p>
+</li>
+<li> <p><code>"use"</code> Use the sampling records when combining the datasets
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>waitII</code></td>
+<td>
+<p>This determines how waiting times between events are
+handled. The options are:
+</p>
+
+<ul>
+<li> <p><code>"smart"</code> This "smart" handling of waiting times is the
+default option.  In this case, if the waiting time is above the
+last observed inter-dose interval in the first combined event
+table, then the actual time between doses is given by the wait
+time.  If it is smaller than the last observed inter-dose
+interval, the time between event tables is given by the inter-dose
+interval + the waiting time between event tables.
+</p>
+</li>
+<li> <p><code>"+ii"</code> In this case, the wait time is added to the
+inter-dose interval no matter the length of the wait time or
+inter-dose interval
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ii</code></td>
+<td>
+<p>If there was no inter-dose intervals found in the event
+table, assume that the interdose interval is given by this
+<code>ii</code> value.  By default this is <code>24</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This <code>seq</code>uences all the event tables in added in the
+argument list <code>...</code>.  By default when combining the event
+tables the offset is at least by the last inter-dose interval in
+the prior event table (or <code>ii</code>).  If you separate any of the
+event tables by a number, the event tables will be separated at
+least the wait time defined by that number or the last inter-dose
+interval.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An event table
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Matthew L Fidler, Wenping Wang
+</p>
+
+
+<h3>References</h3>
+
+<p>Wang W, Hallow K, James D (2015). "A Tutorial on rxode2: Simulating
+Differential Equation Pharmacometric Models in R." CPT:
+Pharmacometrics and Systems Pharmacology, 5(1), 3-10. ISSN 2163-8306,
+&lt;URL: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4728294/&gt;.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>eventTable</code>, <code>add.sampling</code>,
+<code>add.dosing</code>, <code>et</code>,
+<code>etRep</code>, <code>etRbind</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+
+library(units)
+
+## These are making the more complex regimens of the rxode2 tutorial
+
+## bid for 5 days
+bid &lt;- et(timeUnits="hr") %&gt;%
+       et(amt=10000,ii=12,until=set_units(5, "days"))
+
+## qd for 5 days
+qd &lt;- et(timeUnits="hr") %&gt;%
+      et(amt=20000,ii=24,until=set_units(5, "days"))
+
+## bid for 5 days followed by qd for 5 days
+
+et &lt;- seq(bid,qd) %&gt;% et(seq(0,11*24,length.out=100));
+
+
+## Now Infusion for 5 days followed by oral for 5 days
+
+##  note you can dose to a named compartment instead of using the compartment number
+infusion &lt;- et(timeUnits = "hr") %&gt;%
+      et(amt=10000, rate=5000, ii=24, until=set_units(5, "days"), cmt="centr")
+
+
+qd &lt;- et(timeUnits = "hr") %&gt;% et(amt=10000, ii=24, until=set_units(5, "days"), cmt="depot")
+
+et &lt;- seq(infusion,qd)
+
+
+## 2wk-on, 1wk-off
+
+qd &lt;- et(timeUnits = "hr") %&gt;% et(amt=10000, ii=24, until=set_units(2, "weeks"), cmt="depot")
+
+et &lt;- seq(qd, set_units(1,"weeks"), qd) %&gt;%
+     add.sampling(set_units(seq(0, 5.5,by=0.005),weeks))
+
+
+## You can also repeat the cycle easily with the rep function
+
+qd &lt;-et(timeUnits = "hr") %&gt;% et(amt=10000, ii=24, until=set_units(2, "weeks"), cmt="depot")
+
+et &lt;- etRep(qd, times=4, wait=set_units(1,"weeks")) %&gt;%
+     add.sampling(set_units(seq(0, 12.5,by=0.005),weeks))
+
+
+
+</code></pre>
+
+
+</div>

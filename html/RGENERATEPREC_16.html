@@ -1,0 +1,203 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>predict.PrecipitationOccurrenceModel</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Prediction of a  <code>PrecipitationOccurrenceModel</code> model object</h2>
+
+<h3>Description</h3>
+
+<p>It is a wrapper of <code>predict.glm</code> method for the a <code>PrecipitationOccurrenceModel</code> model object S3 class.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'PrecipitationOccurrenceModel'
+predict(
+  object,
+  newdata = NULL,
+  type = "response",
+  previous = NULL,
+  endogenous = NULL,
+  ...
+)
+
+## S3 method for class 'PrecipitationOccurrenceMultiSiteModel'
+predict(object, ...)
+
+## S3 method for class 'PrecipitationAmountModel'
+predict(
+  object,
+  newdata = NULL,
+  origin_newdata = NA,
+  precipitation.value.random.generation = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>model returned by <code>PrecipitationOccurrenceModel</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newdata</code></td>
+<td>
+<p>predictor or exogenous variables</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>see <code>predict.glm</code>. Default is <code>"response"</code>. See <code>predict.glm</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>previous</code></td>
+<td>
+<p>logical vector containing previously occurred states.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>endogenous</code></td>
+<td>
+<p>String vector containing the name of the endogenous variables. 
+It is used if the endogenous variables are more than one, otherwise is set <code>NULL</code>(Default).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>origin_newdata</code></td>
+<td>
+<p>character string containing the date corresponding the first row of <code>newdata</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>precipitation.value.random.generation</code></td>
+<td>
+<p>logical value. 
+If it is <code>FALSE</code> (Default) the method <code>predict.PrecipitationAmountModel</code> returns conditioned random values, 
+otherwise these values are converted to precipitation values  through their observed non-parametric distributions.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A vector or a data frame reporting predicted time series for each station.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>predict.glm</code>,<code>PrecipitationOccurrenceModel</code>
+</p>
+<p><code>predict.glm</code>,<code>predict.glm</code>,<code>PrecipitationOccurrenceModel</code>,<code>PrecipitationAmountModel</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(RGENERATEPREC)
+
+data(trentino)
+
+year_min &lt;- 1961
+year_max &lt;- 1990
+
+period &lt;- PRECIPITATION$year&gt;=year_min &amp; PRECIPITATION$year&lt;=year_max
+period_temp &lt;- TEMPERATURE_MAX$year&gt;=year_min &amp; TEMPERATURE_MAX$year&lt;=year_max
+
+prec_mes &lt;- PRECIPITATION[period,]
+Tx_mes &lt;- TEMPERATURE_MAX[period_temp,]
+Tn_mes &lt;- TEMPERATURE_MIN[period_temp,]
+accepted &lt;- array(TRUE,length(names(prec_mes)))
+names(accepted) &lt;- names(prec_mes)
+for (it in names(prec_mes)) {
+	acc &lt;- TRUE
+	acc &lt;- (length(which(!is.na(Tx_mes[,it])))==length(Tx_mes[,it]))
+	acc &lt;- (length(which(!is.na(Tn_mes[,it])))==length(Tn_mes[,it])) &amp; acc
+	accepted[it]  &lt;- (length(which(!is.na(prec_mes[,it])))==length(prec_mes[,it])) &amp; acc
+	
+}
+
+valmin &lt;- 1.0
+prec_mes &lt;- prec_mes[,accepted]
+
+
+
+Tx_mes &lt;- Tx_mes[,accepted]
+Tn_mes &lt;- Tn_mes[,accepted]
+origin &lt;- paste(year_min,1,1,sep="-")
+
+
+prec_occurrence_mes &lt;- prec_mes&gt;=valmin
+
+station &lt;- names(prec_mes)[!(names(prec_mes) %in% c("day","month","year"))]
+it &lt;- station[2]
+vect &lt;- Tx_mes[,it]-Tn_mes[,it]
+months &lt;- factor(prec_mes$month)
+model &lt;- PrecipitationOccurrenceModel(x=prec_mes[,it],exogen=vect,monthly.factor=months)
+
+probs &lt;- predict(model)
+
+nday &lt;- 3.0
+vect_new &lt;- array(1.0,nday)
+months_new &lt;- array(1,nday)
+row_test &lt;- 2000:2007
+newdata &lt;- model$predictor[row_test,]
+probs2 &lt;- predict(model,newdata=newdata)
+
+probs[row_test]==probs2
+###
+
+
+
+
+
+prec_occurrence_mes &lt;- prec_mes&gt;=valmin
+
+station &lt;- names(prec_mes)[!(names(prec_mes) %in% c("day","month","year"))]
+
+station &lt;- station[1:4] ## reduced the dataset!!! 
+Tx_mes &lt;- Tx_mes[,station]
+Tn_mes &lt;- Tn_mes[,station]
+
+prec_mes &lt;- prec_mes[,station]
+exogen &lt;- Tx_mes-Tn_mes
+months &lt;- factor(prec_mes$month)
+
+
+### Not Run 
+### Please uncomment the following lines to run them 
+
+
+model_multisite &lt;- PrecipitationOccurrenceMultiSiteModel(x=prec_mes,
+exogen=exogen,origin=origin,multisite_type="wilks")
+
+
+model_multisite_logit &lt;- PrecipitationOccurrenceMultiSiteModel(x=prec_mes,
+exogen=exogen,origin=origin,multisite_type="logit")
+
+
+probs_multimodel  &lt;- predict(model_multisite_logit)
+
+
+
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,114 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>RI.AQRules.RST</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Rule induction using the AQ algorithm</h2>
+
+<h3>Description</h3>
+
+<p>A version of the AQ algorithm which was originally proposed by R.S. Michalski.
+This implamentation is based on a concept of a local (object-relative) decision reduct from RST.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">RI.AQRules.RST(decision.table, confidence = 1, timesCovered = 1)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>decision.table</code></td>
+<td>
+<p>an object inheriting from the <code>"DecisionTable"</code> class, which represents a decision system.
+See <code>SF.asDecisionTable</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>confidence</code></td>
+<td>
+<p>a numeric value giving the minimal confidence of computed rules.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>timesCovered</code></td>
+<td>
+<p>a positive integer. The algorithm will try to find a coverage of training examples with rules,
+such that each example is covered by at least <code>timesCovered</code> rules and no rule can be removed from
+the coverage without breaking this property. This is not always possible - there is a chance that some rules
+are duplicated if the value of <code>timesCovered</code> is larger than 1.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An object of a class <code>"RuleSetRST"</code>. For details see <code>RI.indiscernibilityBasedRules.RST</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Andrzej Janusz
+</p>
+
+
+<h3>References</h3>
+
+<p>R.S. Michalski, K. Kaufman, J. Wnek: "The AQ Family of Learning Programs: A Review of Recent Developments
+and an Exemplary Application", Reports of Machine Learning and Inference Laboratory, George Mason University (1991)
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>predict.RuleSetFRST</code>, <code>RI.indiscernibilityBasedRules.RST</code>, <code>RI.CN2Rules.RST</code>,
+<code>RI.LEM2Rules.RST</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">###########################################################
+## Example
+##############################################################
+data(RoughSetData)
+wine.data &lt;- RoughSetData$wine.dt
+set.seed(13)
+wine.data &lt;- wine.data[sample(nrow(wine.data)),]
+
+## Split the data into a training set and a test set,
+## 60% for training and 40% for testing:
+idx &lt;- round(0.6 * nrow(wine.data))
+wine.tra &lt;-SF.asDecisionTable(wine.data[1:idx,],
+                              decision.attr = 14,
+                              indx.nominal = 14)
+wine.tst &lt;- SF.asDecisionTable(wine.data[(idx+1):nrow(wine.data), -ncol(wine.data)])
+
+true.classes &lt;- wine.data[(idx+1):nrow(wine.data), ncol(wine.data)]
+
+## discretization:
+cut.values &lt;- D.discretization.RST(wine.tra,
+                                   type.method = "unsupervised.quantiles",
+                                   nOfIntervals = 3)
+data.tra &lt;- SF.applyDecTable(wine.tra, cut.values)
+data.tst &lt;- SF.applyDecTable(wine.tst, cut.values)
+
+## rule induction from the training set:
+rules &lt;- RI.AQRules.RST(data.tra, confidence = 0.9, timesCovered = 3)
+rules
+
+## predicitons for the test set:
+pred.vals &lt;- predict(rules, data.tst)
+
+## checking the accuracy of predictions:
+mean(pred.vals == true.classes)
+
+</code></pre>
+
+
+</div>

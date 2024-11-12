@@ -1,0 +1,146 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>betaks</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculates Beta and Ks</h2>
+
+<h3>Description</h3>
+
+<p><code>betaks</code> ingests the time-mean zonal wind (u), transform it in
+mercator coordinates (um); calculates the meridional gradient of
+the absolute vorticity (beta) in mercator coordinates (betam);
+and, finally, calculates stationary wavenumber (Ks) in mercator coordinates
+(ksm) (see: Hoskins and Ambrizzi, 1993). <code>betaks</code> returns the um, betam,
+and lat, for being ingested in <code>ray</code> or
+<code>ray_source</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">betaks(
+  u,
+  lat = "lat",
+  lon = "lon",
+  uname = "uwnd",
+  ofile,
+  a = 6371000,
+  plots = FALSE,
+  show.warnings = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>u</code></td>
+<td>
+<p>String indicating the input data filename. The file to be
+passed consists in a netCDF file with only time-mean zonal wind at one
+pressure level, latitude in ascending order (not a requisite), and longitude
+from 0 to 360.
+It is required that the read dimensions express
+longitude (in rows) x latitude (in columns).
+<strong>u</strong> also can be a numerical matrix with time-mean zonal wind at one
+pressure level, latitude in ascending order (not a requisite), and longitude
+from 0 to 360. It is required that the read dimensions express longitude
+(in rows) x latitude (in columns).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lat</code></td>
+<td>
+<p>String indicating the name of the latitude field. If
+<strong>u</strong> is a matrix, <strong>lat</strong> must be numeric.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lon</code></td>
+<td>
+<p>String indicating the name of the longitude field.If
+<strong>u</strong> is a matrix, <strong>lon</strong> must be numeric from 0 to 360.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>uname</code></td>
+<td>
+<p>String indicating the variable name field</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ofile</code></td>
+<td>
+<p>String indicating the file name for store output data.
+If missing, will not return a netCDF file</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>a</code></td>
+<td>
+<p>Numeric indicating the Earth's radio (m)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plots</code></td>
+<td>
+<p>Logical, if TRUE will produce filled.countour plots</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>show.warnings</code></td>
+<td>
+<p>Logical, if TRUE will warns about NaNs in sqrt(&lt;0)</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>list with one vector (lat) and 3 matrices (um, betam, and ksm)
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">{
+# u is NetCDF and lat and lon characters
+input &lt;- system.file("extdata",
+                     "uwnd.mon.mean_200hPa_2014JFM.nc",
+                      package = "raytracing")
+b &lt;- betaks(u = input, plots = TRUE)
+b$ksm[] &lt;- ifelse(b$ksm[] &gt;= 16 |
+                  b$ksm[] &lt;= 0, NA, b$ksm[])
+cores &lt;- c("#ff0000","#ff5a00","#ff9a00","#ffce00","#f0ff00")
+graphics::filled.contour(b$ksm[, -c(1:5, 69:73)] ,
+                         col = rev(colorRampPalette(cores, bias = 0.5)(20)),
+                         main = "Ks")
+
+# u, lat and lon as numeric
+input &lt;- system.file("extdata",
+                     "uwnd.mon.mean_200hPa_2014JFM.bin",
+                      package = "raytracing")
+u &lt;- readBin(input,
+             what = numeric(),
+             size = 4,
+             n = 144*73*4)
+lat &lt;- seq(-90, 90, 2.5)
+lon &lt;- seq(-180, 180 - 1, 2.5)
+u &lt;- matrix(u,
+            nrow = length(lon),
+            ncol = length(lat))
+graphics::filled.contour(u, main = "Zonal Wind Speed [m/s]")
+b &lt;- betaks(u, lat, lon)
+b$ksm[] &lt;- ifelse(b$ksm[] &gt;= 16 |
+                  b$ksm[] &lt;= 0, NA, b$ksm[])
+cores &lt;- c("#ff0000","#ff5a00","#ff9a00","#ffce00","#f0ff00")
+graphics::filled.contour(b$ksm[, -c(1:5, 69:73)] ,
+                         col = rev(colorRampPalette(cores, bias = 0.5)(20)),
+                         main = "Ks")
+}
+</code></pre>
+
+
+</div>

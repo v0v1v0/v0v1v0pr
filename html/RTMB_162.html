@@ -1,0 +1,240 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Tape</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>The AD tape</h2>
+
+<h3>Description</h3>
+
+<p>The AD tape as an R function
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">MakeTape(f, x)
+
+## S3 method for class 'Tape'
+x$name
+
+## S3 method for class 'Tape'
+print(x, ...)
+
+TapeConfig(
+  comparison = c("NA", "forbid", "tape", "allow"),
+  atomic = c("NA", "enable", "disable"),
+  vectorize = c("NA", "disable", "enable")
+)
+
+DataEval(f, x)
+
+GetTape(obj, name = c("ADFun", "ADGrad", "ADHess"), warn = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>f</code></td>
+<td>
+<p>R function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>numeric vector</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p>Name of a tape method</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Ignored</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>comparison</code></td>
+<td>
+<p>Set behaviour of AD comparison (<code>"&gt;"</code>,<code>"=="</code>, etc).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>atomic</code></td>
+<td>
+<p>Set behaviour of AD BLAS operations (notably matrix multiply).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vectorize</code></td>
+<td>
+<p>Enable/disable AD vectorized 'Ops' and 'Math'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>obj</code></td>
+<td>
+<p>Output from <code>MakeADFun</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>warn</code></td>
+<td>
+<p>Give warning if <code>obj</code> was created using another DLL?</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>A 'Tape' is a representation of a function that accepts <em>fixed size</em> numeric input and returns <em>fixed size</em> numeric output.
+The tape can be constructed using <code>F &lt;- MakeTape(f, x)</code> where <code>f</code> is a standard <em>differentiable</em> R function (or more precisely: One using only functions that are documented to work for AD types).
+Having constructed a tape F, a number of methods are available:
+</p>
+<p>Evaluation:
+</p>
+
+<ul>
+<li>
+<p> Normal function evaluation 'F(x)' for numeric input.
+</p>
+</li>
+<li>
+<p> AD evaluation 'F(x)' as part of other tapes.
+</p>
+</li>
+<li>
+<p> Jacobian calculations using 'F$jacobian(x)'.
+</p>
+</li>
+</ul>
+<p>Transformation:
+</p>
+
+<ul>
+<li>
+<p> Get new tape representing the Jacobian using <code>F$jacfun()</code>.
+</p>
+</li>
+<li>
+<p> Get new tape representing the sparse Jacobian using <code>F$jacfun(sparse=TRUE)</code>.
+</p>
+</li>
+<li>
+<p> Get new tape representing the Laplace approximation using <code>F$laplace(indices)</code>.
+</p>
+</li>
+<li>
+<p> Get new tape representing the Saddle Point approximation using <code>F$laplace(indices,SPA=TRUE)</code>.
+</p>
+</li>
+<li>
+<p> Get new tape representing the optimum (minimum) wrt <code>indices</code> by <code>F$newton(indices)</code>.
+</p>
+</li>
+<li>
+<p> Get a 'shared pointer' representation of a tape using <code>F$atomic()</code>.
+</p>
+</li>
+<li>
+<p> Get tape of a single node by <code>F$node(index)</code> (mainly useful for derivative debugging).
+</p>
+</li>
+</ul>
+<p>Modification:
+</p>
+
+<ul><li>
+<p> Simplify internal representation of a tape using <code>F$simplify()</code>.
+</p>
+</li></ul>
+<p>Extract tape information:
+</p>
+
+<ul>
+<li>
+<p> Get internal parameter vector by <code>F$par()</code>.
+</p>
+</li>
+<li>
+<p> Get computational graph by <code>F$graph()</code>.
+</p>
+</li>
+<li>
+<p> Print the tape by <code>F$print()</code>.
+</p>
+</li>
+<li>
+<p> Get internal arrays as a <code>data.frame</code> by <code>F$data.frame()</code>.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>Object of class <code>"Tape"</code>.
+</p>
+
+
+<h3>Methods (by generic)</h3>
+
+
+<ul>
+<li> <p><code>$</code>: Get a tape method.
+</p>
+</li>
+<li> <p><code>print(Tape)</code>: Print method
+</p>
+</li>
+</ul>
+<h3>Functions</h3>
+
+
+<ul>
+<li> <p><code>MakeTape()</code>: Generate a 'Tape' of an R function.
+</p>
+</li>
+<li> <p><code>TapeConfig()</code>: Global configuration parameters of the tape (experts only!)
+<b>comparison</b> By default, AD comparison gives an error
+(<code>comparison="forbid"</code>).
+This is the safe and recommended behaviour, because comparison is a
+non-differentiable operation. If you are building a tape that
+requires indicator functions e.g. <code>f(x)*(x&lt;0)+g(x)*(x&gt;=0)</code>
+then use <code>comparison="tape"</code> to add the indicators to the
+tape. A final option <code>comparison="allow"</code> exists for
+testing/illustration purposes. Do not use.
+</p>
+</li>
+<li> <p><code>DataEval()</code>: Move a chunk of data from R to the tape by evaluating a normal R function (replaces TMB functionality 'DATA_UPDATE').
+</p>
+</li>
+<li> <p><code>GetTape()</code>: Extract tapes from a model object created by <code>MakeADFun</code>.
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">F &lt;- MakeTape(prod, numeric(3))
+show(F)
+F$print()
+H &lt;- F$jacfun()$jacfun() ## Hessian tape
+show(H)
+#### Handy way to plot the graph of F
+if (requireNamespace("igraph")) {
+   G &lt;- igraph::graph_from_adjacency_matrix(F$graph())
+   plot(G, vertex.size=17, layout=igraph::layout_as_tree)
+}
+## Taped access of an element of 'rivers' dataset
+F &lt;- MakeTape(function(i) DataEval( function(i) rivers[i] , i), 1 )
+F(1)
+F(2)
+</code></pre>
+
+
+</div>

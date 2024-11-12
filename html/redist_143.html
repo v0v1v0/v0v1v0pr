@@ -1,0 +1,224 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>redist_shortburst</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Redistricting Optimization through Short Bursts</h2>
+
+<h3>Description</h3>
+
+<p>This function uses <code>redist_mergesplit()</code> or <code>redist_flip()</code> to optimize a
+redistrict plan according to a user-provided criteria. It does so by running
+the Markov chain for "short bursts" of usually 10 iterations, and then
+starting the chain anew from the best plan in the burst, according to the
+criteria. This implements the ideas in the below-referenced paper, "Voting
+Rights, Markov Chains, and Optimization by Short Bursts."
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">redist_shortburst(
+  map,
+  score_fn = NULL,
+  stop_at = NULL,
+  burst_size = ifelse(backend == "mergesplit", 10L, 50L),
+  max_bursts = 500L,
+  maximize = TRUE,
+  init_plan = NULL,
+  counties = NULL,
+  constraints = redist_constr(map),
+  compactness = 1,
+  adapt_k_thresh = 0.95,
+  reversible = TRUE,
+  fixed_k = NULL,
+  return_all = TRUE,
+  thin = 1L,
+  backend = "mergesplit",
+  flip_lambda = 0,
+  flip_eprob = 0.05,
+  verbose = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>map</code></td>
+<td>
+<p>A redist_map object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>score_fn</code></td>
+<td>
+<p>A function which takes a matrix of plans and returns a score
+(or, generally, a row vector) for each plan. Can also be a purrr-style
+anonymous function. See <code>?scorers</code> for some function factories
+for common scoring rules.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stop_at</code></td>
+<td>
+<p>A threshold to stop optimization at. When <code>score_fn</code> returns a
+row vector per plan, <code>maximize</code> can be an equal-length vector specifying a
+threshold for each dimension, which must all be met for the algorithm to
+stop.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>burst_size</code></td>
+<td>
+<p>The size of each burst. 10 is recommended for the
+<code>mergesplit</code> backend and 50 for the <code>flip</code> backend. Can also provide
+burst schedule function which takes the current iteration (an integer)
+and returns the desired burst size. This can be a random function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_bursts</code></td>
+<td>
+<p>The maximum number of bursts to run before returning.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maximize</code></td>
+<td>
+<p>If <code>TRUE</code>, try to maximize the score; otherwise, try to
+minimize it. When <code>score_fn</code> returns a row vector per plan, <code>maximize</code> can
+be an equal-length vector specifying whether each dimension should be
+maximized or minimized.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init_plan</code></td>
+<td>
+<p>The initial state of the map. If not provided, will default to
+the reference map of the <code>map</code> object, or if none exists, will sample
+a random initial state using <code>redist_smc()</code>. You can also request
+a random initial state by setting <code>init_plan="sample"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>counties</code></td>
+<td>
+<p>A vector containing county (or other administrative or
+geographic unit) labels for each unit, which may be integers ranging from 1
+to the number of counties, or a factor or character vector.  If provided, the
+algorithm will only generate maps which split up to <code>ndists-1</code> counties.
+If no county-split constraint is desired, this parameter should be left blank.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>constraints</code></td>
+<td>
+<p>A <code>redist_constr</code> with Gibbs constraints.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>compactness</code></td>
+<td>
+<p>Controls the compactness of the generated districts, with
+higher values preferring more compact districts. Must be non-negative. See
+<code>redist_mergesplit</code> for more information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adapt_k_thresh</code></td>
+<td>
+<p>The threshold value used in the heuristic to select a
+value <code>k_i</code> for each splitting iteration.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reversible</code></td>
+<td>
+<p>If <code>FALSE</code> and <code>backend="mergesplit"</code>, the Markov chain
+used will not be reversible. This may speed up optimization.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fixed_k</code></td>
+<td>
+<p>If not <code>NULL</code>, will be used to set the <code>k</code> parameter for the
+<code>mergesplit</code> backend. If e.g. <code>k=1</code> then the best edge in each spanning
+tree will be used.  Lower values may speed up optimization at the
+cost of the Markov chain no longer targeting a known distribution.
+Recommended only in conjunction with <code>reversible=FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return_all</code></td>
+<td>
+<p>Whether to return all the burst results or just the best
+one (generally, the Pareto frontier). Recommended for monitoring purposes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thin</code></td>
+<td>
+<p>Save every <code>thin</code>-th sample. Defaults to no thinning (1). Ignored
+if <code>return_all=TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>backend</code></td>
+<td>
+<p>the MCMC algorithm to use within each burst, either
+"mergesplit" or "flip".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flip_lambda</code></td>
+<td>
+<p>The parameter determining the number of swaps to attempt each iteration of flip mcmc.
+The number of swaps each iteration is equal to Pois(lambda) + 1. The default is 0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flip_eprob</code></td>
+<td>
+<p>The probability of keeping an edge connected in flip mcmc. The default is 0.05.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Whether to print out intermediate information while sampling.
+Recommended for monitoring purposes.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>a <code>redist_plans</code> object containing the final best plan
+(or the best plans after each burst, if <code>return_all=TRUE</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Cannon, S., Goldbloom-Helzner, A., Gupta, V., Matthews, J. N., &amp; Suwal, B.
+(2020). Voting Rights, Markov Chains, and Optimization by Short Bursts. arXiv
+preprint arXiv:2011.02288.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+data(iowa)
+
+iowa_map &lt;- redist_map(iowa, existing_plan = cd_2010, pop_tol = 0.01)
+redist_shortburst(iowa_map, scorer_frac_kept(iowa_map), max_bursts = 50)
+redist_shortburst(iowa_map, ~ 1 - scorer_frac_kept(iowa_map)(.), max_bursts = 50)
+
+
+</code></pre>
+
+
+</div>

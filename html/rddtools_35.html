@@ -1,0 +1,143 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rdd_pred</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>RDD coefficient prediction</h2>
+
+<h3>Description</h3>
+
+<p>Function to predict the RDD coefficient in presence of covariate (without covariates, returns the same than <code>rdd_coef</code>)
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rdd_pred(
+  object,
+  covdata,
+  se.fit = TRUE,
+  vcov. = NULL,
+  newdata,
+  stat = c("identity", "sum", "mean"),
+  weights
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>A RDD regression object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covdata</code></td>
+<td>
+<p>New data.frame specifying the values of the covariates, can have multiple rows.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>se.fit</code></td>
+<td>
+<p>A switch indicating if standard errors are required.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vcov.</code></td>
+<td>
+<p>Specific covariance function (see package sandwich ), by default uses the <code>vcov</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newdata</code></td>
+<td>
+<p>Another data on which to evaluate the x/D variables. Useful in very few cases.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stat</code></td>
+<td>
+<p>The statistic to use if there are multiple predictions, 'identity' just returns the single values, 'mean' averages them</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>Eventual weights for the averaging of the predicted values.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The function <code>rdd_pred</code> does a simple prediction of the RDD effect
+</p>
+<p style="text-align: center;"><code class="reqn">RDDeffect= \mu(x, z, D=1) - \mu(x, z, D=0)</code>
+</p>
+
+<p>When there are no covariates (and z is irrelevant in the equation above), this amounts exactly to the usual RDD coefficient, 
+shown in the outputs, or obtained with <code>rdd_coef</code>. If there were covariates, and if these covariates were estimated using the 
+“include” <em>strategy</em> and with different coefficients left and right to the cutoff (i.e.
+had argument <em>slope</em> = “separate”), than the RDD effect is also dependent on the value of the covariate(s). 
+<code>rdd_pred</code> allows to set the value of the covariate(s) at which to evaluate the RDD effect, by providing a data.frame with
+the values for the covariates. Note that the effect can be evaluated at multiple points, if you provide multiple rows of <code>covdata</code>. 
+</p>
+<p>In pressence of covariate-specific RDD effect, one may wish to estimate an average effect. This can be done by setting the argument <code>stat='mean'</code>. 
+Weights can additionally be added, with the argument <code>weights</code>, to obtain a weighted-average of the predictions. Note however that in most cases, 
+this will be equivalent to provide covariates at their (weighted) mean value, which will be much faster also!
+</p>
+<p>Standard errors, obtained setting the argument <code>se.fit=TRUE</code>, are computed using following formula:
+</p>
+<p style="text-align: center;"><code class="reqn">x_i \Omega x_i^{'}</code>
+</p>
+
+<p>where <code class="reqn">\Omega</code> is the estimated variance-covariance matrix ( by default <code class="reqn">\sigma^2(X^{'}X)^{-1}</code> using <code>vcov</code>) and 
+<code class="reqn">x_i</code> is the input data (a mix of covdata and input data). If one wishes individual predictions, standard errors are simply obtained 
+as the square of that diagonal matrix, whereas for mean/sum, covariances are taken into account.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns the predicted value(s), and, if se.fit=TRUE, their standard errors.
+</p>
+
+
+<h3>References</h3>
+
+<p>Froehlich (2007) Regression discontinuity design with covariates, IZA discussion paper 3024
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Load data, add (artificial) covariates:
+data(house)
+n_Lee &lt;- nrow(house)
+z1 &lt;- runif(n_Lee)
+house_rdd &lt;- rdd_data(y=y, x=x, data=house, covar=z1, cutpoint=0)
+
+# estimation without covariates: rdd_pred is the same than rdd_coef:
+reg_para &lt;- rdd_reg_lm(rdd_object=house_rdd)
+
+rdd_pred(reg_para)
+rdd_coef(reg_para, allInfo=TRUE)
+
+# estimation with covariates: 
+reg_para_cov &lt;- rdd_reg_lm(rdd_object=house_rdd,
+                          covariates='z1',
+                          covar.opt=list(slope='separate') )
+
+# should obtain same result as with RDestimate                             
+rdd_pred(reg_para_cov, covdata=data.frame(z1=0)) 
+  
+# evaluate at mean of z1 (as comes from uniform)
+rdd_pred(reg_para_cov, covdata=data.frame(z1=0.5))
+</code></pre>
+
+
+</div>

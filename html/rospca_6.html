@@ -1,0 +1,294 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rospca</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+RObust Sparse PCA algorithm
+</h2>
+
+<h3>Description</h3>
+
+<p>Sparse robust PCA algorithm based on the ROBPCA algorithm of Hubert et al. (2005).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rospca(X, k, kmax = 10, alpha = 0.75, h = NULL, ndir = "all", grid = TRUE, 
+       lambda = 10^(-6), sparse = "varnum", para, stand = TRUE, skew = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>An <code class="reqn">n</code> by <code class="reqn">p</code> matrix or data matrix with observations in the rows and variables in the columns.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>Number of principal components that will be used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kmax</code></td>
+<td>
+<p>Maximal number of principal components that will be computed, default is 10.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>Robustness parameter, default is 0.75.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>h</code></td>
+<td>
+<p>The number of outliers the algorithm should resist is given by <code class="reqn">n-h</code>. Any value for <code>h</code> between <code class="reqn">n/2</code> and <code class="reqn">n</code> may be specified. Default is <code>NULL</code> which uses <code>h=ceiling(alpha*n)+1</code>. Do not specify <code>alpha</code> and <code>h</code> at the same time. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ndir</code></td>
+<td>
+<p>Number of directions used when computing the outlyingness (or the adjusted outlyingness when <code>skew=TRUE</code>), see <code>outlyingness</code> and <code>adjOutl</code> for more details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grid</code></td>
+<td>
+<p>Logical indicating if the grid version of sparse PCA should be used (<code>sPCAgrid</code> with <code>method="sd"</code> from <span class="pkg">pcaPP</span>). Otherwise, the version of Zou et al. (2006) is used (<code>spca</code> from <span class="pkg">elasticnet</span>). Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>Sparsity parameter of <code>sPCAgrid</code> (when <code>grid=TRUE</code>) or ridge parameter of <code>spca</code> (when
+<code>grid=FALSE</code>), default is <code class="reqn">10^{-6}</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sparse</code></td>
+<td>
+<p>Parameter for <code>spca</code> (only used when <code>grid=FALSE</code>), see <code>spca</code> for more details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>para</code></td>
+<td>
+<p>Parameter for <code>spca</code> (only used when <code>grid=FALSE</code>), see <code>spca</code> for more details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stand</code></td>
+<td>
+<p>If <code>TRUE</code>, the data are standardised robustly in the beginning and classically before applying sparse 
+PCA. If <code>FALSE</code>, the data are only mean-centred before applying sparse PCA. Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>skew</code></td>
+<td>
+<p>Logical indicating if the version for skewed data should be applied, default is <code>FALSE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The ROSPCA algorithm consists of an outlier detection part (step 1), and a sparsification part (steps 2 and 3).
+We give an overview of these steps here and refer to Hubert et al. (2016) for more details. 
+</p>
+<p><b>Step 1</b>: This is a robustness step similar to ROBPCA. When a standardisation is appropriate, the variables are first robustly standardised by means of the componentwise median and the <code class="reqn">Q_n</code>. Using the singular value decomposition (SVD) of the resulting data matrix, the <code class="reqn">p</code>-dimensional data space is reduced to the affine subspace spanned by the <code class="reqn">n</code> observations. Then, the subset of the <code class="reqn">h</code> observations with smallest outlyingness is selected (<code class="reqn">H_0</code>). Thereafter, a reweighting step is applied: given the orthogonal distances to the preliminary PCA subspace determined by the observations in <code class="reqn">H_0</code>, all observations with orthogonal distances (ODs) smaller than the corresponding cut-off are kept (<code class="reqn">H_1</code>).
+</p>
+<p><b>Step 2</b>: First, the data points with indices in <code class="reqn">H_1</code> are standardised using the componentwise median and the <code class="reqn">Q_n</code> and sparse PCA is applied to them. Then, an additional reweighting step is performed which incorporates information about the sparse structure of the data. Variables with zero loadings on all <code class="reqn">k</code> PCs are discarded and then the orthogonal distances to the estimated sparse PCA subspace are computed. This yields an index set <code class="reqn">H_2</code> of observations with orthogonal distance smaller than the cut-off corresponding to these new orthogonal distances. Thereafter, the subset of observations with indices in <code class="reqn">H_2</code> is standardised using the componentwise median and the <code class="reqn">Q_n</code> of the observations in <code class="reqn">H_1</code> (the same standardisation as in the first time sparse PCA is applied) and sparse PCA is applied to them which gives sparse loadings. Adding the discarded zero loadings again gives the loadings matrix <code class="reqn">P_2</code>.
+</p>
+<p><b>Step 3</b>: In the last step, the eigenvalues are estimated robustly by applying the <code class="reqn">Q_n^2</code> estimator on the scores of the observations with indices in <code class="reqn">H_2</code>. In order to robustly estimate the centre, the score distances are computed and all observations of <code class="reqn">H_2</code> with a score distance smaller than the corresponding cut-off are considered, this is the set <code class="reqn">H_3</code>. Then, the centre is estimated by the mean of these observations. Finally, the estimates of the eigenvalues are recomputed as the sample variance of the (new) scores of the observations with indices in <code class="reqn">H_3</code>.
+The eigenvalues are sorted in descending order, so the order of the PCs may change. The columns of the loadings and scores matrices are changed accordingly.
+</p>
+<p>Note that when it is not necessary to standardise the data, they are only centred as in the scheme above, but not scaled.
+</p>
+<p>In contrast to Hubert et al. (2016), we allow for SPCA (Zou et al., 2006) to be used as the sparse PCA method inside ROSPCA (<code>grid=FALSE</code>). Moreover, we also include a skew-adjusted version of ROSPCA (<code>skew=TRUE</code>) similar to the skew-adjusted version of ROBPCA (Hubert et al., 2009). This adjusted version is not detailed in Hubert et al. (2016).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with components:<br></p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>loadings</code></td>
+<td>
+<p>Loadings matrix containing the sparse robust loadings (eigenvectors), a numeric matrix of size <code class="reqn">p</code> by <code class="reqn">k</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eigenvalues</code></td>
+<td>
+<p>Numeric vector of length <code class="reqn">k</code> containing the robust eigenvalues.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scores</code></td>
+<td>
+<p>Scores matrix (computed as <code class="reqn">(X-center) \cdot loadings)</code>, a numeric matrix of size <code class="reqn">n</code> by <code class="reqn">k</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>center</code></td>
+<td>
+<p>Numeric vector of length <code class="reqn">k</code> containing the centre of the data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>D</code></td>
+<td>
+<p>Matrix used to standardise the data before applying sparse PCA (identity matrix if <code>stand=FALSE</code>), a numeric matrix of size <code class="reqn">p</code> by <code class="reqn">p</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>Number of (chosen) principal components.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>H0</code></td>
+<td>
+<p>Logical vector of size <code class="reqn">n</code> indicating if an observation is in the initial h-subset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>H1</code></td>
+<td>
+<p>Logical vector of size <code class="reqn">n</code> indicating if an observation is kept in the non-sparse reweighting step (in robust part).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>P1</code></td>
+<td>
+<p>Loadings matrix before applying sparse reweighting step, a numeric matrix of size <code class="reqn">p</code> by <code class="reqn">k</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>index</code></td>
+<td>
+<p>Numeric vector containing the indices of the variables that are used in the sparse reweighting step.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>H2</code></td>
+<td>
+<p>Logical vector of size <code class="reqn">n</code> indicating if an observation is kept in the sparse reweighting step.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>P2</code></td>
+<td>
+<p>Loadings matrix before estimating eigenvalues, a numeric matrix of size <code class="reqn">p</code> by <code class="reqn">k</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>H3</code></td>
+<td>
+<p>Logical vector of size <code class="reqn">n</code> indicating if an observation is kept in the final SD reweighting step.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>The robustness parameter <code class="reqn">\alpha</code> used throughout the algorithm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>h</code></td>
+<td>
+<p>The <code class="reqn">h</code>-parameter used throughout the algorithm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sd</code></td>
+<td>
+<p>Numeric vector of size <code class="reqn">n</code> containing the robust score distances within the robust PCA subspace.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>od</code></td>
+<td>
+<p>Numeric vector of size <code class="reqn">n</code> containing the orthogonal distances to the robust PCA subspace.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cutoff.sd</code></td>
+<td>
+<p>Cut-off value for the robust score distances.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cutoff.od</code></td>
+<td>
+<p>Cut-off value for the orthogonal distances.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flag.sd</code></td>
+<td>
+<p>Numeric vector of size <code class="reqn">n</code> containing the SD-flags of the observations. The observations whose score distance is larger than <code>cutoff.sd</code> receive an SD-flag equal to zero. The other observations receive an SD-flag equal to 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flag.od</code></td>
+<td>
+<p>Numeric vector of size <code class="reqn">n</code> containing the OD-flags of the observations. The observations whose orthogonal distance is larger than <code>cutoff.od</code> receive an OD-flag equal to zero. The other observations receive an OD-flag equal to 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flag.all</code></td>
+<td>
+<p>Numeric vector of size <code class="reqn">n</code> containing the flags of the observations. The observations whose score distance is larger than  <code>cutoff.sd</code> or whose orthogonal distance is 
+larger than  <code>cutoff.od</code> can be considered as outliers and receive a flag equal to zero. 
+The regular observations receive flag 1.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Tom Reynkens, based on R code from Valentin Todorov for <code>PcaHubert</code> in <span class="pkg">rrcov</span> (released under GPL-3) and Matlab code from Katrien Van Driessen (for the univariate MCD).
+</p>
+
+
+<h3>References</h3>
+
+<p>Hubert, M., Reynkens, T., Schmitt, E. and Verdonck, T. (2016). “Sparse PCA for High-Dimensional Data with Outliers,” <em>Technometrics</em>, 58, 424–434.
+</p>
+<p>Hubert, M., Rousseeuw, P. J., and Vanden Branden, K. (2005), “ROBPCA: A New Approach to Robust Principal Component Analysis,” <em>Technometrics</em>, 47, 64–79.
+</p>
+<p>Hubert, M., Rousseeuw, P. J., and Verdonck, T. (2009), “Robust PCA for Skewed Data and Its Outlier Map," <em>Computational Statistics &amp; Data Analysis</em>, 53, 2264–2274.
+</p>
+<p>Croux, C., Filzmoser, P., and Fritz, H. (2013), “Robust Sparse Principal Component Analysis,” <em>Technometrics</em>, 55, 202–214.
+</p>
+<p>Zou, H., Hastie, T., and Tibshirani, R. (2006), “Sparse Principal Component Analysis,” <em>Journal of Computational and Graphical Statistics</em>, 15, 265–286.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>PcaHubert</code>, <code>robpca</code>, <code>outlyingness</code>, <code>adjOutl</code>, <code>sPCAgrid</code>, <code>spca</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">X &lt;- dataGen(m=1, n=100, p=10, eps=0.2, bLength=4)$data[[1]]
+
+resRS &lt;- rospca(X, k=2, lambda=0.4, stand=TRUE)
+diagPlot(resRS)
+</code></pre>
+
+
+</div>

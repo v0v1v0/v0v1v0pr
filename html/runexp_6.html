@@ -1,0 +1,218 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>sim</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Softball run expectancy using multinomial random trial simulation</h2>
+
+<h3>Description</h3>
+
+<p>Utilizes a multinomial simulation to simulate a softball game scenario 
+with a specified number of innings (inn) per game over a specified number of games 
+(reps). Calculations depend on specified player probabilities (see details) and a 
+nine-player lineup.  Optionally incorporates attempted steals and "fast" players
+who are able to stretch bases.  Optionally utilizes SNOW parallelization.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">sim(
+  lineup,
+  stats,
+  inn = 7,
+  reps = 100,
+  graphic = FALSE,
+  waitTime = 2,
+  cores = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>lineup</code></td>
+<td>
+<p>either character vector of player names or numeric vector
+of player numbers.  Must be of length 1 or 9.  If lineup is of length 1, the 
+single player will be "duplicated" nine times to form a complete lineup.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stats</code></td>
+<td>
+<p>data frame of player statistics (see details)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inn</code></td>
+<td>
+<p>number of innings per rep (the default of 7 represents a typical softball game)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reps</code></td>
+<td>
+<p>number of times to repeat the softball game simulation. 
+Can be thought of as number of games.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>graphic</code></td>
+<td>
+<p>logical indicating on whether to plot the 
+player base movement.  Requires <code>reps &lt; 4</code>.  Forces <code>cores = 1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>waitTime</code></td>
+<td>
+<p>the amount of time to pause before making 
+next plot for play. Only relevant when <code>graphic = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cores</code></td>
+<td>
+<p>number of cores to utilize in parallel.  Defaults to one less than maximum
+available nodes.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>In each simulation, we determine each batter's hit results
+through a multinomial random trial where the probability of walk (W), single (S), 
+double (D), triple (TR), home run (HR), and batter out (O) are assigned per input player 
+statistics. We incorporate the impact of "fast" players through the following assumptions: 
+</p>
+
+<ul>
+<li>
+<p> If a fast player is on first and the batter hits a single, the fast
+player will stretch to third base (leaving the batter on first).
+</p>
+</li>
+<li>
+<p> If a fast player is on second and the batter hits a single, the fast
+player will stretch home (leaving the batter on first and a single run scored).
+</p>
+</li>
+<li>
+<p> If a fast player is on first and the batter hits a double, the fast
+player will stretch home (leaving the batter on second base and a single run scored).
+</p>
+</li>
+<li>
+<p> A typical player (not fast) who successfully steals a base will become 
+a fast player for the remainder of that inning (meaning that a player 
+who successfully steals second base will stretch home on a single).
+</p>
+</li>
+</ul>
+<p>Aside from these fast player assumptions, runners advance bases as expected (a single
+advances each runner one base, a double advances each runner two bases, etc.).
+</p>
+<p>Following softball norms, we only entertain steals of second base.  Steals are considered
+in cases when there is a runner on first and no runner on second.  In these situations,
+we use a bernoulli coin flip (based on the runner's SBA probability) to determine whether the
+runner on first will attempt a steal.  In practice, these decisions are commonly left up to coaches.
+If it is decided that the player will attempt a steal, a second bernoulli coin flip (based
+on the runner's SB probability) determines whether the steal was successful or whether the player was
+caught stealing.
+</p>
+<p>The <code>stats</code> input must be a data frame containing player probabilities.  It must 
+contain columns "O", "S", "D", "TR", "HR", and "W" whose entries are probabilities summing
+to one, corresponding to the probability of a player's at-bat resulting in each outcome.
+The data frame must contain either a "NAME" or "NUMBER" column to identify players (these
+must correspond to the <code>lineup</code>).  Extra rows for players not in the lineup will be ignored.
+This data frame may be generated from player statistics using <code>prob_calc</code>.
+</p>
+<p>The <code>stats</code> data frame may optionally include an "SBA" (stolen base attempt) column
+that provides the probability a given player will attempt a steal (provided they are on first
+base with no runner on second).  If "SBA" is specified, the data frame must also include 
+a "SB" (stolen base) column that provides the probability of a given player successfully
+stealing a base (conditional on them attempting a steal).  If these probabilities are not 
+specified, calculations will not involve any steals.
+</p>
+<p>The <code>stats</code> data frame may also include a logical "FAST" column that indicates
+whether a player is fast.  If this column is not specified, the "FAST" designation
+will be assigned based on each player's "SBA" probability.  Players who are more 
+likely to attempt steals are likely the fast players.
+</p>
+<p>As a default, simulations will be processed in parallel over all but one of the 
+maximum available cores.  Parallelization is recommended to reduce computation time.
+Interactive plotting (<code>graphic = TRUE</code>) requires no parallelization and will 
+override specified cores with <code>cores = 1</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list of the S3 class "<code>sim</code>" with the following elements:
+</p>
+
+<ul>
+<li> <p><code>lineup</code>: copy of input lineup
+</p>
+</li>
+<li> <p><code>stats</code>: copy of input stats
+</p>
+</li>
+<li> <p><code>inn</code>: copy of input innings
+</p>
+</li>
+<li> <p><code>score</code>: a vector containing the scores per each rep (game) 
+</p>
+</li>
+<li> <p><code>score_avg_game</code>: the average expected score per rep (game). That is, <code>mean(score)</code>.
+</p>
+</li>
+<li> <p><code>score_avg_inn</code>: the average expected score per rep (game) per inning. 
+That is, <code>mean(score)/inn</code>. If <code>inn = 1</code>, then <code>score_avg_game = score_avg_inn</code>.
+</p>
+</li>
+<li> <p><code>time</code>: computation time in seconds 
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Short simulation (designed to run in less than 5 seconds)
+sim1 &lt;- sim("B", wku_probs, inn = 1, reps = 100, cores = 1)
+
+# Simulation with interactive graphic
+lineup &lt;- wku_probs$name[1:9]
+sim2 &lt;- sim(lineup, wku_probs, inn = 7, reps = 1, graphic = TRUE)
+
+# Simulation for entire game (recommended to increase cores)
+sim3 &lt;- sim(lineup, wku_probs, cores = 1)
+boxplot(sim3$score)
+points(1, sim3$score_avg_game)
+
+# GAME SITUATION COMPARISON OF CHAIN AND SIMULATOR
+
+# Select lineup made up of the nine "starters"
+lineup &lt;- sample(wku_probs$name[1:9], 9)
+
+# Average chain across lead-off batters
+chain_avg &lt;- mean(chain(lineup, wku_probs, cycle = TRUE)$score)
+
+# Simulate full 7 inning game (recommended to increase cores)
+sim_score &lt;- sim(lineup, wku_probs, inn = 7, reps = 50000, cores = 1)
+
+# Split into bins in order to plot averages
+sim_grouped &lt;- split(sim_score$score, rep(1:100, times = 50000 / 100))
+
+boxplot(sapply(sim_grouped, mean), ylab = 'Expected Score for Game')
+points(1, sim_score$score_avg_game, pch = 16, cex = 2, col = 2)
+points(1, chain_avg * 7, pch = 18, cex = 2, col = 3)
+
+       
+</code></pre>
+
+
+</div>

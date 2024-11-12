@@ -1,0 +1,142 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>qcPrec</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Quality Control of daily precipitation observations</h2>
+
+<h3>Description</h3>
+
+<p>This function apply several threshold-based criteria to filter original observations of daily precipitation.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">qcPrec(
+  prec,
+  sts,
+  crs,
+  coords,
+  coords_as_preds = TRUE,
+  neibs = 10,
+  thres = NA,
+  qc = "all",
+  qc3 = 10,
+  qc4 = c(0.99, 5),
+  qc5 = c(0.01, 0.1, 5),
+  ncpu = 1
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>prec</code></td>
+<td>
+<p>matrix containing the original precipitation data. Each column represents one station. The names of columns have to be names of the stations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sts</code></td>
+<td>
+<p>data.frame. A column "ID" (unique ID of stations) is required. The rest of the columns (all of them) will act as predictors of the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>crs</code></td>
+<td>
+<p>character. Coordinates system in EPSG format (e.g.: "EPSG:4326").</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coords</code></td>
+<td>
+<p>vector of two character elements. Names of the fields in "sts" containing longitude and latitude.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coords_as_preds</code></td>
+<td>
+<p>logical. If TRUE (default), "coords" are also taken as predictors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>neibs</code></td>
+<td>
+<p>integer. Number of nearest neighbors to use.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thres</code></td>
+<td>
+<p>numeric. Maximum radius (in km) where neighboring stations will be searched. NA value uses the whole spatial domain.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>qc</code></td>
+<td>
+<p>vector of strings with the QC criteria to apply. Default is "all". See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>qc3</code></td>
+<td>
+<p>numeric. Indicates the threshold (number of times higher or lower) from which a observation, in comparison with its estimate, should be deleted. Default is 10.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>qc4</code></td>
+<td>
+<p>numeric vector of length 2. Thresholds of wet probability (0 to 1) and magnitude (in the units of input precipitation data) from which a observation of value zero, in comparison with its estimate, should be deleted. Default is c(0.99, 5).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>qc5</code></td>
+<td>
+<p>numeric vector of length 2. Thresholds of dry probability (0 to 1) and magnitude (in the units of input precipitation data) from which a observation higher than a specific value (also in the original units), in comparison with its estimate, should be deleted. Default is c(0.01, 0.1, 5).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncpu</code></td>
+<td>
+<p>number of processor cores used to parallel computing.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Parameter "sts" must have an "ID" field containing unique identifiers of the stations.
+</p>
+<p>"qc" can be "all" (all criteria are applied) or a vector of strings (e.g.: c("1","2","4")) indicating the QC criteria to apply to observations:
+"1" (suspect value): obs==0 &amp; all(neibs&gt;0);
+"2" (suspect zero): obs&gt;0 &amp; all(neibs==0);
+"3" (suspect outlier): obs is "qc3" times higher or lower than the estimate;
+"4" (suspect wet): obs==0 &amp; wet probability &gt; "qc4[1]" &amp; estimate &gt; "qc4[2]";
+"5" (suspect dry): obs&gt;"qc5[3]" &amp; dry probability &lt; "qc5[1]" &amp; estimate &lt; "qc5[2]"
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+set.seed(123)
+prec &lt;- round(matrix(rnorm(30*50, mean = 1.2, sd = 6), 30, 50), 1)
+prec[prec&lt;0] &lt;- 0
+colnames(prec) &lt;- paste0('sts_',1:50) 
+sts &lt;- data.frame(ID = paste0('sts_',1:50), lon = rnorm(50,0,1), 
+                  lat = rnorm(50,40,1), dcoast = rnorm(50,200,50))
+qcdata &lt;- qcPrec(prec, sts, crs = 'EPSG:4326', coords = c('lon','lat'),
+                 coords_as_preds = TRUE, neibs = 10, thres = NA,
+                 qc = 'all', qc3 = 10, qc4 = c(0.99, 5), qc5 = c(0.01, 0.1, 5),
+                 ncpu=2)
+str(qcdata)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

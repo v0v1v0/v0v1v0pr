@@ -1,0 +1,208 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fit_variance_cumulation</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fit piecewise constant volatilities to a set of equity options</h2>
+
+<h3>Description</h3>
+
+<p>Given a set of equity options with increasing tenors, along with
+target prices for those options, and a set of equity-lined default
+SDE parameters, fit a vector of piecewise constant
+volatilities and an associated cumulative variance function
+to them.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fit_variance_cumulation(
+  S0,
+  eq_options,
+  mid_prices,
+  spreads = NULL,
+  initial_vols_guess = 0.55 + 0 * mid_prices,
+  use_impvol = TRUE,
+  relative_spread_tolerance = 0.01,
+  force_same_grid = FALSE,
+  num_time_steps = 40,
+  const_short_rate = 0,
+  const_default_intensity = 0,
+  discount_factor_fcn = function(T, t, ...) {     exp(-const_short_rate * (T - t)) },
+  survival_probability_fcn = function(T, t, ...) {     exp(-const_default_intensity * (T
+    - t)) },
+  default_intensity_fcn = function(t, S, ...) {     const_default_intensity + 0 * S },
+  dividends = NULL,
+  borrow_cost = 0,
+  dividend_rate = 0,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>S0</code></td>
+<td>
+<p>Current stock price</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eq_options</code></td>
+<td>
+<p>A list of options to find prices for.  Each must have fields <code>callput</code>,
+<code>maturity</code>, and <code>strike</code>.  This list must be in strictly increasing order of maturity.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mid_prices</code></td>
+<td>
+<p>Prices to match</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>spreads</code></td>
+<td>
+<p>Spreads within which any match is tolerable</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>initial_vols_guess</code></td>
+<td>
+<p>Initial set of volatilities to try in the root finder</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use_impvol</code></td>
+<td>
+<p>Judge fit quality on implied vol distance rather than price distance</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>relative_spread_tolerance</code></td>
+<td>
+<p>Tolerance multiplier on bid-ask spreads taken from vol normalization</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>force_same_grid</code></td>
+<td>
+<p>Price all options on the same grid, rather than having smaller timestep sizes for earlier maturities</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>num_time_steps</code></td>
+<td>
+<p>Minimum number of time steps in the grid</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>const_short_rate</code></td>
+<td>
+<p>A constant to use for the instantaneous interest rate in case <code>discount_factor_fcn</code>
+is not given</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>const_default_intensity</code></td>
+<td>
+<p>A constant to use for the instantaneous default intensity in case <code>default_intensity_fcn</code>
+is not given</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>discount_factor_fcn</code></td>
+<td>
+<p>A function for computing present values to
+time <code>t</code> of various cashflows occurring, with
+arguments <code>T</code>, <code>t</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>survival_probability_fcn</code></td>
+<td>
+<p>A function for probability of survival, with
+arguments <code>T</code>, <code>t</code> and <code>T&gt;t</code>.  E.g. with
+a constant volatility <code class="reqn">s</code> this takes the form <code class="reqn">(T-t)s^2</code>.  This argument is
+only used in normalization of prices to vols for root finder tolerance, and
+is therefore entirely optional</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>default_intensity_fcn</code></td>
+<td>
+<p>A function for computing default intensity
+occurring during this timestep, dependent on time and stock price, with
+arguments <code>t</code>, <code>S</code>.  Should be consistent with
+<code>survival_probability_fcn</code> if specified</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dividends</code></td>
+<td>
+<p>A <code>data.frame</code> with columns <code>time</code>, <code>fixed</code>,
+and <code>proportional</code>.  Dividend size at the given <code>time</code> is</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>borrow_cost</code></td>
+<td>
+<p>Stock borrow cost, affecting the drift rate</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dividend_rate</code></td>
+<td>
+<p>Continuous dividend rate, affecting the drift rate</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Futher arguments to <code>find_present_value</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>By default, the fitting happens in implied Black-Scholes volatility
+space for better normalization.  That is to say, the fitting does pricing
+using the <em>full</em> SDE and PDE solver via <code>find_present_value</code>, but
+judges fit quality on the basis of running resulting prices through a
+nonlinear transformation that just
+happens to come from the straight Black-Scholes model.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with two elements, <code>volatilities</code> and <code>cumulation_function</code>.  The <code>cumulation_function</code> will
+be a 2-parameter function giving cumulated variances, as created by codevariance_cumulation_from_vols
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Implied Volatilities: 
+<code>american_implied_volatility()</code>,
+<code>equivalent_bs_vola_to_jump()</code>,
+<code>equivalent_jump_vola_to_bs()</code>,
+<code>implied_jump_process_volatility()</code>,
+<code>implied_volatilities_with_rates_struct()</code>,
+<code>implied_volatilities()</code>,
+<code>implied_volatility_with_term_struct()</code>,
+<code>implied_volatility()</code>
+</p>
+<p>Other Equity Dependent Default Intensity: 
+<code>find_present_value()</code>,
+<code>fit_to_option_market_df()</code>,
+<code>form_present_value_grid()</code>,
+<code>implied_jump_process_volatility()</code>
+</p>
+
+
+</div>

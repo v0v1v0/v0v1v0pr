@@ -1,0 +1,143 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>riAFTBART</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>A flexible approach for causal inference with multiple treatments and clustered survival outcomes</h2>
+
+<h3>Description</h3>
+
+<p>This function implements the random effect accelerated failure time BART (riAFT-BART) for causal inference with multiple treatments and clustered survival outcomes.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">riAFTBART(
+  M.burnin,
+  M.keep,
+  M.thin = 1,
+  status,
+  y,
+  x,
+  trt,
+  cluster.id,
+  verbose = FALSE,
+  estimand = "ATE",
+  reference_trt = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>M.burnin</code></td>
+<td>
+<p>A numeric value indicating the number of MCMC iterations to be treated as burn in.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>M.keep</code></td>
+<td>
+<p>A numeric value indicating the number of MCMC posterior draws after burn in.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>M.thin</code></td>
+<td>
+<p>A numeric value indicating the thinning parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>status</code></td>
+<td>
+<p>A vector of event indicators: status = 1 indicates that the event was observed while status = 0 indicates the observation was right-censored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>A vector of follow-up times.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A dataframe or matrix, including all the covariates but not treatments with rows corresponding to observations and columns to variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trt</code></td>
+<td>
+<p>A numeric vector representing the treatment groups.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cluster.id</code></td>
+<td>
+<p>A vector of integers representing the clustering id. The cluster id should be an integer and start from 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>A logical indicating whether to show the progress bar for riAFT-BART. The default is FALSE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estimand</code></td>
+<td>
+<p>A character string representing the type of causal estimand. Only <code>"ATT"</code> or <code>"ATE"</code> is allowed. When the <code>estimand = "ATT"</code>, users also need to specify the reference treatment group by setting the <code>reference_trt</code> argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reference_trt</code></td>
+<td>
+<p>A numeric value indicating reference treatment group for ATT effect.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list of causal estimands in terms of log T between different treatment groups.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(riAFTBART)
+set.seed(20181223)
+n = 5       # number of clusters
+k = 50      # cluster size
+N = n*k     # total sample size
+cluster.id = rep(1:n, each=k)
+tau.error = 0.8
+b = stats::rnorm(n, 0, tau.error)
+alpha = 2
+beta1 = 1
+beta2 = -1
+sig.error = 0.5
+censoring.rate = 0.02
+x1 = stats::rnorm(N,0.5,1)
+x2 = stats::rnorm(N,1.5,0.5)
+trt.train = sample(c(1,2,3), N, prob = c(0.4,0.3,0.2), replace = TRUE)
+trt.test = sample(c(1,2,3), N, prob = c(0.3,0.4,0.2), replace = TRUE)
+error = stats::rnorm(N,0,sig.error)
+logtime = alpha + beta1*x1 + beta2*x2 + b[cluster.id] + error
+y = exp(logtime)
+C = rexp(N, rate=censoring.rate) # censoring times
+Y = pmin(y,C)
+status = as.numeric(y&lt;=C)
+res_ate &lt;- riAFTBART(M.burnin = 10, M.keep = 10, M.thin = 1, status = status,
+                      y = Y, trt = trt.train,
+                      x = cbind(x1,x2),
+                      cluster.id = cluster.id, estimand = "ATE")
+
+</code></pre>
+
+
+</div>

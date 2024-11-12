@@ -1,0 +1,179 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rrpca</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Randomized robust principal component analysis (rrpca).</h2>
+
+<h3>Description</h3>
+
+<p>Robust principal components analysis separates a matrix into a low-rank plus sparse component.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rrpca(
+  A,
+  lambda = NULL,
+  maxiter = 50,
+  tol = 1e-05,
+  p = 10,
+  q = 2,
+  trace = FALSE,
+  rand = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>A</code></td>
+<td>
+<p>array_like; <br>
+a real <code class="reqn">(m, n)</code> input matrix (or data frame) to be decomposed. <br>
+na.omit is applied, if the data contain <code class="reqn">NA</code>s.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>scalar, optional; <br>
+tuning parameter (default <code class="reqn">lambda = max(m,n)^-0.5</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxiter</code></td>
+<td>
+<p>integer, optional; <br>
+maximum number of iterations (default <code class="reqn">maxiter = 50</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>scalar, optional; <br>
+precision parameter (default <code class="reqn">tol = 1.0e-5</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>integer, optional; <br>
+oversampling parameter for <code class="reqn">rsvd</code> (default <code class="reqn">p=10</code>), see <code>rsvd</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>q</code></td>
+<td>
+<p>integer, optional; <br>
+number of additional power iterations for <code class="reqn">rsvd</code> (default <code class="reqn">q=2</code>), see <code>rsvd</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trace</code></td>
+<td>
+<p>bool, optional; <br>
+print progress.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rand</code></td>
+<td>
+<p>bool, optional; <br>
+if (<code class="reqn">TRUE</code>), the <code class="reqn">rsvd</code> routine is used, otherwise <code class="reqn">svd</code> is used.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Robust principal component analysis (RPCA) is a method for the robust seperation of a
+a rectangular <code class="reqn">(m,n)</code> matrix <code class="reqn">A</code> into a low-rank component <code class="reqn">L</code> and a
+sparse comonent <code class="reqn">S</code>: 
+</p>
+<p style="text-align: center;"><code class="reqn">A = L + S</code>
+</p>
+
+<p>To decompose the matrix, we use the inexact augmented Lagrange multiplier
+method (IALM). The algorithm can be used in combination with either the randomized or deterministic SVD.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>rrpca</code> returns a list containing the following components:
+</p>
+
+<dl>
+<dt>L</dt>
+<dd>
+<p>  array_like; <br>
+low-rank component; <code class="reqn">(m, n)</code> dimensional array.
+</p>
+</dd>
+<dt>S</dt>
+<dd>
+<p>  array_like <br>
+sparse component; <code class="reqn">(m, n)</code> dimensional array.
+</p>
+</dd>
+</dl>
+<h3>Author(s)</h3>
+
+<p>N. Benjamin Erichson, <a href="mailto:erichson@berkeley.edu">erichson@berkeley.edu</a>
+</p>
+
+
+<h3>References</h3>
+
+
+<ul>
+<li>
+<p> [1] N. B. Erichson, S. Voronin, S. L. Brunton and J. N. Kutz. 2019.
+Randomized Matrix Decompositions Using R. 
+Journal of Statistical Software, 89(11), 1-48.
+doi: <a href="https://doi.org/10.18637/jss.v089.i11">10.18637/jss.v089.i11</a>.
+</p>
+</li>
+<li>
+<p>  [2] Lin, Zhouchen, Minming Chen, and Yi Ma.
+"The augmented lagrange multiplier method for exact
+recovery of corrupted low-rank matrices." (2010).
+(available at arXiv <a href="https://arxiv.org/abs/1009.5055">https://arxiv.org/abs/1009.5055</a>).
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">library('rsvd')
+
+# Create toy video
+# background frame
+xy &lt;- seq(-50, 50, length.out=100)
+mgrid &lt;- list( x=outer(xy*0,xy,FUN="+"), y=outer(xy,xy*0,FUN="+") )
+bg &lt;- 0.1*exp(sin(-mgrid$x**2-mgrid$y**2))
+toyVideo &lt;- matrix(rep(c(bg), 100), 100*100, 100)
+
+# add moving object
+for(i in 1:90) {
+  mobject &lt;- matrix(0, 100, 100)
+  mobject[i:(10+i), 45:55] &lt;- 0.2
+  toyVideo[,i] =  toyVideo[,i] + c( mobject )
+}
+
+# Foreground/Background separation
+out &lt;- rrpca(toyVideo, trace=TRUE)
+
+# Display results of the seperation for the 10th frame
+par(mfrow=c(1,4))
+image(matrix(bg, ncol=100, nrow=100)) #true background
+image(matrix(toyVideo[,10], ncol=100, nrow=100)) # frame
+image(matrix(out$L[,10], ncol=100, nrow=100)) # seperated background
+image(matrix(out$S[,10], ncol=100, nrow=100)) #seperated foreground
+</code></pre>
+
+
+</div>

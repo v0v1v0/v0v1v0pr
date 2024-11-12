@@ -1,0 +1,309 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>tracelines</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Compute tracelines of particles</h2>
+
+<h3>Description</h3>
+
+<p><code>tracelines()</code> tracks particle locations moving forward or backward with the advective groundwater flow
+by numerically integrating the velocity vector. The resulting set of connected coordinates produces the
+tracelines.
+</p>
+<p><code>endpoints()</code> obtains the final time and locations of tracked particles.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">tracelines(
+  aem,
+  x0,
+  y0,
+  z0,
+  times,
+  forward = TRUE,
+  R = 1,
+  tfunc = NULL,
+  tol = 0.001,
+  ncores = 0,
+  ...
+)
+
+endpoints(tracelines, ...)
+
+## S3 method for class 'tracelines'
+plot(x, y = NULL, add = FALSE, type = "l", arrows = FALSE, marker = NULL, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>aem</code></td>
+<td>
+<p><code>aem</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x0</code></td>
+<td>
+<p>numeric vector with starting x locations of the particles.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y0</code></td>
+<td>
+<p>numeric vector with starting y locations of the particles.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>z0</code></td>
+<td>
+<p>numeric vector with starting z locations of the particles.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>times</code></td>
+<td>
+<p>numeric vector with the times at which particle locations should be registered.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>forward</code></td>
+<td>
+<p>logical, should forward (<code>TRUE</code>; default) or backward (<code>FALSE</code>) tracking be performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R</code></td>
+<td>
+<p>numeric, retardation coefficient passed to <code>velocity()</code>. Defaults to 1 (no retardation).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tfunc</code></td>
+<td>
+<p>function or list of functions with additional termination events for particles. See details. Defaults to <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>numeric tolerance used to define when particles have crossed a line element. Defaults to 0.001 length units.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncores</code></td>
+<td>
+<p>integer, number of cores to use when running in parallel. Defaults to 0 (no parallel computing). See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments passed to <code>plot()</code> or <code>arrows()</code> when plotting. Otherwise ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tracelines</code></td>
+<td>
+<p>object of class <code>tracelines</code> as returned by <code>tracelines()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>object of class <code>tracelines</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>ignored</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>add</code></td>
+<td>
+<p>logical, should the plot be added to the existing plot? Defaults to <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>character indicating what type of plot to draw. See <code>plot()</code>. Defaults to <code>'l'</code> (lines).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>arrows</code></td>
+<td>
+<p>logical indicating if arrows should be drawn using <code>arrows()</code>. Defaults to <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>marker</code></td>
+<td>
+<p>numeric, time interval at which to plot point markers. Defaults to <code>NULL</code> (no markers). See details.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>deSolve::lsoda()</code> is used to numerically integrate the velocity vector.
+</p>
+<p>Particles are terminated prematurely when they have reached the inner annulus of well elements, when they
+have crossed a line element (or enter half its non-zero width on either side) or when they travel above the saturated aquifer
+level (i.e. the water-table for unconfined conditions or the aquifer top for confined conditions), or below the aquifer base.
+Note that these last two conditions can only occur in models with vertical flow components.
+The returned time value is the time of termination.
+</p>
+<p>The <code>tfunc</code> argument can be used to specify additional termination events. It is a function (or a list of functions) that
+takes arguments <code>t</code>, <code>coords</code> and <code>parms</code>. These are, respectively, a numeric value with the current tracking time,
+a numeric vector of length 3 with the current <code>x</code>, <code>y</code> and <code>z</code> coordinate of the particle, and a list with elements
+<code>aem</code> and <code>R</code> (named as such). It should return a single logical value indicating if the particle should terminate. See examples.
+</p>
+<p>If initial particle locations are above the saturated aquifer level, they are reset to this elevation with a warning.
+Initial particle locations below the aquifer base are reset at the aquifer base with a warning. A small
+perturbation is added to these elevations to avoid the particle tracking algorithm to get stuck at these locations.
+If the algorithm does get stuck (i.e. excessive run-times), try resetting the <code>z0</code> values to elevations well inside the saturated domain.
+</p>
+<p>Initial particle locations inside a termination point are dropped with a warning.
+</p>
+<p>Backward particle tracking is performed by reversing the flow field (i.e. multiplying the velocities with <code>-1</code>).
+</p>
+<p>Traceline computation is embarrassingly parallel. When <code>ncores &gt; 0</code>, the <code>parallel</code> package is used to set up the cluster with the requested nodes and
+the tracelines are computed using <code>parallel::parLapplyLB()</code>. <code>ncores</code> should not exceed the number of available cores as returned by <code>parallel::detectCores()</code>.
+</p>
+
+
+<h4>Plotting</h4>
+
+<p>The <code>marker</code> value can be used to plot point markers at given time intervals, e.g. every 365 days (see examples).
+The x and y locations of each particle at the marked times are obtained by linearly interpolating from the computed particle locations.
+</p>
+
+
+
+<h3>Value</h3>
+
+<p><code>tracelines()</code> returns an object of class <code>tracelines</code> which is a list with length equal to the number of particles where each list element contains
+a matrix with columns <code>time</code>, <code>x</code>, <code>y</code> and <code>z</code> specifying the registered time and coordinates of the particle as it is tracked through the flow field.
+</p>
+<p>The final row represents either the location at the maximum <code>times</code> value or, if the particle terminated prematurely, the time and location of the termination.
+</p>
+<p>The matrices are ordered in increasing time. By connecting the coordinates, the tracelines can be produced.
+</p>
+<p><code>endpoints()</code> returns a matrix with columns <code>time</code>, <code>x</code>, <code>y</code> and <code>z</code> specifying the final time and coordinates
+of the particles in the <code>tracelines</code> object.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>capzone()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># create a model with uniform background flow
+k &lt;- 10
+top &lt;- 10; base &lt;- 0
+n &lt;- 0.2
+R &lt;- 5
+hc &lt;- 20
+
+uf &lt;- uniformflow(TR = 100, gradient = 0.001, angle = -10)
+rf &lt;- constant(TR, xc = -1000, yc = 0, hc = hc)
+
+m &lt;- aem(k, top, base, n = n, uf, rf)
+
+# calculate forward particle traces
+x0 &lt;- -200; y0 &lt;- seq(-200, 200, 200)
+times &lt;- seq(0, 25 * 365, 365 / 4)
+paths &lt;- tracelines(m, x0 = x0, y0 = y0, z = top, times = times)
+endp &lt;- endpoints(paths)
+
+xg &lt;- seq(-500, 500, length = 100)
+yg &lt;- seq(-300, 300, length = 100)
+
+# plot
+contours(m, xg, yg, col = 'dodgerblue', nlevels = 20)
+plot(paths, add = TRUE, col = 'orange')
+points(endp[, c('x', 'y')])
+
+# Backward tracking with retardation; plot point marker every 5 years
+paths_back &lt;- tracelines(m, x0 = x0, y0 = y0, z0 = top, times = times, R = R, forward = FALSE)
+plot(paths_back, add = TRUE, col = 'forestgreen', marker = 5*365, cex = 0.5)
+
+# -------
+# Termination at wells, line-sinks and user-defined zone
+w1 &lt;- well(200, 50, Q = 250)
+w2 &lt;- well(-200, -100, Q = 450)
+ls &lt;- headlinesink(x0 = -100, y0 = 100, x1 = 400, y1 = -300, hc = 7)
+
+m &lt;- aem(k, top, base, n = n, uf, rf, w1, w2, ls)
+
+# User-defined termination in rectangular zone
+tzone &lt;- cbind(x = c(-300, -200, -200, -300), y = c(150, 150, 100, 100))
+termf &lt;- function(t, coords, parms) {
+  x &lt;- coords[1]
+  y &lt;- coords[2]
+  in_poly &lt;- x &lt;= max(tzone[,'x']) &amp; x &gt;= min(tzone[,'x']) &amp;
+    y &lt;= max(tzone[,'y']) &amp; y &gt;= min(tzone[,'y'])
+  return(in_poly)
+}
+
+x0 &lt;- c(-300, -200, 0, 200, 300)
+y0 &lt;- 200
+times &lt;- seq(0, 5 * 365, 365 / 15)
+paths &lt;- tracelines(m, x0 = x0, y0 = y0, z0 = top, times = times, tfunc = termf)
+
+contours(m, xg, yg, col = 'dodgerblue', nlevels = 20)
+plot(m, add = TRUE)
+polygon(tzone)
+plot(paths, add = TRUE, col = 'orange')
+
+# -------
+# model with vertical flow due to area-sink
+as &lt;- areasink(xc = 0, yc = 0, N = 0.001, R = 1500)
+m &lt;- aem(k, top, base, n = n, uf, rf, w1, w2, as)
+
+# starting z0 locations are above aquifer top and will be reset to top with warning
+x0 &lt;- seq(-400, 200, 200); y0 &lt;- 200
+times &lt;- seq(0, 5 * 365, 365 / 4)
+paths &lt;- tracelines(m, x0 = x0, y0 = y0, z0 = top + 0.5, times = times)
+
+contours(m, xg, yg, col = 'dodgerblue', nlevels = 20)
+plot(m, add = TRUE)
+plot(paths, add = TRUE, col = 'orange')
+
+# -------
+# plot vertical cross-section of traceline 4 along increasing y-axis (from south to north)
+plot(paths[[4]][,c('y', 'z')], type = 'l')
+
+# -------
+# parallel computing by setting ncores &gt; 0
+mp &lt;- aem(k, top, base, n = n, uf, rf)
+pathsp &lt;- tracelines(mp, x0 = x0, y0 = y0, z = top, times = times, ncores = 2)
+
+# -------
+# plot arrows
+contours(m, xg, yg, col = 'dodgerblue', nlevels = 20)
+plot(paths, add = TRUE, col = 'orange', arrows = TRUE, length = 0.05)
+
+# plot point markers every 2.5 years
+contours(m, xg, yg, col = 'dodgerblue', nlevels = 20)
+plot(paths, add = TRUE, col = 'orange', marker = 2.5 * 365, pch = 20)
+
+# plot point markers every 600 days
+plot(paths, add = TRUE, col = 'forestgreen', marker = 600, pch = 1)
+
+</code></pre>
+
+
+</div>

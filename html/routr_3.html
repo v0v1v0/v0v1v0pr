@@ -1,0 +1,322 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Route</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create a route for dispatching on URL</h2>
+
+<h3>Description</h3>
+
+<p>The <code>Route</code> class is used to encapsulate a single URL dispatch, that is,
+chose a single handler from a range based on a URL path. A handler will be
+called with a request, response, and keys argument as well as any additional
+arguments passed on to <code>dispatch()</code>.
+</p>
+
+
+<h3>Details</h3>
+
+<p>The path will strip the query string prior to assignment of the handler, can
+contain wildcards, and can be parameterised using the <code>:</code> prefix. If there
+are multiple matches of the request path the most specific will be chosen.
+Specificity is based on number of elements (most), number of parameters
+(least), and number of wildcards (least), in that order. Parameter
+values will be available in the keys argument passed to the handler, e.g. a
+path of <code style="white-space: pre;">⁠/user/:user_id⁠</code> will provide <code>list(user_id = 123)</code> for a dispatch on
+<code style="white-space: pre;">⁠/user/123⁠</code> in the <code>keys</code> argument.
+</p>
+<p>Handlers are only called for their side-effects and are expected to return
+either <code>TRUE</code> or <code>FALSE</code> indicating whether additional routes in a
+<code>RouteStack</code> should be called, e.g. if a handler is returning <code>FALSE</code> all
+further processing of the request will be terminated and the response will be
+passed along in its current state. Thus, the intend of the handlers is to
+modify the request and response objects, in place. All calls to handlers will
+be wrapped in <code>try()</code> and if an exception is raised the response code will be
+set to <code>500</code> with the body of the response being the error message. Further
+processing of the request will be terminated. If a different error handling
+scheme is wanted it must be implemented within the handler (the standard
+approach is chosen to avoid handler errors resulting in a server crash).
+</p>
+<p>A handler is referencing a specific HTTP method (<code>get</code>, <code>post</code>, etc.) but can
+also reference <code>all</code> to indicate that it should match all types of requests.
+Handlers referencing <code>all</code> have lower precedence than those referencing
+specific methods, so will only be called if a match is not found within the
+handlers of the specific method.
+</p>
+
+
+<h3>Initialization</h3>
+
+<p>A new 'Route'-object is initialized using the <code>new()</code> method on the
+generator:
+</p>
+<p><strong>Usage</strong>
+</p>
+
+<table><tr>
+<td style="text-align: left;">
+<code>route &lt;- Route$new(...)</code>
+</td>
+</tr></table>
+<p><strong>Arguments</strong>
+</p>
+
+<table><tr>
+<td style="text-align: left;">
+<code>...</code> </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;"> Handlers to add up front. Must be in the form of named
+lists where the names corresponds to paths and the elements are the handlers.
+The name of the argument itself defines the method to listen on (see examples)
+</td>
+</tr></table>
+<h3>Methods</h3>
+
+<p>The following methods are accessible in a <code>Route</code> object:
+</p>
+
+<dl>
+<dt><code>add_handler(method, path, handler)</code></dt>
+<dd>
+<p>Add a handler to the specified
+method and path. The special method <code>'all'</code> will allow the handler to match
+all http request methods. The path is a URL path consisting of strings,
+parameters (strings prefixed with <code>:</code>), and wildcards (<code>*</code>), separated by
+<code>/</code>. A wildcard will match anything and is thus not restricted to a single
+path element (i.e. it will span multiple <code>/</code> if possible). The handler must
+be a function containing the arguments <code>request</code>, <code>response</code>, <code>keys</code>, and
+<code>...</code>, and must return either <code>TRUE</code> or <code>FALSE</code>. The <code>request</code> argument will
+be a reqres::Request object and the <code>response</code> argument will be a
+reqres::Response object matching the current exchange. The <code>keys</code> argument
+will be a named list with the value of all matched parameters from the path.
+Any additional argument passed on to the <code>dispatch</code> method will be avaiable
+as well. This method will override an existing handler with the same method
+and path.</p>
+</dd>
+<dt><code>remove_handler(method, path)</code></dt>
+<dd>
+<p>Removes the handler assigned to the
+specified method and path. If no handler have been assigned it will throw a
+warning.</p>
+</dd>
+<dt><code>get_handler(method, path)</code></dt>
+<dd>
+<p>Returns a handler already assigned
+to the specified method and path. If no handler have been assigned it will
+throw a warning.</p>
+</dd>
+<dt><code>remap_handlers(.f)</code></dt>
+<dd>
+<p>Allows you to loop through all added handlers
+and reassings them at will. A function with the parameters <code>method</code>, <code>path</code>,
+and <code>handler</code> must be provided which is responsible for reassigning the
+handler given in the arguments. If the function does not reassign the
+handler, then the handler is removed.</p>
+</dd>
+<dt><code>dispatch(request, ...)</code></dt>
+<dd>
+<p>Based on a reqres::Request object the
+route will find the correct handler and call it with the correct arguments.
+Anything passed in with <code>...</code> will be passed along to the handler.</p>
+</dd>
+</dl>
+<h3>Methods</h3>
+
+
+
+<h4>Public methods</h4>
+
+
+<ul>
+<li> <p><a href="#method-Route-new"><code>Route$new()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Route-print"><code>Route$print()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Route-add_handler"><code>Route$add_handler()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Route-remove_handler"><code>Route$remove_handler()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Route-get_handler"><code>Route$get_handler()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Route-remap_handlers"><code>Route$remap_handlers()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Route-dispatch"><code>Route$dispatch()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Route-clone"><code>Route$clone()</code></a>
+</p>
+</li>
+</ul>
+<hr>
+<a id="method-Route-new"></a>
+
+
+
+<h4>Method <code>new()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Route$new(...)</pre></div>
+
+
+<hr>
+<a id="method-Route-print"></a>
+
+
+
+<h4>Method <code>print()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Route$print(...)</pre></div>
+
+
+<hr>
+<a id="method-Route-add_handler"></a>
+
+
+
+<h4>Method <code>add_handler()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Route$add_handler(method, path, handler)</pre></div>
+
+
+<hr>
+<a id="method-Route-remove_handler"></a>
+
+
+
+<h4>Method <code>remove_handler()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Route$remove_handler(method, path)</pre></div>
+
+
+<hr>
+<a id="method-Route-get_handler"></a>
+
+
+
+<h4>Method <code>get_handler()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Route$get_handler(method, path)</pre></div>
+
+
+<hr>
+<a id="method-Route-remap_handlers"></a>
+
+
+
+<h4>Method <code>remap_handlers()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Route$remap_handlers(.f)</pre></div>
+
+
+<hr>
+<a id="method-Route-dispatch"></a>
+
+
+
+<h4>Method <code>dispatch()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Route$dispatch(request, ...)</pre></div>
+
+
+<hr>
+<a id="method-Route-clone"></a>
+
+
+
+<h4>Method <code>clone()</code>
+</h4>
+
+<p>The objects of this class are cloneable with this method.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Route$clone(deep = FALSE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>deep</code></dt>
+<dd>
+<p>Whether to make a deep clone.</p>
+</dd>
+</dl>
+</div>
+
+
+
+
+<h3>See Also</h3>
+
+<p>RouteStack for binding multiple routes sequentially
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Initialise an empty route
+route &lt;- Route$new()
+
+# Initialise a route with handlers assigned
+route &lt;- Route$new(
+  all = list(
+    '/*' = function(request, response, keys, ...) {
+      message('Request recieved')
+      TRUE
+    }
+  )
+)
+
+# Remove it again
+route$remove_handler('all', '/*')
+
+</code></pre>
+
+
+</div>

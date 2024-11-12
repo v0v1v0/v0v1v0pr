@@ -1,0 +1,265 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>chain</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Softball run expectancy using discrete Markov chains</h2>
+
+<h3>Description</h3>
+
+<p>Uses discrete Markov chains to calculate softball run 
+expectancy for a single (half) inning.  Calculations depend on specified player
+probabilities (see details) and a nine-player lineup.  Optionally 
+incorporates attempted steals and "fast" players who are able to strech bases.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">chain(lineup, stats, cycle = FALSE, max_at_bats = 18)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>lineup</code></td>
+<td>
+<p>either character vector of player names or numeric vector
+of player numbers.  Must be of length 1 or 9.  If lineup is of length 1, the 
+single player will be "copied" nine times to form a complete lineup.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stats</code></td>
+<td>
+<p>data frame of player statistics (see details)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cycle</code></td>
+<td>
+<p>logical indicating whether to calculate run expectancy for each
+of the 9 possible lead-off batters.  Preserves the order of the lineup. As a 
+default, only the first player in <code>lineup</code> is used as lead-off.  
+Cycling is not relevant when the lineup is made up of a single player.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_at_bats</code></td>
+<td>
+<p>maximum number of at bats (corresponding to matrix powers) used 
+in calculation.  Must be sufficiently large to achieve convergence.  
+Convergence may be checked using <code>plot</code> with <code>type = 1</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The typical state space for softball involves 25 states 
+defined by the base situation (runners on base) and number of outs.  The
+standard base situations are: (1) bases empty, (2) runner on first, (3) runner 
+on second, (4) runner on third, (5) runners on first and second, (6) runners 
+on second and third, (7) runners on first and third, and (8) bases loaded.
+These 8 states are crossed with each of three out states (0 outs, 1 out, or 
+2 outs) to form 24 states.  The final 25th state is the 3 outs that marks
+the end of an inning.
+</p>
+<p>We expand these 25 states to incorporate "fast" players.  We make the following 
+assumptions concerning fast players:
+</p>
+
+<ul>
+<li>
+<p> If a fast player is on first and the batter hits a single, the fast
+player will stretch to third base (leaving the batter on first).
+</p>
+</li>
+<li>
+<p> If a fast player is on second and the batter hits a single, the fast
+player will stretch home (leaving the batter on first and a single run scored).
+</p>
+</li>
+<li>
+<p> If a fast player is on first and the batter hits a double, the fast
+player will stretch home (leaving the batter on second base and a single run scored).
+</p>
+</li>
+<li>
+<p> A typical player (not fast) who successfully steals a base will become 
+a fast player for the remainder of that inning (meaning that a player 
+who successfully steals second base will stretch home on a single).
+</p>
+</li>
+</ul>
+<p>Based on these assumptions, we add base situations that designate runners on first
+and second base as either typical runners (R) or fast runners (F).  The entirety 
+of these base situations can be viewed using <code>plot.chain</code> with <code>fast = TRUE</code>.
+Aside from these fast player assumptions, runners advance bases as expected (a single
+advances each runner one base, a double advances each runner two bases, etc.).
+</p>
+<p>Each at bat results in a change to the base situation and/or the number of outs.  The 
+outcomes of an at-bat are limited to:
+</p>
+
+<ul>
+<li>
+<p> batter out (O): base state does not change, outs increase by one
+</p>
+</li>
+<li>
+<p> single (S): runners advance accordingly, score may increase, outs do not change
+</p>
+</li>
+<li>
+<p> double (D): runners advance accordingly, score may increase, outs do not change
+</p>
+</li>
+<li>
+<p> triple (TR): runners advance accordingly, score may increase, outs do not change
+</p>
+</li>
+<li>
+<p> homerun (HR): bases cleared, score increases accordingly, outs do not change
+</p>
+</li>
+<li>
+<p> walk (W): runners advance accordingly, score may increase, outs do not change
+</p>
+</li>
+</ul>
+<p>The transitions resulting from these outcomes are stored in "transition matrices."  We 
+utilize separate transition matrices for typical batters and fast batters (in order to 
+keep fast runners designated separately).  We additionally incorporate stolen bases.
+Steals are handled separately than the six at-bat outcomes because they do not result 
+in changes to the batter.  Following softball norms, we only entertain steals of second
+base.  Steals are considered in cases when there is a runner on first and no runner on second.
+In this situation, steal possibilities are limited to:
+</p>
+
+<ul>
+<li>
+<p> no steal attempt: base situation and outs do not change
+</p>
+</li>
+<li>
+<p> successful steal: runner advances to second base
+</p>
+</li>
+<li>
+<p> caught steal: runner is removed, outs increase by one
+</p>
+</li>
+</ul>
+<p>Steal possibilities are implemented in separate transition matrices.  All transition 
+matrices are stored as internal RData files.
+</p>
+<p>The <code>stats</code> input must be a data frame containing player probabilities.  It must 
+contain columns "O", "S", "D", "TR", "HR", and "W" whose entries are probabilities summing
+to one, corresponding to the probability of a player's at-bat resulting in each outcome.
+The data frame must contain either a "NAME" or "NUMBER" column to identify players (these
+must correspond to the <code>lineup</code>).  Extra rows for players not in the lineup will be ignored.
+This data frame may be generated from player statistics using <code>prob_calc</code>.
+</p>
+<p>The <code>stats</code> data frame may optionally include an "SBA" (stolen base attempt) column
+that provides the probability a given player will attempt a steal (provided they are on first
+base with no runner on second).  If "SBA" is specified, the data frame must also include 
+a "SB" (stolen base) column that provides the probability of a given player successfully
+stealing a base (conditional on them attempting a steal).  If these probabilities are not 
+specified, calculations will not involve any steals.
+</p>
+<p>The <code>stats</code> data frame may also include a logical "FAST" column that indicates
+whether a player is fast.  If this column is not specified, the "FAST" designation
+will be assigned based on each player's "SBA" probability.  Generally, players who are more 
+likely to attempt steals are the fast players.
+</p>
+<p>The <code>cycle</code> parameter is a useful tool for evaluating an entire lineup.  Through the course 
+of a game, any of the nine players may lead-off an inning.  A weighted or un-weighted average 
+of these nine expected scores provides a more holistic representation of the lineup than 
+the expected score based on a single lead-off.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list of the S3 class "<code>chain</code>" with the following elements:
+</p>
+
+<ul>
+<li> <p><code>lineup</code>: copy of input lineup
+</p>
+</li>
+<li> <p><code>stats</code>: copy of input stats
+</p>
+</li>
+<li> <p><code>score_full</code>: list of matrices containing expected score by 
+each base/out state and the number of at-bats (created by matrix powers).  
+List index corresponds to lead-off batter.  Rows of matrix correspond to 
+base/out states.  Each column represents an additional matrix power.  Used
+to assess convergence of the chain (through convergence of each row).
+</p>
+</li>
+<li> <p><code>score_state</code>: matrix of expected score at the completion of
+an inning based on starting base/out state.  Rows correspond to initial state;
+columns correspond to lead-off batter.  Equal to the final column of 
+<code>score_full</code>.
+</p>
+</li>
+<li> <p><code>score</code>: vector of expected score for an entire inning (starting 
+from zero runners and zero outs).  Index corresponds to lead-off batter.  
+Equal to the first row of <code>score_state</code>.
+</p>
+</li>
+<li> <p><code>time</code>: computation time in seconds
+</p>
+</li>
+</ul>
+<h3>References</h3>
+
+<p>B. Bukiet, E. R. Harold, and J. L. Palacios, “A Markov Chain Approach to Baseball,” 
+Operations Research 45, 14–23 (1997).
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Expected score for single batter (termed "offensive potential")
+chain1 &lt;- chain("B", wku_probs)
+plot(chain1)
+
+# Expected score without cycling
+lineup &lt;- wku_probs$name[1:9]
+chain2 &lt;- chain(lineup, wku_probs)
+plot(chain2)
+
+# Expected score with cycling
+chain3 &lt;- chain(lineup, wku_probs, cycle = TRUE)
+plot(chain3, type = 1:3)
+
+
+# GAME SITUATION COMPARISON OF CHAIN AND SIMULATOR
+
+# Select lineup made up of the nine "starters"
+lineup &lt;- sample(wku_probs$name[1:9], 9)
+
+# Average chain across lead-off batters
+chain_avg &lt;- mean(chain(lineup, wku_probs, cycle = TRUE)$score)
+
+# Simulate full 7 inning game (recommended to increase cores)
+sim_score &lt;- sim(lineup, wku_probs, inn = 7, reps = 50000, cores = 1)
+
+# Split into bins in order to plot averages
+sim_grouped &lt;- split(sim_score$score, rep(1:100, times = 50000 / 100))
+
+# Plot results
+boxplot(sapply(sim_grouped, mean), ylab = 'Expected Score for Game')
+points(1, sim_score$score_avg_game, pch = 16, cex = 2, col = 2)
+points(1, chain_avg * 7, pch = 18, cex = 2, col = 3)
+
+       
+</code></pre>
+
+
+</div>

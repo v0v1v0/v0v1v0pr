@@ -1,0 +1,199 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>brackets</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Retrieve and assign elements of a <code>TableTree</code>
+</h2>
+
+<h3>Description</h3>
+
+<p>Retrieve and assign elements of a <code>TableTree</code>
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S4 replacement method for signature 'VTableTree,ANY,ANY,list'
+x[i, j, ...] &lt;- value
+
+## S4 method for signature 'VTableTree,logical,logical'
+x[i, j, ..., drop = FALSE]
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>(<code>TableTree</code>)<br> a <code>TableTree</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>i</code></td>
+<td>
+<p>(<code>numeric(1)</code>)<br> index.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>j</code></td>
+<td>
+<p>(<code>numeric(1)</code>)<br> index.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments. Includes:
+</p>
+
+<dl>
+<dt><code>keep_topleft</code></dt>
+<dd>
+<p>(<code>flag</code>) (<code>[</code> only) whether the top-left material for the table should be retained after
+subsetting. Defaults to <code>TRUE</code> if all rows are included (i.e. subsetting was by column), and drops it
+otherwise.</p>
+</dd>
+<dt><code>keep_titles</code></dt>
+<dd>
+<p>(<code>flag</code>) whether title information should be retained. Defaults to <code>FALSE</code>.</p>
+</dd>
+<dt><code>keep_footers</code></dt>
+<dd>
+<p>(<code>flag</code>) whether non-referential footer information should be retained. Defaults to
+<code>keep_titles</code>.</p>
+</dd>
+<dt><code>reindex_refs</code></dt>
+<dd>
+<p>(<code>flag</code>) whether referential footnotes should be re-indexed as if the resulting subset is
+the entire table. Defaults to <code>TRUE</code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>value</code></td>
+<td>
+<p>(<code>list</code>, <code>TableRow</code>, or <code>TableTree</code>)<br> replacement value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drop</code></td>
+<td>
+<p>(<code>flag</code>)<br> whether the value in the cell should be returned if one cell is selected by the
+combination of <code>i</code> and <code>j</code>. It is not possible to return a vector of values. To do so please consider using
+<code>cell_values()</code>. Defaults to <code>FALSE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>By default, subsetting drops the information about title, subtitle, main footer, provenance footer, and <code>topleft</code>.
+If only a column is selected and all rows are kept, the <code>topleft</code> information remains as default. Any referential
+footnote is kept whenever the subset table contains the referenced element.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>TableTree</code> (or <code>ElementaryTable</code>) object, unless a single cell was selected with <code>drop = TRUE</code>, in which
+case the (possibly multi-valued) fully stripped raw value of the selected cell.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Subsetting always preserve the original order, even if provided indexes do not preserve it. If sorting is needed,
+please consider using <code>sort_at_path()</code>. Also note that <code>character</code> indices are treated as paths, not vectors of
+names in both <code>[</code> and <code style="white-space: pre;">⁠[&lt;-⁠</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+
+<ul>
+<li> <p><code>sort_at_path()</code> to understand sorting.
+</p>
+</li>
+<li> <p><code>summarize_row_groups()</code> to understand path structure.
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">lyt &lt;- basic_table(
+  title = "Title",
+  subtitles = c("Sub", "titles"),
+  prov_footer = "prov footer",
+  main_footer = "main footer"
+) %&gt;%
+  split_cols_by("ARM") %&gt;%
+  split_rows_by("SEX") %&gt;%
+  analyze(c("AGE"))
+
+tbl &lt;- build_table(lyt, DM)
+top_left(tbl) &lt;- "Info"
+tbl
+
+# As default header, footer, and topleft information is lost
+tbl[1, ]
+tbl[1:2, 2]
+
+# Also boolean filters can work
+tbl[, c(FALSE, TRUE, FALSE)]
+
+# If drop = TRUE, the content values are directly retrieved
+tbl[2, 1]
+tbl[2, 1, drop = TRUE]
+
+# Drop works also if vectors are selected, but not matrices
+tbl[, 1, drop = TRUE]
+tbl[2, , drop = TRUE]
+tbl[1, 1, drop = TRUE] # NULL because it is a label row
+tbl[2, 1:2, drop = TRUE] # vectors can be returned only with cell_values()
+tbl[1:2, 1:2, drop = TRUE] # no dropping because it is a matrix
+
+# If all rows are selected, topleft is kept by default
+tbl[, 2]
+tbl[, 1]
+
+# It is possible to deselect values
+tbl[-2, ]
+tbl[, -1]
+
+# Values can be reassigned
+tbl[2, 1] &lt;- rcell(999)
+tbl[2, ] &lt;- list(rrow("FFF", 888, 666, 777))
+tbl[6, ] &lt;- list(-111, -222, -333)
+tbl
+
+# We can keep some information from the original table if we need
+tbl[1, 2, keep_titles = TRUE]
+tbl[1, 2, keep_footers = TRUE, keep_titles = FALSE]
+tbl[1, 2, keep_footers = FALSE, keep_titles = TRUE]
+tbl[1, 2, keep_footers = TRUE]
+tbl[1, 2, keep_topleft = TRUE]
+
+# Keeps the referential footnotes when subset contains them
+fnotes_at_path(tbl, rowpath = c("SEX", "M", "AGE", "Mean")) &lt;- "important"
+tbl[4, 1]
+tbl[2, 1] # None present
+
+# We can reindex referential footnotes, so that the new table does not depend
+#  on the original one
+fnotes_at_path(tbl, rowpath = c("SEX", "U", "AGE", "Mean")) &lt;- "important"
+tbl[, 1] # both present
+tbl[5:6, 1] # {1} because it has been indexed again
+tbl[5:6, 1, reindex_refs = FALSE] # {2} -&gt; not reindexed
+
+# Note that order can not be changed with subsetting
+tbl[c(4, 3, 1), c(3, 1)] # It preserves order and wanted selection
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,214 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>read_histos</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+reads a TAD/TAT-histogram file from archival tags
+</h2>
+
+<h3>Description</h3>
+
+<p>reads or posttreats a manually loaded standard histogram data file, containing Time-at-Depth (TAD) and Time-at-Temperature (TAT) frequency data, from archival tags by <a href="https://wildlifecomputers.com/">Wildlife Computers</a>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">
+read_histos(hist_file, date_format, lang_format="en", tz="UTC", dep.end, Serial, 
+            force_24h=TRUE, min_perc, omit_negatives=TRUE, right_truncate=TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>hist_file</code></td>
+<td>
+
+<p>character string indicating the name of a standard <a href="https://wildlifecomputers.com/">Wildlife Computers</a> file to read or the data.frame of a manually loaded histogram data file. The combination of the columns <code>DeployID</code>, <code>Ptt</code> and <code>Serial</code> is assumed to provide an unique key to distinguish data from indiviudal tags.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>force_24h</code></td>
+<td>
+
+<p>whether histogram data with a time step of less than 24h should be merged to 24h (default is <code>TRUE</code>).
+Note that the current version of hist_tad and hist_tat was written for 24h data!
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>date_format, lang_format, tz</code></td>
+<td>
+
+<p>character strings indicating the date format, language format and the corresponding time zone, defined by the vectors Date and Time (by default: date_format="%H:%M:%S %d-%b-%Y", lang_format="en", tz='UTC')
+If formatting fails, please check as well the input language format, defined by <code>lang_format</code> (and use abbrviations such as "en" for English,"es" for Spanish, "fr" for French, etc.) as well.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dep.end</code></td>
+<td>
+
+<p>Date specifying the deployment end of the tag.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Serial</code></td>
+<td>
+
+<p>character-string indicating the Serial number of the tag to be selected. (in case of multi-tag histogram files.)
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min_perc</code></td>
+<td>
+
+<p>optional number, defining the minimum data coverage (in percent) of histogram entries obtained from depth time series data.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>omit_negatives</code></td>
+<td>
+
+<p>merge negative depth and temperature bins with next positive bin (&gt;= 0; default is <code>TRUE</code>). 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>right_truncate</code></td>
+<td>
+
+<p>truncate the values of the last tat- and tad-bin to 45 degrees and 2000 m, respectively (default is <code>TRUE</code>). 
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function reads or posttreats a manually loaded standard Wildlife Computers histogram file including Time-at-Depth (TAD) and Time-at-Temperature (TAT) frequency data. In the post-treatment, the histogram data is split in lists of TAD and TAT per individual (see below). Thus processed data from several histogram files (or similarly processed time series data) can be combined using the function combine_histos. Merging of histogram data from several tags, based on similar or user-specified TAD and TAT-<code>bin_breaks</code>, can be done by applying function merge_histos. To generate TAD/TAT histogram data from depth and temperature time series data, see ts2histos.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list-of-lists containing the loaded histogram data. Lists of TAD and TAT data are distinguished at the first nesting level. Further sublists include the <code>bin_breaks</code> and data.frames of the histogram data per tag (ID).
+Tag IDs are constructed based on the columns <code>DeployID</code>, <code>Ptt</code> and <code>Serial</code> keys (e.g. DeployID.101_Ptt.102525). <strong>The data.frames of the histogram data also contain average (avg) and standard deviation (SD) of depth and temperature values that are estimated internally from the TAD and TAT data sets (not measured!). The accuracy of these estimates thus depends on the number and selection of bin breaks</strong>, unlike ts2histos-generated values that are directly estimated from time series data. See statistics-example below.
+</p>
+<p>$ TAD:List<br>
+..$ ID1  : List of 2<br>
+.. ..$ bin_breaks: num<br> 
+.. ..$ df        : data.frame <br>
+.. .. ..$ DeployID <br>
+.. .. ..$ Ptt <br>
+.. .. ..$ datetime <br>
+.. .. ..$ date <br>
+.. .. ..$ Bin1 <br>
+..
+.. .. ..$ Bin? (up to number of bin breaks)<br>
+.. .. ..$ avg (average depth estimated!! from histogram data)<br>
+.. .. ..$ SD (average depth estimated!! from histogram data) <br></p>
+<p>$ TAT:List<br> 
+..$ ID1  : List of 2<br>
+.. ..$ bin_breaks: num<br> 
+.. ..$ df        : data.frame (with columns as above)<br> 
+..$ ID2  : List of 2<br>
+...
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Robert K. Bauer
+</p>
+
+
+<h3>See Also</h3>
+
+<p>ts2histos, combine_histos, merge_histos, hist_tad, hist_tat</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## read and merge 12h histogram data:
+# 12h_hist_file &lt;- system.file("example_files/67851-12h-Histos.csv",package="RchivalTag")
+# hist_dat_0 &lt;- read_histos(12h_hist_file,min_perc=100) # omit incomplete days
+# hist_tad(hist_dat_0)
+#hist_tat(hist_dat_0)
+
+## example 1) read, merge and plot TAD frequency data from several files:
+## part I - read histogram data from two files:
+hist_dat_1 &lt;- read_histos(system.file("example_files/104659-Histos.csv",package="RchivalTag"))
+hist_dat_2 &lt;- read_histos(system.file("example_files/104659b-Histos.csv",package="RchivalTag"))
+## note the second list is based on the same data (tag), but on different bin_breaks
+
+## part II - combine TAD/TAT frecuency data from seperate files in one list:
+hist_dat_combined &lt;- combine_histos(hist_dat_1, hist_dat_2)
+par(mfrow=c(2,1))
+hist_tad(hist_dat_combined)
+hist_tat(hist_dat_combined)
+
+## part III - force merge TAD/TAT frecuency data from seperate files 
+# in one list, by applying common bin_breaks:
+hist_dat_merged &lt;- merge_histos(hist_dat_combined,force_merge = TRUE)
+hist_tad(hist_dat_merged)
+hist_tat(hist_dat_merged)
+
+## part IV - plot merged data:
+hist_tad(hist_dat_merged) # of all tags
+unique(hist_dat_merged$TAD$merged$df$DeployID) ## list unique tags in merged list
+hist_tad(hist_dat_merged, select_id = "15P1019b", select_from = 'DeployID') # of one tag
+
+## part V - unmerge data:
+unmerge_histos(hist_dat_merged)
+
+## part VI - statistics:
+# get histogram data with histogram-derived average depth and temperature values
+hist_dat_1 &lt;- read_histos(system.file("example_files/104659-Histos.csv",package="RchivalTag"))
+avg1 &lt;- hist_dat_1$TAD$DeployID.15P1019_Ptt.104659$df$avg # infered from the histogram data
+
+# generate histogram data and average/sd-estimates from depth time series data of the same tag.
+# attention! unlike for histogram files, the average/sd-estimates are calculated
+# directly from depth time series data and not from the binned histogram data
+ts_file &lt;- system.file("example_files/104659-Series.csv",package="RchivalTag")
+ts_df &lt;- read_TS(ts_file)
+
+tad_breaks &lt;- c(0, 2, 5, 10, 20, 50, 100, 200, 300, 400, 600, 2000)
+hist_dat_2 &lt;- ts2histos(ts_df, tad_breaks = tad_breaks)
+avg2 &lt;- hist_dat_2$TAD$merged$df$avg # directly estimated from the depth time series data
+
+# check accuracy of average depth values:
+plot(avg1, avg2) 
+avg1-avg2
+abline(0,b = 1,lty="dotted")
+
+## crosscheck!
+# library(plyr)
+# ts_stats &lt;- ddply(ts_df,c("date"),function(x) c(avg=mean(x$Depth,na.rm=T),SD=sd(x$Depth,na.rm=T)))
+# avg2==ts_stats$avg
+
+# path &lt;- system.file("example_files",package="RchivalTag")
+# PDT &lt;- read_PDT("104659-PDTs.csv",folder=path)
+# head(PDT)
+# image_TempDepthProfiles(interpolate_PDTs(PDT)[[1]])
+
+## add information
+# lines(ts_stats$date+.5,ts_stats$avg)
+# add &lt;- hist_dat_2$TAD$merged$df
+# lines(add$date+.5,add$avg)
+# axis(2,at=50,las=1)
+# abline(h=20,lty="dashed",col="violet",lwd=3)
+
+
+</code></pre>
+
+
+</div>

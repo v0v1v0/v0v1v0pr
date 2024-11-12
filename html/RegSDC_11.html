@@ -1,0 +1,116 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>RegSDCadd</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Regression-based SDC Tools - Synthetic addition with residual correlation control</h2>
+
+<h3>Description</h3>
+
+<p>Implementation of equation 6 (arbitrary residual data) and equation 7 (residual correlations) in the paper.
+The alpha limit is calculated (equation 9). The limit is used when alpha =1 cannot be chosen (warning produced). 
+In output, alpha is attribute.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">RegSDCadd(y, resCorr = NULL, x = NULL, yStart = NULL, ensureIntercept = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Matrix of confidential variables</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>resCorr</code></td>
+<td>
+<p>Required residual correlations (possibly recycled)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Matrix of non-confidential variables</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yStart</code></td>
+<td>
+<p>Arbitrary data whose residuals will be used. Will be calculated from resCorr when NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ensureIntercept</code></td>
+<td>
+<p>Whether to ensure/include a constant term. Non-NULL x is subjected to <code>EnsureIntercept</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Use epsAlpha=NULL to avoid calculation of alpha. Use of alpha (&lt;1) will produce a warning. Input matrices are subjected to <code>EnsureMatrix</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Generated version of y with alpha as attribute
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Øyvind Langsrud
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">x &lt;- matrix(1:10, 10, 1)
+y &lt;- matrix(rnorm(30) + 1:30, 10, 3)
+yOut &lt;- RegSDCadd(y, c(0.1, 0.2, 0.3), x)
+
+# Correlations between residuals as required
+diag(cor(residuals(lm(y ~ x)), residuals(lm(yOut ~ x))))
+
+# Identical covariance matrices
+cov(y) - cov(yOut)
+cov(residuals(lm(y ~ x))) - cov(residuals(lm(yOut ~ x)))
+
+# Identical regression results
+summary(lm(y[, 1] ~ x))
+summary(lm(yOut[, 1] ~ x))
+
+# alpha as attribute
+attr(yOut, "alpha")
+
+# With yStart as input and alpha limit in use (warning produced)
+yOut &lt;- RegSDCadd(y, NULL, x, 2 * y + matrix(rnorm(30), 10, 3))
+attr(yOut, "alpha")
+
+# Same correlation for all variables
+RegSDCadd(y, 0.2, x)
+# But in this case RegSDCcomp is equivalent and faster
+RegSDCcomp(y, 0.2, x)
+
+
+# Make nearly collinear data
+y[, 3] &lt;- y[, 1] + y[, 2] + 0.001 * y[, 3]
+# Not possible to achieve correlations. Small alpha with warning.
+RegSDCadd(y, c(0.1, 0.2, 0.3), x)
+# Exact collinear data
+y[, 3] &lt;- y[, 1] + y[, 2]
+# Zero alpha with warning
+RegSDCadd(y, c(0.1, 0.2, 0.3), x)
+</code></pre>
+
+
+</div>

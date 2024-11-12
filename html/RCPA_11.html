@@ -1,0 +1,118 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>plotDEGeneHeatmap</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Plot gene heatmap from a SummarizedExperiment object with DE analysis results</h2>
+
+<h3>Description</h3>
+
+<p>Plot gene heatmap from a SummarizedExperiment object with DE analysis results.
+The heatmap contains p-values and log fold changes from the DE analysis.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">plotDEGeneHeatmap(
+  DEResults,
+  genes,
+  useFDR = TRUE,
+  labels = NULL,
+  logFCLims = c(-5, 5),
+  negLog10pValueLims = c(0, 5)
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>DEResults</code></td>
+<td>
+<p>A named list of data frame of DE analysis results.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>genes</code></td>
+<td>
+<p>A vector of gene id (e.g. Entrez IDs) to plot.
+The genes must be in the ID column of the data frame in DEResults.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>useFDR</code></td>
+<td>
+<p>If TRUE, use FDR adjusted p-values. Otherwise, use raw p-values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>labels</code></td>
+<td>
+<p>A vector of labels for the genes. If not provided, the gene IDs will be used as labels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>logFCLims</code></td>
+<td>
+<p>A vector of length 2 specifying the minimum and maximum log fold change to plot.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>negLog10pValueLims</code></td>
+<td>
+<p>A vector of length 2 specifying the minimum and maximum -log10(p-value) to plot.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A heatmap of the genes from ggplot2.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(RCPA)
+library(SummarizedExperiment)
+
+affyDEExperiment &lt;- loadData("affyDEExperiment")
+agilDEExperiment &lt;- loadData("agilDEExperiment")
+RNASeqDEExperiment &lt;- loadData("RNASeqDEExperiment")
+metaDEResult &lt;- loadData("metaDEResult")
+genesets &lt;- loadData("genesets")
+
+DEResults &lt;- list(
+    "Affymetrix - GSE5281" = rowData(affyDEExperiment),
+    "Agilent - GSE61196" = rowData(agilDEExperiment),
+    "RNASeq - GSE153873" = rowData(RNASeqDEExperiment)
+)
+
+ metaDEResult &lt;- metaDEResult[order(metaDEResult$pFDR),]
+
+ alzheimerGenes &lt;- genesets$genesets[["path:hsa05010"]]
+ genesToPlot &lt;- head(metaDEResult[metaDEResult$ID %in% alzheimerGenes, ], 50)$ID
+
+ genesAnnotation &lt;- RCPA::getEntrezAnnotation(genesToPlot)
+ labels &lt;- genesAnnotation[genesToPlot, "Description"]
+
+ genesOrderByFC &lt;- order(metaDEResult[match(genesToPlot, metaDEResult$ID), "logFC"])
+ resultsToPlot &lt;- c(DEResults, list(metaDEResult))
+ names(resultsToPlot) &lt;- c(names(DEResults), "Meta-analysis")
+
+ plotObj &lt;- RCPA::plotDEGeneHeatmap(
+     resultsToPlot,
+     genesToPlot[genesOrderByFC],
+     labels = labels[genesOrderByFC],
+     negLog10pValueLims = c(0, 5), logFCLims = c(-1, 1)
+ )
+
+
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,274 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fit_env</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Maximum likelihood fit of the environmental birth-death model
+</h2>
+
+<h3>Description</h3>
+
+<p>Fits the environmental birth-death model with potentially missing extant species to a phylogeny, by maximum likelihood. Notations follow Morlon et al. PNAS 2011 and Condamine et al. ELE 2013.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fit_env(phylo, env_data, tot_time, f.lamb, f.mu, lamb_par, mu_par, df= NULL, f = 1,
+       meth = "Nelder-Mead", cst.lamb = FALSE, cst.mu = FALSE,
+       expo.lamb = FALSE, expo.mu = FALSE, fix.mu = FALSE,
+       dt=0, cond = "crown")
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>phylo</code></td>
+<td>
+
+<p>an object of type 'phylo' (see ape documentation)
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>env_data</code></td>
+<td>
+
+<p>environmental data, given as a data frame with two columns. The first column is time, the second column is the environmental data (temperature for instance).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tot_time</code></td>
+<td>
+
+<p>the age of the phylogeny (crown age, or stem age if known). If working with crown ages, tot_time is given by max(node.age(phylo)$ages).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>f.lamb</code></td>
+<td>
+
+<p>a function specifying the hypothesized functional form of the variation of the speciation rate <code class="reqn">\lambda</code> with time and the environmental variable. Any functional form may be used.
+This function has three arguments: the first argument is time; the second argument is the environmental variable; the third arguement is a numeric vector of the parameters controlling the time and environmental variation (to be estimated).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>f.mu</code></td>
+<td>
+
+<p>a function specifying the hypothesized functional form of the variation of the extinction rate <code class="reqn">\mu</code> with time and the environmental variable. Any functional form may be used.
+This function has three arguments: the first argument is time; the second argument is the environmental variable; the second argument is a numeric vector of the parameters controlling the time and environmental variation (to be estimated).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lamb_par</code></td>
+<td>
+
+<p>a numeric vector of initial values for the parameters of f.lamb to be estimated (these values are used by the optimization algorithm). The length of this vector is used to compute the total number of parameters in the model, so to fit a model with constant speciation rate (for example), lamb_par should be a vector of length 1. Otherwise aic values will be wrong.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mu_par</code></td>
+<td>
+
+<p>a numeric vector of initial values for the parameters of f.mu to be estimated (these values are used by the optimization algorithm). The length of this vector is used to compute the total number of parameters in the model, so to fit a model without extinction (for example), mu_par should be empty (vector of length 0). Otherwise aic values will be wrong.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>df</code></td>
+<td>
+
+<p>the degree of freedom to use to define the spline. As a default, smooth.spline(env_data[,1], env_data[,2])$df is used. See <em>sm.spline</em> for details.  
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>f</code></td>
+<td>
+
+<p>the fraction of extant species included in the phylogeny
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>meth</code></td>
+<td>
+
+<p>optimization to use to maximize the likelihood function, see <em>optim</em> for more details.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cst.lamb</code></td>
+<td>
+
+<p>logical: should be set to TRUE only if f.lamb is constant (i.e. does not depend on time or the environmental variable) to use analytical instead of numerical computation in order to reduce computation time.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cst.mu</code></td>
+<td>
+
+<p>logical: should be set to TRUE only if f.mu is constant (i.e. does not depend on time or the environmental variable) to use analytical instead of numerical computation in order to reduce computation time.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>expo.lamb</code></td>
+<td>
+
+<p>logical: should be set to TRUE only if f.lamb is an exponential function of time (and does not depend on the environmental variable) to use analytical instead of numerical computation in order to reduce computation time.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>expo.mu</code></td>
+<td>
+
+<p>logical: should be set to TRUE only if f.mu is an exponential function of time (and does not depend on the environmental variable) to use analytical instead of numerical computation in order to reduce computation time.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fix.mu</code></td>
+<td>
+
+<p>logical: if set to TRUE, the extinction rate <code class="reqn">\mu</code> is fixed and will not be optimized.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dt</code></td>
+<td>
+
+<p>the default value is 0. In this case, integrals in the likelihood are computed using R "integrate" function, which can be quite slow. If a positive dt is given as argument, integrals are computed using a piece-wise contant approximation, and dt represents the length of the intervals on which functions are assumed to be constant. We found that 1e-3 generally provides a good trade-off between precision and computation time.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cond</code></td>
+<td>
+
+<p>conditioning to use to fit the model:
+</p>
+ <ul>
+<li>
+<p> FALSE: no conditioning (not recommended);
+</p>
+</li>
+<li>
+<p> "stem": conditioning on the survival of the stem lineage (use when the stem age is known, in this case tot_time should be the stem age);
+</p>
+</li>
+<li>
+<p> "crown" (default): conditioning on a speciation event at the crown age and survival of the 2 daugther lineages (use when the stem age is not known, in this case tot_time should be the crown age).
+</p>
+</li>
+</ul>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The lengths of lamb_par and mu_par are used to compute the total number of parameters in the model, so to fit a model with constant speciation rate (for example), lamb_par should be a vector of length 1. Otherwise aic values will be wrong. In the f.lamb and f.mu functions, time runs from the present to the past.
+
+
+
+Note that abs(f.lamb) and abs(f.mu) are used in the likelihood computation as speciation and extinction rates should always be positive. A consequence of this is that negative speciation/extinction rates estimates can be returned. They should be interpreted in aboslute terms. See Morlon et al. 2020 for a more detailed explanation.</p>
+
+
+<h3>Value</h3>
+
+<p>a list with the following components
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>the name of the fitted model</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>LH</code></td>
+<td>
+<p>the maximum log-likelihood value</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aicc</code></td>
+<td>
+<p>the second order Akaike's Information Criterion</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lamb_par</code></td>
+<td>
+<p>a numeric vector of estimated f.lamb parameters, in the same order as defined in f.lamb</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mu_par</code></td>
+<td>
+<p>a numeric vector of estimated f.mu parameters, in the same order as defined in f.mu (if fix.mu is FALSE)</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>The speed of convergence of the fit might depend on the degree of freedom chosen to define the spline. 
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>H Morlon and F Condamine</p>
+
+
+<h3>References</h3>
+
+<p>Morlon, H., Parsons, T.L. and Plotkin, J.B. (2011) Reconciling molecular phylogenies with the fossil record <em>Proc Nat Acad Sci</em> 108: 16327-16332
+</p>
+<p>Condamine, F.L., Rolland, J., and Morlon, H. (2013) Macroevolutionary perspectives to environmental change, Eco Lett 16: 72-85
+</p>
+<p>Morlon, H. (2014) Phylogenetic approaches for studying diversification, Eco Lett, 17:508-525
+</p>
+<p>Morlon, H., Rolland, J. and Condamine, F. (2020) Response to Technical Comment ‘A cautionary note for users of linear diversification dependencies’, Eco Lett
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>plot_fit_env</code>, <code>fit_bd</code>, <code>likelihood_bd</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(Cetacea)
+tot_time&lt;-max(node.age(Cetacea)$ages)
+data(InfTemp)
+dof&lt;-smooth.spline(InfTemp[,1], InfTemp[,2])$df
+
+# Fits a model with lambda varying as an exponential function of temperature
+# and mu fixed to 0 (no extinction).  Here t stands for time and x for temperature.
+f.lamb &lt;-function(t,x,y){y[1] * exp(y[2] * x)}
+f.mu&lt;-function(t,x,y){0}
+lamb_par&lt;-c(0.10, 0.01)
+mu_par&lt;-c()
+#result_exp &lt;- fit_env(Cetacea,InfTemp,tot_time,f.lamb,f.mu,lamb_par,mu_par,
+#                      f=87/89,fix.mu=TRUE,df=dof,dt=1e-3)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,183 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fitCLS</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>CLS for time series</h2>
+
+<h3>Description</h3>
+
+<p><code>fitCLS</code> is used to fit conditional least squares regression
+to time series data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fitCLS(
+  formula,
+  data = NULL,
+  lag.y = 1,
+  lag.x = 1,
+  debug = FALSE,
+  model = FALSE,
+  y = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a model formula, as used by <code>stats::lm()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>optional data environment to search for variables in <code>formula</code>.
+As used by <code>lm()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lag.y</code></td>
+<td>
+<p>an integer indicating the lag (in time steps) between y and y.0</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lag.x</code></td>
+<td>
+<p>an integer indicating the lag (in time steps) between y and the
+independent variables (except y.0).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>debug</code></td>
+<td>
+<p>logical debug mode</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>logical, should the used model matrix be returned? As used by
+<code>lm()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>logical, should the used response variable be returned? As used by
+<code>lm()</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function regresses the response variable (y) at time t, conditional on the
+response at time t-<code>lag.y </code> and the specified dependent variables (X) at
+time t-<code>lag.x</code>:
+</p>
+<p style="text-align: center;"><code class="reqn">y(t) = y(t - lag.y) + X(t - lag.x) + \varepsilon</code>
+</p>
+
+<p>where <code class="reqn">y(t)</code> is the response at time <code class="reqn">t</code>;
+</p>
+<p><code class="reqn">X(t)</code> is a model matrix containing covariates;
+</p>
+<p><code class="reqn">\beta</code> is a vector of effects of <code class="reqn">X(t)</code>;
+</p>
+<p>and <code class="reqn">\varepsilon(t)</code> is a temporally independent Gaussian random
+variable with mean zero and standard deviation <code class="reqn">\sigma</code>
+</p>
+<p><code>stats::lm()</code> is then called, using the above equation.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>fitCLS</code> returns a list object of class "remoteTS", which
+inherits from  "lm". In addition to the default "lm" components, the output
+contains these additional list elements:
+</p>
+
+<dl>
+<dt>tstat</dt>
+<dd>
+<p>the t-statistics for coefficients</p>
+</dd>
+<dt>pval</dt>
+<dd>
+<p>the p-values corresponding to t-tests of coefficients</p>
+</dd>
+<dt>MSE</dt>
+<dd>
+<p>the model mean squared error</p>
+</dd>
+<dt>logLik</dt>
+<dd>
+<p>the log-likelihood of the model fit</p>
+</dd>
+</dl>
+<h3>See Also</h3>
+
+<p><code>fitCLS_map</code> to easily apply <code>fitCLS</code> to many pixels;
+<code>fitAR</code> and <code>fitAR_map</code> for AR time series analyses.
+</p>
+<p>Other remoteTS: 
+<code>fitAR_map()</code>,
+<code>fitAR()</code>,
+<code>fitCLS_map()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# simulate dummy data
+t = 1:30 # times series
+Z = rnorm(30) # random independent variable
+x = .2*Z + (.05*t) # generate dependent effects
+x[2:30] = x[2:30] + .2*x[1:29] # add autocorrelation
+x = x + rnorm(30, 0, .01)
+df = data.frame(x, t, Z) # collect in data frame
+
+# fit a CLS model with previous x, t, and Z as predictors
+## note, this model does not follow the underlying process.
+### See below for a better fit.
+(CLS &lt;- fitCLS(x ~ t + Z, data = df))
+
+# extract other values
+CLS$MSE #MSE
+CLS$logLik #log-likelihood
+
+# fit with no lag in independent variables (as simulated):
+(CLS2 &lt;- fitCLS(x ~ t + Z, df, lag.x = 0))
+summary(CLS2)
+
+# no lag in x
+fitCLS(x ~ t + Z, df, lag.y = 0)
+
+# visualize the lag
+## large lag in x
+fitCLS(x ~ t + Z, df, lag.y = 2, lag.x = 0, debug = TRUE)$lag
+## large lag in Z
+fitCLS(x ~ t + Z, df, lag.y = 0, lag.x = 2, debug = TRUE)$lag
+
+# # throws errors (NOT RUN)
+# fitCLS(x ~ t + Z, df, lag.y = 28) # longer lag than time
+# fitCLS(cbind(x, rnorm(30)) ~ t + Z, df) # matrix response
+
+## Methods
+summary(CLS)
+residuals(CLS)
+
+</code></pre>
+
+
+</div>

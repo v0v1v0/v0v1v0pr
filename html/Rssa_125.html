@@ -1,0 +1,524 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ssa</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create a new SSA object</h2>
+
+<h3>Description</h3>
+
+<p>Set up the SSA object and perform the decomposition, if necessary.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ssa(x,
+    L = (N + 1) %/% 2,
+    neig = NULL,
+    mask = NULL,
+    wmask = NULL,
+    column.projector = "none",
+    row.projector = "none",
+    column.oblique = "identity",
+    row.oblique = "identity",
+    ...,
+    kind = c("1d-ssa", "2d-ssa", "nd-ssa", "toeplitz-ssa", "mssa", "cssa"),
+    circular = FALSE,
+    svd.method = c("auto", "nutrlan", "propack", "svd", "eigen", 
+                   "rspectra", "primme", "irlba", "rsvd"),
+    force.decompose = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>object to be decomposed. See
+<code>ssa-input</code> for more information</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>L</code></td>
+<td>
+<p>integer, window length. Fixed to half of the series length by
+default. Should be vector of length 2 for 2d SSA</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>neig</code></td>
+<td>
+<p>integer, number of desired eigentriples. If 'NULL', then
+sane default value will be used, see 'Details'</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mask</code></td>
+<td>
+<p>for shaped 2d SSA case only. Logical matrix with same dimension as
+<code>x</code>. Specifies form of decomposed array. If 'NULL', then all
+non-NA elements will be used</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>wmask</code></td>
+<td>
+<p>for shaped 2d SSA case only. Logical matrix which specifies window form.
+See ‘Details’ for more information about the window shape selection</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments passed to <code>decompose</code> </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kind</code></td>
+<td>
+<p>SSA method. This includes ordinary 1d SSA, 2d SSA,
+Toeplitz variant of 1d SSA, multichannel variant of SSA and complex
+SSA</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>circular</code></td>
+<td>
+<p>logical vector of one or two elements, describes series topology for
+1d SSA and Toeplitz SSA or field topology for 2d SSA. 'TRUE' means
+series circularity for 1d case or circularity by a corresponding
+coordinate for 2d case. See Shlemov and Golyandina (2014) for more information</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>svd.method</code></td>
+<td>
+<p>singular value decomposition method. See 'Details'
+for more info</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>column.projector, row.projector</code></td>
+<td>
+<p>column and row signal subspaces projectors for
+SSA with projection. See ‘Details’ for information about methods of
+projectors specification</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>column.oblique, row.oblique</code></td>
+<td>
+<p>column and row matrix weights for 
+Weighted Oblique SSA. See ‘Details’ for information about how to use this feature</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>force.decompose</code></td>
+<td>
+<p>logical, if 'TRUE' then the decomposition is
+performed before return.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This is the main entry point to the package. This routine
+constructs the SSA object filling all necessary internal structures
+and performing the decomposition if necessary.
+For the comprehensive description of SSA modifications and their algorithms
+see Golyandina et al (2018). 
+</p>
+
+
+<h4>Variants of SSA</h4>
+
+<p>The following implementations of the SSA method are supported
+(corresponds to different values of <code>kind</code> argument):
+</p>
+
+<dl>
+<dt>1d-ssa</dt>
+<dd>
+<p>Basic 1d SSA as described in Chapter 1 of Golyandina et al (2001).
+This is also known as Broomhead-King variant of SSA or
+BK-SSA, see Broomhead and King (1986).</p>
+</dd>
+<dt>toeplitz-ssa</dt>
+<dd>
+<p>Toeplitz variant of 1d SSA. See Section 1.7.2
+in Golyandina et al (2001). This is also known as Vautard-Ghil
+variant of SSA or VG-SSA for analysis of stationary time series,
+see Vautard and Ghil (1989).</p>
+</dd>
+<dt>mssa</dt>
+<dd>
+<p>Multichannel SSA for simultaneous decomposition of
+several time series (possible of unequal length). See
+Golyandina and Stepanov (2005).</p>
+</dd>
+<dt>cssa</dt>
+<dd>
+<p>Complex variant of 1d SSA.</p>
+</dd>
+<dt>2d-ssa</dt>
+<dd>
+<p>2d SSA for decomposition of images and arrays. See
+Golyandina and Usevich (2009) and Golyandina et.al (2015) for more information.</p>
+</dd>
+<dt>nd-ssa</dt>
+<dd>
+<p>Multidimensional SSA decomposition for arrays (tensors).</p>
+</dd>
+</dl>
+<h4>Window shape selection (for shaped 2d SSA)</h4>
+
+<p>Window shape may be specified by argument <code>wmask</code>. If <code>wmask</code> is 'NULL',
+then standard rectangular window (specified by <code>L</code>) will be used.
+</p>
+<p>Also in <code>wmask</code> one may use following functions:
+</p>
+
+<dl>
+<dt>circle(R)</dt>
+<dd>
+<p>circular mask of radius <code>R</code></p>
+</dd>
+<dt>triangle(side)</dt>
+<dd>
+<p>mask in form of isosceles right-angled triangle with
+cathetus <code>side</code>. Right angle lay on topleft corner of container square
+matrix</p>
+</dd>
+</dl>
+<p>These functions are not exported, they defined only for <code>wmask</code> expression.
+If one has objects with the same names and wants to use them rather than these functions,
+one should use special wrapper function <code>I()</code> (see 'Examples'). 
+</p>
+
+
+
+<h4>Projectors specification for SSA with projection</h4>
+
+<p>Projectors are specified by means of <code>column.projector</code> and
+<code>row.projector</code> arguments (see Golyandina and Shlemov (2017)). 
+Each may be a matrix of orthonormal
+(otherwise QR orthonormalization process will be perfomed) basis of
+projection subspace, or single integer, which will be interpreted as
+dimension of orthogonal polynomial basis (note that the dimension
+equals to degree plus 1, e.g. quadratic basis has dimension 3), or
+one of following character strings (or unique prefix): 'none',
+'constant' (or 'centering'), 'linear', 'quadratic' or 'qubic' for
+orthonormal bases of the corresponding functions.
+</p>
+<p>Here is the the list of the most used options
+</p>
+
+<dl>
+<dt>both projectors are 'none'</dt>
+<dd>
+<p>corresponds to ordinary 1D SSA,</p>
+</dd>
+<dt>column.projector='centering'</dt>
+<dd>
+<p>corresponds to 1D SSA
+with centering,</p>
+</dd>
+<dt>column.projector='centering' and
+row.projector='centering'</dt>
+<dd>
+<p>corresponds to 1D SSA with double
+centering.</p>
+</dd>
+</dl>
+<p>SSA with centering and double centering may improve the separation
+of linear trend (see Golyandina et.al (2001) for more information).
+</p>
+
+
+
+<h4>Weighted Oblique SSA</h4>
+
+<p>Corresponding matrix norm weights may be specified for ordinary 1D SSA case 
+by means of <code>column.oblique</code> and <code>row.oblique</code> arguments. These 
+arguments should be either 'identical' or positive numeric vectors of length 
+<code>L</code> and <code>N - L + 1</code> for <code>column.oblique</code> and 
+<code>row.oblique</code> respectively.
+</p>
+<p>Weighted Oblique SSA inside <code>Cadzow</code> iterations 
+may improve finite-rank estimation of signal 
+(see e.g. Cadzow(alpha) iterations in Zvonarev and Golyandina (2017) 
+for more information).
+</p>
+
+
+
+<h4>SVD methods</h4>
+
+<p>The main step of the SSA method is the singular decomposition of the
+so-called series trajectory matrix. Package provides several
+implementations of this procedure (corresponds to different values of
+<code>svd.method</code>) argument:
+</p>
+
+<dl>
+<dt>auto</dt>
+<dd>
+<p>Automatic method selection depending on the series length,
+window length, SSA kind and number of eigenvalues
+requested.</p>
+</dd>
+<dt>nutrlan</dt>
+<dd>
+<p>Thick-restart Lanczos eigensolver which operates on
+cross-product matrix. This methods exploits the Hankel structure of
+the trajectory matrix efficiently and is really fast. The method
+allows the truncated SVD (only specifid amount of eigentriples to be
+computed) and the continuation of the decomposition. See
+Korobeynikov (2010) for more information.</p>
+</dd>
+<dt>propack</dt>
+<dd>
+<p>SVD via implicitly restarted Lanczos
+bidiagonalization with partial reothogonalization. This methods
+exploits the Hankel structure of the trajectory matrix efficiently
+and is really fast. This is the 'proper' SVD implementation (the
+matrix of factor vectors are calculated), thus the memory
+requirements of the methods are higher than for nu-TRLAN. Usually
+the method is slightly faster that nu-TRLAN and more numerically
+stable. The method allows the truncated SVD (only specifid amount
+of eigentriples to be computed). See Korobeynikov (2010) for more
+information.</p>
+</dd>
+<dt>svd</dt>
+<dd>
+<p>Full SVD as provided by LAPACK DGESDD
+routine. Neither continuation of the decomposition nor the
+truncated SVD is supported. The method does not assume anything
+special about the trajectory matrix and thus is slow.</p>
+</dd>
+<dt>eigen</dt>
+<dd>
+<p>Full SVD via eigendecompsition of the cross-product
+matrix. In many cases faster than previous method, but still
+really slow for more or less non-trivial matrix sizes.</p>
+</dd>
+<dt>rspectra</dt>
+<dd>
+<p>SVD via <code>svds</code> function from Rspectra package
+(if installed)</p>
+</dd>
+<dt>primme</dt>
+<dd>
+<p>SVD via <code>svds</code> function from PRIMME package
+(if installed)</p>
+</dd>
+<dt>irlba</dt>
+<dd>
+<p>SVD via <code>svds</code> function from irlba package
+(if installed)</p>
+</dd>
+<dt>rsvd</dt>
+<dd>
+<p>SVD via <code>svdr</code> function from irlba package
+(if installed)</p>
+</dd>
+</dl>
+<p>Usually the <code>ssa</code> function tries to provide the best SVD
+implementation for given series length and the window size. In
+particular, for small series and window sizes it is better to use
+generic black-box routines (as provided by 'svd' and 'eigen'
+methods). For long series special-purpose routines are to be used.
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>Object of class ‘ssa’. The precise layout of the object is mostly
+meant opaque and subject to change in different version of the
+package. See <code>ssa-object</code> for details.
+</p>
+
+
+<h3>References</h3>
+
+<p>Golyandina N., Korobeynikov A., Zhigljavsky A. (2018):
+<em>Singular Spectrum Analysis with R.</em>  Use R!.
+Springer, Berlin, Heidelberg.
+</p>
+<p>Broomhead, D.S., and King, G.P. (1986a): <em>Extracting qualitative
+dynamics from experimental data</em>, Physica D, 20, 217–236.
+</p>
+<p>Vautard, R., and Ghil, M. (1989): <em>Singular spectrum analysis in
+nonlinear dynamics, with applications to paleoclimatic time series</em>,
+Physica D, 35, 395–424.
+</p>
+<p>Golyandina, N., Nekrutkin, V. and Zhigljavsky, A. (2001): <em>Analysis of
+Time Series Structure: SSA and related techniques.</em> Chapman and
+Hall/CRC. ISBN 1584881941
+</p>
+<p>Golyandina, N. and Stepanov, D. (2005): <em>SSA-based approaches to
+analysis and forecast of multidimensional time series</em>. In
+Proceedings of the 5th St.Petersburg Workshop on Simulation, June
+26-July 2, 2005, St. Petersburg State University, St. Petersburg,
+293–298. <a href="https://www.gistatgroup.com/gus/mssa2.pdf">https://www.gistatgroup.com/gus/mssa2.pdf</a>
+</p>
+<p>Golyandina, N. and Usevich, K. (2009): <em>2D-extensions of singular
+spectrum analysis: algorithm and elements of theory.</em> In Matrix
+Methods: Theory, Algorithms, Applications. World Scientific
+Publishing, 450-474.
+</p>
+<p>Korobeynikov, A. (2010): <em>Computation- and space-efficient
+implementation of SSA.</em> Statistics and Its Interface, Vol. 3, No. 3,
+Pp. 257-268
+</p>
+<p>Golyandina, N., Korobeynikov, A. (2012, 2014): <em>Basic Singular Spectrum
+Analysis and Forecasting with R.</em> Computational Statistics and Data
+Analysis, Vol. 71, Pp. 934-954. <a href="https://arxiv.org/abs/1206.6910">https://arxiv.org/abs/1206.6910</a>
+</p>
+<p>Golyandina, N., Zhigljavsky, A. (2013): <em>Singular Spectrum
+Analysis for time series</em>. Springer Briefs in Statistics. Springer.
+</p>
+<p>Shlemov, A. and Golyandina, N. (2014): <em>Shaped extensions of singular
+spectrum analysis</em>. 21st International Symposium on Mathematical 
+Theory of Networks and Systems, July 7-11, 2014. Groningen, 
+The Netherlands. p.1813-1820. <a href="https://arxiv.org/abs/1507.05286">https://arxiv.org/abs/1507.05286</a>
+</p>
+<p>Golyandina, N., Korobeynikov, A., Shlemov, A. and Usevich, K. (2015):
+<em>Multivariate and 2D Extensions of Singular Spectrum Analysis
+with the Rssa Package</em>. Journal of Statistical Software, Vol. 67, Issue 2.
+<a href="https://doi.org/10.18637/jss.v067.i02">doi:10.18637/jss.v067.i02</a>
+</p>
+<p>Golyandina, N. and Shlemov, A. (2017): <em>Semi-nonparametric singular 
+spectrum analysis with projection</em>. Statistics and its Interface, Vol. 10, 
+Issue 1, p. 47-57.
+<a href="https://arxiv.org/abs/1401.4980">https://arxiv.org/abs/1401.4980</a>
+</p>
+<p>Zvonarev, N. and Golyandina, N. (2017): <em>Iterative algorithms for weighted and 
+unweighted finite-rank time-series approximations</em>. Statistics and its Interface,
+Vol. 10, Issue 1, p. 5-18.
+<a href="https://arxiv.org/abs/1507.02751">https://arxiv.org/abs/1507.02751</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>svd</code>,
+<code>ssa-object</code>,
+<code>ssa-input</code>,
+<code>ssa.capabilities</code>,
+<code>decompose</code>,
+<code>reconstruct</code>,
+<code>plot</code>,
+<code>forecast</code>,
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Decompose 'co2' series with default parameters
+s &lt;- ssa(co2)
+# Show the summary
+summary(s)
+# Reconstruct the series, with suitable grouping
+r &lt;- reconstruct(s, groups = list(c(1, 4), c(2, 3), c(5, 6)))
+
+plot(r)
+
+
+# Decompose 'EuStockMarkets' series with default parameters
+s &lt;- ssa(EuStockMarkets, kind = "mssa")
+r &lt;- reconstruct(s, groups = list(Trend = 1:2))
+# Plot original series, trend and residuals superimposed
+
+plot(r, plot.method = "xyplot", superpose = TRUE,
+     auto.key = list(columns = 3),
+     col = c("blue", "green", "red", "violet"),
+     lty = c(rep(1, 4), rep(2, 4), rep(3, 4)))
+
+
+# Artificial image for 2dSSA
+mx &lt;- outer(1:50, 1:50,
+            function(i, j) sin(2*pi * i/17) * cos(2*pi * j/7) + exp(i/25 - j/20)) +
+      rnorm(50^2, sd = 0.1)
+# Decompose 'mx' with circular window
+s &lt;- ssa(mx, kind = "2d-ssa", wmask = circle(5), neig = 10)
+# Reconstruct
+r &lt;- reconstruct(s, groups = list(1, 2:5))
+
+# Plot components, original image and residuals
+plot(r)
+
+
+# Real example: Mars photo
+data(Mars)
+# Decompose only Mars image (without backgroud)
+s &lt;- ssa(Mars, mask = Mars != 0, wmask = circle(50), kind = "2d-ssa")
+
+# Plot eigenarrays
+plot(s, type = "vectors", idx = 1:25)
+# Plot factor arrays
+plot(s, type = "vectors", vectors = "factor", idx = 1:25)
+# Reconstruct and plot trend
+plot(reconstruct(s, 1), fill.uncovered = "original")
+# Reconstruct and plot texture pattern
+plot(reconstruct(s, groups = list(c(13,14, 17, 18))))
+
+# I()-wrapper demo
+circle &lt;- 50
+s &lt;- ssa(Mars, wmask = circle(R = I(circle)))
+
+# CSSA-based trend extraction
+s &lt;- ssa(EuStockMarkets[, 1] + 1.0i*EuStockMarkets[, 2], kind = "cssa")
+r &lt;- reconstruct(s, groups = list(Trend = 1:2))
+plot(r)
+
+# `co2' decomposition with double projection to linear functions
+s &lt;- ssa(co2, column.projector = "centering", row.projector = "centering")
+plot(reconstruct(s, groups = list(trend = seq_len(nspecial(s)))))
+
+
+# Artificial 2d example with double projection
+ii &lt;- matrix(1:100, 100, 100); jj &lt;- t(ii)
+x &lt;- ii + 2 * jj
+s &lt;- ssa(x, column.projector = "centering", row.projector = "centering")
+plot(s)
+plot(reconstruct(s, groups = list(trend = seq_len(nspecial(s)))))
+
+# 3D-SSA example (2D-MSSA)
+data(Barbara)
+Barbara.noised &lt;- Barbara
+
+# Corrupt image by regular noise
+noise &lt;- outer(seq_len(dim(Barbara)[1]),
+               seq_len(dim(Barbara)[2]),
+               function(i, j) sin(2*pi * (i/13 + j/23)))
+Barbara.noised[,, 1] &lt;- Barbara.noised[,, 1] + 10 * noise
+Barbara.noised[,, 2] &lt;- Barbara.noised[,, 2] + 30 * noise
+Barbara.noised[,, 3] &lt;- Barbara.noised[,, 3] + 5 * noise
+
+# Normalize image for plotting
+Barbara.noised &lt;- (Barbara.noised - min(Barbara.noised)) / diff(range(Barbara.noised))
+
+plot(c(0, 1), c(0, 1), type = "n", xlab = "", ylab = "")
+rasterImage(Barbara.noised, 0, 0, 1, 1, interpolate = FALSE)
+
+
+# Multichannel 2D-SSA
+ss &lt;- ssa(Barbara.noised, L = c(50, 50, 1))
+plot(ss, type = "series", groups = 1:18, slice = list(k = 1))
+plot(ss, type = "vectors", idx = 1:12, slice = list(k = 1))
+plot(ss, type = "vectors", vectors = "factor", idx = 1:12, slice = list(k = 3))
+# Denoise image
+Barbara.rec &lt;- residuals(ss, groups = 5:6)
+plot(c(0, 1), c(0, 1), type = "n", xlab = "", ylab = "")
+rasterImage(Barbara.rec, 0, 0, 1, 1, interpolate = FALSE)
+
+</code></pre>
+
+
+</div>

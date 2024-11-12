@@ -1,0 +1,139 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>sindex</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Weighted relative suitability index
+</h2>
+
+<h3>Description</h3>
+
+<p>Calculates weighted relative suitability index.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">sindex(y, x)
+wrsi(y, x)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+
+<p>matrix of observations for <code>sindex</code>,
+vector of observations for <code>wrsi</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+
+<p>a matrix of proportions (i.e. the values 0 and 1 should have
+consistent meaning across the columns, often through a unit sum constraint).
+</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p><code>wrsi</code> returns a data frame (class 'wrsi') with the following columns:
+</p>
+
+<dl>
+<dt><code>WRSI</code></dt>
+<dd>
+<p>weighted relative suitability index, range (0- Inf).</p>
+</dd>
+<dt><code>zWRSI</code></dt>
+<dd>
+<p>log of <code>WRSI</code> (z-transformed), range (-Inf, Inf).</p>
+</dd>
+<dt><code>rWRSI</code></dt>
+<dd>
+<p>inverse Fisher z-transformed <code>zWRSI</code>, range (-1, 1).</p>
+</dd>
+<dt>
+<code>Pused</code> and <code>Pavail</code>
+</dt>
+<dd>
+<p>total proportion of used (<code>y &gt; 0</code>)
+and available of each feature (column) in <code>x</code>.</p>
+</dd>
+<dt><code>Pw</code></dt>
+<dd>
+<p>weighted proportions from <code>y</code>.</p>
+</dd>
+<dt>
+<code>u</code> and <code>a</code>
+</dt>
+<dd>
+<p>used and available totals
+for each feature (column) in <code>x</code>.</p>
+</dd>
+</dl>
+<p><code>sindex</code> returns a data frame (class 'sindex') with
+one column for each species, and one row for each feature (column) in <code>x</code>.
+Cell values are inverse Fisher z-transformed (<code>zWRSI</code>) indices.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Peter Solymos &lt;solymos@ualberta.ca&gt;
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## --- habitat composition matrix
+set.seed(1234)
+n &lt;- 1000 # sample size
+k &lt;- 5 # habitat classes
+s &lt;- runif(n, 1, 5)
+p &lt;- plogis(rnorm(n*k, 0, rep(s, k)))
+p &lt;- p*t(replicate(n, sample(c(10,4,2,1,1))))
+x &lt;- p / rowSums(p)
+summary(x)
+summary(rowSums(x))
+
+## --- observations
+## expected abundance in each habitat class
+lam &lt;- c(0.8, 0.6, 0.5, 0.4, 0.1)*1
+## sample x habitat level abundances
+yy &lt;- t(sapply(seq_len(n), function(i) {
+    ## intercept and modifier combined
+    rpois(k, (x[i,]*lam))
+    }))
+## total: sum over habitat classes
+## this is what we observe
+y &lt;- rowSums(yy)
+colSums(yy)
+table(y)
+
+## --- wrsi calculations
+(w &lt;- wrsi(y, x))
+op &lt;- par(mfrow=c(1,2))
+## habitat level observations are unknown
+plot(lam, colSums(yy) / sum(yy), type="b")
+## this is approximated by the wrsi
+plot(lam, w$rWRSI, type="b")
+abline(h=0, lty=2)
+par(op)
+
+## --- sindex calculations for multiple species
+y2 &lt;- cbind(Spp1=y, Spp2=rev(y), Spp3=sample(y))
+(w2 &lt;- sindex(y2, x))
+heatmap(t(as.matrix(w2)), scale="none")
+</code></pre>
+
+
+</div>

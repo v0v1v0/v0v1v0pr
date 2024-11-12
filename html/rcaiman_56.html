@@ -1,0 +1,146 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>regional_thresholding</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Regional thresholding</h2>
+
+<h3>Description</h3>
+
+<p>Regional thresholding of greyscale images.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">regional_thresholding(
+  r,
+  segmentation,
+  method,
+  intercept = NULL,
+  slope = NULL,
+  prob = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>r</code></td>
+<td>
+<p>SpatRaster. A normalized greyscale image. Typically, the
+blue channel extracted from a canopy photograph. Please see <code>read_caim()</code>
+and <code>normalize()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>segmentation</code></td>
+<td>
+<p>SpatRaster. The result of segmenting <code>r</code>.
+Arguably, the result of a call to <code>rings_segmentation()</code> will be the
+preferred choice for fisheye images.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Character vector of length one. See details for current
+options.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intercept, slope</code></td>
+<td>
+<p>Numeric vector of length one. These are linear
+function coefficients.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prob</code></td>
+<td>
+<p>Numeric vector of length one. Probability for <code>stats::quantile()</code>
+calculation.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Methods currently implemented are:
+</p>
+
+<ul>
+<li> <p><strong>Diaz2018</strong>: method presented in
+Díaz and Lencinas (2018) applied regionally. If this method is
+selected, the arguments <code>intercept</code>, <code>slope</code>, and <code>prob</code> should be provided.
+It works segment-wise extracting the digital numbers per segment and passing
+them to <code>stats::quantile()</code> along with <code>prob</code>, which aggregated result is in
+turn passed to <code>thr_mblt()</code> along with <code>intercept</code> and <code>slope</code>. Finally, this
+threshold image is applied to obtain a binarized image.
+</p>
+</li>
+<li> <p><strong>Methods from autothresholdr package</strong>: this function can call
+methods from <code>autothresholdr::auto_thresh()</code>. For instance, use <code>"IsoData"</code>
+to use the algorithm by Ridler and Calvard (1978), which was
+recommended by Jonckheere et al. (2005).
+</p>
+</li>
+<li> <p><strong>Method isodata from this package</strong>: Use <code>"thr_isodata"</code> to
+use <code>thr_isodata()</code>.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>An object of class SpatRaster with values <code>0</code> and <code>1</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Díaz GM, Lencinas JD (2018).
+“Model-based local thresholding for canopy hemispherical photography.”
+<em>Canadian Journal of Forest Research</em>, <b>48</b>(10), 1204–1216.
+<a href="https://doi.org/10.1139/cjfr-2018-0006">doi:10.1139/cjfr-2018-0006</a>.<br><br> Jonckheere I, Nackaerts K, Muys B, Coppin P (2005).
+“Assessment of automatic gap fraction estimation of forests from digital hemispherical photography.”
+<em>Agricultural and Forest Meteorology</em>, <b>132</b>(1-2), 96–114.
+<a href="https://doi.org/10.1016/j.agrformet.2005.06.003">doi:10.1016/j.agrformet.2005.06.003</a>.<br><br> Ridler TW, Calvard S (1978).
+“Picture thresholding using an iterative selection method.”
+<em>IEEE Transactions on Systems, Man, and Cybernetics</em>, <b>8</b>(8), 630–632.
+<a href="https://doi.org/10.1109/tsmc.1978.4310039">doi:10.1109/tsmc.1978.4310039</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Binarization Functions: 
+<code>apply_thr()</code>,
+<code>obia()</code>,
+<code>ootb_mblt()</code>,
+<code>ootb_obia()</code>,
+<code>thr_isodata()</code>,
+<code>thr_mblt()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+path &lt;- system.file("external/DSCN4500.JPG", package = "rcaiman")
+caim &lt;- read_caim(path, c(1250, 1020) - 745, 745 * 2, 745 * 2)
+z &lt;- zenith_image(ncol(caim), lens("Nikon_FCE9"))
+r &lt;- gbc(caim$Blue)
+r &lt;- correct_vignetting(r, z, c(0.0638, -0.101)) %&gt;% normalize()
+rings &lt;- rings_segmentation(z, 15)
+bin &lt;- regional_thresholding(r, rings, "Diaz2018", -7.8, 0.95 * 0.5, 0.99)
+plot(bin)
+bin &lt;- regional_thresholding(r, rings, "thr_isodata")
+plot(bin)
+#' 
+## End(Not run)
+</code></pre>
+
+
+</div>

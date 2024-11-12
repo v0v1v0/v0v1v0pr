@@ -1,0 +1,182 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>evaluate</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Evaluate a Recommender Models
+</h2>
+
+<h3>Description</h3>
+
+<p>Evaluates a single or a list of recommender model given an evaluation scheme and return evaluation metrics.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">evaluate(x, method, ...)
+
+## S4 method for signature 'evaluationScheme,character'
+evaluate(x, method, type="topNList",
+  n=1:10, parameter=NULL, progress = TRUE, keepModel=FALSE)
+## S4 method for signature 'evaluationScheme,list'
+evaluate(x, method, type="topNList",
+  n=1:10, parameter=NULL, progress = TRUE, keepModel=FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>an evaluation scheme (class <code>"evaluationScheme"</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>a character string or a list. If
+a single character string is given it defines the recommender method
+used for evaluation. If several recommender methods need to be compared,
+<code>method</code> contains a nested list. Each element describes a recommender
+method and consists of a list with two elements: a character string
+named <code>"name"</code> containing the method and a list named
+<code>"parameters"</code> containing the parameters used for this recommender method.
+See <code>Recommender</code> for available methods.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>evaluate "topNList" or "ratings"?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>a vector of the different values for N used to generate top-N lists (only if type="topNList").</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parameter</code></td>
+<td>
+<p>a list with parameters for the recommender algorithm (only
+used when <code>method</code> is a single method).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>progress</code></td>
+<td>
+<p>logical; report progress?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keepModel</code></td>
+<td>
+<p>logical; store used recommender models?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments. </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The evaluation uses the specification in the evaluation scheme to train a recommender models on training data and then evaluates the models on test data.
+The result is a set of accuracy measures averaged over the test users.
+See <code>calcPredictionAccuracy</code> for details on the accuracy measures and the averaging.
+Note: Also the confusion matrix counts are averaged over users and therefore not whole numbers.
+</p>
+<p>See <code>vignette("recommenderlab")</code> for more details on the evaluaiton process and the used metrics.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If a single recommender method is specified in  <code>method</code>, then an
+object of class <code>"evaluationResults"</code> is returned.
+If <code>method</code> is a list of recommendation models, then an object of class <code>"evaluationResultList"</code> is returned.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>calcPredictionAccuracy</code>,
+<code>evaluationScheme</code>,
+<code>evaluationResults</code>.
+<code>evaluationResultList</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">### evaluate top-N list recommendations on a 0-1 data set
+## Note: we sample only 100 users to make the example run faster
+data("MSWeb")
+MSWeb10 &lt;- sample(MSWeb[rowCounts(MSWeb) &gt;10,], 100)
+
+## create an evaluation scheme (10-fold cross validation, given-3 scheme)
+es &lt;- evaluationScheme(MSWeb10, method="cross-validation",
+        k=10, given=3)
+
+## run evaluation
+ev &lt;- evaluate(es, "POPULAR", n=c(1,3,5,10))
+ev
+
+## look at the results (the length of the topNList is shown as column n)
+getResults(ev)
+
+## get a confusion matrices averaged over the 10 folds
+avg(ev)
+plot(ev, annotate = TRUE)
+
+## evaluate several algorithms (including a hybrid recommender) with a list
+algorithms &lt;- list(
+  RANDOM = list(name = "RANDOM", param = NULL),
+  POPULAR = list(name = "POPULAR", param = NULL),
+  HYBRID = list(name = "HYBRID", param =
+      list(recommenders = list(
+          RANDOM = list(name = "RANDOM", param = NULL),
+          POPULAR = list(name = "POPULAR", param = NULL)
+        )
+      )
+  )
+)
+
+evlist &lt;- evaluate(es, algorithms, n=c(1,3,5,10))
+evlist
+names(evlist)
+
+## select the first results by index
+evlist[[1]]
+avg(evlist[[1]])
+
+plot(evlist, legend="topright")
+
+### Evaluate using a data set with real-valued ratings
+## Note: we sample only 100 users to make the example run faster
+data("Jester5k")
+es &lt;- evaluationScheme(Jester5k[1:100], method="split",
+  train=.9, given=10, goodRating=5)
+## Note: goodRating is used to determine positive ratings
+
+## predict top-N recommendation lists
+## (results in TPR/FPR and precision/recall)
+ev &lt;- evaluate(es, "RANDOM", type="topNList", n=10)
+getResults(ev)
+
+## predict missing ratings
+## (results in RMSE, MSE and MAE)
+ev &lt;- evaluate(es, "RANDOM", type="ratings")
+getResults(ev)
+</code></pre>
+
+
+</div>

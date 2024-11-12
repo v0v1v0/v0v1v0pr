@@ -1,0 +1,223 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fitCor</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate spatial parameters from time series residuals</h2>
+
+<h3>Description</h3>
+
+<p><code>fitCor()</code> estimates parameter values of a distance-based
+variance function from the pixel-wise correlations among time series residuals.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fitCor(
+  resids,
+  coords,
+  distm_FUN = "distm_scaled",
+  covar_FUN = "covar_exp",
+  start = list(r = 0.1),
+  fit.n = 1000,
+  index,
+  save_mod = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>resids</code></td>
+<td>
+<p>a matrix of time series residuals, with rows corresponding to
+pixels and columns to time points</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coords</code></td>
+<td>
+<p>a numeric coordinate matrix or data frame, with two columns and
+rows corresponding to each pixel</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>distm_FUN</code></td>
+<td>
+<p>a function to calculate a distance matrix from <code>coords</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covar_FUN</code></td>
+<td>
+<p>a function to estimate distance-based covariances</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start</code></td>
+<td>
+<p>a named list of starting parameter values for <code>covar_FUN</code>, passed to <code>nls</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit.n</code></td>
+<td>
+<p>an integer indicating how many pixels should be used to estimate parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>index</code></td>
+<td>
+<p>an optional index of pixels to use for parameter estimation</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>save_mod</code></td>
+<td>
+<p>logical: should the nls model be saved in the output?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments passed to <code>nls</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For accurate results, <code>resids</code> and <code>coords</code> must be paired matrices.
+Rows of both matrices should correspond to the same pixels.
+</p>
+<p>Distances between sapmled pixels are calculated with the function specified by
+<code>distm_FUN</code>. This function can be any that takes a coordinate
+matrix as input and returns a distance matrix between points. Some options
+provided by <code>remotePARTS</code> are <code>distm_km()</code>, which returns distances
+in kilometers and <code>distm_scaled()</code>, which returns distances scaled between
+0 and 1.
+</p>
+<p><code>covar_FUN</code> can be any function that takes a vector of distances as its
+first argument, and at least one parameter as additional arguments. <code>remotePARTS</code>
+provides three suitable functions: <code>covar_exp</code>, <code>covar_exppow</code>, and
+<code>covar_taper</code>; but user-defined functions are also possible.
+</p>
+<p>Parameters are estimated with <code>stats::nls()</code> by regressing correlations
+among time series residuals on a function of distances specified by <code>covar_FUN</code>.
+</p>
+<p><code>start</code> is used by <code>nls</code> to determine how many parameters need
+estimating, and starting values for those parameters. As such, it is important
+that <code>start</code> has named elements for each parameter in <code>covar_FUN</code>.
+</p>
+<p>The fit will be performed for all pixels specified in <code>index</code>, if provided.
+Otherwise, a random sample of length <code>fit.n</code> is used. If <code>fit.n</code>
+exceeds the number of pixels, all pixels are used. When random pixels are used,
+parameter estimates will be different for each call of the function. For reproducible
+results, we recommend taking a random sample of pixels manually and passing in
+those values as <code>index</code>.
+</p>
+<p>Caution: Note that a distance matrix, of size <code class="reqn">n \times n</code> must be fit to the
+sampled data where <code class="reqn">n</code> is either <code>fit.n</code> or <code>length(index)</code>.
+Take your computer's memory and processing time into consideration when choosing
+this size.
+</p>
+<p>Parameter estimates are always returned in the same scale of distances
+calculated by <code>distm_FUN</code>. It is very important that these estimates
+are re-scaled by users if output of <code>distm_FUN</code> use units different from
+the desired scale. For example,
+if the function <code>covar_FUN = function(d, r, a){-(d/r)^a}</code> is used
+with <code>distm_FUN = "distm_scaled"</code>, the estimated range parameter <code>r</code>
+will be based on a unit-map. Users will likely want to re-scaled it to map
+units by multiplying <code>r</code> by the maximum distance among points on your map.
+</p>
+<p>If the <code>distm_FUN</code> is on the scale of your map (e.g., "distm_km"),
+re-scaling is not needed but may be preferable, since it is scaled to the
+maximum distance among the sampled data rather than the true maximum
+distance. For example, dividing the range parameter by <code>max.distance</code>
+and then multiplying it by the true max distance may provide a better range
+estimate.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>fitCor</code> returns a list object of class "remoteCor", which contains
+these elements:
+</p>
+
+<dl>
+<dt>call</dt>
+<dd>
+<p>the function call</p>
+</dd>
+<dt>mod</dt>
+<dd>
+<p>the <code>nls</code> fit object, if <code>save_mod=TRUE</code></p>
+</dd>
+<dt>spcor</dt>
+<dd>
+<p>a vector of the estimated spatial correlation parameters</p>
+</dd>
+<dt>max.distance</dt>
+<dd>
+<p>the maximum distance among the sampled pixels, as calculated by <code>dist_FUN</code>.</p>
+</dd>
+<dt>logLik</dt>
+<dd>
+<p>the log-likelihood of the fit</p>
+</dd>
+</dl>
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# simulate dummy data
+set.seed(19)
+time.points = 30 # time series length
+map.width = 8 # square map width
+coords = expand.grid(x = 1:map.width, y = 1:map.width) # coordinate matrix
+
+## create empty spatiotemporal variables:
+X &lt;- matrix(NA, nrow = nrow(coords), ncol = time.points) # response
+Z &lt;- matrix(NA, nrow = nrow(coords), ncol = time.points) # predictor
+
+## setup first time point:
+Z[, 1] &lt;- .05*coords[,"x"] + .2*coords[,"y"]
+X[, 1] &lt;- .5*Z[, 1] + rnorm(nrow(coords), 0, .05) #x at time t
+
+## project through time:
+for(t in 2:time.points){
+  Z[, t] &lt;- Z[, t-1] + rnorm(map.width^2)
+  X[, t] &lt;- .2*X[, t-1] + .1*Z[, t] + .05*t + rnorm(nrow(coords), 0 , .25)
+}
+
+AR.map = fitAR_map(X, coords, formula = y ~ Z, X.list = list(Z = Z), resids.only = FALSE)
+
+# using pre-defined covariance function
+## exponential covariance
+fitCor(AR.map$residuals, coords, covar_FUN = "covar_exp", start = list(range = .1))
+
+## exponential-power covariance
+fitCor(AR.map$residuals, coords, covar_FUN = "covar_exppow", start = list(range = .1, shape = .2))
+
+# user-specified covariance function
+fitCor(AR.map$residuals, coords, covar_FUN = function(d, r){d^r}, start = list(r = .1))
+
+# un-scaled distances:
+fitCor(AR.map$residuals, coords, distm_FUN = "distm_km", start = list(r = 106))
+
+# specify which pixels to use, for reproducibility
+fitCor(AR.map$residuals, coords, index = 1:64)$spcor #all
+fitCor(AR.map$residuals, coords, index = 1:20)$spcor #first 20
+fitCor(AR.map$residuals, coords, index = 21:64)$spcor # last 43
+# randomly select pixels
+fitCor(AR.map$residuals, coords, fit.n = 20)$spcor #random 20
+fitCor(AR.map$residuals, coords, fit.n = 20)$spcor # different random 20
+
+</code></pre>
+
+
+</div>

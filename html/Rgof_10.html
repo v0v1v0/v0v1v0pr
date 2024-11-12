@@ -1,0 +1,191 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>gof_power</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Find the power of various gof tests for continuous data.</h2>
+
+<h3>Description</h3>
+
+<p>Find the power of various gof tests for continuous data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">gof_power(
+  pnull,
+  vals = NA,
+  rnull,
+  ralt,
+  param_alt,
+  w = function(x) -99,
+  phat = function(x) -99,
+  TS,
+  TSextra = NA,
+  alpha = 0.05,
+  Range = c(-Inf, Inf),
+  B = c(1000, 1000),
+  nbins = c(50, 10),
+  rate = 0,
+  maxProcessors,
+  minexpcount = 5,
+  ChiUsePhat = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>pnull</code></td>
+<td>
+<p>function to find cdf under  null hypothesis</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vals</code></td>
+<td>
+<p>=NA, values of rv, if data is discrete, NA if data is continuous</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rnull</code></td>
+<td>
+<p>function to generate data under  null hypothesis</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ralt</code></td>
+<td>
+<p>function to generate data under  alternative hypothesis</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>param_alt</code></td>
+<td>
+<p>vector of parameter values for distribution under alternative hypothesis</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w</code></td>
+<td>
+<p>(Optional) function to calculate weights, returns -99 if no weights</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phat</code></td>
+<td>
+<p>=function(x) -99 function to estimate parameters from the data, or -99</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>TS</code></td>
+<td>
+<p>user supplied function to find test statistics</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>TSextra</code></td>
+<td>
+<p>=NA, list provided to TS</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>=0.05, the level of the hypothesis test</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Range</code></td>
+<td>
+<p>=c(-Inf, Inf) limits of possible observations, if any</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B</code></td>
+<td>
+<p>=c(1000, 1000), number of simulation runs to find power and null distribution</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nbins</code></td>
+<td>
+<p>=c(100,10), number of bins for chi square tests.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rate</code></td>
+<td>
+<p>=0 rate of Poisson if sample size is random, 0 if sample size is fixed</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxProcessors</code></td>
+<td>
+<p>maximum of number of processors to use, 1 if no parallel processing is needed or number of cores-1 if missing</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minexpcount</code></td>
+<td>
+<p>=5 minimal expected bin count required</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ChiUsePhat</code></td>
+<td>
+<p>= TRUE, if TRUE param is estimated parameter, otherwise minimum chi square method is used.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A numeric matrix of power values.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Power of tests when null hypothesis specifies the standard normal distribution but 
+# true data comes from a normal distribution with mean different from 0.
+pnull = function(x) pnorm(x)
+rnull = function()  rnorm(50)
+ralt = function(mu)  rnorm(50, mu)
+TSextra = list(qnull=function(x) qnorm(x))
+gof_power(pnull, NA, rnull, ralt, c(0.25, 0.5), TSextra=TSextra, B=c(500, 500))
+# Power of tests when null hypothesis specifies normal distribution and 
+# mean and standard deviation are estimated from the data. 
+# Example is not run because it takes several minutes.
+# true data comes from a normal distribution with mean different from 0.
+pnull = function(x, p=c(0, 1)) pnorm(x, p[1], ifelse(p[2]&gt;0.001, p[2], 0.001))
+rnull = function(p=c(0, 1))  rnorm(50, p[1], ifelse(p[2]&gt;0.001, p[2], 0.001))
+phat = function(x) c(mean(x), sd(x))
+TSextra = list(qnull = function(x, p=c(0, 1)) qnorm(x, p[1],  
+               ifelse(p[2]&gt;0.001, p[2], 0.001))) 
+gof_power(pnull, NA, rnull, ralt, c(0, 1), phat=phat, TSextra=TSextra, 
+          B=c(200, 200), maxProcessor=2)
+# Power of tests when null hypothesis specifies Poisson rv with rate 100 and 
+# true rate is 100.5
+vals = 0:250
+pnull = function() ppois(0:250, 100)
+rnull =function () table(c(0:250, rpois(1000, 100)))-1
+ralt =function (p) table(c(0:250, rpois(1000, p)))-1
+gof_power(pnull, vals, rnull, ralt, param_alt=100.5,  B=c(500,500))
+# Power of tests when null hypothesis specifies a Binomial n=10 distribution 
+# with the success probability estimated
+vals = 0:10
+pnull=function(p) pbinom(0:10, 10, ifelse(0&lt;p&amp;p&lt;1, p, 0.001))
+rnull=function(p) table(c(0:10, rbinom(1000, 10, ifelse(0&lt;p&amp;p&lt;1, p, 0.001))))-1
+ralt=function(p) table(c(0:10, rbinom(1000, 10, p)))-1
+phat=function(x) mean(rep(0:10,x))/10
+gof_power(pnull, vals, rnull, ralt, c(0.5, 0.6), phat=phat,
+                    B=c(200, 200), maxProcessor=2)
+
+</code></pre>
+
+
+</div>

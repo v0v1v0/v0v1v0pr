@@ -1,0 +1,466 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>search_neighbors</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>A function for searching in a given reference set the neighbors of
+another given set of observations (search_neighbors)</h2>
+
+<h3>Description</h3>
+
+<script id="MathJax-script" async src="../../mathjaxr/doc/mathjax/es5/tex-chtml-full.js"></script><p>This function searches in a reference set the neighbors of the observations
+provided  in another set.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">search_neighbors(Xr, Xu, diss_method = c("pca", "pca.nipals", "pls", "mpls",
+                                         "cor", "euclid", "cosine", "sid"),
+                 Yr = NULL, k, k_diss, k_range, spike = NULL,
+                 pc_selection = list("var", 0.01),
+                 return_projection = FALSE, return_dissimilarity = FALSE,
+                 ws = NULL,
+                 center = TRUE, scale = FALSE,
+                 documentation = character(), ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Xr</code></td>
+<td>
+<p>a matrix of reference (spectral) observations where the neighbor
+search is to be conducted. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Xu</code></td>
+<td>
+<p>an optional matrix of (spectral) observations for which its
+neighbors are to be searched in <code>Xr</code>. Default is <code>NULL</code>. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>diss_method</code></td>
+<td>
+<p>a character string indicating the spectral dissimilarity metric
+to be used in the selection of the nearest neighbors of each observation.
+</p>
+
+<ul>
+<li>
+<p><code>"pca"</code>:  Mahalanobis distance
+computed on the matrix of scores of a Principal Component (PC)
+projection of <code>Xr</code> (and <code>Xu</code> if supplied).
+PC projection is done using the singular value decomposition (SVD)
+algorithm. See <code>ortho_diss</code> function.
+</p>
+</li>
+<li>
+<p><code>"pca.nipals"</code>: Mahalanobis distance
+computed on the matrix of scores of a Principal Component (PC)
+projection of <code>Xr</code> (and <code>Xu</code> if supplied).
+PC projection is done using the
+non-linear iterative partial least squares (niapls) algorithm.
+See <code>ortho_diss</code> function.
+</p>
+</li>
+<li>
+<p><code>"pls"</code>: Mahalanobis distance
+computed on the matrix of scores of a partial least squares projection
+of <code>Xr</code> (and <code>Xu</code> if supplied). In this case, <code>Yr</code>
+is always required. See <code>ortho_diss</code> function.
+</p>
+</li>
+<li>
+<p><code>"mpls"</code>: Mahalanobis distance
+computed on the matrix of scores of a modified partial least squares
+projection (Shenk and Westerhaus, 1991; Westerhaus, 2014)
+of <code>Xr</code> (and <code>Xu</code> if provided). In this case, <code>Yr</code> is
+always required. See <code>ortho_diss</code> function.
+</p>
+</li>
+<li>
+<p><code>"cor"</code>: correlation coefficient
+between observations. See <code>cor_diss</code> function.
+</p>
+</li>
+<li>
+<p><code>"euclid"</code>: Euclidean distance
+between observations. See <code>f_diss</code> function.
+</p>
+</li>
+<li>
+<p><code>"cosine"</code>: Cosine distance
+between observations. See <code>f_diss</code> function.
+</p>
+</li>
+<li>
+<p><code>"sid"</code>: spectral information divergence between observations.
+See <code>sid</code> function.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Yr</code></td>
+<td>
+<p>a numeric matrix of <code>n</code> observations used as side information of
+<code>Xr</code> for the <code>ortho_diss</code> methods (i.e. <code>pca</code>,
+<code>pca.nipals</code> or <code>pls</code>). It is required when:
+</p>
+
+<ul>
+<li>
+<p><code>diss_method = "pls"</code>
+</p>
+</li>
+<li>
+<p><code>diss_method = "pca"</code> with <code>"opc"</code> used as the method
+in the <code>pc_selection</code> argument. See <code>ortho_diss()</code>.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>an integer value indicating the k-nearest neighbors of each
+observation in <code>Xu</code> that must be selected from <code>Xr</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k_diss</code></td>
+<td>
+<p>an integer value indicating a dissimilarity treshold.
+For each observation in <code>Xu</code>, its nearest neighbors in <code>Xr</code>
+are selected as those for which their dissimilarity to <code>Xu</code> is below
+this <code>k_diss</code> threshold. This treshold depends on the corresponding
+dissimilarity metric specified in <code>diss_method</code>. Either <code>k</code> or
+<code>k_diss</code> must be specified.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k_range</code></td>
+<td>
+<p>an integer vector of length 2 which specifies the minimum
+(first value) and the maximum (second value) number of neighbors to be
+retained when the <code>k_diss</code> is given.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>spike</code></td>
+<td>
+<p>a vector of integers (with positive and/or negative values)
+indicating what observations in <code>Xr</code>
+(and <code>Yr</code>) must be forced into or avoided in the neighborhoods.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pc_selection</code></td>
+<td>
+<p>a list of length 2 to be passed onto the
+<code>ortho_diss</code> methods. It is required if the method selected in
+<code>diss_method</code> is any of <code>"pca"</code>, <code>"pca.nipals"</code> or
+<code>"pls"</code>. This argument is used for
+optimizing the number of components (principal components or pls factors)
+to be retained. This list must contain two elements in the following order:
+<code>method</code> (a character indicating the method for selecting the number of
+components) and <code>value</code> (a numerical value that complements the selected
+method). The methods available are:
+</p>
+
+<ul>
+<li>
+<p><code>"opc"</code>: optimized principal component selection based on
+Ramirez-Lopez et al. (2013a, 2013b). The optimal number of components
+(of set of observations) is the one for which its distance matrix
+minimizes the differences between the <code>Yr</code> value of each
+observation and the <code>Yr</code> value of its closest observation. In this
+case <code>value</code> must be a value (larger than 0 and below the
+minimum dimension of <code>Xr</code> or <code>Xr</code> and <code>Xu</code> combined)
+indicating the maximum number of principal components to be tested.
+See the <code>ortho_projection</code> function for more details.
+</p>
+</li>
+<li>
+<p><code>"cumvar"</code>: selection of the principal components based
+on a given cumulative amount of explained variance. In this case,
+<code>value</code> must be a value (larger than 0 and below or equal to 1)
+indicating the minimum amount of cumulative variance that the
+combination of retained components should explain.
+</p>
+</li>
+<li>
+<p><code>"var"</code>: selection of the principal components based
+on a given amount of explained variance. In this case,
+<code>value</code> must be a value (larger than 0 and below or equal to 1)
+indicating the minimum amount of variance that a single component
+should explain in order to be retained.
+</p>
+</li>
+<li>
+<p><code>"manual"</code>: for manually specifying a fix number of
+principal components. In this case, <code>value</code> must be a value
+(larger than 0 and below the
+minimum dimension of <code>Xr</code> or <code>Xr</code> and <code>Xu</code> combined)
+indicating the minimum amount of variance that a component should
+explain in order to be retained.
+</p>
+</li>
+</ul>
+<p>The default is <code>list(method = "var", value = 0.01)</code>.
+</p>
+<p>Optionally, the <code>pc_selection</code> argument admits <code>"opc"</code> or
+<code>"cumvar"</code> or <code>"var"</code> or <code>"manual"</code> as a single character
+string. In such a case the default <code>"value"</code> when either <code>"opc"</code> or
+<code>"manual"</code> are used is 40. When <code>"cumvar"</code> is used the default
+<code>"value"</code> is set to 0.99 and when <code>"var"</code> is used, the default
+<code>"value"</code> is set to 0.01.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return_projection</code></td>
+<td>
+<p>a logical indicating if the projection(s) must be
+returned. Projections are used if the <code>ortho_diss</code> methods are
+called (i.e. <code>method = "pca"</code>, <code>method = "pca.nipals"</code> or
+<code>method = "pls"</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return_dissimilarity</code></td>
+<td>
+<p>a logical indicating if the dissimilarity matrix
+used for neighbor search must be returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ws</code></td>
+<td>
+<p>an odd integer value which specifies the window size, when
+<code>diss_method = cor</code> (<code>cor_diss</code> method) for moving correlation
+dissimilarity. If <code>ws = NULL</code> (default), then the window size will be
+equal to the number of variables (columns), i.e. instead moving correlation,
+the normal correlation will be used. See <code>cor_diss</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>center</code></td>
+<td>
+<p>a logical indicating if the <code>Xr</code> and <code>Xu</code> matrices
+must be centered. If <code>Xu</code> is provided the data is centered around the
+mean of the pooled <code>Xr</code> and <code>Xu</code> matrices (\(Xr \cup Xu\)). For
+dissimilarity computations based on <code>diss_method = pls</code>, the data is always
+centered.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>a logical indicating if the <code>Xr</code> and <code>Xu</code> matrices
+must be scaled. If <code>Xu</code> is provided the data is scaled based
+on the standard deviation of the the pooled <code>Xr</code> and <code>Xu</code> matrices
+(\(Xr \cup Xu\)). If <code>center = TRUE</code>, scaling is applied after
+centering.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>documentation</code></td>
+<td>
+<p>an optional character string that can be used to
+describe anything related to the <code>mbl</code> call (e.g. description of the
+input data). Default: <code>character()</code>. NOTE: his is an experimental
+argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments to be passed to the <code>dissimilarity</code>
+function. See details.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function may be specially useful when the reference set (<code>Xr</code>) is
+very large. In some cases the number of observations in the reference set
+can be reduced by removing irrelevant observations (i.e. observations that are not
+neighbors of a particular target set). For example, this fucntion can be
+used to reduce the size of the reference set before before  running the
+<code>mbl</code> function.
+</p>
+<p>This function uses the <code>dissimilarity</code> fucntion to compute the
+dissimilarities between <code>Xr</code> and <code>Xu</code>. Arguments to
+<code>dissimilarity</code> as well as further arguments to the functions
+used inside <code>dissimilarity</code> (i.e. <code>ortho_diss</code>
+<code>cor_diss</code> <code>f_diss</code> <code>sid</code>) can be passed to
+those functions as additional arguments (i.e. <code>...</code>).
+</p>
+<p>If no matrix is passed to <code>Xu</code>, the neighbor search is conducted for the
+observations in <code>Xr</code> that are found whiting that matrix. If a matrix is
+passed to <code>Xu</code>,  the neighbors of <code>Xu</code> are searched in the <code>Xr</code>
+matrix.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a <code>list</code> containing the following elements:
+</p>
+
+<ul>
+<li>
+<p><code>neighbors_diss</code>: a matrix of the <code>Xr</code> dissimilarity scores
+corresponding to the neighbors of each <code>Xr</code> observation (or <code>Xu</code>
+observation, in case <code>Xu</code> was supplied).
+The neighbor dissimilarity scores are organized by columns and are sorted
+in ascending order.
+</p>
+</li>
+<li>
+<p><code>neighbors</code>: a matrix of the <code>Xr</code> indices corresponding to
+the neighbors of each observation in <code>Xu</code>. The neighbor indices are
+organized by columns and are sorted in ascending order by their
+dissimilarity score.
+</p>
+</li>
+<li>
+<p><code>unique_neighbors</code>: a vector of the indices in <code>Xr</code>
+identified as neighbors of any observation in <code>Xr</code> (or in <code>Xu</code>,
+in case it was supplied). This is obtained by
+converting the <code>neighbors</code> matrix into a vector and applying the
+<code>unique</code> function.
+</p>
+</li>
+<li>
+<p><code>k_diss_info</code>: a <code>data.table</code> that is returned only if the
+<code>k_diss</code> argument was used. It comprises three columns, the first one
+(<code>Xr_index</code> or <code>Xu_index</code>) indicates the index of the observations
+in <code>Xr</code> (or in <code>Xu</code>, in case it was suppplied),
+the second column (<code>n_k</code>) indicates the number of neighbors found in
+<code>Xr</code> and the third column (<code>final_n_k</code>) indicates the final number
+of neighbors selected bounded by <code>k_range</code>.
+argument.
+</p>
+</li>
+<li>
+<p><code>dissimilarity</code>: If <code>return_dissimilarity = TRUE</code> the
+dissimilarity object used (as computed by the <code>dissimilarity</code>
+function.
+</p>
+</li>
+<li>
+<p><code>projection</code>: an <code>ortho_projection</code> object. Only output if
+<code>return_projection = TRUE</code> and if <code>diss_method = "pca"</code>,
+<code>diss_method = "pca.nipals"</code> or <code>diss_method = "pls"</code>. <br>
+This object contains the projection used to compute
+the dissimilarity matrix. In case of local dissimilarity matrices,
+the projection corresponds to the global projection used to select the
+neighborhoods.  (see <code>ortho_diss</code> function for further
+details).
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p><a href="https://orcid.org/0000-0002-5369-5120">Leonardo Ramirez-Lopez</a>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Ramirez-Lopez, L., Behrens, T., Schmidt, K., Stevens, A., Dematte, J.A.M.,
+Scholten, T. 2013a. The spectrum-based learner: A new local approach for
+modeling soil vis-NIR spectra of complex data sets. Geoderma 195-196, 268-279.
+</p>
+<p>Ramirez-Lopez, L., Behrens, T., Schmidt, K., Viscarra Rossel, R.,
+Dematte, J. A. M.,  Scholten, T. 2013b. Distance and similarity-search
+metrics for use with soil vis-NIR spectra. Geoderma 199, 43-53.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>dissimilarity</code> <code>ortho_diss</code>
+<code>cor_diss</code> <code>f_diss</code> <code>sid</code>
+<code>mbl</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(prospectr)
+
+data(NIRsoil)
+
+Xu &lt;- NIRsoil$spc[!as.logical(NIRsoil$train), ]
+Yu &lt;- NIRsoil$CEC[!as.logical(NIRsoil$train)]
+Yr &lt;- NIRsoil$CEC[as.logical(NIRsoil$train)]
+Xr &lt;- NIRsoil$spc[as.logical(NIRsoil$train), ]
+
+Xu &lt;- Xu[!is.na(Yu), ]
+Yu &lt;- Yu[!is.na(Yu)]
+
+Xr &lt;- Xr[!is.na(Yr), ]
+Yr &lt;- Yr[!is.na(Yr)]
+
+# Identify the neighbor observations using the correlation dissimilarity and
+# default parameters
+# (In this example all the observations in Xr belong at least to the
+# first 100 neighbors of one observation in Xu)
+ex1 &lt;- search_neighbors(
+  Xr = Xr, Xu = Xu,
+  diss_method = "cor",
+  k = 40
+)
+
+# Identify the neighbor observations using principal component (PC)
+# and partial least squares (PLS) dissimilarities, and using the "opc"
+# approach for selecting the number of components
+ex2 &lt;- search_neighbors(
+  Xr = Xr, Xu = Xu,
+  diss_method = "pca",
+  Yr = Yr, k = 50,
+  pc_selection = list("opc", 40),
+  scale = TRUE
+)
+
+# Observations that do not belong to any neighborhood
+seq(1, nrow(Xr))[!seq(1, nrow(Xr)) %in% ex2$unique_neighbors]
+
+ex3 &lt;- search_neighbors(
+  Xr = Xr, Xu = Xu,
+  diss_method = "pls",
+  Yr = Yr, k = 50,
+  pc_selection = list("opc", 40),
+  scale = TRUE
+)
+# Observations that do not belong to any neighborhood
+seq(1, nrow(Xr))[!seq(1, nrow(Xr)) %in% ex3$unique_neighbors]
+
+# Identify the neighbor observations using local PC dissimialrities
+# Here, 150 neighbors are used to compute a local dissimilarity matrix
+# and then this matrix is used to select 50 neighbors
+ex4 &lt;- search_neighbors(
+  Xr = Xr, Xu = Xu,
+  diss_method = "pls",
+  Yr = Yr, k = 50,
+  pc_selection = list("opc", 40),
+  scale = TRUE,
+  .local = TRUE,
+  pre_k = 150
+)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,121 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>opendata_bc</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Load/merge data blocks and optionally clip/mask them</h2>
+
+<h3>Description</h3>
+
+<p>Loads all mapsheets covering the geographical extent of input argument
+<code>geo</code>. This can be a vector of (4-character) NTS/SNRC block codes, or a geometry of class
+<code>sfc</code> having a defined coordinate reference system.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">opendata_bc(
+  geo = NULL,
+  collection = NULL,
+  varname = NULL,
+  year = NULL,
+  type = "mask",
+  quiet = FALSE,
+  dl = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>geo</code></td>
+<td>
+<p>vector of character strings (NTS/SNRC codes) or a geometry of class <code>sfc</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>collection</code></td>
+<td>
+<p>character string, indicating the data collection to query</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>varname</code></td>
+<td>
+<p>character string, indicating the layer to query</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>year</code></td>
+<td>
+<p>integer, indicating the year to query</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>character string, one of 'all', 'clip', 'mask'</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quiet</code></td>
+<td>
+<p>logical, suppresses console messages</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dl</code></td>
+<td>
+<p>logical, enables automatic downloading of missing files</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Data for the layer specified by <code>collection</code>, <code>varname</code>, and (as needed) <code>year</code>,
+are fetched from the directory specified by <code>datadir_bc</code>, merged into a single
+(mosaic) layer, cropped and masked as needed, and then loaded into memory and returned as a
+<code>SpatRaster</code> object. If the files are not found, and <code>dl=TRUE</code>, they
+will be automatically downloaded.
+</p>
+<p>When <code>geo</code> is a line or point type geometry (or when <code>type='all'</code>), the
+function uses <code>terra::merge</code> to create a larger (mosaic) SpatRaster containing the data
+from all mapsheets intersecting with the input extent.
+</p>
+<p>When <code>geo</code> is a polygon, <code>type</code> can be set to clip or mask the returned raster: 'all'
+returns the mosaic, as above; 'clip' crops the mosaic and to the bounding box of <code>geo</code>;
+and 'mask' (the default) crops the mosaic then  sets all points not lying inside <code>geo</code> to NA.
+Note that <code>type</code> is ignored when <code>geo</code> is a point geometry or a character string of
+codes (these cases behave like <code>type='all'</code>).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>SpatRaster</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># define a location of interest, and a circle of radius 10km around it
+input.point = sf::st_point(c(x=-120.1, y=50.1)) |&gt; sf::st_sfc(crs='EPSG:4326')
+
+if( requireNamespace('units', quietly = TRUE) ) {
+input.polygon = input.point |&gt; sf::st_buffer(units::set_units(10, km))
+
+## Not run: 
+# the following downloads data from FRDR
+# open the DEM mapsheets corresponding to the polygon and plot
+opendata_bc(geo=input.polygon, 'dem') |&gt; terra::plot()
+
+## End(Not run)
+}
+</code></pre>
+
+
+</div>

@@ -1,0 +1,169 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>compNoise</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Function for computing local gene expression variability</h2>
+
+<h3>Description</h3>
+
+<p>This function performs computation of the local gene expression variability across the pruned k nearest neighbours at given link probability cutoff. The estimated variance is corrected for the mean dependence utilizing the baseline model of gene expression variance.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">compNoise(
+  x,
+  res,
+  pvalue = 0.01,
+  genes = NULL,
+  regNB = FALSE,
+  batch = NULL,
+  regVar = NULL,
+  offsetModel = TRUE,
+  thetaML = FALSE,
+  theta = 10,
+  ngenes = NULL,
+  span = 0.75,
+  step = 0.01,
+  thr = 0.05,
+  no_cores = NULL,
+  seed = 12345
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Matrix of gene expression values with genes as rows and cells as columns. The matrix need to contain the same cell IDs as columns like the input matrix used to derive the pruned k nearest neighbours with the <code>pruneKnn</code> function. However, it may contain a different set of genes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>res</code></td>
+<td>
+<p>List object with k nearest neighbour information returned by <code>pruneKnn</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pvalue</code></td>
+<td>
+<p>Positive real number between 0 and 1. All nearest neighbours with link probability <code>&lt; pvalue</code> are discarded. Default is 0.01.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>genes</code></td>
+<td>
+<p>Vector of gene names corresponding to a subset of rownames of <code>x</code>. Only for these genes local gene expression variability is computed. Default is <code>NULL</code> and values for all genes are returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>regNB</code></td>
+<td>
+<p>logical. If <code>TRUE</code> then gene expression variability is derived from the pearson residuals obtained from a negative binomial regression to eliminate the dependence of the expression variance on the mean. If <code>FALSE</code> then the mean dependence is regressed out from the raw variance using the baseline variance estimate. Default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>batch</code></td>
+<td>
+<p>vector of batch variables. Component names need to correspond to valid cell IDs, i.e. column names of <code>expData</code>. If <code>regNB</code> is <code>TRUE</code>, than the batch variable will be regressed out simultaneously with the log UMI count per cell. An interaction term is included for the log UMI count with the batch variable. Default value is <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>regVar</code></td>
+<td>
+<p>data.frame with additional variables to be regressed out simultaneously with the log UMI count and the batch variable (if <code>batch</code> is <code>TRUE</code>). Column names indicate variable names (name <code>beta</code> is reserved for the coefficient of the log UMI count), and rownames need to correspond to valid cell IDs, i.e. column names of <code>expData</code>. Interaction terms are included for each variable in <code>regVar</code> with the batch variable (if <code>batch</code> is <code>TRUE</code>). Default value is <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>offsetModel</code></td>
+<td>
+<p>Logical parameter. Only considered if <code>regNB</code> is <code>TRUE</code>. If <code>TRUE</code> then the <code>beta</code> (log UMI count) coefficient is set to 1 and the intercept is computed analytically as the log ration of UMI counts for a gene and the total UMI count across all cells. Batch variables and additional variables in <code>regVar</code> are regressed out with an offset term given by the sum of the intercept and the log UMI count. Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thetaML</code></td>
+<td>
+<p>Logical parameter. Only considered if <code>offsetModel</code> equals <code>TRUE</code>. If <code>TRUE</code> then the dispersion parameter is estimated by a maximum likelihood fit. Otherwise, it is set to <code>theta</code>. Default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>theta</code></td>
+<td>
+<p>Positive real number. Fixed value of the dispersion parameter. Only considered if <code>theaML</code> equals <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ngenes</code></td>
+<td>
+<p>Positive integer number. Randomly sampled number of genes (from rownames of <code>expData</code>) used for predicting regression coefficients (if <code>regNB=TRUE</code>). Smoothed coefficients are derived for all genes. Default is <code>NULL</code> and all genes are used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>span</code></td>
+<td>
+<p>Positive real number. Parameter for loess-regression (see <code>regNB</code>) controlling the degree of smoothing. Default is 0.75.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>step</code></td>
+<td>
+<p>Positive real number between 0 and 1. See function <code>noiseBaseFit</code>. Default is 0.01.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thr</code></td>
+<td>
+<p>Positive real number between 0 and 1. See function <code>noiseBaseFit</code>. Default is 0.05.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>no_cores</code></td>
+<td>
+<p>Positive integer number. Number of cores for multithreading. If set to <code>NULL</code> then the number of available cores minus two is used. Default is <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>Integer number. Random number to initialize stochastic routines. Default is 12345.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>List object of three components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>the baseline noise model as computed by the <code>noiseBaseFit</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>matrix with local gene expression variability estimates, corrected for the mean dependence.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>regData</code></td>
+<td>
+<p>If <code>regNB=TRUE</code> this argument contains a list of four components: component <code>pearsonRes</code> contains a matrix of the Pearson Residual computed from the negative binomial regression, component <code>nbRegr</code> contains a matrix with the regression coefficients, component <code>nbRegrSmooth</code> contains a matrix with the smoothed regression coefficients, and <code>log_umi</code> is a vector with the total log UMI count for each cell. The regression coefficients comprise the dispersion parameter theta, the intercept, the regression coefficient beta for the log UMI count, and the regression coefficients of the batches (if <code>batch</code> is not <code>NULL</code>).</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">res &lt;- pruneKnn(intestinalDataSmall,knn=10,alpha=1,no_cores=1,FSelect=FALSE)
+noise &lt;- compNoise(intestinalDataSmall,res,pvalue=0.01,genes = NULL,no_cores=1)
+</code></pre>
+
+
+</div>

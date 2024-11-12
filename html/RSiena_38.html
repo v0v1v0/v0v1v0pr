@@ -1,0 +1,528 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>sienaGOF-auxiliary</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Auxiliary functions for goodness of fit assessment by <code>sienaGOF</code>
+</h2>
+
+<h3>Description</h3>
+
+<p>The functions given here are auxiliary to function <code>sienaGOF</code>  
+which assesses goodness of fit for actor-oriented models.
+</p>
+<p>The auxiliary functions are, first, some functions of networks or behaviour  
+(i.e., statistics) for which the simulated values for the fitted model  
+are compared to the observed value; second, some extraction functions  
+to extract the observed and simulated networks and/or behaviour  
+from the <code>sienaFit</code> object produced by <code>siena07</code>  
+with <code>returnDeps=TRUE</code>.
+</p>
+<p>These functions are exported here mainly to enable users to write  
+their own versions. At the end of this help page some non-exported functions  
+are listed. These are not exported because they depend on packages that  
+are not in the R base distribution; and to show templates for readers  
+wishing to contruct their own functions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">OutdegreeDistribution(i, obsData, sims, period, groupName, varName,
+         levls=0:8, cumulative=TRUE)
+
+IndegreeDistribution(i, obsData, sims, period, groupName, varName,
+         levls=0:8, cumulative=TRUE)
+
+BehaviorDistribution(i, obsData, sims, period, groupName, varName,
+         levls=NULL, cumulative=TRUE)
+
+TriadCensus(i, obsData, sims, period, groupName, varName, levls=1:16)
+
+mixedTriadCensus(i, obsData, sims, period, groupName, varName)
+
+dyadicCov(i, obsData, sims, period, groupName, varName, dc)
+
+sparseMatrixExtraction(i, obsData, sims, period, groupName, varName)
+
+networkExtraction(i, obsData, sims, period, groupName, varName)
+
+behaviorExtraction(i, obsData, sims, period, groupName, varName)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>i</code></td>
+<td>
+<p> Index number of simulation to be extracted, ranging from 1 to
+<code>length(sims)</code>; if NULL, the data observation will be extracted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>obsData</code></td>
+<td>
+<p> The observed data set to which the model was fitted; normally
+this is <code>x$f</code> where <code>x</code> is the <code>sienaFit</code>
+object for which the fit is being assessed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sims</code></td>
+<td>
+<p> The simulated data sets to be compared with the observed data;
+normally this is
+<code>x$sims</code> where <code>x</code> is the <code>sienaFit</code>
+object for which the fit is being assessed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>period</code></td>
+<td>
+<p> Period for which data and simulations are used (may run from
+1 to number of waves - 1).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>groupName</code></td>
+<td>
+<p> Name of group; relevant for multi-group data sets;
+defaults in <code>sienaGOF</code> to "<code>Data1</code>".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>varName</code></td>
+<td>
+<p> Name of dependent variable. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>levls</code></td>
+<td>
+<p> Levels used as values of the auxiliary statistic.
+For <code>BehaviorDistribution</code>, this defaults to the observed
+range of values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cumulative</code></td>
+<td>
+<p> Are the distributions to be considered as raw or
+cumulative (&lt;=) distributions?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dc</code></td>
+<td>
+<p>Dyadic covariate: either a matrix with dimensions
+<code class="reqn">n \times n</code>; or, as period-dependent values,
+an array with dimensions <code class="reqn">n \times n \times (M-1)</code>;
+where <code class="reqn">n</code> is the number of actors and <code class="reqn">M</code> is the number of waves.
+There may be more time points, but those after <code class="reqn">(M-1)</code> will not be used.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The statistics should be chosen to represent features of the network
+that are not explicitly fit by the estimation procedure but can be
+considered important properties that the model at hand should represent well.
+The three given here are far from a complete set;
+they will be supplemented in due time by statistics depending on networks and
+behavior jointly.
+The examples below give a number of other statistics, using the packages
+<code>sna</code> and <code>igraph</code>.
+</p>
+<p>The <code>levls</code> parameter must be adapted to the range of values that is
+considered important. For indegrees and outdegrees, the whole range should
+usually be covered. If the range is large, which could be the case, e.g.,
+for indegrees of two-mode networks where the second mode has few nodes,
+think about the possibility of making a selection such as
+<code>levls=5*(0:20)</code> or <code>levls=c(0:4,5*(1:20))</code>;
+which in most cases will make sense only if <code>cumulative=TRUE</code>.
+</p>
+<p>The method signature for the auxiliary statistics generally is<br><code>function(i, obsData, sims, period, groupName, varName, ...)</code>.
+For constructing new auxiliary statistics, it is helpful to
+study the code of <code>OutdegreeDistribution</code>, <code>IndegreeDistribution</code>,
+and <code>BehaviorDistribution</code> and of the example functions below.
+</p>
+<p><code>TriadCensus</code> returns the distribution of the Holland-Leinhardt triad
+census according to the algorithm by Batagelj and Mrvar
+(implementation by Parimalarangan, Slota, and Madduri). An alternative is the
+<code>TriadCensus.sna</code> function mentioned below, from package <code>sna</code>, which
+gives the same results. Here the <code>levls</code> parameter can be used to exclude
+some triads, e.g., for non-directed networks.<br>
+The Batagelj-Mrvar algorithm is optimized for sparse, large graphs and may be
+much faster than the procedure implemented in <code>sna</code>. For dense graphs
+the <code>sna</code> procedure may be faster.
+</p>
+<p><code>dyadicCov</code> assumes that <code>dc</code> is a categorical dyadic variable,
+and returns the frequencies of the non-zero values for realized ties.
+Since zero values of dc are not counted, it may be advisable
+to code dc so that all non-diagonal values are non-zero,
+and all diagonal values are zero.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>OutdegreeDistribution</code> returns a named vector, the distribution
+of the observed or simulated outdegrees for the values in <code>levls</code>.
+</p>
+<p><code>IndegreeDistribution</code> returns a named vector, the distribution
+of the observed or simulated indegrees for the values in <code>levls</code>.
+</p>
+<p><code>BehaviorDistribution</code> returns a named vector, the distribution of the
+observed or simulated behavioral variable for the values in <code>levls</code>.
+</p>
+<p><code>TriadCensus</code> returns a named vector, the distribution of the
+Holland-Leinhardt triad census according to the algorithm by
+Batagelj and Mrvar.
+</p>
+<p><code>mixedTriadCensus</code> returns a named vector, the distribution of the
+mixed triad census of Hollway, Lomi, Pallotti, and Stadtfeld (2017).
+See their Figure 1 for the meaning of the codes.
+In this figure, ties between the bottom nodes are for the first network,
+ties from the bottom to the top nodes are for the second network.
+The mixed triad census can be used for pairs of dependent networks of which
+the first must be one-mode and the second can be one-mode or two-mode.
+If the second is one-mode, the set of triads considered is only a subset
+of all mixed triads, and ties in the figure are directed upward;
+existence of other ties is not considered.
+</p>
+<p><code>dyadicCov</code> returns a named vector, the frequencies of the non-missing
+non-zero values dc(ego,alter) of the observed or simulated (ego,alter) ties.
+</p>
+<p><code>sparseMatrixExtraction</code> returns the simulated network as a
+<code>"TsparseMatrix"</code>;
+this is the virtual class for sparse numeric matrices
+represented by triplets in the <code>Matrix</code> package.<br>
+Tie variables for ordered pairs with a missing value for wave=period or
+period+1 are zeroed; note that this also is done
+in <code>RSiena</code> for calculation of target statistics.
+Tie variables that are structurally determined at the beginning of a period
+are used to replace observed values at the end of the period;
+tie variables that are structurally determined at the end, but not
+the beginning, of a period are used to replace
+simulated values at the end of the period.
+<br>
+To treat the objects returned by this function as regular matrices,
+it is necessary to attach the <code>Matrix</code> package in your session.
+</p>
+<p><code>networkExtraction</code> returns the network as an edge list of class
+<code>network</code> according to the <code>network</code> package
+(used for package <code>sna</code>).
+Missing values and structural values are treated as in
+<code>sparseMatrixExtraction</code>, see above.
+</p>
+<p><code>behaviorExtraction</code> returns the dependent behavior
+variable as an integer vector.
+Values for actors with a missing value for wave=period or period+1 are
+transformed to <code>NA</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Josh Lospinoso, Tom Snijders</p>
+
+
+<h3>References</h3>
+
+<p>Batagelj, V., and Mrvar, A. (2001),
+A subquadratic triad census algorithm for large sparse networks with small
+maximum degree. <em>Social Networks</em>, <b>23</b>, 237–243.
+</p>
+<p>Holland, P.W., and Leinhardt, S. (1976),
+Local structure in social networks. <em>Sociological Methodology</em>, <b>6</b>, 1–45.
+</p>
+<p>Hollway, J., Lomi, A., Pallotti, F., and Stadtfeld, C. (2017),
+Multilevel social spaces: The network dynamics of organizational fields.
+<em>Network Science</em>, <b>5</b>, 187–212.
+</p>
+<p>Lospinoso, J.A. and Snijders, T.A.B. (2019),
+Goodness of fit for stochastic actor-oriented models.
+<em>Methodological Innovations</em>, <b>12</b>:2059799119884282.
+</p>
+<p>Parimalarangan S., Slota, G.M., and Madduri, K. (2017),
+Fast parallel graph triad census and triangle counting on shared-memory
+platforms, <em>2017 IEEE International Parallel and Distributed Processing
+Symposium Workshops (IPDPSW)</em>, Lake Buena Vista, FL, pp. 1500-1509.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>siena07</code>, <code>sienaGOF</code> </p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">### For use out of the box:
+
+mynet1 &lt;- sienaDependent(array(c(s501, s502), dim=c(50, 50, 2)))
+mybeh &lt;- sienaDependent(s50a[,1:2], type="behavior")
+mycov &lt;- c(rep(1:3,16),1,2) # artificial, just for trying
+mydycov &lt;- matrix(rep(1:5, 500), 50, 50) # also artificial, just for trying
+mydata &lt;- sienaDataCreate(mynet1, mybeh)
+myeff &lt;- getEffects(mydata)
+myeff &lt;- includeEffects(myeff, transTies, cycle3)
+# Shorter phases 2 and 3, just for example:
+myalgorithm &lt;- sienaAlgorithmCreate(nsub=1, n3=50, seed=122, projname=NULL)
+(ans &lt;- siena07(myalgorithm, data=mydata, effects=myeff, returnDeps=TRUE,
+   batch=TRUE))
+
+# NULL for the observations:
+OutdegreeDistribution(NULL, ans$f, ans$sims, period=1, groupName="Data1",
+  levls=0:7, varName="mynet1")
+dyadicCov(NULL, ans$f, ans$sims, period=1, groupName="Data1",
+  dc=mydycov, varName="mynet1")
+# An arbitrary selection for simulation run i:
+IndegreeDistribution(5, ans$f, ans$sims, period=1, groupName="Data1",
+  varName="mynet1")
+BehaviorDistribution(20, ans$f, ans$sims, period=1, groupName="Data1",
+  varName="mybeh")
+sparseMatrixExtraction(50, ans$f, ans$sims, period=1, groupName="Data1",
+  varName="mynet1")
+networkExtraction(40, ans$f, ans$sims, period=1, groupName="Data1",
+  varName="mynet1")
+behaviorExtraction(50, ans$f, ans$sims, period=1, groupName="Data1",
+  varName="mybeh")
+
+gofi &lt;- sienaGOF(ans, IndegreeDistribution, verbose=TRUE, join=TRUE,
+  varName="mynet1")
+gofi
+plot(gofi)
+
+(gofo &lt;- sienaGOF(ans, OutdegreeDistribution, verbose=TRUE, join=TRUE,
+    varName="mynet1", cumulative=FALSE))
+# cumulative is an example of "\dots".
+plot(gofo)
+
+(gofdc &lt;- sienaGOF(ans, dyadicCov, verbose=TRUE, join=TRUE,
+    dc=mydycov, varName="mynet1"))
+plot(gofdc)
+
+# How to use dyadicCov for ego-alter combinations of a monadic variable:
+mycov.egoalter &lt;- outer(10*mycov, mycov ,'+')
+diag(mycov.egoalter) &lt;- 0
+dim(mycov.egoalter) # 50 * 50 matrix
+# This is a dyadic variable indicating ego-alter combinations of mycov.
+# This construction works since mycov has integer values
+# not outside the interval from 1 to 9 (actually, only 1 to 3).
+# All cells of this matrix contain a two-digit number,
+# left digit is row (ego) value, right digit is column (alter) value.
+# See the top left part of the matrix:
+mycov.egoalter[1:10,1:12]
+# The number of values is the square of the number of values of mycov;
+# therefore, unwise to do this for a monadic covariate with more than 5 values.
+gof.mycov &lt;- sienaGOF(ans, dyadicCov, verbose=TRUE, varName="mynet1",
+    dc=mycov.egoalter)
+plot(gof.mycov)
+descriptives.sienaGOF(gof.mycov, showAll=TRUE)
+
+(gofb &lt;- sienaGOF(ans, BehaviorDistribution, varName = "mybeh",
+    verbose=TRUE, join=TRUE, cumulative=FALSE))
+plot(gofb)
+
+(goftc &lt;- sienaGOF(ans, TriadCensus, verbose=TRUE, join=TRUE,
+    varName="mynet1"))
+plot(goftc, center=TRUE, scale=TRUE)
+# For this type of auxiliary statistics
+# it is advisable in the plot to center and scale.
+# note the keys at the x-axis (widen the plot if they are not clear).
+descriptives.sienaGOF(goftc)
+
+### The mixed triad census for co-evolution of one-mode and two-mode networks:
+actors &lt;- sienaNodeSet(50, nodeSetName="actors")
+activities &lt;- sienaNodeSet(20, nodeSetName="activities")
+onemodenet &lt;- sienaDependent(array(c(s501, s502), dim=c(50, 50, 2)),
+                            nodeSet="actors")
+# Not meaningful, just for example:
+twomodenet &lt;- sienaDependent(array(c(s502[1:50, 1:20], s503[1:50, 1:20]),
+                                                        dim=c(50, 20, 2)),
+                            type= "bipartite", nodeSet=c("actors", "activities"))
+twodata &lt;- sienaDataCreate(onemodenet, twomodenet,
+                        nodeSets=list(actors, activities))
+twoeff &lt;- getEffects(twodata)
+twoeff &lt;- includeEffects(twoeff, outActIntn, name="onemodenet",
+                            interaction1="twomodenet")
+twoeff &lt;- includeEffects(twoeff, outActIntn, name="twomodenet",
+                            interaction1="onemodenet")
+twoeff &lt;- includeEffects(twoeff, from, name="onemodenet",
+                            interaction1="twomodenet")
+twoeff &lt;- includeEffects(twoeff, to, name="twomodenet",
+                            interaction1="onemodenet")
+twoeff
+# Shorter phases 2 and 3, just for example:
+twoalgorithm &lt;- sienaAlgorithmCreate(projname=NULL, nsub=1, n3=50,
+                                     seed=5634)
+(ans &lt;- siena07(twoalgorithm, data=twodata, effects=twoeff, returnDeps=TRUE,
+   batch=TRUE))
+(gof.two &lt;- sienaGOF(ans, mixedTriadCensus,
+                        varName=c("onemodenet", "twomodenet"), verbose=TRUE))
+plot(gof.two, center=TRUE, scale=TRUE)
+
+## Not run: 
+### Here come some useful functions for building your own auxiliary statistics:
+### First an extraction function.
+
+# igraphNetworkExtraction extracts simulated and observed networks
+# from the results of a siena07 run.
+# It returns the network as an edge list of class "graph"
+# according to the igraph package.
+# Ties for ordered pairs with a missing value for wave=period or period+1
+# are zeroed;
+# note that this also is done in RSiena for calculation of target statistics.
+# However, changing structurally fixed values are not taken into account.
+igraphNetworkExtraction &lt;- function(i, data, sims, period, groupName, varName) {
+  require(igraph)
+  dimsOfDepVar &lt;- attr(data[[groupName]]$depvars[[varName]], "netdims")[1]
+  missings &lt;- is.na(data[[groupName]]$depvars[[varName]][,,period]) |
+    is.na(data[[groupName]]$depvars[[varName]][,,period+1])
+  if (is.null(i)) {
+    # sienaGOF wants the observation:
+    original &lt;- data[[groupName]]$depvars[[varName]][,,period+1]
+    original[missings] &lt;- 0
+    returnValue &lt;- graph.adjacency(original)
+  }
+  else
+  {
+    missings &lt;- graph.adjacency(missings)
+    #sienaGOF wants the i-th simulation:
+    returnValue &lt;- graph.difference(
+      graph.empty(dimsOfDepVar) +
+        edges(t(sims[[i]][[groupName]][[varName]][[period]][,1:2])),
+      missings)
+  }
+  returnValue
+}
+
+### Then some auxiliary statistics.
+
+# GeodesicDistribution calculates the distribution of non-directed
+# geodesic distances; see ?sna::geodist
+# The default for \code{levls} reflects that geodesic distances larger than 5
+# do not differ appreciably with respect to interpretation.
+# Note that the levels of the result are named;
+# these names are used in the \code{plot} method.
+GeodesicDistribution &lt;- function (i, data, sims, period, groupName,
+  varName, levls=c(1:5,Inf), cumulative=TRUE, ...) {
+  x &lt;- networkExtraction(i, data, sims, period, groupName, varName)
+  require(network)
+  require(sna)
+  a &lt;- sna::geodist(symmetrize(x))$gdist
+  if (cumulative)
+  {
+    gdi &lt;- sapply(levls, function(i){ sum(a&lt;=i) })
+  }
+  else
+  {
+    gdi &lt;- sapply(levls, function(i){ sum(a==i) })
+  }
+  names(gdi) &lt;- as.character(levls)
+  gdi
+}
+
+# Holland and Leinhardt Triad Census from sna; see ?sna::triad.census.
+# For undirected networks, call this with levls=1:4
+TriadCensus.sna &lt;- function(i, data, sims, period, groupName, varName, levls=1:16){
+  unloadNamespace("igraph") # to avoid package clashes
+  require(network)
+  require(sna)
+  x &lt;- networkExtraction(i, data, sims, period, groupName, varName)
+  if (network.edgecount(x) &lt;= 0){x &lt;- symmetrize(x)}
+  # because else triad.census(x) will lead to an error
+  tc &lt;- sna::triad.census(x)[levls]
+  # names are transferred automatically
+  tc
+}
+
+# Holland and Leinhardt Triad Census from igraph; see ?igraph::triad_census.
+TriadCensus.i &lt;- function(i, data, sims, period, groupName, varName){
+  unloadNamespace("sna") # to avoid package clashes
+  require(igraph)
+  x &lt;- igraphNetworkExtraction(i, data, sims, period, groupName, varName)
+# suppressWarnings is used because else warnings will be generated
+# when a generated network happens to be symmetric.
+  setNames(suppressWarnings(triad_census(x)),
+            c("003", "012", "102", "021D","021U", "021C", "111D", "111U",
+            "030T", "030C", "201",  "120D", "120U", "120C", "210", "300"))
+}
+
+# CliqueCensus calculates the distribution of the clique census
+# of the symmetrized network; see ?sna::clique.census.
+CliqueCensus&lt;-function (i, obsData, sims, period, groupName, varName, levls = 1:5){
+  require(sna)
+  x &lt;- networkExtraction(i, obsData, sims, period, groupName, varName)
+  cc0 &lt;- sna::clique.census(x, mode='graph', tabulate.by.vertex = FALSE,
+    enumerate=FALSE)[[1]]
+  cc &lt;- 0*levls
+  names(cc) &lt;- as.character(levls)
+  levels.used &lt;- as.numeric(intersect(names(cc0), names(cc)))
+  cc[levels.used] &lt;- cc0[levels.used]
+  cc
+}
+
+# Distribution of Bonacich eigenvalue centrality; see ?igraph::evcent.
+EigenvalueDistribution &lt;- function (i, data, sims, period, groupName, varName,
+  levls=c(seq(0,1,by=0.125)), cumulative=TRUE){
+  require(igraph)
+  x &lt;- igraphNetworkExtraction(i, data, sims, period, groupName, varName)
+  a &lt;- igraph::evcent(x)$vector
+  a[is.na(a)] &lt;- Inf
+  lel &lt;- length(levls)
+  if (cumulative)
+  {
+    cdi &lt;- sapply(2:lel, function(i){sum(a&lt;=levls[i])})
+  }
+  else
+  {
+    cdi &lt;- sapply(2:lel, function(i){
+      sum(a&lt;=levls[i]) - sum(a &lt;= levls[i-1])})
+  }
+  names(cdi) &lt;- as.character(levls[2:lel])
+  cdi
+}
+
+## Finally some examples of the three auxiliary statistics constructed above.
+mynet1 &lt;- sienaDependent(array(c(s501, s502, s503), dim=c(50, 50, 3)))
+mybeh &lt;- sienaDependent(s50a, type="behavior")
+mydata &lt;- sienaDataCreate(mynet1, mybeh)
+myeff &lt;- getEffects(mydata)
+myeff &lt;- includeEffects(myeff, transTrip, cycle3)
+myeff &lt;- includeEffects(myeff, outdeg, name="mybeh", interaction1="mynet1")
+myeff &lt;- includeEffects(myeff,  outdeg, name="mybeh", interaction1="mynet1")
+# Shorter phases 2 and 3, just for example:
+myalgorithm &lt;- sienaAlgorithmCreate(nsub=2, n3=200, seed=765, projname=NULL)
+(ans2 &lt;- siena07(myalgorithm, data=mydata, effects=myeff, returnDeps=TRUE,
+   batch=TRUE))
+gofc &lt;- sienaGOF(ans2, EigenvalueDistribution, varName="mynet1",
+  verbose=TRUE, join=TRUE)
+plot(gofc)
+descriptives.sienaGOF(gofc, showAll=TRUE)
+
+goftc &lt;- sienaGOF(ans2, TriadCensus, varName="mynet1", verbose=TRUE, join=TRUE)
+plot(goftc, center=TRUE, scale=TRUE)
+# For this type of auxiliary statistics
+# it is advisable in the plot to center and scale.
+# note the keys at the x-axis; these names are given by sna::triad.census
+descriptives.sienaGOF(goftc)
+round(descriptives.sienaGOF(goftc))
+
+gofgd &lt;- sienaGOF(ans2, GeodesicDistribution, varName="mynet1",
+  verbose=TRUE, join=TRUE, cumulative=FALSE)
+plot(gofgd)
+# and without infinite distances:
+gofgdd &lt;- sienaGOF(ans2, GeodesicDistribution, varName="mynet1",
+  verbose=TRUE, join=TRUE, levls=1:7, cumulative=FALSE)
+plot(gofgdd)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

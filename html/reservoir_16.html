@@ -1,0 +1,121 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>simRes</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Simulate a water supply reservoir with specified operating policy.</h2>
+
+<h3>Description</h3>
+
+<p>Simulates a reservoir for a given inflow time series and assuming Standard Operating Policy (meet target at all times, unless constrained by available water in reservoir plus incoming flows) or an optimised policy deived using <code>sdp_supply</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">simRes(Q, target, capacity, surface_area, max_depth, evap,
+  double_cycle = FALSE, plot = TRUE, S_initial = 1, policy)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Q</code></td>
+<td>
+<p>vector or time series object. Net inflow totals to the reservoir. Mm^3 (Million cubic meters).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target</code></td>
+<td>
+<p>numerical constant, or a time series or vector of the target releases. Must be the same length as Q is given as a vector or time series. Mm^3 (Million cubic meters).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>capacity</code></td>
+<td>
+<p>numerical. The reservoir capacity. Should be same volumetric unit as Q. Mm^3 (Million cubic meters).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>surface_area</code></td>
+<td>
+<p>numerical. The reservoir surface area at full capacity. Must be in square kilometers (km^2), or Mm^2.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_depth</code></td>
+<td>
+<p>numerical. The maximum water depth of the reservoir at maximum capacity. Must be in meters. If omitted, the depth-storage-area relationship will be estimated from surface area and capacity only.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>evap</code></td>
+<td>
+<p>vector or time series object of length Q, or a numerical constant.  Evaporation from losses from reservoir surface. Varies with level if depth and surface_area parameters are specified. Recommended units: meters, or kg/m2 * 10 ^ -3.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>double_cycle</code></td>
+<td>
+<p>logical. If TRUE the Q and R time series will be replicated and placed end-to-end to double the simulation. Recommended if the critical period occurs at the end of the sequence.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>logical. If TRUE (the default) the storage and release time series are plotted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>S_initial</code></td>
+<td>
+<p>numerical. The initial storage as a ratio of capacity (0 &lt;= S_initial &lt;= 1). The default value is 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>policy</code></td>
+<td>
+<p>list. The output of the SDP function. If omitted, Standard Operating Policy is assumed.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Returns the no-fail storage capacity and corresponding storage behaviour time series.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># simulate a reservoir assuming standard operating policy, then compare with SDP-derived policy
+#trained on historical flows.
+
+# DEFINE RESERVOIR SPECS AND MODEL INPUTS
+res_cap &lt;- 1500 #Mm3
+targ &lt;- 150 #Mm3
+area &lt;- 40 #km2
+max_d &lt;- 40 #m
+ev = 0.2 #m
+Q_pre1980 &lt;- window(resX$Q_Mm3, end = c(1979, 12), frequency = 12)
+Q_post1980 &lt;- window(resX$Q_Mm3, start = c(1980, 1), frequency = 12)
+
+# SIMULATE WITH SOP
+layout(1:3)
+simSOP &lt;- simRes(Q_post1980, capacity = res_cap, target = targ,
+surface_area = area, max_depth = max_d, evap = ev)
+
+# TRAIN SDP POLICY ON HISTORICAL FLOWS
+policy_x &lt;- sdp_supply(Q_pre1980, capacity = res_cap, target = targ,
+surface_area = area, max_depth = max_d, evap = ev, Markov = TRUE, plot = FALSE, S_disc = 100)
+
+# SIMULATE WITH SDP-DERIVED POLICY
+simSDP &lt;- simRes(Q_post1980, capacity = res_cap, target = targ,
+surface_area = area, max_depth = max_d, evap = ev, policy = policy_x)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,223 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>gendat.glmm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Simulates datasets based on a Generalized Linear Mixed Model (GLMM).</h2>
+
+<h3>Description</h3>
+
+<p>Datasets are simulated from a GLMM given a series of inputs including: model matrices <code>X</code> and <code>Z</code> for the fixed and random effects respectively, a set of true fixed effect coefficients <code>beta</code>, a list of true random effect covariance matrices <code>D</code>, the family of response, and some other nusiance parameters if appropriate.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R"> 
+gendat.glmm(id, X, beta, Z, D, trial.size = 1, family = gaussian(), 
+  phi = NULL, shape = NULL, zeroprob = NULL, upper.count = Inf)
+   </code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>id</code></td>
+<td>
+<p>A list with each element being a vector of IDs that reference the model matrix in the corresponding element in the list <code>Z</code>. Each vector of IDs <em>must</em> be integers (but not factors).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>A model matrix of corresponding to the fixed effects. A column of ones should be included if a fixed intercept is to be included in the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+<p>A vector of true fixed effect parameters, with the same length as the number of columns in <code>X</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Z</code></td>
+<td>
+<p>A list with each element being a model matrix for a set of random effects. Each element of <code>Z</code> is referenced by a vector of IDs given by the corresponding element in the list <code>id</code>. Each model matrix (element of <code>Z</code>) should have the same number of rows as the length of <code>y</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>D</code></td>
+<td>
+<p>A list with each element being a symmetric random effects covariance matrix which is used to generate random effects. These random effects are then applied to the corresponding element in the list <code>Z</code>, and are referenced by the corresponding element in the list <code>id</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trial.size</code></td>
+<td>
+<p>The trial size if <code>family = binomial()</code>. Either takes a single non-zero value or a vector of non-zero values with length the same as the number of rows in <code>X</code>. The latter allows for differing trial sizes across responses. Defaults to 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>The distribution for the responses in GLMM. The argument must be applied as a object of class "family". Currently supported arguments include: <code>gaussian()</code>, <code>poisson()</code>, <code>binomial()</code>, <code>Gamma()</code>, <code>nb2()</code> for negative binomial, <code>LOGNO()</code> for log-normal, and <code>ZIP()</code> for zero-inflated Poisson.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phi</code></td>
+<td>
+<p>A non-zero value for the true variance parameter <code class="reqn">\sigma^2</code> if <code>family = gaussian()</code>, the true variance parameter <code class="reqn">\sigma^2</code> on the log scale if <code>family = LOGNO()</code>, or the overdispersion parameter if <code>family = nb2()</code>, where the negative binomial variance is parameterized as <code class="reqn">V = \mu + \phi\mu^2</code>. Defaults to NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>shape</code></td>
+<td>
+<p>A non-zero value for the shape parameter <code class="reqn">a</code> if <code>family = Gamma()</code>, where the variance is parameterized as <code class="reqn">V = \mu^2/a</code>. Defaults to NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zeroprob</code></td>
+<td>
+<p>A value between 0 and 1 for the probability of a structural zero if <code>family = ZIP()</code> for zero-inflated Poisson. Defaults to NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>upper.count</code></td>
+<td>
+<p>A non-zero integer which allows the user to control the maximum value of the counts generates for datasets when <code>family = poisson()</code> or <code>nb2()</code>. When the responses are simulated, a <code>while</code> loop is run to ensure that all responses generated are less than or equal to <code>upper.count</code>. Default to <code>Inf</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The relationship between the mean of the responses and covariates in a GLMM is given as follows: For <code class="reqn">i = 1,\ldots,n</code>, where <code class="reqn">n</code> is, equivalently, the number of rows in <code>X</code>, the length of each element in <code>id</code>, and the number of rows in each element of <code>Z</code>, we have
+</p>
+<p style="text-align: center;"><code class="reqn">g(\mu_{i}) = \bm{x}^T_i \bm{\beta} + \bm{z}^T_{i1} \bm{b}_{i1} + \bm{z}^T_{i2} \bm{b}_{i2} + \ldots,</code>
+</p>
+
+<p>where <code class="reqn">g(\cdot)</code> is the link function, <code class="reqn">\mu_i</code> is the mean of the distribution for observation <code class="reqn">i</code>, <code class="reqn">\bm{x}_i</code> is row <code class="reqn">i</code> of the fixed effects model matrix <code>X</code>, and <code class="reqn">\bm{\beta}</code> is the fixed effects coefficients. For the random effects, <code class="reqn">\bm{z}_{i1}</code> is row <code class="reqn">i</code> of the random effects model matrix in the first element of <code>Z</code>, while <code class="reqn">\bm{b}_{i1}</code> is the vector of random effects generated for observation <code class="reqn">i</code> based on the first element of <code>D</code>. The remaining parameters <code class="reqn">\bm{z}_{i2}</code>, <code class="reqn">\bm{b}_{i2}</code> and so on, are defined similarly.
+</p>
+<p>Having lists for <code>id, Z</code>, and <code>D</code> allows for multiple sets of random effects to be included in the true GLMM. This is analogous to the <code>lme4</code> package, where multiple random effects are permitted in the formula, e.g., <code>(1|creek) + (1|creek:sample)</code>. If the true GLMM contains only one set of random effects, e.g., in longitudinal data, then the three lists will all contain only one element. Cases with multiple sets of random effects include nested and crossed designs, in which case <code>id, Z</code>, and <code>D</code> will have two or more elements. 
+</p>
+<p>It is recommended that the user think through and design these lists carefully to ensure that they are actually constructing a true GLMM that they want to simulated data from. Yes it takes some getting use too, and we apologize for this =( Please see examples below for some ideas.
+</p>
+<p>Finally, note that some of the elements of <code>beta</code> can be zero, i.e. truly unimportant fixed effects. Likewise, each element of <code>D</code> can be a random effects covariance matrix containing zero rows and columns, i.e. truly unimportant random effects.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list containing the following elements
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>The vector simulated responses.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>b</code></td>
+<td>
+<p>A list with each element being a matrix of random effects simulated from a multivariate normal distribution with mean zero and covariance matrix equal to the corresponding element in the list <code>D</code>. For each element in <code>b</code>, the number of columns of the matrix equals the dimension of corresponding covariance matrix element in <code>D</code>, while the number of rows equals to the number of unique IDs in the corresponding element of the list <code>id</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id, X, Z, beta, D, phi, shape, zeroprob, trial.size, family</code></td>
+<td>
+<p>Some of the arguments entered into <code>gendat.glmm</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nonzero.beta</code></td>
+<td>
+<p>A vector indexing the non-zero values of <code>beta</code>, i.e. the truly important fixed effects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nonzero.b</code></td>
+<td>
+<p>A list with each element being a vector indexing the non-zero diagonal variances in the corresponding element of the list <code>D</code>, i.e. the truly important random effects.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Francis K.C. Hui &lt;francis.hui@gmail.com&gt;, with contributions from Samuel Mueller &lt;samuel.mueller@sydney.edu.au&gt; and A.H. Welsh &lt;Alan.Welsh@anu.edu.au&gt;
+</p>
+<p>Maintainer: Francis Hui &lt;fhui28@gmail.com&gt;
+</p>
+
+
+<h3>References</h3>
+
+
+<ul><li>
+<p> Schielzeth, H., &amp; Nakagawa, S. (2013). Nested by design: model fitting and interpretation in a mixed model era. Methods in Ecology and Evolution, 4, 14-24.
+</p>
+</li></ul>
+<h3>See Also</h3>
+
+<p><code>rpql</code> for fitting and performing model selection in GLMMs using regularized PQL.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+##-------------------------
+## Example 1: Linear Mixed Models 
+## Independent cluster model with 50 clusters
+## Nine covariates including a fixed and random intercept
+## Please note the rpql is currently not optimized for LMMs!
+##-------------------------
+library(mvtnorm)
+library(lme4)
+
+n &lt;- 50; m &lt;- 10; p &lt;- 8; 
+## Generate rows of a model matrix from a multivariate normal distribution with 
+## AR1 covariance structure. 
+
+H &lt;- abs(outer(1:p, 1:p, "-")) 
+X &lt;- cbind(1,rmvnorm(n*m,rep(0,p),sigma=0.5^H)); 
+
+Z &lt;- X 
+true_betas &lt;- c(1,3,2,1.5,-1,0,0,0,0) ## 5 important fixed effects 
+true_D &lt;- matrix(0,p+1,p+1) ## 3 important random effects
+true_D[1:3,1:3] &lt;- matrix(c(9,4.8,0.6,4.8,4,1,0.6,1,1),3,3,byrow=TRUE)
+
+simy &lt;- gendat.glmm(id = list(cluster = rep(1:n,each=m)), X = X, beta = true_betas, 
+	Z = list(cluster = Z), D = list(cluster = true_D), phi = 1, family = gaussian()) 
+## Notice how id, Z, and D all are lists with one element, and that 
+## the name of the first element (a generic name "cluster") is the 
+## same for all three lists. 
+## id is where the action takes place. In particular, id$cluster is 
+## designed so that the first m elements correspond to cluster 1, 
+## the second m elements correspond to cluster 2, and so forth. 
+## In turn, the first m rows of X and Z$cluster correspond 
+## to cluster 1, and so on. 
+
+## Not run: 
+dat &lt;- data.frame(y = simy$y, simy$X, simy$Z$cluster, simy$id)
+fit_satlme4 &lt;- lmer(y ~ X - 1 + (Z - 1 | cluster), data = dat,
+	REML = FALSE)
+fit_sat &lt;- build.start.fit(fit_satlme4, gamma = 2)
+
+
+lambda_seq &lt;- lseq(1e-4,1,length=100)
+fit &lt;- rpqlseq(y = simy$y, X = simy$X, Z = simy$Z, id = simy$id, 
+	family = gaussian(), lambda = lambda_seq, pen.type = "adl", 
+	pen.weights = fit_sat$pen.weights, start = fit_sat)
+
+summary(fit$best.fit[[5]])  ## Second of the hybrid ICs
+# apply(fit$collect.ics, 2, which.min) ## Look at best fit chosen by different ICs
+
+## End(Not run)
+
+## Please see other examples in help file for the \code{rpql} function.
+</code></pre>
+
+
+</div>

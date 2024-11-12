@@ -1,0 +1,575 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>sienaGOF</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Functions to assess goodness of fit for SAOMs</h2>
+
+<h3>Description</h3>
+
+<p>The function <code>sienaGOF</code> assesses goodness of fit
+for a model specification as represented by an estimated
+<code>sienaFit</code> object created by <code>siena07</code>.
+This is done by simulations of auxiliary
+statistics, that differ from the statistics used for estimating
+the parameters. The auxiliary statistics must be given explicitly.
+</p>
+<p>The fit is good if the average values
+of the auxiliary statistics over many simulation runs are close
+to the values observed in the data.
+A Monte Carlo test based on the Mahalanobis
+distance is used to calculate frequentist <code class="reqn">p</code>-values.
+</p>
+<p>Plotting functions can be used to diagnose bad fit. There are basic
+functions for calculating auxiliary statistics available out of the
+box, and the user is invited to create additional ones.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">sienaGOF(sienaFitObject, auxiliaryFunction,
+        period=NULL, verbose=FALSE, join=TRUE, twoTailed=FALSE,
+        cluster=NULL, robust=FALSE, groupName="Data1",
+        varName, tested=NULL, iterations=NULL, giveNAWarning=TRUE, ...)
+## S3 method for class 'sienaGOF'
+plot(x, center=FALSE, scale=FALSE, violin=TRUE, key=NULL,
+        perc=.05, period=1, position=4, fontsize=12, ...)
+descriptives.sienaGOF(x, center=FALSE, scale=FALSE, perc=.05, key=NULL,
+        period=1, showAll=FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>sienaFitObject</code></td>
+<td>
+<p>An object of class <code>sienaFit</code>, produced by a
+call to <code>siena07</code> with <code>returnDeps = TRUE</code> and
+<code>maxlike=FALSE</code> (the latter is the default, the former is not);
+or a list of such objects; if a list, then the first period
+of each <code>sienaFit</code> object will be used.<br>
+If this is a list of <code>sienaFit</code> objects,
+where <code>sienaFitObject</code> is mentioned below, it refers to the first
+element of this list.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>auxiliaryFunction</code></td>
+<td>
+<p>Function to be used to calculate
+the auxiliary statistics;
+this can be a user-defined function, e.g. depending on the <code>sna</code>
+or <code>igraph</code> packages.
+</p>
+<p>See <code>Examples</code> and <code>sienaGOF-auxiliary</code>
+for more information on the signature of this function.
+The basic signature is<br><code>function(index, data, sims, period, groupName, varName, ...)</code>,
+where <code>index</code> is the index of the simulated network,
+or <code>NULL</code> if the observed variable is needed;
+<code>data</code> is the observed data object from which
+the relevant variables are extracted; <code>sims</code> is the list of simulations
+returned from <code>siena07</code>; <code>period</code> is the index of the period;
+and ... are further arguments (like <code>levls</code> in the examples below
+and in <code>sienaGOF-auxiliary</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>period</code></td>
+<td>
+<p>Vector of period(s) to be used (may run from 1 to
+number of waves - 1). Has an effect only if <code>join=FALSE</code>.<br>
+May be only a single number if <code>sienaFitObject</code> is a list of
+<code>sienaFit</code> objects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Whether to print intermediate results. This may give some
+peace of mind to the user because calculations can take some time.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>join</code></td>
+<td>
+<p>Boolean: should sienaGOF do tests on all of the periods
+individually (<code>FALSE</code>), or sum across periods (<code>TRUE</code>)?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>twoTailed</code></td>
+<td>
+<p>Whether to use two tails for calculating <code class="reqn">p</code>-values on
+the Monte Carlo test. Recommended for advanced users only,
+as it is probably only applicable in rare cases.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cluster</code></td>
+<td>
+<p>Optionally, a <code>parallel</code> or <code>snow</code> cluster to execute
+the auxiliary function calculations on.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>robust</code></td>
+<td>
+<p> Whether to use robust estimation of the covariance matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>groupName</code></td>
+<td>
+<p> Name of group; relevant for multi-group data sets.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>varName</code></td>
+<td>
+<p> Name of dependent variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tested</code></td>
+<td>
+<p> A logical vector of length <code>sienaFitObject$pp</code>
+(number of parameters), indicating a subset of tested parameters;
+or <code>NULL</code>, indicating all tested parameters (see below);
+or <code>FALSE</code>, indicating nothing is to be tested.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iterations</code></td>
+<td>
+<p> Number of iterations for the goodness of fit calculations.
+If <code>NULL</code>, the number of simulated data sets in
+<code>sienaFitObject</code>.  </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>giveNAWarning</code></td>
+<td>
+<p>If <code>TRUE</code>, a warning is given if any simulated
+values are missing.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p> Result from a call to sienaGOF. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>center</code></td>
+<td>
+<p> Whether to center the statistics by median during plotting.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p> Whether to scale the statistics by range during plotting.
+scale=<code>TRUE</code> makes little sense without also
+center=<code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>violin</code></td>
+<td>
+<p> Use violin plots (vs. box plots only)? </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>key</code></td>
+<td>
+<p> Keys in the plot for the levels of the auxiliary statistic
+(as given by parameter <code>levls</code> in the examples). </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>perc</code></td>
+<td>
+<p> 1 minus confidence level for the confidence bands (two sided). </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>position</code></td>
+<td>
+<p> Position where the observed value is plotted: 1=under,
+2=to the left, 3=above, 4=to the right of the red dot. Can be a single
+number from 1 to 4, or a vector with positions for each statistic
+(possibly recycled).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fontsize</code></td>
+<td>
+<p> Font size for the observed values plotted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Other arguments; for <code>sienaGOF()</code>, e.g., <code>levls</code> as a
+parameter for the auxiliary statistic in
+<code>sienaGOF-auxiliary</code>;<br>
+for <code>plot.sienaGOF()</code>, e.g., the usual plotting parameters
+<code>main</code>, <code>xlab</code>, <code>ylab</code>, <code>cex</code>, <code>cex.main</code>,
+<code>cex.lab</code>, and <code>cex.axis</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>showAll</code></td>
+<td>
+<p>If <code>FALSE</code>, drops statistics with variance 0,
+like in the plot.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function is used to assess the goodness of fit of an estimated stochastic
+actor-oriented model for an arbitrarily defined multidimensional auxiliary
+statistic. It operates basically by comparing the observed values, at the ends
+of the periods, with the simulated values for the ends of the periods.
+The differences are assessed by combining the components of the auxiliary
+statistic using the Mahalanobis distance.
+</p>
+<p>For <code>sienaFitObject</code>s that were made for a multi-group data set,
+if you are not sure about the <code>groupName</code>s to use, these can be retrieved
+by the command <code>"names(dataObject)"</code> (where <code>dataObject</code> is
+the data used to produce the <code>sienaFitObject</code>).
+Mostly they are <code>"Data1", "Data2"</code>, etc.
+</p>
+<p>To save computation time, <code>iterations</code> can be set to a lower number
+than what is available in <code>sienaFitObject</code>; this will yield
+a less precise result.
+</p>
+<p>The function does not work properly for data sets that include a
+<code>sienaCompositionChange</code> object. If you wish to test the
+fit for such a data set, you need (for the purpose of fit assessment only)
+to replace the data set by a data set where absent actors are represented
+by structural zeros, and estimate the same model for this data set with the
+corresponding effects object, and use <code>sienaGOF</code> for this
+<code>sienaFit</code> object.
+</p>
+<p>To achieve comparability between simulated and observed dependent variables,
+variables that are missing in the data at the start or end of a period
+are replaced by 0 (for tie variables) or NA (for behavior variables).<br>
+If there are any differences between structural values at the beginning and
+at the end of a period, these are dealt with as follows.
+For tie variables that have a structural value at the start of the period,
+this value is used to replace the observed value at the end of the period
+(for the goodness of fit assessment only).
+For tie variables that have a structural value at the end of the period but a
+free value value at the start of the period, the reference value for the
+simulated values is lacking; therefore, the simulated values at the end of
+the period then are replaced by the structural value at the end of the period
+(again, for the goodness of fit assessment only).
+</p>
+<p>The auxiliary statistics documented in <code>sienaGOF-auxiliary</code>
+are calculated for the simulated dependent
+variables in Phase 3 of the estimation algorithm,
+returned in <code>sienaFitObject</code> because of having used
+<code>returnDeps = TRUE</code> in the call to <code>siena07</code>.
+These statistics should be chosen to represent features of the network
+that are not explicitly fit by the estimation procedure but can be
+considered important properties that the model at hand should represent well.
+Some examples are:
+</p>
+
+<ul>
+<li>
+<p> Outdegree distribution
+</p>
+</li>
+<li>
+<p> Indegree distribution
+</p>
+</li>
+<li>
+<p> Distribution of the dependent behavior variable (if any).
+</p>
+</li>
+<li>
+<p> Distribution of geodesic distances
+</p>
+</li>
+<li>
+<p> Triad census
+</p>
+</li>
+<li>
+<p> Edgewise homophily counts
+</p>
+</li>
+<li>
+<p> Edgewise shared partner counts
+</p>
+</li>
+<li>
+<p> Statistics depending on the combination of network
+and behavioral variables.
+</p>
+</li>
+</ul>
+<p>The function is written so that the user can easily define other functions to
+capture some other relevant aspects of the network, behaviors, etc.
+This is further illustrated in the help page
+<code>sienaGOF-auxiliary</code>.
+</p>
+<p>We recommend the following heuristic approach to model checking:
+</p>
+
+<ol>
+<li>
+<p> Check convergence of the estimation.
+</p>
+</li>
+<li>
+<p> Assess goodness of fit (primarily using <code>join=TRUE</code>) on
+auxiliary statistics, and if necessary refine the model.
+</p>
+</li>
+<li>
+<p> Assess time heterogeneity by <code>sienaTimeTest</code>
+and if there is evidence for time heterogeneity
+either modify the base effects or include time dummy terms.
+</p>
+</li>
+</ol>
+<p>No general rules can be given about whether time heterogeneity
+(<code>sienaTimeTest</code>) or goodness of fit using <code>sienaGOF</code>
+have precedence. This is an explorative issue.
+</p>
+<p>The <code>summary</code> function will display some useful information
+to help with model selection if some effects are set in the effects object
+to be fixed and tested. In that case, for all parameters indicated
+in the vector <code>tested</code>, a rough estimator is computed for the Mahalanobis
+distance that would be obtained at each proposed specification.
+This is then given in the <code>summary</code>. This can help guide model selection.
+This estimator is called the modified Mahalanobis distance (MMD).
+See Lospinoso and Snijders (2019) or the manual for more information.
+</p>
+<p>The following functions are pre-fabricated for ease of use, and can
+be passed in as the <code>auxiliaryFunction</code> with no extra effort;
+see <code>sienaGOF-auxiliary</code> and the examples below.
+</p>
+
+<ul>
+<li> <p><code>IndegreeDistribution</code>
+</p>
+</li>
+<li> <p><code>OutdegreeDistribution</code>
+</p>
+</li>
+<li> <p><code>BehaviorDistribution</code>
+</p>
+</li>
+<li> <p><code>TriadCensus</code>
+</p>
+</li>
+<li> <p><code>mixedTriadCensus</code>
+</p>
+</li>
+<li> <p><code>dyadicCov</code>
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p><code>sienaGOF</code> returns a result of class <code>sienaGOF</code>;
+this is a list of elements of class <code>sienaGofTest</code>;
+if <code>join=TRUE</code>, the list has length 1; if <code>join=FALSE</code>,
+each list element corresponds to a period analyzed;
+the list elements are themselves lists again, including the
+following elements:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>- sienaFitName</code></td>
+<td>
+<p>The name of sienaFitObject.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>- auxiliaryStatisticName</code></td>
+<td>
+<p>The name of auxiliaryFunction.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>- Observations</code></td>
+<td>
+<p>The observed values for the auxiliary statistics.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>- Simulations</code></td>
+<td>
+<p>The simulated auxiliary statistics.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>- ObservedTestStat</code></td>
+<td>
+<p>The observed Mahalanobis distance in the data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>- SimulatedTestStat</code></td>
+<td>
+<p>The Mahalanobis distance for the simulations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>- TwoTailed</code></td>
+<td>
+<p>Whether the <code class="reqn">p</code>-value corresponds to a one- or
+two-tailed Monte Carlo test.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>- p</code></td>
+<td>
+<p>The <code class="reqn">p</code>-value for the observed Mahalanobis distance in the
+permutation distribution of the
+simulated Mahalanobis distances.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>- Rank</code></td>
+<td>
+<p> Rank of the covariance matrix of the simulated auxiliary
+statistics.</p>
+</td>
+</tr>
+</table>
+<p>In addition there are several attributes which give, for model
+specifications with fixed-and-tested effects, approximations
+to the expected Mahalanobis distance for model specifications where
+each of these effects would be added. This is reported
+in the <code>summary</code> method. <br>
+The <code>plot</code> method makes violin plots or box plots, with superimposed
+confidence bands, for the simulated distributions of all elements
+of the <code>auxiliaryFunction</code>,
+with the observed values indicated by red dots;
+but statistics with variance 0 are dropped.
+</p>
+<p><code>descriptives.sienaGOF</code> returns a matrix giving numerical
+information about what is plotted in the <code>plot</code> method:
+maximum, upper percentile, mean, median, lower percentile, minimum,
+and standard deviation
+of the simulated distributions of the auxiliary statistics, the
+observed values, and the proportions of simulated values greater
+and greater-or-equal than the observed values.
+If <code>center=TRUE</code> the median is subtracted
+from mean, median, and percentiles; if <code>scale=TRUE</code>
+these numbers and the standard deviation
+are divided by (maximum - minimum). <br>
+If <code>showAll=FALSE</code>, statistics with variance 0 will be dropped.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Josh Lospinoso, modifications by Ruth Ripley and Tom Snijders</p>
+
+
+<h3>References</h3>
+
+<p>Lospinoso, J.A. and Snijders, T.A.B. (2019,
+Goodness of fit for stochastic actor-oriented models.
+<em>Methodological Innovations</em>, <b>12</b>:2059799119884282.
+</p>
+<p>Also see <a href="https://www.stats.ox.ac.uk/~snijders/siena/">https://www.stats.ox.ac.uk/~snijders/siena/</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>siena07</code>, <code>sienaGOF-auxiliary</code>,
+<code>sienaTimeTest</code> </p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">mynet &lt;- sienaDependent(array(c(s501, s502), dim=c(50, 50, 2)))
+mybeh &lt;- sienaDependent(s50a[,1:2], type="behavior")
+mydata &lt;- sienaDataCreate(mynet, mybeh)
+myeff &lt;- getEffects(mydata)
+myeff &lt;- includeEffects(myeff, transTrip)
+myeff &lt;- setEffect(myeff, cycle3, fix=TRUE, test=TRUE)
+myeff &lt;- setEffect(myeff, transTies, fix=TRUE, test=TRUE)
+myalgorithm &lt;- sienaAlgorithmCreate(nsub=1, n3=10, projname=NULL)
+# Shorter phases 2 and 3, just for example.
+ans &lt;- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE, returnDeps=TRUE)
+gofi &lt;- sienaGOF(ans, IndegreeDistribution, verbose=TRUE, join=TRUE,
+  varName="mynet")
+summary(gofi)
+plot(gofi)
+
+# Illustration just for showing a case with two dependent networks;
+# running time backwards is not meaningful!
+mynet1 &lt;- sienaDependent(array(c(s501, s502), dim=c(50, 50, 2)))
+mynet2 &lt;- sienaDependent(array(c(s503, s501), dim=c(50, 50, 2)))
+mybeh &lt;- sienaDependent(s50a[,1:2], type="behavior")
+mydata &lt;- sienaDataCreate(mynet1, mynet2, mybeh)
+myeff &lt;- getEffects(mydata)
+myeff &lt;- includeEffects(myeff, transTrip)
+myeff &lt;- includeEffects(myeff, recip, name="mynet2")
+# Shorter phases 2 and 3, just for example.
+ans &lt;- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE, returnDeps=TRUE)
+gofi &lt;- sienaGOF(ans, IndegreeDistribution, verbose=TRUE, join=TRUE,
+  varName="mynet1")
+summary(gofi)
+plot(gofi)
+
+## Not run: 
+(gofi.nc &lt;- sienaGOF(ans, IndegreeDistribution, cumulative=FALSE,
+    varName="mynet1"))
+# cumulative is an example of "...".
+plot(gofi.nc)
+descriptives.sienaGOF(gofi.nc)
+
+(gofi2 &lt;- sienaGOF(ans, IndegreeDistribution, varName="mynet2"))
+plot(gofi2)
+
+(gofb &lt;- sienaGOF(ans, BehaviorDistribution, varName = "mybeh"))
+plot(gofb)
+
+(gofo &lt;- sienaGOF(ans, OutdegreeDistribution, varName="mynet1",
+    levls=0:6, cumulative=FALSE))
+# levls is another example of "...".
+plot(gofo)
+
+## End(Not run)
+
+## A demonstration of using multiple processes
+## Not run: 
+library(parallel)
+(n.clus &lt;- detectCores() - 1)
+n.clus &lt;- min(n.clus, 4)  # keep time for other processes
+myalgorithm.c &lt;- sienaAlgorithmCreate(nsub=4, n3=1000, seed=1265)
+(ans.c &lt;- siena07(myalgorithm.c, data=mydata, effects=myeff, batch=TRUE,
+    returnDeps=TRUE, useCluster=TRUE, nbrNodes=n.clus))
+gofi.1 &lt;- sienaGOF(ans.c, TriadCensus, verbose=TRUE, varName="mynet1")
+cl &lt;- makeCluster(n.clus)
+gofi.cl &lt;- sienaGOF(ans.c, TriadCensus, varName="mynet1", cluster=cl)
+cl2 &lt;- makeCluster(2)
+gofi.cl2 &lt;- sienaGOF(ans.c, TriadCensus, varName="mynet1", cluster=cl2)
+# compare simulation times
+attr(gofi.1,"simTime")
+attr(gofi.cl,"simTime")
+attr(gofi.cl2,"simTime")
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

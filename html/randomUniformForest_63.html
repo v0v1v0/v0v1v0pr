@@ -1,0 +1,208 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>generic.cv</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Generic k-fold cross-validation</h2>
+
+<h3>Description</h3>
+
+<p>Performs k-fold cross-validation 'n' times for any specified algorithm, using two of many metrics(test error, AUC, precision,...)
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">generic.cv(X, Y, 
+nTimes = 1, 
+k = 10, 
+seed = 2014, 
+regression = TRUE, 
+genericAlgo = NULL, 
+specificPredictFunction = NULL, 
+metrics = c("none", "AUC", "precision", "F-score", "L1", "geometric mean", 
+"geometric mean (precision)"))
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+
+<p>a matrix or dataframe of observations
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+
+<p>a vector (a factor for classification) for the observed data.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nTimes</code></td>
+<td>
+
+<p>number of times that k-fold cross-validation need to be performed.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+
+<p>how many folds ?
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+
+<p>the seed for reproducibility.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>regression</code></td>
+<td>
+
+<p>if TRUE, performs regression.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>genericAlgo</code></td>
+<td>
+
+<p>wrapper function to embed the algorithm that one needs to assess. One can eventually add options. NULL is only for convenience. Wrapper function is needed to assess cross-validation.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>specificPredictFunction </code></td>
+<td>
+
+<p>if the assessed model does not support the R generic method 'predict', one has to define here, with a function, how predictions have to be generated.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>metrics</code></td>
+<td>
+
+<p>One of many other metrics one can call with the standard one, test error (or MSE for regression). 
+</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>a list with the following components :
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>testError</code></td>
+<td>
+<p>the values of test error.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>avgError</code></td>
+<td>
+<p>mean of test error.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stdDev</code></td>
+<td>
+<p>standard deviation of test error.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>metric</code></td>
+<td>
+<p>values of the other chosen metric.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Saip Ciss <a href="mailto:saip.ciss@wanadoo.fr">saip.ciss@wanadoo.fr</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## not run
+# data(iris)
+# Y &lt;- iris$Species
+# X &lt;- iris[,-which(colnames(iris) == "Species")]
+
+## 10-fold cross-validation for the randomUniformForest algorithm:
+
+## create the wrapper function (setting 'threads = 1' since data are small)
+# genericAlgo.ruf &lt;- function(X, Y) randomUniformForest(X, Y, 
+# OOB = FALSE, importance = FALSE, threads = 1)
+
+## run
+# rUF.10cv.iris &lt;- generic.cv(X, as.factor(Y), 
+# genericAlgo = genericAlgo.ruf, regression = FALSE)
+  
+## 10-fold cross-validation for the randomForest algorithm:
+
+## create the wrapper function
+# require(randomForest) || install.packages("randomForest")
+# genericAlgo.rf &lt;- function(X, Y) randomForest(X, Y)
+
+## run
+# RF.10cv.iris &lt;- generic.cv(X, as.factor(Y), 
+# genericAlgo = genericAlgo.rf, regression = FALSE)
+
+## 10-fold cross-validation for Gradient Boosting Machines algorithm (gbm package)
+
+## create the wrapper function
+# require(gbm) || install.packages("gbm")
+# genericAlgo.gbm &lt;- function(X, Y) gbm.fit(X, Y, distribution = "multinomial",
+# n.trees = 500, shrinkage = 0.05, interaction.depth = 24, n.minobsinnode = 1) 
+
+## create a wrapper for the prediction function of gbm
+# nClasses = length(unique(Y))
+# specificPredictFunction.gbm &lt;- function(model, newdata)
+# {
+#	modelPrediction = predict(model, newdata, 500) 
+#	predictions = matrix(modelPrediction, ncol = nClasses )
+#	colnames(predictions) = colnames(modelPrediction)
+#	return(as.factor(apply(predictions, 1, function(Z) names(which.max(Z)))))
+# }
+
+## run
+# gbm.10cv.iris &lt;- generic.cv(X, Y, genericAlgo = genericAlgo.gbm, 
+# specificPredictFunction = specificPredictFunction.gbm, regression = FALSE)
+
+## 10-fold cross-validation for CART algorithm (rpart package):
+
+# genericAlgo.CART &lt;- function(X, Y) 
+#{
+#	ZZ = data.frame(Y, X)
+#	if (is.factor(Y)) { modelObject = rpart(Y ~., data = ZZ, method = "class", ...)	}
+#	else { 	modelObject = rpart(Y ~., data = ZZ, ...) }
+#	return(modelObject) 
+#}
+
+# specificPredictFunction.CART &lt;- function(model, newdata)
+# predict(model, data.frame(newdata), type= "vector")
+
+# CART.10cv.iris &lt;- generic.cv(X, as.factor(Y), genericAlgo = genericAlgo.CART, 
+# specificPredictFunction = specificPredictFunction.CART, regression = FALSE)
+
+</code></pre>
+
+
+</div>

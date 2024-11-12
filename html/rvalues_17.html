@@ -1,0 +1,155 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rvaluesMCMC</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+R-values from MCMC output.
+</h2>
+
+<h3>Description</h3>
+
+<p>Returns r-values from an array of MCMC output.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rvaluesMCMC(output, qtheta, alpha.grid = NULL, ngrid = NULL, smooth = "none")
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>output</code></td>
+<td>
+
+<p>a matrix contatining mcmc ouput. The ith row should
+represent a sample from the posterior of the ith parameter
+of interest. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>qtheta</code></td>
+<td>
+
+<p>either a function which returns the quantiles (for upper tail probs.) of 
+theta or a vector of theta-quantiles. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha.grid</code></td>
+<td>
+
+<p>grid of values in (0,1); used for the discrete approximation
+approach for computing r-values.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ngrid</code></td>
+<td>
+
+<p>number of grid points for alpha.grid; only relevant when <code>alpha.grid = NULL</code>
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>smooth</code></td>
+<td>
+
+<p>either <code>smooth="none"</code> or <code>smooth</code> takes 
+a value between 0 and 10; this determines the level of smoothing applied to the
+estimate of <code class="reqn">\lambda(\alpha)</code>; if <code>smooth</code> is given a number, the
+number is used as the <code>bass</code> argument in <code>supsmu</code>.
+</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An object of class "rvals" which is a list containing at least the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>main</code></td>
+<td>
+<p>a data frame containing the r-values, the r-value rankings along with
+the rankings from several other common procedures</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aux</code></td>
+<td>
+<p>a list containing other extraneous information</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rvalues</code></td>
+<td>
+<p>a vector of r-values</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Nicholas Henderson and Michael Newton
+</p>
+
+
+<h3>References</h3>
+
+<p>Henderson, N.C. and Newton, M.A. (2016). <em>Making the cut: improved ranking and selection
+for large-scale inference</em>. J. Royal Statist. Soc. B., 78(4), 781-804.
+doi: <a href="https://doi.org/10.1111/rssb.12131">10.1111/rssb.12131</a>
+<a href="https://arxiv.org/abs/1312.5776">https://arxiv.org/abs/1312.5776</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>rvalues</code>, <code>PostSummaries</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(MCMCtest)
+
+### For the MCMC output in MCMC_test, the prior assumed for the effect sizes of 
+### interest was a mixture of two t-distributions. The function qthetaTMix 
+### computes the quantiles for this prior.
+
+qthetaTMix &lt;- function(p) {
+    ### function to compute quantiles (for upper tail probabilities) for a 
+    ###  mixture of two t-distributions
+    mu &lt;- c(.35,-.12)
+    sig &lt;- c(.2,.08)
+    mix.prop &lt;- c(.25,.75)
+
+    ff &lt;- function(x,pp) {
+        prob_less &lt;- 0
+        for(k in 1:2) {
+            prob_less &lt;- prob_less + pt((x - mu[k])/sig[k],df=4,lower.tail=FALSE)*mix.prop[k] 
+        }
+        return(prob_less - pp)
+    }
+
+    nn &lt;- length(p)
+    ans &lt;- numeric(nn)
+    for(i in 1:nn) {
+        ans[i] &lt;- uniroot(ff,interval=c(-5,5),tol=1e-6,pp=p[i])$root
+    }
+    return(ans)
+}
+
+rvs &lt;- rvaluesMCMC(MCMCtest, qtheta = qthetaTMix)
+</code></pre>
+
+
+</div>

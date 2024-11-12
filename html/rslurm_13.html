@@ -1,0 +1,248 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>slurm_map</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Parallel execution of a function over a list on the Slurm cluster</h2>
+
+<h3>Description</h3>
+
+<p>Use <code>slurm_map</code> to compute function over a list
+in parallel, spread across multiple nodes of a Slurm cluster,
+with similar syntax to <code>lapply</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">slurm_map(
+  x,
+  f,
+  ...,
+  jobname = NA,
+  nodes = 2,
+  cpus_per_node = 2,
+  processes_per_node = cpus_per_node,
+  preschedule_cores = TRUE,
+  job_array_task_limit = NULL,
+  global_objects = NULL,
+  pkgs = rev(.packages()),
+  libPaths = NULL,
+  rscript_path = NULL,
+  r_template = NULL,
+  sh_template = NULL,
+  slurm_options = list(),
+  submit = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A list to apply <code>f</code> to. Each
+element of <code>x</code> corresponds to a separate function call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>f</code></td>
+<td>
+<p>A function that accepts one element of <code>x</code> as its first argument,
+and may return any type of R object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments to <code>f</code>. These arguments do not vary
+with each call to <code>f</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>jobname</code></td>
+<td>
+<p>The name of the Slurm job; if <code>NA</code>, it is assigned a
+random name of the form "slr####".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nodes</code></td>
+<td>
+<p>The (maximum) number of cluster nodes to spread the calculation
+over. <code>slurm_map</code> automatically divides <code>x</code> in chunks of
+approximately equal size to send to each node. Less nodes are allocated if
+the parameter set is too small to use all CPUs on the requested nodes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cpus_per_node</code></td>
+<td>
+<p>The number of CPUs requested per node. This argument is
+mapped to the Slurm parameter <code>cpus-per-task</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>processes_per_node</code></td>
+<td>
+<p>The number of logical CPUs to utilize per node,
+i.e. how many processes to run in parallel per node. This can exceed
+<code>cpus_per_node</code> for nodes which support hyperthreading. Defaults to
+<code>processes_per_node = cpus_per_node</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>preschedule_cores</code></td>
+<td>
+<p>Corresponds to the <code>mc.preschedule</code> argument of 
+<code>parallel::mclapply</code>. Defaults to <code>TRUE</code>. If <code>TRUE</code>, the 
+elements of <code>x</code> are assigned to cores before computation. 
+If <code>FALSE</code>, each element of <code>x</code> is executed by the next available core.
+Setting <code>FALSE</code> may be faster if 
+different elements of <code>x</code> result in very variable completion time for
+jobs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>job_array_task_limit</code></td>
+<td>
+<p>The maximum number of job array tasks to run at 
+the same time. Defaults to <code>NULL</code> (no limit).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>global_objects</code></td>
+<td>
+<p>A character vector containing the name of R objects to be
+saved in a .RData file and loaded on each cluster node prior to calling
+<code>f</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pkgs</code></td>
+<td>
+<p>A character vector containing the names of packages that must
+be loaded on each cluster node. By default, it includes all packages
+loaded by the user when <code>slurm_map</code> is called.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>libPaths</code></td>
+<td>
+<p>A character vector describing the location of additional R
+library trees to search through, or NULL. The default value of NULL
+corresponds to libraries returned by <code>.libPaths()</code> on a cluster node.
+Non-existent library trees are silently ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rscript_path</code></td>
+<td>
+<p>The location of the Rscript command. If not specified, 
+defaults to the location of Rscript within the R installation being run.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>r_template</code></td>
+<td>
+<p>The path to the template file for the R script run on each node. 
+If NULL, uses the default template "rslurm/templates/slurm_run_R.txt".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sh_template</code></td>
+<td>
+<p>The path to the template file for the sbatch submission script. 
+If NULL, uses the default template "rslurm/templates/submit_sh.txt".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>slurm_options</code></td>
+<td>
+<p>A named list of options recognized by <code>sbatch</code>; see
+Details below for more information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>submit</code></td>
+<td>
+<p>Whether or not to submit the job to the cluster with
+<code>sbatch</code>; see Details below for more information.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function creates a temporary folder ("_rslurm_[jobname]") in the current
+directory, holding .RData and .RDS data files, the R script to run and the Bash
+submission script generated for the Slurm job.
+</p>
+<p>The set of input parameters is divided in equal chunks sent to each node, and
+<code>f</code> is evaluated in parallel within each node using functions from the
+<code>parallel</code> R package. The names of any other R objects (besides
+<code>x</code>) that <code>f</code> needs to access should be included in
+<code>global_objects</code> or passed as additional arguments through <code>...</code>.
+</p>
+<p>Use <code>slurm_options</code> to set any option recognized by <code>sbatch</code>, e.g.
+<code>slurm_options = list(time = "1:00:00", share = TRUE)</code>.
+See <a href="http://slurm.schedmd.com/sbatch.html">http://slurm.schedmd.com/sbatch.html</a> for details on possible options.
+Note that full names must be used (e.g. "time" rather than "t") and that flags
+(such as "share") must be specified as TRUE. The "array", "job-name", "nodes", 
+"cpus-per-task" and "output" options are already determined by 
+<code>slurm_map</code> and should not be manually set.
+</p>
+<p>When processing the computation job, the Slurm cluster will output two types
+of files in the temporary folder: those containing the return values of the
+function for each subset of parameters ("results_[node_id].RDS") and those
+containing any console or error output produced by R on each node
+("slurm_[node_id].out").
+</p>
+<p>If <code>submit = TRUE</code>, the job is sent to the cluster and a confirmation
+message (or error) is output to the console. If <code>submit = FALSE</code>,
+a message indicates the location of the saved data and script files; the
+job can be submitted manually by running the shell command
+<code>sbatch submit.sh</code> from that directory.
+</p>
+<p>After sending the job to the Slurm cluster, <code>slurm_map</code> returns a
+<code>slurm_job</code> object which can be used to cancel the job, get the job
+status or output, and delete the temporary files associated with it. See
+the description of the related functions for more details.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>slurm_job</code> object containing the <code>jobname</code> and the
+number of <code>nodes</code> effectively used.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>slurm_call</code> to evaluate a single function call.
+</p>
+<p><code>slurm_apply</code> to evaluate a function row-wise over a
+data frame of parameters.
+</p>
+<p><code>cancel_slurm</code>, <code>cleanup_files</code>,
+<code>get_slurm_out</code> and <code>get_job_status</code>
+which use the output of this function.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+sjob &lt;- slurm_map(func, list)
+get_job_status(sjob) # Prints console/error output once job is completed.
+func_result &lt;- get_slurm_out(sjob, "table") # Loads output data into R.
+cleanup_files(sjob)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

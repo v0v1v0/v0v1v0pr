@@ -1,0 +1,111 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rbindFill</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Stack together data frames</h2>
+
+<h3>Description</h3>
+
+<p>In the end of the code for plyr::rbind.fill, the author explains
+that is uses an experimental function to build the data.frame.  I
+would rather not put any weight on an experimental function, so I
+sat out to create a new rbindFill. This function uses no
+experimental functions. It does not rely on any functions from
+packages that are not in base of R, except, of course, for functions
+in this package.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rbindFill(...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Data frames</p>
+</td>
+</tr></table>
+<h3>Details</h3>
+
+<p>Along the way, I noticed a feature that seems to be a flaw in both
+rbind and rbind.fill.  In the examples, there is a demonstration
+of the fact that base R rbind and plyr::rbind.fill both have
+undesirable properties when data sets containing factors and
+ordered variables are involved. This function introduces a
+"data consistency check" that prevents corruption of variables
+when data frames are combined.  This "safe" version will notice
+differences in classes of variables among data.frames and stop
+with an error message to alert the user to the problem.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A stacked data frame
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Paul Johnson
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">set.seed(123123)
+N &lt;- 10000
+dat &lt;- genCorrelatedData2(N, means = c(10, 20, 5, 5, 6, 7, 9), sds = 3,
+           stde = 3, rho = .2,  beta = c(1, 1, -1, 0.5))
+dat1 &lt;- dat
+dat1$xcat1 &lt;- factor(sample(c("a", "b", "c", "d"), N, replace=TRUE))
+dat1$xcat2 &lt;- factor(sample(c("M", "F"), N, replace=TRUE),
+                    levels = c("M", "F"), labels = c("Male", "Female"))
+dat1$y &lt;- dat$y +
+          as.vector(contrasts(dat1$xcat1)[dat1$xcat1, ] %*% c(0.1, 0.2, 0.3))
+dat1$xchar1 &lt;- rep(letters[1:26], length.out = N)
+dat2 &lt;- dat
+dat1$x3 &lt;- NULL
+dat2$x2 &lt;- NULL
+dat2$xcat2 &lt;- factor(sample(c("M", "F"), N, replace=TRUE),
+                     levels = c("M", "F"), labels = c("Male", "Female"))
+dat2$xcat3 &lt;- factor(sample(c("K1", "K2", "K3", "K4"), N, replace=TRUE))
+dat2$xchar1 &lt;- "1"
+dat3 &lt;- dat
+dat3$x1 &lt;- NULL
+dat3$xcat3 &lt;-  factor(sample(c("L1", "L2", "L3", "L4"), N, replace=TRUE)) 
+dat.stack &lt;- rbindFill(dat1, dat2, dat3)
+str(dat.stack)
+
+## Possible BUG alert about base::rbind and plyr::rbind.fill
+## Demonstrate the problem of a same-named variable that is factor in one and
+## an ordered variable in the other
+dat5 &lt;- data.frame(ds = "5", x1 = rnorm(N),
+                   xcat1 = gl(20, 5, labels = LETTERS[20:1]))
+dat6 &lt;- data.frame(ds = "6", x1 = rnorm(N),
+                   xcat1 = gl(20, 5, labels = LETTERS[1:20], ordered = TRUE))
+## rbind reduces xcat1 to factor, whether we bind dat5 or dat6 first.
+stack1 &lt;- base::rbind(dat5, dat6)
+str(stack1)
+## note xcat1 levels are ordered T, S, R, Q
+stack2 &lt;- base::rbind(dat6, dat5)
+str(stack2)
+## xcat1 levels are A, B, C, D
+## stack3 &lt;- plyr::rbind.fill(dat5, dat6)
+## str(stack3)
+## xcat1 is a factor with levels T, S, R, Q ...
+## stack4 &lt;- plyr::rbind.fill(dat6, dat5)
+## str(stack4)
+## oops, xcat1 is ordinal with levels A &lt; B &lt; C &lt; D
+## stack5 &lt;- rbindFill(dat5, dat6)
+</code></pre>
+
+
+</div>

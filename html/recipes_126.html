@@ -1,0 +1,129 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>recipes_ptype</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Prototype of recipe object</h2>
+
+<h3>Description</h3>
+
+<p>This helper function returns the prototype of the input data set expected by
+the recipe object.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">recipes_ptype(x, ..., stage = "prep")
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A <code>recipe</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>currently not used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stage</code></td>
+<td>
+<p>A single character. Must be one of <code>"prep"</code> or <code>"bake"</code>. See
+details for more. Defaults to <code>"prep"</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The returned ptype is a tibble of the data set that the recipe object is
+expecting. The specifics of which columns depend on the <code>stage</code>.
+</p>
+<p>At <code>prep()</code> time, when <code>stage = "prep"</code>, the ptype is the data passed to
+<code>recipe()</code>. The following code chunk represents a possible recipe scenario.
+<code>recipes_ptype(rec_spec, stage = "prep")</code> and
+<code>recipes_ptype(rec_prep, stage = "prep")</code> both return a ptype tibble
+corresponding to <code>data_ptype</code>. This information is used internally in
+<code>prep()</code> to verify that <code>data_training</code> has the right columns with the right
+types.
+</p>
+<div class="sourceCode r"><pre>rec_spec &lt;- recipe(outcome ~ ., data = data_ptype) %&gt;%
+  step_normalize(all_numeric_predictors()) %&gt;%
+  step_dummy(all_nominal_predictors()) 
+
+rec_prep &lt;- prep(rec_spec, training = data_training)
+</pre></div>
+<p>At <code>bake()</code> time, when <code>stage = "bake"</code>, the ptype represents the data
+that are required for <code>bake()</code> to run.
+</p>
+<div class="sourceCode r"><pre>data_bake &lt;- bake(rec_prep, new_data = data_testing)
+</pre></div>
+<p>What this means in practice is that unless otherwise specified, everything
+but outcomes and case weights are required. These requirements can be changed
+with <code>update_role_requirements()</code>, and <code>recipes_ptype()</code> respects those
+changes.
+</p>
+<p><code>recipes_ptype()</code> returns <code>NULL</code> on recipes created prior to version 1.1.0.
+</p>
+<p>Note that the order of the columns aren't guaranteed to align with
+<code>data_ptype</code> as the data internally is ordered according to roles.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A zero row tibble.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>developer_functions recipes_ptype_validate
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">training &lt;- tibble(
+  y = 1:10,
+  id = 1:10,
+  x1 = letters[1:10],
+  x2 = factor(letters[1:10]),
+  cw = hardhat::importance_weights(1:10)
+)
+training
+
+rec_spec &lt;- recipe(y ~ ., data = training)
+
+# outcomes and case_weights are not required at bake time
+recipes_ptype(rec_spec, stage = "prep")
+recipes_ptype(rec_spec, stage = "bake")
+
+rec_spec &lt;- recipe(y ~ ., data = training) %&gt;%
+  update_role(x1, new_role = "id")
+
+# outcomes and case_weights are not required at bake time
+# "id" column is assumed to be needed
+recipes_ptype(rec_spec, stage = "prep")
+recipes_ptype(rec_spec, stage = "bake")
+
+rec_spec &lt;- recipe(y ~ ., data = training) %&gt;%
+  update_role(x1, new_role = "id") %&gt;%
+  update_role_requirements("id", bake = FALSE)
+
+# update_role_requirements() is used to specify that "id" isn't needed
+recipes_ptype(rec_spec, stage = "prep")
+recipes_ptype(rec_spec, stage = "bake")
+
+</code></pre>
+
+
+</div>

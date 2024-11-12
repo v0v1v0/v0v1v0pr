@@ -1,0 +1,296 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fGEV.MAX</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Fit a GEV distribution from block maxima or r largest order statistics
+using an aggregated Renewal POT process
+</h2>
+
+<h3>Description</h3>
+
+<p>Fit a GEV distribution from block maxima or <code class="reqn">r</code> largest order
+statistics using an aggregated Renewal POT process.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fGEV.MAX(MAX.data, MAX.effDuration,
+         MAX = NULL,
+         control = list(maxit = 300, fnscale = -1),
+         scaleData = TRUE,
+         cov = TRUE,
+         info.observed = TRUE,
+         trace = 0)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>MAX.data</code></td>
+<td>
+
+<p>A list of block maxima or <code class="reqn">r</code> largest statistics as in
+<code>Renouv</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>MAX.effDuration</code></td>
+<td>
+
+<p>A vector of durations as in <code>Renouv</code>. <em>The
+durations must be identical</em> in order to have a common GEV
+distribution for the maxima.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>MAX</code></td>
+<td>
+
+<p>A compact representation of the needed data as a list. This is
+typically created by using the (non exported)
+<code>Renext:::makeMAXdata</code> function.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+
+<p>List to control the optimisation in <code>optim</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scaleData</code></td>
+<td>
+
+<p>Logical. If <code>TRUE</code>, the data in <code>MAX.data</code> are scaled
+before being used in the likelihood. The scaling operation is
+carried on the excesses (observations minus threshold). 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cov</code></td>
+<td>
+
+<p>Logical. If <code>TRUE</code> the standard deviation and the covariance
+matrix of the estimates are computed and returned as <code>sd</code> and
+<code>cov</code> elements of the list. However if the estimated shape
+parameter is <code class="reqn">&lt; - 0.5</code> the two elements are filled with
+<code>NA</code> because the regularity conditions can not be thought
+of as valid.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>info.observed</code></td>
+<td>
+
+<p>Logical. If <code>TRUE</code> the covariance is computed from the
+<em>observed</em> information matrix. If <code>FALSE</code>, the
+<em>expected</em> information matrix is used instead. This is only
+possible for block maxima data, i.e.  when all the blocks contain
+only one observation. The computation relies on the formula given by
+Prescott and Walden. Note that the default value differs from that
+of the functions <code>fGPD</code>, <code>flomax</code> and
+<code>fmaxlo</code>, for historical reasons.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trace</code></td>
+<td>
+
+<p>Integer level of verbosity during execution. With the value <code>0</code>,
+nothing is printed.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The data are assumed to provide maxima or <code class="reqn">r</code> largest statistics
+arising from an aggregated renewal POT model with unknown event rate
+<code class="reqn">\lambda</code> and unknown two-parameter Generalised Pareto
+Distribution for the excesses. A threshold <code class="reqn">u</code> is fixed below the
+given data and the three unknown parameters <code>lambda</code>,
+<code>scale</code> and <code>shape</code> of the POT model are found by maximising
+the likelihood.  Then a vector of the three parameters for the GEV
+distribution is computed by transformation. The covariance matrix and
+standard deviations are computed as well using the jacobian matrix of
+the transformation.
+</p>
+<p>The maximisation is for the log-likelihood with the rate <code>lambda</code>
+concentrated out, so it is a two-parameter optimisation.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>estimate</code></td>
+<td>
+
+<p>Named vector of the estimated parameters for the GEV distribution of
+maxima.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>opt</code></td>
+<td>
+
+<p>Result of the optimisation.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loglik</code></td>
+<td>
+
+<p>Identical to <code>opt$value</code>. This is the maximised log-likelihood
+for the renewal POT model.
+</p>
+
+
+
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sd</code></td>
+<td>
+
+<p>Standard deviation of the estimates (approximation based on the ML
+theory).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cov</code></td>
+<td>
+
+<p>Covariance matrix of the estimates (approximation based on the ML
+theory).
+</p>
+</td>
+</tr>
+</table>
+<h3>Caution</h3>
+
+<p>Whatever be the data, the log-likelihood is infinite (hence maximal)
+for any vector of GEV parameters with shape <code class="reqn">&lt; -1</code> and
+postive scale. Hence the log-likelihood should be maximised with a
+constraint on the shape, while an <em>unconstrained</em> optimisation is
+used here. In practice, for numerical reasons, the estimate usually
+remains inside the <code>shape &gt; -1</code> region. <em>An estimation
+leading to shape <code class="reqn">&lt; -1</code> must be considered as meaningless</em>. An
+estimation with shape <code class="reqn">&lt; -0.5</code> should be considered with care.
+</p>
+
+
+<h3>Note</h3>
+
+<p>This function could get more arguments in the future.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Yves Deville
+</p>
+
+
+<h3>References</h3>
+
+<p>The <em>Renext Computing Details</em> document.
+</p>
+<p>Prescott P. and Walden A.T. (1980) Maximum Likelihood Estimation of the 
+Parameters of the Generalized Extreme-Value Distribution.  
+<em>Biometrika</em> <b>67</b>(3), 723-724.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>Renouv</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">##====================================================================
+## block maxima: simulated data and comparison with  the 'fgev'
+## function from the 'evd' package
+##====================================================================
+set.seed(1234)
+u &lt;- 10
+nBlocks &lt;- 30
+nSim &lt;- 100   ## number of samples 
+Par &lt;- array(NA, dim = c(nSim, 3, 2),
+             dimnames = list(NULL, c("loc", "scale", "shape"), c("MAX", "evd")))
+LL &lt;- array(NA, dim = c(nSim, 2),
+            dimnames = list(NULL, c("MAX", "evd")))
+
+for (i in 1:nSim) {
+  rd &lt;- rRendata(threshold = u,
+                 effDuration = 1,
+                 lambda = 12,
+                 MAX.effDuration = rep(1, nBlocks),
+                 MAX.r = rep(1, nBlocks),
+                 distname.y = "exp", par.y = c(rate = 1 / 100))
+
+  MAX &lt;- Renext:::makeMAXdata(rd)
+  fit.MAX &lt;- fGEV.MAX(MAX = MAX)
+  fit.evd &lt;- fgev(x = unlist(MAX$data))
+  Par[i, , "MAX"] &lt;- fit.MAX$estimate
+  Par[i, , "evd"] &lt;- fit.evd$estimate
+  LL[i, "MAX"] &lt;- fit.MAX$loglik
+  LL[i, "evd"] &lt;- logLik(fit.evd)
+}
+
+##====================================================================
+## r largest: use 'ismev::rlarg.fit' on the venice data set.
+## NB 'venice' is taken from the 'evd' package here.
+##====================================================================
+## Not run:  
+require(ismev);
+fit1 &lt;- ismev::rlarg.fit(venice)
+
+## transform data: each row is a block
+MAX.data &lt;- as.list(as.data.frame(t(venice)))
+## remove the NA imposed by the rectangular matrix format
+MAX.data &lt;- lapply(MAX.data, function(x) x[!is.na(x)])
+MAX.effDuration &lt;- rep(1, length(MAX.data))
+
+fit2 &lt;- fGEV.MAX(MAX.data = MAX.data,
+                 MAX.effDuration = MAX.effDuration)
+
+## estimates
+est &lt;- cbind(ismev = fit1$mle, RenextLab = fit2$estimate)
+print(est)
+# covariance
+covs &lt;- array(dim = c(2, 3, 3),
+              dimnames = list(c("ismev", "RenextLab"),
+                colnames(fit2$cov), colnames(fit2$cov)))
+                
+covs["ismev", , ] &lt;- fit1$cov
+covs["RenextLab", , ] &lt;- fit2$cov
+print(covs)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

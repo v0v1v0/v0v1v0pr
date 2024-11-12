@@ -1,0 +1,232 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rFerns</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Classification with random ferns</h2>
+
+<h3>Description</h3>
+
+<p>This function builds a random ferns model on the given training data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rFerns(x, ...)
+
+## S3 method for class 'formula'
+rFerns(formula, data = .GlobalEnv, ...)
+
+## S3 method for class 'matrix'
+rFerns(x, y, ...)
+
+## Default S3 method:
+rFerns(
+  x,
+  y,
+  depth = 5,
+  ferns = 1000,
+  importance = "none",
+  saveForest = TRUE,
+  consistentSeed = NULL,
+  threads = 0,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Data frame containing attributes; must have unique names and contain only numeric, integer or (ordered) factor columns.
+Factors must have less than 31 levels. No <code>NA</code> values are permitted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>For formula and matrix methods, a place to state parameters to be passed to default method.
+For the print method, arguments to be passed to <code>print</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>alternatively, formula describing model to be analysed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>in which to interpret formula.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>A decision vector. Must a factor of the same length as <code>nrow(X)</code> for ordinary many-label classification, or a logical matrix with each column corresponding to a class for multi-label classification.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>depth</code></td>
+<td>
+<p>The depth of the ferns; must be in 1–16 range. Note that time and memory requirements scale with <code>2^depth</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ferns</code></td>
+<td>
+<p>Number of ferns to be build.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>importance</code></td>
+<td>
+<p>Set to calculate attribute importance measure (VIM);
+<code>"simple"</code> will calculate the default mean decrease of true class score (MDTS, something similar to Random Forest's MDA/MeanDecreaseAccuracy),
+<code>"shadow"</code> will calculate MDTS and additionally MDTS of this attribute shadow, an implicit feature build by shuffling values within it, thus stripping it from information (which is slightly slower).
+Shadow importance is useful as a reference to judge significance of a regular importance.
+<code>"none"</code> turns importance calculation off, for a slightly faster execution.
+For compatibility with pre-1.2 rFerns, <code>TRUE</code> will resolve to <code>"simple"</code> and <code>FALSE</code> to <code>"none"</code>.
+Abbreviation can be used instead of a full value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>saveForest</code></td>
+<td>
+<p>Should the model be saved? It must be <code>TRUE</code> if you want to use the model for prediction; however, if you are interested in importance or OOB error only, setting it to <code>FALSE</code> significantly improves memory requirements, especially for large <code>depth</code> and <code>ferns</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>consistentSeed</code></td>
+<td>
+<p>PRNG seed used for shadow importance <em>only</em>.
+Must be either a 2-element integer vector or <code>NULL</code>, which corresponds to seeding from the default PRNG.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threads</code></td>
+<td>
+<p>Number or OpenMP threads to use. The default value of <code>0</code> means all available to OpenMP.
+It should be set to the same value in two merged models to make shadow importance meaningful.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An object of class <code>rFerns</code>, which is a list with the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>The built model; <code>NULL</code> if <code>saveForest</code> was <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>oobErr</code></td>
+<td>
+<p>OOB approximation of accuracy.
+Ignores never-OOB-tested objects (see oobScores element).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>importance</code></td>
+<td>
+<p>The importance scores or <code>NULL</code> if <code>importance</code> was set to <code>"none"</code>.
+In a first case it is a <code>data.frame</code> with two or three columns:
+<code>MeanScoreLoss</code> which is a mean decrease of a score of a correct class when a certain attribute is permuted,
+<code>Tries</code> which is number of ferns which utilised certain attribute, and, only when <code>importance</code> was set to <code>"shadow"</code>,
+<code>Shadow</code>, which is a mean decrease of accuracy for the correct class for a permuted copy of an attribute (useful as a baseline for normal importance).
+The <code>rownames</code> are set and equal to the <code>names(x)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>oobScores</code></td>
+<td>
+<p>A matrix of OOB scores of each class for each object in training set.
+Rows correspond to classes in the same order as in <code>levels(Y)</code>.
+If the <code>ferns</code> is too small, some columns may contain <code>NA</code>s, what means that certain objects were never in test set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>oobPreds</code></td>
+<td>
+<p>A vector of OOB predictions of class for each object in training set. Never-OOB-tested objects (see above) have predictions equal to <code>NA</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>oobConfusionMatrix</code></td>
+<td>
+<p>Confusion matrix build from <code>oobPreds</code> and <code>y</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>timeTaken</code></td>
+<td>
+<p>Time used to train the model (smaller than wall time because data preparation and model final touches are excluded; however it includes the time needed to compute importance, if it applies).
+An object of <code>difftime</code> class.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parameters</code></td>
+<td>
+<p>Numerical vector of three elements: <code>classes</code>, <code>depth</code> and <code>ferns</code>, containing respectively the number of classes in decision and copies of <code>depth</code> and <code>ferns</code> parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>classLabels</code></td>
+<td>
+<p>Copy of <code>levels(Y)</code> after purging unused levels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>consistentSeed</code></td>
+<td>
+<p>Consistent seed used; only present for <code>importance="shadow"</code>.
+Can be used to seed a new model via <code>consistentSeed</code> argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>isStruct</code></td>
+<td>
+<p>Copy of the train set structure, required internally by predict method.</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>The unused levels of the decision will be removed; on the other hand unused levels of categorical attributes will be preserved, so that they could be present in the data later predicted with the model.
+The levels of ordered factors in training and predicted data must be identical.
+</p>
+<p>Do not use formula interface for a data with large number of attributes; the overhead from handling the formula may be significant.
+</p>
+
+
+<h3>References</h3>
+
+<p>Ozuysal M, Calonder M, Lepetit V &amp; Fua P. (2009). <em>Fast Keypoint Recognition using Random Ferns</em>, IEEE Transactions on Pattern Analysis and Machine Intelligence, 32(3), 448-461.
+</p>
+<p>Kursa MB (2014). <em>rFerns: An Implementation of the Random Ferns Method for General-Purpose Machine Learning</em>, Journal of Statistical Software, 61(10), 1-13.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">set.seed(77)
+#Fetch Iris data
+data(iris)
+#Build model
+rFerns(Species~.,data=iris)
+##Importance
+rFerns(Species~.,data=iris,importance="shadow")-&gt;model
+print(model$imp)
+</code></pre>
+
+
+</div>

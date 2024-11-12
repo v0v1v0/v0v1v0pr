@@ -1,0 +1,220 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>EM3.op</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Equation of mixed model for multi-kernel using other packages (much faster than EM3.cpp)</h2>
+
+<h3>Description</h3>
+
+<p>This function solves the following multi-kernel linear mixed effects model
+using <code>MMEst</code> function in 'MM4LMM' package,
+<code>lmm.aireml</code> or <code>lmm.diago</code> functions in 'gaston' package,
+or <code>EM3.cpp</code> function in 'RAINBOWR' package.
+</p>
+<p><code class="reqn">y = X \beta + \sum _{l=1} ^ {L} Z _ {l} u _ {l} + \epsilon</code>
+</p>
+<p>where <code class="reqn">Var[y] = \sum _{l=1} ^ {L} Z _ {l} K _ {l} Z _ {l}' \sigma _ {l} ^ 2 + I \sigma _ {e} ^ {2}</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">EM3.op(
+  y,
+  X0 = NULL,
+  ZETA,
+  eigen.G = NULL,
+  package = "gaston",
+  tol = NULL,
+  n.core = 1,
+  REML = TRUE,
+  pred = TRUE,
+  return.u.always = TRUE,
+  return.u.each = TRUE,
+  return.Hinv = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>A <code class="reqn">n \times 1</code> vector. A vector of phenotypic values should be used. NA is allowed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X0</code></td>
+<td>
+<p>A <code class="reqn">n \times p</code> matrix. You should assign mean vector (rep(1, n)) and covariates. NA is not allowed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ZETA</code></td>
+<td>
+<p>A list of variance matrices and its design matrices of random effects. You can use more than one kernel matrix.
+For example, ZETA = list(A = list(Z = Z.A, K = K.A), D = list(Z = Z.D, K = K.D)) (A for additive, D for dominance)
+Please set names of lists "Z" and "K"!</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eigen.G</code></td>
+<td>
+<p>A list with
+</p>
+
+<dl>
+<dt>$values</dt>
+<dd>
+<p>Eigen values</p>
+</dd>
+<dt>$vectors</dt>
+<dd>
+<p>Eigen vectors</p>
+</dd>
+</dl>
+<p>The result of the eigen decompsition of <code class="reqn">G = ZKZ'</code>. You can use "spectralG.cpp" function in RAINBOWR.
+If this argument is NULL, the eigen decomposition will be performed in this function.
+We recommend you assign the result of the eigen decomposition beforehand for time saving.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>package</code></td>
+<td>
+<p>Package name to be used in this function. We only offer the following three packages:
+"RAINBOWR", "MM4LMM" and "gaston". Default package is 'gaston'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>The tolerance for detecting linear dependencies in the columns of G = ZKZ'.
+Eigen vectors whose eigen values are less than "tol" argument will be omitted from results.
+If tol is NULL, top 'n' eigen values will be effective.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.core</code></td>
+<td>
+<p>Setting n.core &gt; 1 will enable parallel execution on a machine with multiple cores (only for 'MM4LMM').</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>REML</code></td>
+<td>
+<p>You can choose which method you will use, "REML" or "ML".
+If REML = TRUE, you will perform "REML", and if REML = FALSE, you will perform "ML".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pred</code></td>
+<td>
+<p>If TRUE, the fitting values of y is returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return.u.always</code></td>
+<td>
+<p>When using the "gaston" package with missing values or
+using the "MM4LMM" package (with/without missings), computing BLUP will take
+some time in addition to solving the mixed-effects model. You can choose
+whether BLUP ('u'; <code class="reqn">u</code>) will be returned or not.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return.u.each</code></td>
+<td>
+<p>If TRUE, the function also computes each BLUP corresponding
+to different kernels (when solving multi-kernel mixed-effects model). It takes
+additional time compared to the one with 'return.u.each = FALSE'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return.Hinv</code></td>
+<td>
+<p>If TRUE, <code class="reqn">H ^ {-1} = (Var[y] / \sum _{l=1} ^ {L} \sigma _ {l} ^ 2) ^ {-1}</code>
+will be computed. It also returns <code class="reqn">V ^ {-1} = (Var[y]) ^ {-1}</code>.
+It will take some time in addition to solving the mixed-effects model.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+
+<dl>
+<dt>$y.pred</dt>
+<dd>
+<p>The fitting values of y <code class="reqn">y = X\beta + Zu</code></p>
+</dd>
+<dt>$Vu</dt>
+<dd>
+<p>Estimator for <code class="reqn">\sigma^2_u</code>, all of the genetic variance</p>
+</dd>
+<dt>$Ve</dt>
+<dd>
+<p>Estimator for <code class="reqn">\sigma^2_e</code></p>
+</dd>
+<dt>$beta</dt>
+<dd>
+<p>BLUE(<code class="reqn">\beta</code>)</p>
+</dd>
+<dt>$u</dt>
+<dd>
+<p>BLUP(Sum of <code class="reqn">Zu</code>)</p>
+</dd>
+<dt>$u.each</dt>
+<dd>
+<p>BLUP(Each <code class="reqn">u</code>)</p>
+</dd>
+<dt>$weights</dt>
+<dd>
+<p>The proportion of each genetic variance (corresponding to each kernel of ZETA) to Vu</p>
+</dd>
+<dt>$LL</dt>
+<dd>
+<p>Maximized log-likelihood (full or restricted, depending on method)</p>
+</dd>
+<dt>$Vinv</dt>
+<dd>
+<p>The inverse of <code class="reqn">V = Vu \times ZKZ' + Ve \times I</code></p>
+</dd>
+<dt>$Hinv</dt>
+<dd>
+<p>The inverse of <code class="reqn">H = ZKZ' + \lambda I</code></p>
+</dd>
+</dl>
+<h3>References</h3>
+
+<p>Kang, H.M. et al. (2008) Efficient Control of Population Structure
+in Model Organism Association Mapping. Genetics. 178(3): 1709-1723.
+</p>
+<p>Zhou, X. and Stephens, M. (2012) Genome-wide efficient mixed-model analysis
+for association studies. Nat Genet. 44(7): 821-824.
+</p>
+<p>Johnson, D. L., &amp; Thompson, R. (1995). Restricted maximum likelihood estimation of variance
+components for univariate animal models using sparse matrix techniques and average information.
+Journal of dairy science, 78(2), 449-456.
+</p>
+<p>Hunter, D. R., &amp; Lange, K. (2004). A tutorial on MM algorithms.
+The American Statistician, 58(1), 30-37.
+</p>
+<p>Zhou, H., Hu, L., Zhou, J., &amp; Lange, K. (2015). MM algorithms for variance components models.
+arXiv preprint arXiv:1509.07426.
+</p>
+<p>Gilmour, A. R., Thompson, R., &amp; Cullis, B. R. (1995), Average information REML:
+an efficient algorithm for variance parameter estimation in linear mixed models,
+Biometrics, 1440-1450.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>MMEst</code>, <code>lmm.aireml</code>, <code>lmm.diago</code>
+</p>
+
+
+</div>

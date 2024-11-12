@@ -1,0 +1,197 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>conditionMatrix</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Find conditional probability table</h2>
+
+<h3>Description</h3>
+
+<p>Given a numeric array or matrix (of probabilities), calculates margins of
+some dimensions conditional on particular values of others.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">conditionMatrix(
+  x,
+  variables,
+  condition = NULL,
+  condition.value = NULL,
+  dim = NULL,
+  incols = FALSE,
+  undef = NaN
+)
+
+conditionTable(
+  x,
+  variables,
+  condition = NULL,
+  condition.value = NULL,
+  undef = NaN,
+  order = TRUE
+)
+
+conditionTable2(x, variables, condition, undef = NaN)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A numeric array.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>variables</code></td>
+<td>
+<p>An integer vector containing the margins of interest from
+<code>x</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>condition</code></td>
+<td>
+<p>An integer vector containing the dimensions of <code>x</code> to
+condition on.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>condition.value</code></td>
+<td>
+<p>An integer vector or list of the same length as
+<code>condition</code>, containing the values to condition with.  If <code>NULL</code>,
+then the full conditional distribution is returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dim</code></td>
+<td>
+<p>Integer vector containing dimensions of variables.  Assumed all
+binary if not specified.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>incols</code></td>
+<td>
+<p>Logical specifying whether not the distributions are stored as
+the columns in the matrix; assumed to be rows by default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>undef</code></td>
+<td>
+<p>if conditional probability is undefined, what should the value
+be given as</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>order</code></td>
+<td>
+<p>logical - if <code>TRUE</code> conditioned variables come last, if 
+<code>FALSE</code> variables are in original order.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>conditionTable</code> calculates the marginal distribution over the
+dimensions in <code>variables</code> for each specified value of the dimensions in
+<code>condition</code>.  Single or multiple values of each dimension in
+<code>condition</code> may be specified in <code>condition.value</code>; in the case of
+multiple values, <code>condition.value</code> must be a list.
+</p>
+<p>The sum over the dimensions in <code>variables</code> is normalized to 1 for each
+value of <code>condition</code>.
+</p>
+<p><code>conditionTable2</code> is just a wrapper which returns the conditional
+distribution as an array of the same dimensions and ordering as the original
+<code>x</code>.  Values are repeated as necessary.
+</p>
+<p><code>conditionMatrix</code> takes a matrix whose rows (or columns if <code>incols
+= TRUE</code>) each represent a separate multivariate probability distribution and
+finds the relevant conditional distribution in each case.  These are then
+returned in the same format.  The order of the variables under
+<code>conditionMatrix</code> is always as in the original distribution, unlike for
+<code>conditionTable</code> above.
+</p>
+<p>The probabilities are assumed in reverse lexicographic order, as
+in a flattened R array: i.e. the first value changes fastest: (1,1,1),
+(2,1,1), (1,2,1), ..., (2,2,2).
+</p>
+<p><code>condition.table</code> and <code>condition.table2</code> are identical to
+<code>conditionTable</code> and <code>conditionTable2</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>conditionTable</code> returns an array whose first
+<code>length(variables)</code> corresponds to the dimensions in <code>variables</code>,
+and the remainder (if any) to dimensions in <code>condition</code> with a
+corresponding entry in <code>condition.value</code> of length &gt; 1.
+</p>
+<p><code>conditionTable2</code> always returns an array of the same dimensions as
+<code>x</code>, with the variables in the same order.
+</p>
+
+
+<h3>Functions</h3>
+
+
+<ul>
+<li> <p><code>conditionMatrix</code>: Conditioning in matrix of distributions
+</p>
+</li>
+<li> <p><code>conditionTable2</code>: Conditioning whilst preserving all dimensions
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>Mathias Drton, Robin Evans
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>marginTable</code>, <code>margin.table</code>,
+<code>interventionTable</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+x = array(1:16, rep(2,4))
+x = x/sum(x) # probability distribution on 4 binary variables x1, x2, x3, x4.
+
+# distribution of x2, x3 given x1 = 1 and x4=2.
+conditionTable(x, c(2,3), c(1,4), c(1,2))
+# x2, x3 given x1 = 1,2 and x4 = 2.
+conditionTable(x, c(2,3), c(1,4), list(1:2,2))
+
+# complete conditional of x2, x3 given x1, x4
+conditionTable(x, c(2,3), c(1,4))
+
+# conditionTable2 leaves dimensions unchanged
+tmp = conditionTable2(x, c(2,3), c(1,4))
+aperm(tmp, c(2,3,1,4))
+
+####
+set.seed(2314)
+# set of 10 2x2x2 probability distributions
+x = rdirichlet(10, rep(1,8))
+
+conditionMatrix(x, 3, 1)
+conditionMatrix(x, 3, 1, 2)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,116 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>get_characters</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Get character data.frame from nexml</h2>
+
+<h3>Description</h3>
+
+<p>Get character data.frame from nexml
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">get_characters(
+  nex,
+  rownames_as_col = FALSE,
+  otu_id = FALSE,
+  otus_id = FALSE,
+  include_state_types = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>nex</code></td>
+<td>
+<p>a nexml object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rownames_as_col</code></td>
+<td>
+<p>option to return character matrix rownames (with taxon ids) as it's own column in the
+data.frame. Default is FALSE for compatibility with geiger and similar packages.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>otu_id</code></td>
+<td>
+<p>logical, default FALSE. return a column with the
+otu id (for joining with otu metadata, etc)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>otus_id</code></td>
+<td>
+<p>logical, default FALSE. return a column with the
+otus block id (for joining with otu metadata, etc)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>include_state_types</code></td>
+<td>
+<p>logical, default FALSE. whether to also return a
+matrix of state types (with values standard, polymorphic, and uncertain)</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>RNeXML will attempt to return the matrix using the NeXML taxon (otu) labels to name the rows
+and the NeXML char labels to name the traits (columns).  If these are unavailable or not unique, the NeXML
+id values for the otus or traits will be used instead.
+</p>
+
+
+<h3>Value</h3>
+
+<p>the character matrix as a data.frame, or if <code>include_state_types</code> is
+TRUE a list of two elements, <code>characters</code> as the character matrix, and
+<code>state_types</code> as a matrix of state types. Both matrices will be in the same
+ordering of rows and columns.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# A simple example with a discrete and a continous trait
+f &lt;- system.file("examples", "comp_analysis.xml", package="RNeXML")
+nex &lt;- read.nexml(f)
+get_characters(nex)
+
+# A more complex example -- currently ignores sequence-type characters
+f &lt;- system.file("examples", "characters.xml", package="RNeXML")
+nex &lt;- read.nexml(f)
+get_characters(nex)
+
+# if polymorphic or uncertain states need special treatment, request state
+# types to be returned as well:
+f &lt;- system.file("examples", "ontotrace-result.xml", package="RNeXML")
+nex &lt;- read.nexml(f)
+res &lt;- get_characters(nex, include_state_types = TRUE)
+row.has.p &lt;- apply(res$state_types, 1, 
+                   function(x) any(x == "polymorphic", na.rm = TRUE))
+col.has.p &lt;- apply(res$state_types, 2, 
+                   function(x) any(x == "polymorphic", na.rm = TRUE))
+res$characters[row.has.p, col.has.p, drop=FALSE] # polymorphic rows and cols
+res$characters[!row.has.p, drop=FALSE] # drop taxa with polymorphic states
+# replace polymorphic state symbols in matrix with '?'
+m1 &lt;- mapply(function(s, s.t) ifelse(s.t == "standard", s, "?"), 
+             res$characters, res$state_types)
+row.names(m1) &lt;- row.names(res$characters)
+m1
+
+## End(Not run)
+</code></pre>
+
+
+</div>

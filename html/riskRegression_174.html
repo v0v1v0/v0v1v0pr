@@ -1,0 +1,140 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>riskLevelPlot</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Level plots for risk prediction models</h2>
+
+<h3>Description</h3>
+
+<p>Level plots for predicted risks
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">riskLevelPlot(
+  object,
+  formula,
+  data = parent.frame(),
+  horizon = NULL,
+  cause = 1,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>risk prediction model object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>formula</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>data</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>horizon</code></td>
+<td>
+<p>time point</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cause</code></td>
+<td>
+<p>cause of interst</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>passed to lattice::levelplot</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Level plots for predicted risks
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Thomas A. Gerds &lt;tag@biostat.ku.dk&gt;
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# ---------- logistic regression --------------------
+expit &lt;- function(x){exp(x)/(1+exp(x))}
+partyData &lt;- function(N){
+  Age &lt;- runif(N,.5,15)
+  Parasites &lt;- rnorm(N,mean=3.5-0.03*Age)
+  Fever &lt;- factor(rbinom(N,1,expit(-3.5-.3*Age+.55*Parasites+0.15*Age*Parasites)))
+  data.frame(Fever,Age,Parasites)
+}
+d &lt;- partyData(100)
+f &lt;- glm(Fever~Age+Parasites,data=d,family="binomial")
+riskLevelPlot(f,Fever~Age+Parasites,d)
+## Not run: 
+if (require("randomForest",quietly=TRUE)){
+rf &lt;- randomForest::randomForest(Fever~Age+Parasites,data=d)
+riskLevelPlot(f,Fever~Age+Parasites,d)
+riskLevelPlot(rf,Fever~Age+Parasites,d)
+}
+
+## End(Not run)
+
+# ---------- survival analysis --------------------
+
+# --simulate an artificial data frame
+# with survival response and three predictors
+
+library(survival)
+library(prodlim)
+set.seed(140515)
+sdat &lt;- sampleData(43,outcome="survival")
+# -- fit a Cox regression model 
+survForm = Surv(time,event) ~ X8 + X9
+cox &lt;- coxph(survForm, data = sdat,x=TRUE)
+
+# --choose a time horizon for the predictions and plot the risks
+timeHorizon &lt;- floor(median(sdat$time))
+riskLevelPlot(cox, survForm, data = sdat, horizon = timeHorizon)
+
+# ---------- competing risks --------------------
+
+# -- simulate an artificial data frame
+# with competing cause response and three predictors
+library(cmprsk)
+library(riskRegression)
+set.seed(140515)
+crdat &lt;- sampleData(49)
+
+# -- fit a cause-specific Cox regression model
+crForm &lt;- Hist(time,event)~X8+X9
+csCox  &lt;- CSC(crForm, data=crdat)
+
+# -- choose a time horizon and plot the risk for a given cause
+timeHorizon &lt;- floor(median(crdat$time))
+riskLevelPlot(csCox, crForm, data = crdat, horizon = timeHorizon, cause = 1)
+
+</code></pre>
+
+
+</div>

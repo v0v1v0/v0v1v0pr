@@ -1,0 +1,413 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>getSimulationEnrichmentMeans</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Get Simulation Enrichment Means</h2>
+
+<h3>Description</h3>
+
+<p>Returns the simulated power, stopping and selection probabilities, conditional power,
+and expected sample size or testing means in an enrichment design testing situation.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">getSimulationEnrichmentMeans(
+  design = NULL,
+  ...,
+  effectList = NULL,
+  intersectionTest = c("Simes", "SpiessensDebois", "Bonferroni", "Sidak"),
+  stratifiedAnalysis = TRUE,
+  adaptations = NA,
+  typeOfSelection = c("best", "rBest", "epsilon", "all", "userDefined"),
+  effectMeasure = c("effectEstimate", "testStatistic"),
+  successCriterion = c("all", "atLeastOne"),
+  epsilonValue = NA_real_,
+  rValue = NA_real_,
+  threshold = -Inf,
+  plannedSubjects = NA_integer_,
+  allocationRatioPlanned = NA_real_,
+  minNumberOfSubjectsPerStage = NA_real_,
+  maxNumberOfSubjectsPerStage = NA_real_,
+  conditionalPower = NA_real_,
+  thetaH1 = NA_real_,
+  stDevH1 = NA_real_,
+  maxNumberOfIterations = 1000L,
+  seed = NA_real_,
+  calcSubjectsFunction = NULL,
+  selectPopulationsFunction = NULL,
+  showStatistics = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>design</code></td>
+<td>
+<p>The trial design. If no trial design is specified, a fixed sample size design is used.
+In this case, Type I error rate <code>alpha</code>, Type II error rate <code>beta</code>, <code>twoSidedPower</code>,
+and <code>sided</code> can be directly entered as argument where necessary.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Ensures that all arguments (starting from the "...") are to be named and
+that a warning will be displayed if unknown arguments are passed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>effectList</code></td>
+<td>
+<p>List of subsets, prevalences, and effect sizes with columns and number of rows
+reflecting the different situations to consider (see examples).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intersectionTest</code></td>
+<td>
+<p>Defines the multiple test for the intersection
+hypotheses in the closed system of hypotheses.
+Four options are available in enrichment designs: <code>"SpiessensDebois"</code>, <code>"Bonferroni"</code>, <code>"Simes"</code>,
+and <code>"Sidak"</code>, default is <code>"Simes"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stratifiedAnalysis</code></td>
+<td>
+<p>Logical. For enrichment designs, typically a stratified analysis should be chosen.
+For testing rates, also a non-stratified analysis based on overall data can be performed.
+For survival data, only a stratified analysis is possible (see Brannath et al., 2009),
+default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adaptations</code></td>
+<td>
+<p>A logical vector of length <code>kMax - 1</code> indicating whether or not an adaptation takes
+place at interim k, default is <code>rep(TRUE, kMax - 1)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>typeOfSelection</code></td>
+<td>
+<p>The way the treatment arms or populations are selected at interim.
+Five options are available: <code>"best"</code>, <code>"rbest"</code>, <code>"epsilon"</code>, <code>"all"</code>, and <code>"userDefined"</code>,
+default is <code>"best"</code>.<br>
+For <code>"rbest"</code> (select the <code>rValue</code> best treatment arms/populations), the parameter <code>rValue</code> has to be specified,
+for <code>"epsilon"</code> (select treatment arm/population not worse than epsilon compared to the best), the parameter
+<code>epsilonValue</code> has to be specified.
+If <code>"userDefined"</code> is selected, <code>"selectArmsFunction"</code> or <code>"selectPopulationsFunction"</code> has to be specified.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>effectMeasure</code></td>
+<td>
+<p>Criterion for treatment arm/population selection, either based on test statistic
+(<code>"testStatistic"</code>) or effect estimate (difference for means and rates or ratio for survival) (<code>"effectEstimate"</code>),
+default is <code>"effectEstimate"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>successCriterion</code></td>
+<td>
+<p>Defines when the study is stopped for efficacy at interim.
+Two options are available: <code>"all"</code> stops the trial
+if the efficacy criterion is fulfilled for all selected treatment arms/populations,
+<code>"atLeastOne"</code> stops if at least one of the selected treatment arms/populations is shown to be
+superior to control at interim, default is <code>"all"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>epsilonValue</code></td>
+<td>
+<p>For <code>typeOfSelection = "epsilon"</code> (select treatment arm / population not worse than
+epsilon compared to the best), the parameter <code>epsilonValue</code> has to be specified. Must be a numeric of length 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rValue</code></td>
+<td>
+<p>For <code>typeOfSelection = "rbest"</code> (select the <code>rValue</code> best treatment arms / populations),
+the parameter <code>rValue</code> has to be specified.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threshold</code></td>
+<td>
+<p>Selection criterion: treatment arm / population is selected only if <code>effectMeasure</code>
+exceeds <code>threshold</code>, default is <code>-Inf</code>.
+<code>threshold</code> can also be a vector of length <code>activeArms</code> referring to
+a separate threshold condition over the treatment arms.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plannedSubjects</code></td>
+<td>
+<p><code>plannedSubjects</code> is a numeric vector of length <code>kMax</code> (the number of stages of the design)
+that determines the number of cumulated (overall) subjects when the interim stages are planned.
+For two treatment arms, it is the number of subjects for both treatment arms.
+For multi-arm designs, <code>plannedSubjects</code> refers to the number of subjects per selected active arm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>allocationRatioPlanned</code></td>
+<td>
+<p>The planned allocation ratio <code>n1 / n2</code> for a two treatment groups
+design, default is <code>1</code>. For multi-arm designs, it is the allocation ratio relating the active arm(s) to the control.
+For simulating means and rates for a two treatment groups design, it can be a vector of length <code>kMax</code>, the number of stages.
+It can be a vector of length kMax, too, for multi-arm and enrichment designs.
+In these cases, a change of allocating subjects to treatment groups over the stages can be assessed.
+Note that internally <code>allocationRatioPlanned</code> is treated as a vector of length <code>kMax</code>, not a scalar.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minNumberOfSubjectsPerStage</code></td>
+<td>
+<p>When performing a data driven sample size recalculation,
+the numeric vector <code>minNumberOfSubjectsPerStage</code> with length <code>kMax</code> determines the
+minimum number of subjects per stage (i.e., not cumulated), the first element
+is not taken into account. For two treatment arms, it is the number of subjects for both treatment arms.
+For multi-arm designs <code>minNumberOfSubjectsPerStage</code> refers
+to the minimum number of subjects per selected active arm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxNumberOfSubjectsPerStage</code></td>
+<td>
+<p>When performing a data driven sample size recalculation,
+the numeric vector <code>maxNumberOfSubjectsPerStage</code> with length <code>kMax</code> determines the maximum number
+of subjects per stage (i.e., not cumulated), the first element is not taken into account.
+For two treatment arms, it is the number of subjects for both treatment arms.
+For multi-arm designs <code>maxNumberOfSubjectsPerStage</code> refers
+to the maximum number of subjects per selected active arm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>conditionalPower</code></td>
+<td>
+<p>If <code>conditionalPower</code> together with <code>minNumberOfSubjectsPerStage</code> and
+<code>maxNumberOfSubjectsPerStage</code> (or <code>minNumberOfEventsPerStage</code> and <code>maxNumberOfEventsPerStage</code>
+for survival designs) is specified, a sample size recalculation based on the specified conditional power is performed.
+It is defined as the power for the subsequent stage given the current data. By default,
+the conditional power will be calculated under the observed effect size. Optionally, you can also specify <code>thetaH1</code> and
+<code>stDevH1</code> (for simulating means), <code>pi1H1</code> and <code>pi2H1</code> (for simulating rates), or <code>thetaH1</code> (for simulating
+hazard ratios) as parameters under which it is calculated and the sample size recalculation is performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thetaH1</code></td>
+<td>
+<p>If specified, the value of the alternative under which
+the conditional power or sample size recalculation calculation is performed. Must be a numeric of length 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stDevH1</code></td>
+<td>
+<p>If specified, the value of the standard deviation under which
+the conditional power or sample size recalculation calculation is performed,
+default is the value of <code>stDev</code>. Must be a positive numeric of length 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxNumberOfIterations</code></td>
+<td>
+<p>The number of simulation iterations, default is <code>1000</code>. Must be a positive integer of length 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>The seed to reproduce the simulation, default is a random seed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>calcSubjectsFunction</code></td>
+<td>
+<p>Optionally, a function can be entered that defines the way of performing the sample size
+recalculation. By default, sample size recalculation is performed with conditional power and specified
+<code>minNumberOfSubjectsPerStage</code> and <code>maxNumberOfSubjectsPerStage</code> (see details and examples).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>selectPopulationsFunction</code></td>
+<td>
+<p>Optionally, a function can be entered that defines the way of how populations
+are selected. This function is allowed to depend on <code>effectVector</code> with length <code>populations</code>
+<code>stage</code>, <code>"conditionalPower"</code>, <code>"conditionalCriticalValue"</code>, <code>"plannedSubjects/plannedEvents"</code>,
+<code>"allocationRatioPlanned"</code>, <code>"selectedPopulations"</code>, <code>"thetaH1"</code> (for means and survival), <code>"stDevH1"</code> (for means),
+<code>"overallEffects"</code>, and for rates additionally: <code>"piTreatmentsH1"</code>, <code>"piControlH1"</code>, <code>"overallRates"</code>, and
+<code>"overallRatesControl"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>showStatistics</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, summary statistics of the simulated data
+are displayed for the <code>print</code> command, otherwise the output is suppressed, default
+is <code>FALSE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>At given design the function simulates the power, stopping probabilities, selection probabilities,
+and expected sample size at given number of subjects, parameter configuration, and population
+selection rule in the enrichment situation.
+An allocation ratio can be specified referring to the ratio of number of subjects in the active
+treatment groups as compared to the control group.
+</p>
+<p>The definition of <code>thetaH1</code> and/or <code>stDevH1</code> makes only sense if <code>kMax</code> &gt; 1
+and if <code>conditionalPower</code>, <code>minNumberOfSubjectsPerStage</code>, and
+<code>maxNumberOfSubjectsPerStage</code> (or <code>calcSubjectsFunction</code>) are defined.
+</p>
+<p><code>calcSubjectsFunction</code><br>
+This function returns the number of subjects at given conditional power and conditional
+critical value for specified testing situation. The function might depend on the variables
+<code>stage</code>,
+<code>selectedPopulations</code>,
+<code>plannedSubjects</code>,
+<code>allocationRatioPlanned</code>,
+<code>minNumberOfSubjectsPerStage</code>,
+<code>maxNumberOfSubjectsPerStage</code>,
+<code>conditionalPower</code>,
+<code>conditionalCriticalValue</code>,
+<code>overallEffects</code>, and
+<code>stDevH1</code>.
+The function has to contain the three-dots argument '...' (see examples).
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns a <code>SimulationResults</code> object.
+The following generics (R generic functions) are available for this object:
+</p>
+
+<ul>
+<li> <p><code>names()</code> to obtain the field names,
+</p>
+</li>
+<li> <p><code>print()</code> to print the object,
+</p>
+</li>
+<li> <p><code>summary()</code> to display a summary of the object,
+</p>
+</li>
+<li> <p><code>plot()</code> to plot the object,
+</p>
+</li>
+<li> <p><code>as.data.frame()</code> to coerce the object to a <code>data.frame</code>,
+</p>
+</li>
+<li> <p><code>as.matrix()</code> to coerce the object to a <code>matrix</code>.
+</p>
+</li>
+</ul>
+<h3>How to get help for generic functions</h3>
+
+<p>Click on the link of a generic in the list above to go directly to the help documentation of
+the <code>rpact</code> specific implementation of the generic.
+Note that you can use the R function <code>methods</code> to get all the methods of a generic and
+to identify the object specific name of it, e.g.,
+use <code>methods("plot")</code> to get all the methods for the <code>plot</code> generic.
+There you can find, e.g., <code>plot.AnalysisResults</code> and
+obtain the specific help documentation linked above by typing <code>?plot.AnalysisResults</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# Assess a population selection strategy with one subset population.
+# If the subset is better than the full population, then the subset
+# is selected for the second stage, otherwise the full. Print and plot
+# design characteristics.
+
+# Define design
+designIN &lt;- getDesignInverseNormal(kMax = 2)
+
+# Define subgroups and their prevalences
+subGroups &lt;- c("S", "R") # fixed names!
+prevalences &lt;- c(0.2, 0.8)
+
+# Define effect matrix and variability
+effectR &lt;- 0.2
+m &lt;- c()
+for (effectS in seq(0, 0.5, 0.25)) {
+    m &lt;- c(m, effectS, effectR)
+}
+effects &lt;- matrix(m, byrow = TRUE, ncol = 2)
+stDev &lt;- c(0.4, 0.8)
+
+# Define effect list
+effectList &lt;- list(subGroups=subGroups, prevalences=prevalences, stDevs = stDev, effects = effects)
+
+# Perform simulation
+simResultsPE &lt;- getSimulationEnrichmentMeans(design = designIN,
+    effectList = effectList, plannedSubjects = c(50, 100),
+    maxNumberOfIterations = 100)
+print(simResultsPE)
+
+# Assess the design characteristics of a user defined selection
+# strategy in a three-stage design with no interim efficacy stop
+# using the inverse normal method for combining the stages.
+# Only the second interim is used for a selecting of a study
+# population. There is a small probability for stopping the trial
+# at the first interim.
+
+# Define design
+designIN2 &lt;- getDesignInverseNormal(typeOfDesign = "noEarlyEfficacy", kMax = 3)
+
+# Define selection function
+mySelection &lt;- function(effectVector, stage) {
+    selectedPopulations &lt;- rep(TRUE, 3)
+    if (stage == 2) {
+        selectedPopulations &lt;- (effectVector &gt;= c(1, 2, 3))
+    }
+    return(selectedPopulations)
+}
+
+# Define subgroups and their prevalences
+subGroups &lt;- c("S1", "S12", "S2", "R")   # fixed names!
+prevalences &lt;- c(0.2, 0.3, 0.4, 0.1)
+
+effectR &lt;- 1.5
+effectS12 = 5
+m &lt;- c()
+for (effectS1 in seq(0, 5, 1)) {
+    for (effectS2 in seq(0, 5, 1)) {
+        m &lt;- c(m, effectS1, effectS12, effectS2, effectR)
+    }
+}
+effects &lt;- matrix(m, byrow = TRUE, ncol = 4)
+stDev &lt;- 10
+
+# Define effect list
+effectList &lt;- list(subGroups=subGroups, prevalences=prevalences, stDevs = stDev, effects = effects)
+
+# Perform simulation
+simResultsPE &lt;- getSimulationEnrichmentMeans(
+    design = designIN2,
+    effectList = effectList,
+    typeOfSelection = "userDefined",
+    selectPopulationsFunction = mySelection,
+    intersectionTest = "Simes",
+    plannedSubjects = c(50, 100, 150),
+    maxNumberOfIterations = 100)
+print(simResultsPE)
+if (require(ggplot2)) plot(simResultsPE, type = 3)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

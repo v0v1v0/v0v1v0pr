@@ -1,0 +1,206 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>readMat</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Reads a MAT file structure from a connection or a file</h2>
+
+<h3>Description</h3>
+
+<p>Reads a MAT file structure from a connection or a file.
+Both the MAT version 4 and MAT version 5 file formats are
+supported. The implementation is based on [1-5].
+Note: Do not mix up version numbers for the MATLAB software and
+the MATLAB file formats.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## Default S3 method:
+readMat(con, maxLength=NULL, fixNames=TRUE, drop=c("singletonLists"),
+  sparseMatrixClass=c("Matrix", "SparseM", "matrix"), verbose=FALSE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>con</code></td>
+<td>
+<p>Binary <code>connection</code> from which the MAT file structure
+should be read.
+If a <code>character</code> string, it is interpreted as filename, which then
+will be opened (and closed afterwards).
+If a <code>raw</code> <code>vector</code>, it will be read via as a raw binary <code>connection</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxLength</code></td>
+<td>
+<p>The maximum number of bytes to be read from the input
+stream, which should be equal to the length of the MAT file structure.
+If <code>NULL</code>, data will be read until End Of File has been reached.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fixNames</code></td>
+<td>
+<p>If <code>TRUE</code>, underscores within names of MATLAB variables
+and fields are converted to periods.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drop</code></td>
+<td>
+<p>A <code>character</code> <code>vector</code> specifying cases when one or more dimensions
+of elements should be dropped in order to decrease the amount of "nestedness"
+of the returned data structure.  This only applies to the MAT v5 file format.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sparseMatrixClass</code></td>
+<td>
+<p>If <code>"matrix"</code>, a sparse matrix is expanded to
+a regular <code>matrix</code>.  If either <code>"Matrix"</code> (default) or <code>"SparseM"</code>,
+the sparse matrix representation by the package of the same name will be used.
+These packages are only loaded if the a sparse matrix is read.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Either a <code>logical</code>, a <code>numeric</code>, or a <code>Verbose</code>
+object specifying how much verbose/debug information is written to
+standard output. If a Verbose object, how detailed the information is
+is specified by the threshold level of the object. If a numeric, the
+value is used to set the threshold of a new Verbose object. If <code>TRUE</code>,
+the threshold is set to -1 (minimal). If <code>FALSE</code>, no output is written.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Not used.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Returns a named <code>list</code> structure containing all variables in the
+MAT file structure.
+</p>
+
+
+<h3>Speed performance</h3>
+
+<p>This function uses a MAT file parser implemented completely using
+pure R. For MAT files containing large vectorized objects, for instance
+long vectors and large matrices, the R implementation is indeed fast
+enough because it can read and parse each such objects in one go.
+</p>
+<p>On the other hand, for MAT files containing a large number of small
+objects, e.g. a large number of cell structures, there will be a
+significant slowdown, because each of the small objects has to be
+parsed individually.
+In such cases, if possible, try to (re)save the data in MATLAB
+using larger ("more vectorized") objects.
+</p>
+
+
+<h3>MAT cell structures</h3>
+
+<p>For the MAT v5 format, <em>cell</em> structures are read into
+<span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> as a <code>list</code> structure.
+</p>
+
+
+<h3>Unicode strings</h3>
+
+<p>Recent versions of MATLAB store some strings using Unicode
+encodings.  If the R installation supports <code>iconv</code>,
+these strings will be read correctly.  Otherwise non-ASCII codes
+are converted to NA.  Saving to an earlier file format version
+may avoid this problem as well.
+</p>
+
+
+<h3>Reading compressed MAT files</h3>
+
+<p>From MATLAB v7, <em>compressed</em> MAT version 5 files are used by
+default [3-5], which is supported by this function.
+</p>
+<p>If for some reason it fails, use <code>save -V6</code> in MATLAB to write
+non-compressed MAT v5 files (sic!).
+</p>
+
+
+<h3>About MAT files saved in MATLAB using '-v7.3'</h3>
+
+<p>MAT v7.3 files, saved using for instance <code>save('foo.mat', '-v7.3')</code>,
+stores the data in the Hierarchical Data Format (HDF5) [6, 7], which
+is a format not supported by this function/package.
+However, there exist other R packages that can parse HDF5, e.g.
+CRAN package <span class="pkg">h5</span> and Bioconductor package <span class="pkg">rhdf5</span>.
+</p>
+
+
+<h3>Reading MAT file structures input streams</h3>
+
+<p>Reads a MAT file structure from an input stream, either until End of File
+is detected or until <code>maxLength</code> bytes has been read.
+Using <code>maxLength</code> it is possible to read MAT file structure over
+socket connections and other non-terminating input streams. In such cases
+the <code>maxLength</code> has to be communicated before sending the actual
+MAT file structure.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Henrik Bengtsson.
+The internal MAT v4 reader was written by
+Andy Jacobson (Princeton University).
+Support for reading sparse matrices, UTF-encoded strings and
+compressed files, was contributed by Jason Riedy (UC Berkeley).
+</p>
+
+
+<h3>References</h3>
+
+<p>[1] The MathWorks Inc., <em>MATLAB - MAT-File Format, version 5</em>, June 1999.<br>
+[2] The MathWorks Inc., <em>MATLAB - Application Program Interface Guide, version 5</em>, 1998.<br>
+[3] The MathWorks Inc., <em>MATLAB - MAT-File Format, version 7</em>, September 2009.<br>
+[4] The MathWorks Inc., <em>MATLAB - MAT-File Format, version R2012a</em>, September 2012.<br>
+[5] The MathWorks Inc., <em>MATLAB - MAT-File Format, version R2015b</em>, September 2015.<br>
+[6] The MathWorks Inc., <em>MATLAB - MAT-File Versions</em>, December 2015.
+<a href="https://www.mathworks.com/help/matlab/import_export/mat-file-versions.html">https://www.mathworks.com/help/matlab/import_export/mat-file-versions.html</a><br>
+[7] Undocumented Matlab, <em>Improving save performance</em>, May 2013.
+<a href="https://undocumentedmatlab.com/articles/improving-save-performance/">https://undocumentedmatlab.com/articles/improving-save-performance/</a><br>
+[8] J. Gilbert et al., Sparse Matrices in MATLAB: Design and Implementation, SIAM J. Matrix Anal. Appl., 1992.
+<a href="https://www.mathworks.com/help/pdf_doc/otherdocs/simax.pdf">https://www.mathworks.com/help/pdf_doc/otherdocs/simax.pdf</a><br>
+[9] J. Burkardt, <em>HB Files: Harwell Boeing Sparse Matrix File Format</em>, Apr 2010.
+<a href="https://people.sc.fsu.edu/~jburkardt/data/hb/hb.html">https://people.sc.fsu.edu/~jburkardt/data/hb/hb.html</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>writeMat</code>().
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">path &lt;- system.file("mat-files", package = "R.matlab")
+pathname &lt;- file.path(path, "ABC.mat")
+data &lt;- readMat(pathname)
+print(data)
+</code></pre>
+
+
+</div>

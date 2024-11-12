@@ -1,0 +1,271 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pafi</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Concept callback functions</h2>
+
+<h3>Description</h3>
+
+<p>Owing to increased complexity and more diverse applications, recursive
+concepts (class <code>rec_cncpt</code>) may specify callback functions
+to be called on corresponding data objects and perform post-processing
+steps.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pafi(
+  ...,
+  match_win = hours(2L),
+  mode = c("match_vals", "extreme_vals", "fill_gaps"),
+  fix_na_fio2 = TRUE,
+  interval = NULL
+)
+
+safi(
+  ...,
+  match_win = hours(2L),
+  mode = c("match_vals", "extreme_vals", "fill_gaps"),
+  fix_na_fio2 = TRUE,
+  interval = NULL
+)
+
+vent_ind(..., match_win = hours(6L), min_length = mins(30L), interval = NULL)
+
+gcs(
+  ...,
+  valid_win = hours(6L),
+  sed_impute = c("max", "prev", "none", "verb"),
+  set_na_max = TRUE,
+  interval = NULL
+)
+
+urine24(
+  ...,
+  min_win = hours(12L),
+  limits = NULL,
+  start_var = "start",
+  end_var = "end",
+  interval = NULL
+)
+
+vaso60(..., max_gap = mins(5L), interval = NULL)
+
+vaso_ind(..., interval = NULL)
+
+supp_o2(..., interval = NULL)
+
+avpu(..., interval = NULL)
+
+bmi(..., interval = NULL)
+
+norepi_equiv(..., interval = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Data input used for concept calculation</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>match_win</code></td>
+<td>
+<p>Time-span during which matching of values is allowed</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mode</code></td>
+<td>
+<p>Method for matching PaO<sub>2</sub> and FiO<sub>2</sub> values</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fix_na_fio2</code></td>
+<td>
+<p>Logical flag indicating whether to impute missing
+FiO<sub>2</sub> values with 21</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interval</code></td>
+<td>
+<p>Expected time series step size (determined from data if
+<code>NULL</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min_length</code></td>
+<td>
+<p>Minimal time span between a ventilation start and end
+time</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>valid_win</code></td>
+<td>
+<p>Maximal time window for which a GCS value is valid
+if no newer measurement is available</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sed_impute</code></td>
+<td>
+<p>Imputation scheme for values taken when patient was
+sedated (i.e. unconscious).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>set_na_max</code></td>
+<td>
+<p>Logical flag controlling imputation of missing GCS values
+with the respective maximum values</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min_win</code></td>
+<td>
+<p>Minimal time span required for calculation of urine/24h</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>limits</code></td>
+<td>
+<p>Passed to <code>fill_gaps()</code> in order to expand the time series
+beyond first and last measurements</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start_var, end_var</code></td>
+<td>
+<p>Passed to <code>fill_gaps()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_gap</code></td>
+<td>
+<p>Maximum time gap between administration windows that are
+merged (can be negative).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Several concept callback functions are exported, mainly for documenting
+their arguments, as default values oftentimes represent somewhat arbitrary
+choices and passing non-default values might be of interest for
+investigating stability with respect to such choices. Furthermore, default
+values might not be ideal for some datasets and/or analysis tasks.
+</p>
+
+
+<h4><code>pafi</code></h4>
+
+<p>In order to calculate the PaO<sub>2</sub>/FiO<sub>2</sub> (or Horowitz index), for
+a given time point, both a PaO<sub>2</sub> and an FiO<sub>2</sub> measurement is
+required. As the two are often not measured at the same time, some form of
+imputation or matching procedure is required. Several options are available:
+</p>
+
+<ul>
+<li> <p><code>match_vals</code> allows for a time difference of maximally <code>match_win</code>
+between two measurements for calculating their ratio
+</p>
+</li>
+<li> <p><code>extreme_vals</code> uses the worst PaO<sub>2</sub> and FiO<sub>2</sub> values within
+the time window spanned by <code>match_win</code>
+</p>
+</li>
+<li> <p><code>fill_gaps</code> represents a variation of <code>extreme_vals</code>, where ratios are
+evaluated at every time-point as specified by <code>interval</code>as opposed to
+only the time points where either a PaO<sub>2</sub> or an FiO<sub>2</sub>
+measurement is available
+</p>
+</li>
+</ul>
+<p>Finally, <code>fix_na_fio2</code> imputes all remaining missing FiO<sub>2</sub> with 21,
+the percentage (by volume) of oxygen in (tropospheric) air.
+</p>
+
+
+
+<h4><code>vent_ind</code></h4>
+
+<p>Building on the atomic concepts <code>vent_start</code> and <code>vent_end</code>, <code>vent_ind</code>
+determines time windows during which patients are mechanically ventilated
+by combining start and end events that are separated by at most <code>match_win</code>
+and at least <code>min_length</code>. Durations are represented by the <code>dur_var</code> column
+in the returned <code>win_tbl</code> and the <code>data_var</code> column simply indicates the
+ventilation status with <code>TRUE</code> values. Currently, no clear distinction
+between invasive an non-invasive ventilation is made.
+</p>
+
+
+
+<h4><code>sed_gcs</code></h4>
+
+<p>In order to construct an indicator for patient sedation (used within the
+context of <code>gcs</code>), information from the two concepts <code>ett_gcs</code> and <code>rass</code> is
+pooled: A patient is considered sedated if intubated or has less or equal to
+-2 on the Richmond Agitation-Sedation Scale.
+</p>
+
+
+
+<h4><code>gcs</code></h4>
+
+<p>Aggregating components of the Glasgow Coma Scale into a total score
+(whenever the total score <code>tgcs</code> is not already available) requires
+coinciding availability of an eye (<code>egcs</code>), verbal (<code>vgcs</code>) and motor
+(<code>mgcs</code>) score. In order to match values, a last observation carry forward
+imputation scheme over the time span specified by <code>valid_win</code> is performed.
+Furthermore passing <code>"max"</code> as <code>sed_impute</code> will assume maximal points for
+time steps where the patient is sedated (as indicated by <code>sed_gcs</code>), while
+passing <code>"prev"</code>, will assign the last observed value previous to the
+current sedation window and finally passing <code>FALSE</code> will in turn use raw
+values. Finally, passing <code>TRUE</code> as <code>set_na_max</code> will assume maximal points
+for missing values (after matching and potentially applying <code>sed_impute</code>).
+</p>
+
+
+
+<h4><code>urine24</code></h4>
+
+<p>Single urine output events are aggregated into a 24 hour moving window sum.
+At default value of <code>limits = NULL</code>, moving window evaluation begins with
+the first and ends with the last available measurement. This can however be
+extended by passing an <code>id_tbl</code> object, such as for example returned by
+<code>stay_windows()</code> to full stay windows. In order to provide data earlier
+than 24 hours before the evaluation start point, <code>min_win</code> specifies the
+minimally required data window and the evaluation scheme is adjusted for
+shorter than 24 hour windows.
+</p>
+
+
+
+<h4><code>vaso60</code></h4>
+
+<p>Building on concepts for drug administration rate and drug administration
+durations, administration events are filtered if they do not fall into
+administrations windows of at least 1h. The <code>max_gap</code> argument can be used
+to control how far apart windows can be in order to be merged (negative
+times are possible as well, meaning that even overlapping windows can be
+considered as individual windows).
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>Either an <code>id_tbl</code> or <code>ts_tbl</code> depending on the type of concept.
+</p>
+
+
+</div>

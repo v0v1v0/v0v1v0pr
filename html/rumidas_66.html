@@ -1,0 +1,242 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>umemfit</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Methods for obtaining (and evaluating) a variety of MEM(-MIDAS)-based models</h2>
+
+<h3>Description</h3>
+
+<p>Estimates several MEM and MEM-MIDAS-based models. For details, see Amendola et al. (2024)
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">umemfit(
+  model,
+  skew,
+  x,
+  daily_ret = NULL,
+  mv_m = NULL,
+  K = NULL,
+  z = NULL,
+  out_of_sample = NULL,
+  R = 100
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>Model to estimate. Valid choices are: "MEMMIDAS" for MEM-MIDAS, "MEM" for base MEM, "MEMX" for the base MEM with an X term,
+"MEMMIDASX" for the MEM-MIDAS-X</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>skew</code></td>
+<td>
+<p>The skewness parameter linked to lagged daily returns. Valid choices are: "YES" and "NO"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Dependent variable to predict. Usually the realized volatility. It must be positive and "xts" object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>daily_ret</code></td>
+<td>
+<p><strong>optional</strong>. Daily returns, which must be an "xts" object. NULL by default</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mv_m</code></td>
+<td>
+<p><strong>optional</strong>. MIDAS variable already transformed into a matrix, through <code>mv_into_mat</code> function. NULL by default</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K</code></td>
+<td>
+<p><strong>optional</strong>. Number of (lagged) realizations of the MIDAS variable to consider. NULL by default
+for the Beta and Exponential Almon lag functions, respectively</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>z</code></td>
+<td>
+<p><strong>optional</strong>. Additional daily variable, which must be an "xts" object, and with the same length of x. NULL by default</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>out_of_sample</code></td>
+<td>
+<p><strong>optional</strong>. A positive integer indicating the number of periods before the last to keep for out of sample forecasting</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R</code></td>
+<td>
+<p><strong>optional</strong>.  A positive integer indicating the number of replications used to find the best starting values.
+Equal to 100 by default</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Function <code>umemfit</code> implements the estimation and evaluation of the MEM, MEM-MIDAS MEM-X and MEM-MIDAS-X models,
+with and without the asymmetric term linked to negative lagged daily returns. The general framework assumes that:
+</p>
+<p style="text-align: center;"><code class="reqn">x_{i,t}= \mu_{i,t}\epsilon_{i,t} = \tau_{t} \xi_{i,t} \epsilon_{i,t},</code>
+</p>
+
+<p>where
+</p>
+
+<ul>
+<li> <p><code class="reqn">x_{i,t}</code> is a time series coming from a non-negative discrete time process for the <code class="reqn">i</code>-th day (<code class="reqn">i = 1, \ldots, N_t</code>)
+of the period <code class="reqn">t</code> (for example, a week, a month or a quarter; <code class="reqn">t = 1 , \ldots, T</code>);
+</p>
+</li>
+<li> <p><code class="reqn">\tau_{t}</code> is the long-run component, determining the average level of the conditional mean, varying each period <code class="reqn">t</code>;
+</p>
+</li>
+<li> <p><code class="reqn">\xi_{i,t}</code> is a factor centered around one, labelled as the short–run term, which plays the role of dumping or amplifying <code class="reqn">\tau_{i,t}</code>;
+</p>
+</li>
+<li> <p><code class="reqn">\epsilon_{i,t}</code> is an <code class="reqn">iid</code> error term which, conditionally on the information set, has a unit mean, an unknown variance, and a probability density function
+defined over a non-negative support.
+</p>
+</li>
+</ul>
+<p>The short–run component of the MEM-MIDAS-X is:
+</p>
+<p style="text-align: center;"><code class="reqn">\xi_{i,t}=(1-\alpha-\gamma/2-\beta) + \left(\alpha +  \gamma \cdot {I}_{\left(r_{i-1,t}  &lt; 0 \right)}\right) \frac{x_{i-1,t}}{\tau_t} + \beta \xi_{i-1,t} + \delta \left(Z_{i-1,t}-E(Z)\right),</code>
+</p>
+
+<p>where <code class="reqn">I_{(\cdot)}</code> is an indicator function, <code class="reqn">r_{i,t}</code> is the daily return of the day <code class="reqn">i</code> of the period <code class="reqn">t</code> and <code class="reqn">Z</code> is
+an additional X term (for instance, the VIX). When the X part is absent, then the parameter <code class="reqn">\delta</code> cancels.
+The long-run component of the MEM-MIDAS and MEM-MIDAS-X is:
+</p>
+<p style="text-align: center;"><code class="reqn">\tau_{t} = \exp \left\{ m + \theta \sum_{k=1}^K \delta_{k}(\omega) X_{t-k}\right\},</code>
+</p>
+
+<p>where <code class="reqn">X_{t}</code> is the MIDAS term. When the "skew" parameter is set to "NO", <code class="reqn">\gamma</code> disappears.
+The MEM and MEM-X models do not have the long- and short-run components. Therefore, they directly evolve according to <code class="reqn">\mu_{i,t}</code>.
+When the "skew" and X parameters are present, the MEM-X is:
+</p>
+<p style="text-align: center;"><code class="reqn">\mu_{i,t}= \left(1-\alpha - \gamma / 2 - \beta   \right)\mu + (\alpha + \gamma I_{\left(r_{i-1,t}  &lt; 0 \right)}) x_{i-1,t} +   \beta \mu_{i-1,t}+\delta \left(Z_{i-1,t}-E(Z)\right),</code>
+</p>
+
+<p>where <code class="reqn">\mu=E(x_{i,t})</code>. When the "skew" parameter is set to "NO", in the previous equation <code class="reqn">\gamma</code> cancels.
+Finally, when the additional X part is not present, then we have the MEM model, where <code class="reqn">\delta</code> disappears.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>umemfit</code> returns an object of class 'rumidas'. The function <code>summary.rumidas</code>
+can be used to print a summary of the results. Moreover, an object of class 'rumidas' is a list containing the following components:
+</p>
+
+<ul>
+<li>
+<p> model: The model used for the estimation.
+</p>
+</li>
+<li>
+<p> rob_coef_mat: The matrix of estimated coefficients, with the QML standard errors.
+</p>
+</li>
+<li>
+<p> obs: The number of daily observations used for the (in-sample) estimation.
+</p>
+</li>
+<li>
+<p> period: The period of the in-sample estimation.
+</p>
+</li>
+<li>
+<p> loglik: The value of the log-likelihood at the maximum.
+</p>
+</li>
+<li>
+<p> inf_criteria: The AIC and BIC information criteria.
+</p>
+</li>
+<li>
+<p> loss_in_s: The in-sample MSE and QLIKE averages, calculated considering the distance with respect to the dependent variable.
+</p>
+</li>
+<li>
+<p> est_in_s: The in-sample predicted dependent variable.
+</p>
+</li>
+<li>
+<p> est_lr_in_s: The in-sample predicted long-run component (if present) of the dependent variable.
+</p>
+</li>
+<li>
+<p> loss_oos: The out-of-sample MSE and QLIKE averages, calculated considering the distance with respect to the dependent variable.
+</p>
+</li>
+<li>
+<p> est_oos: The out-of-sample predicted dependent variable.
+</p>
+</li>
+<li>
+<p> est_lr_oos: The out-of-sample predicted long-run component (if present) of the dependent variable.
+</p>
+</li>
+</ul>
+<h3>References</h3>
+
+<p>Amendola A, Candila V, Cipollini F, Gallo GM (2024).
+“Doubly multiplicative error models with long-and short-run components.”
+<em>Socio-Economic Planning Sciences</em>, <b>91</b>, 101764.
+<a href="https://doi.org/10.1016/j.seps.2023.101764">doi:10.1016/j.seps.2023.101764</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>mv_into_mat</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# estimate the base MEM, without the asymmetric term linked to negative lagged returns
+real&lt;-(rv5['2003/2010'])^0.5		# realized volatility
+fit&lt;-umemfit(model="MEM",skew="NO",x=real)
+fit
+summary.rumidas(fit)
+# to see the estimated coefficients with the QML standard errors:
+fit$rob_coef_mat
+
+# All the other elements of fit are:
+names(fit)
+
+# estimate the MEM-MIDAS, with the asymmetric term linked to negative lagged returns,
+# leaving the last 200 observations for the out-of-sample analysis
+r_t&lt;-sp500['2003/2010']
+real&lt;-(rv5['2003/2010'])^0.5		# realized volatility
+mv_m&lt;-mv_into_mat(real,diff(indpro),K=12,"monthly")
+fit_2&lt;-umemfit(model="MEMMIDAS",skew="YES",x=real,daily_ret=r_t,mv_m=mv_m,K=12,out_of_sample=200)
+fit_2
+summary.rumidas(fit_2)
+# to see the estimated coefficients with the QML standard errors:
+fit_2$rob_coef_mat
+
+</code></pre>
+
+
+</div>

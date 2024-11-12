@@ -1,0 +1,229 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>index_calculation</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Reach- and Catchment-scale indices of connectivity</h2>
+
+<h3>Description</h3>
+
+<p>Reach- and Catchment-scale indices of connectivity
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">index_calculation(
+  graph,
+  weight = "length",
+  nodes_id = "name",
+  index_type = "full",
+  index_mode = "to",
+  c_ij_flag = TRUE,
+  B_ij_flag = TRUE,
+  dir_fragmentation_type = "symmetric",
+  pass_confluence = 1,
+  pass_u = "pass_u",
+  pass_d = "pass_d",
+  field_B = "length",
+  dir_distance_type = "symmetric",
+  disp_type = "exponential",
+  param_u,
+  param_d,
+  param,
+  param_l
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>graph</code></td>
+<td>
+<p>an object of class igraph. Can be both directed or undirected.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weight</code></td>
+<td>
+<p>graph vertex attribute used to assign weights to the reaches (nodes/vertices). Should not be also an edge attribute.
+Default is <code>"length"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nodes_id</code></td>
+<td>
+<p>graph vertex attribute used to univoquely label reaches (nodes/vertices). Should not be also an edge attribute.
+Default is <code>"name"</code>. The graph attribute must be a character vector.
+Used to label the results when <code>index_type = "reach"</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>index_type</code></td>
+<td>
+<p>indicates if the index should be calculated for the whole catchment (<code>index_type = "full"</code>),
+for each reach (<code>index_type = "reach"</code>), or for each barrier (<code>index_type = "sum"</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>index_mode</code></td>
+<td>
+<p>indicates if reach index should be calculated based on inbound links ("to") or outbound links ("from").
+Only active when <code>index_type = "reach"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>c_ij_flag</code></td>
+<td>
+<p>include the presence of barriers in the calculations (c_ij term).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B_ij_flag</code></td>
+<td>
+<p>include dispersal/movement among reaches in the calculations (B_ij term).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dir_fragmentation_type</code></td>
+<td>
+<p>how directionality in c_ij calculations is dealt with:
+<code>"symmetric"</code> (i.e. undirected graph) or <code>"asymmetric"</code> (i.e. directed graph). See details below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pass_confluence</code></td>
+<td>
+<p>a value in the range [0,1] that defines the passability of confluences (default is 1).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pass_u</code></td>
+<td>
+<p>the 'graph' edge attribute to be used as upstream passability. Default is "pass_u".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pass_d</code></td>
+<td>
+<p>the 'graph' edge attribute to be used as downstream passability. Default is "pass_d".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>field_B</code></td>
+<td>
+<p>the 'graph' vertex attribute to be used to calculate the distance. Should not be also an edge attribute.
+Default is <code>"length"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dir_distance_type</code></td>
+<td>
+<p>how directionality in B_ij calculations is dealt with:
+<code>"symmetric"</code> (i.e. undirected graph) or <code>"asymmetric"</code> (i.e. directed graph). See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>disp_type</code></td>
+<td>
+<p>the formula used to calculate the probabilities in the B_ij matrix.
+Use <code>"exponential"</code> for exponential decay, <code>"threshold"</code> for setting a distance threshold,
+or <code>"leptokurtic"</code> for leptokurtic dispersal.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>param_u</code></td>
+<td>
+<p>upstream dispersal parameter. Must be a numeric value.
+Only used if <code>dir_distance_type = "asymmetric"</code>. See details below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>param_d</code></td>
+<td>
+<p>downstream dispersal parameter.
+Must be a numeric value. Only used if <code>dir_distance_type = "asymmetric"</code>. See below for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>param</code></td>
+<td>
+<p>dispersal parameter. Must be a numeric value.
+Only used if <code>dir_distance_type = "symmetric"</code>. See details below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>param_l</code></td>
+<td>
+<p>the parameters for the leptokurtic dispersal mode. Must be a numeric vector of the
+type <code>c(sigma_stat, sigma_mob, p)</code>. See details below.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Setting <code>c_ij_flag = FALSE</code> removes from the calculations the effect of barriers, i.e. the c_ij contribution
+is not used in the calculation of the index.
+Setting <code>B_ij_flag = FALSE</code> removes from the calculations the effect of movement/dispersal,
+i.e. the B_ij contribution is not used in the calculation of the index.
+Note that it is not possible to set both <code>c_ij_flag = FALSE</code> and <code>B_ij_flag = FALSE</code>.
+</p>
+<p>The setting <code>dir_distance_type = "symmetric"</code> is to be used when the directionality of the river network is not relevant.
+The distance between reaches midpoints is calculated for each couple of reaches.
+The setting <code>dir_distance_type = "asymmetric"</code> is to be used when the directionality is relevant.
+The distance between reaches midpoints is calculated for each couple of reaches and splitted
+between 'upstream travelled' distance and 'downstream travelled' distance.
+When <code>disp_type ="leptokurtic"</code> is selected, symmetric dispersal is assumed.
+</p>
+<p>The 'param_u', 'param_d', and 'param' values are interpreted differently based on the formula used to relate distance (d_ij) and probability (B_ij).
+When <code>disp_type ="exponential"</code>, those values are used as the base of the exponential dispersal kernel: B_ij = param^d_ij.
+When <code>disp_type ="threshold"</code>, those values are used to define the maximum dispersal length: B_ij = ifelse(d_ij &lt; param, 1, 0).
+</p>
+<p>When <code>disp_type ="leptokurtic"</code> is selected, a leptokurtic dispersal kernel is used to calculate B_ij.
+A leptokurtic dispersal kernel is a mixture of two zero-centered gaussian distributions with standard deviations
+<code>sigma_stat</code> (static part of the population), and <code>sigma_mob</code> (mobile part of the population).
+The probability of dispersal is calculated as: B_ij = p F(0, sigma_stat, d_ij) + (1-p) F(0, sigma_mob, d_ij)
+where F is the upper tail of the gaussian cumulative density function.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If <code>index_type = "full"</code>, returns a numeric value with the index value (column 'index').
+if <code>index_type = c("reach", "sum")</code>, returns a data frame with the index value (column 'index') for each reach
+(the field specified in 'nodes_id' is used for reach identification in the data frame).
+In both cases, both numerator and denominator used in the index calculations are reported in the columns 'num' and 'den'.
+</p>
+
+
+<h3>References</h3>
+
+<p>Baldan, D., Cunillera-Montcusí, D., Funk, A., &amp; Hein, T. (2022). Introducing ‘riverconn’: an R package to assess river connectivity indices. Environmental Modelling &amp; Software, 156, 105470.
+</p>
+<p>Jumani, S., Deitch, M. J., Kaplan, D., Anderson, E. P., Krishnaswamy, J., Lecours, V., &amp; Whiles, M. R. (2020). River fragmentation and flow alteration metrics: a review of methods and directions for future research. Environmental Research Letters, 15(12), 123009.
+</p>
+<p>Radinger, J., &amp; Wolter, C. (2014). Patterns and predictors of fish dispersal in rivers. Fish and fisheries, 15(3), 456-473.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(igraph)
+g &lt;- igraph::graph_from_literal(1-+2, 2-+5, 3-+4, 4-+5, 6-+7,
+7-+10, 8-+9, 9-+10, 5-+11, 11-+12, 10-+13, 13-+12, 12-+14, 14-+15, 15-+16)
+E(g)$id_dam &lt;- c("1", NA, "2", "3", NA, "4", NA, "5", "6", NA,  NA, NA, NA, "7", NA)
+E(g)$type &lt;- ifelse(is.na(E(g)$id_dam), "joint", "dam")
+V(g)$length &lt;- c(1, 1, 2, 3, 4, 1, 5, 1, 7, 7, 3, 2, 4, 5, 6, 9)
+V(g)$HSI &lt;- c(0.2, 0.1, 0.3, 0.4, 0.5, 0.5, 0.5, 0.6, 0.7, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8)
+V(g)$Id &lt;- V(g)$name
+E(g)$pass_u &lt;- E(g)$pass_d &lt;- ifelse(!is.na(E(g)$id_dam),0.1,NA)
+index &lt;- index_calculation(g, param = 0.9)
+
+
+</code></pre>
+
+
+</div>

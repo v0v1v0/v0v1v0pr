@@ -1,0 +1,193 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>RapData</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create new RapData object</h2>
+
+<h3>Description</h3>
+
+<p>This function creates a "RapData" object using pre-processed data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">RapData(
+  pu,
+  species,
+  targets,
+  pu.species.probabilities,
+  attribute.spaces,
+  boundary,
+  polygons = NA,
+  skipchecks = FALSE,
+  .cache = new.env()
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>pu</code></td>
+<td>
+<p><code>base::data.frame()</code> planning unit data. Columns must be
+"cost" (<code>numeric</code>), "area" (<code>numeric</code>), and "status"
+(<code>integer</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>species</code></td>
+<td>
+<p><code>base::data.frame()</code> with species data. Columns
+must be "name" (<code>character</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>targets</code></td>
+<td>
+<p><code>base::data.frame()</code> with species data.
+Columns must be "species" (<code>integer</code>), "target" (<code>integer</code>),
+"proportion" (<code>numeric</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pu.species.probabilities</code></td>
+<td>
+<p><code>base::data.frame()</code> with data on
+the probability of species in each planning unit. Columns must be
+"species", (<code>integer</code>), "pu" (<code>integer</code>), and "value"
+(<code>numeric</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>attribute.spaces</code></td>
+<td>
+<p><code>list</code> of <code>AttributeSpaces()</code> objects
+with the demand points and planning unit coordinates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>boundary</code></td>
+<td>
+<p><code>base::data.frame()</code> with data on the shared
+boundary length of planning units. Columns must be "id1"
+(<code>integer</code>), "id2" (<code>integer</code>), and "boundary" (<code>integer</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>polygons</code></td>
+<td>
+<p><code>PBSmapping::PolySet()</code> planning unit spatial data
+or <code>NULL</code> if data not available.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>skipchecks</code></td>
+<td>
+<p><code>logical</code> Skip data integrity checks? May improve
+speed for big data sets.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.cache</code></td>
+<td>
+<p><code>base::environment()</code> used to cache calculations.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A new <code>RapData</code> object.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Generally, users are not encouraged to change arguments to
+<code>.cache</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>PBSmapping::PolySet()</code>, <code>sp::SpatialPoints()</code>,
+<code>sp::SpatialPointsDataFrame()</code>, <code>make.RapData()</code>,
+RapData.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# load data
+cs_pus &lt;- sf::read_sf(
+ system.file("extdata", "cs_pus.gpkg", package = "raptr")
+)
+cs_spp &lt;- terra::rast(
+  system.file("extdata", "cs_spp.tif", package = "raptr")
+)
+cs_space &lt;- terra::rast(
+  system.file("extdata", "cs_space.tif", package = "raptr")
+)
+
+# create data for RapData object
+attribute.spaces &lt;- list(
+  AttributeSpaces(name = "geographic", list(
+    AttributeSpace(
+      planning.unit.points = PlanningUnitPoints(
+        suppressWarnings(
+          sf::st_coordinates(sf::st_centroid(cs_pus[1:10, ]))
+        ),
+        seq_len(10)
+      ),
+      demand.points = make.DemandPoints(
+        randomPoints(cs_spp[[1]], n = 10, prob = TRUE)
+      ),
+      species = 1L
+    ))
+  ),
+  AttributeSpaces(name = "environmental", list(
+    AttributeSpace(
+      planning.unit.points = PlanningUnitPoints(
+        as.matrix(terra::extract(
+          cs_space[[1]], as(cs_pus[1:10, ], "SpatVector"),
+          fun = "mean",
+          ID = FALSE
+        )),
+        seq_len(10)
+      ),
+      demand.points = make.DemandPoints(
+        as.matrix(terra::as.data.frame(cs_space[[1]], na.rm = TRUE))
+      ),
+      species = 1L
+    )
+ ))
+)
+pu.species.probabilities &lt;- calcSpeciesAverageInPus(
+  cs_pus[1:10,], cs_spp[[1]]
+)
+polygons &lt;- convert2PolySet(cs_pus[1:10, ])
+boundary &lt;- calcBoundaryData(cs_pus[1:10, ])
+
+# create RapData object
+x &lt;- RapData(
+  pu = cs_pus[1:10, ], species = data.frame(name = "test"),
+  target = data.frame(species = 1L, target = 0:2, proportion = 0.2),
+  pu.species.probabilities = pu.species.probabilities,
+  attribute.spaces = attribute.spaces,
+  polygons = polygons,
+  boundary = boundary
+)
+
+# print object
+print(x)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

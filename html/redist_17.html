@@ -1,0 +1,291 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>constraints</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Sampling constraints</h2>
+
+<h3>Description</h3>
+
+<p>The <code>redist_smc()</code> and <code>redist_mergesplit()</code> algorithms in this package allow
+for additional constraints on the redistricting process to be encoded in the
+target distribution for sampling. These functions are provided to specify
+these constraints. All arguments are quoted and evaluated in the context of
+the data frame provided to <code>redist_constr()</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">add_constr_status_quo(constr, strength, current)
+
+add_constr_grp_pow(
+  constr,
+  strength,
+  group_pop,
+  total_pop = NULL,
+  tgt_group = 0.5,
+  tgt_other = 0.5,
+  pow = 1
+)
+
+add_constr_grp_hinge(
+  constr,
+  strength,
+  group_pop,
+  total_pop = NULL,
+  tgts_group = c(0.55)
+)
+
+add_constr_grp_inv_hinge(
+  constr,
+  strength,
+  group_pop,
+  total_pop = NULL,
+  tgts_group = c(0.55)
+)
+
+add_constr_compet(constr, strength, dvote, rvote, pow = 0.5)
+
+add_constr_incumbency(constr, strength, incumbents)
+
+add_constr_splits(constr, strength, admin)
+
+add_constr_multisplits(constr, strength, admin)
+
+add_constr_total_splits(constr, strength, admin)
+
+add_constr_pop_dev(constr, strength)
+
+add_constr_segregation(constr, strength, group_pop, total_pop = NULL)
+
+add_constr_polsby(constr, strength, perim_df = NULL)
+
+add_constr_fry_hold(
+  constr,
+  strength,
+  total_pop = NULL,
+  ssdmat = NULL,
+  denominator = 1
+)
+
+add_constr_log_st(constr, strength, admin = NULL)
+
+add_constr_edges_rem(constr, strength)
+
+add_constr_custom(constr, strength, fn)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>constr</code></td>
+<td>
+<p>A <code>redist_constr()</code> object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>strength</code></td>
+<td>
+<p>The strength of the constraint. Higher values mean a more restrictive constraint.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>current</code></td>
+<td>
+<p>The reference map for the status quo constraint.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group_pop</code></td>
+<td>
+<p>A vector of group population</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>total_pop</code></td>
+<td>
+<p>A vector of total population. Defaults to the population vector used for sampling.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tgt_group, tgt_other</code></td>
+<td>
+<p>Target group shares for the power-type constraint.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pow</code></td>
+<td>
+<p>The exponent for the power-type constraint.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tgts_group</code></td>
+<td>
+<p>A vector of target group shares for the hinge-type constraint.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dvote, rvote</code></td>
+<td>
+<p>A vector of Democratic or Republican vote counts</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>incumbents</code></td>
+<td>
+<p>A vector of unit indices for incumbents. For example, if
+three incumbents live in the precincts that correspond to rows 1, 2, and
+100 of your redist_map, entering incumbents = c(1, 2, 100) would avoid
+having two or more incumbents be in the same district.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>admin</code></td>
+<td>
+<p>A vector indicating administrative unit membership</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>perim_df</code></td>
+<td>
+<p>A dataframe output from <code>redistmetrics::prep_perims</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ssdmat</code></td>
+<td>
+<p>Squared distance matrix for Fryer Holden constraint</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>denominator</code></td>
+<td>
+<p>Fryer Holden minimum value to normalize by. Default is 1 (no normalization).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fn</code></td>
+<td>
+<p>A function</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>All constraints are fed into a Gibbs measure, with coefficients on each
+constraint set by the corresponding <code>strength</code> parameter.
+The strength can be any real number, with zero corresponding to no constraint.
+Higher and higher <code>strength</code> values will eventually cause the algorithm's
+accuracy and efficiency to suffer. Whenever you use constraints, be sure to
+check all sampling diagnostics.
+</p>
+<p>The <code>status_quo</code> constraint adds a term measuring the variation of
+information distance between the plan and the reference, rescaled to [0, 1].
+</p>
+<p>The <code>grp_hinge</code> constraint takes a list of target group percentages. It
+matches each district to its nearest target percentage, and then applies a
+penalty of the form <code class="reqn">\sqrt{max(0, tgt - grouppct)}</code>, summing across
+districts. This penalizes districts which are below their target percentage.
+Use <code>plot.redist_constr()</code> to visualize the effect of this constraint and
+calibrate <code>strength</code> appropriately.
+</p>
+<p>The <code>grp_inv_hinge</code> constraint takes a list of target group percentages. It
+matches each district to its nearest target percentage, and then applies a
+penalty of the form <code class="reqn">\sqrt{max(0, grouppct - tgt)}</code>, summing across
+districts. This penalizes districts which are above their target percentage.
+Use <code>plot.redist_constr()</code> to visualize the effect of this constraint and
+calibrate <code>strength</code> appropriately.
+</p>
+<p>The <code>grp_pow</code> constraint (for expert use) adds a term of the form
+<code class="reqn">(|tgtgroup-grouppct||tgtother-grouppct|)^{pow})</code>, which
+encourages districts to have group shares near either <code>tgt_group</code>
+or <code>tgt_other</code>.  Values of <code>strength</code> depend heavily on the values of these
+parameters and especially the <code>pow</code> parameter.
+Use <code>plot.redist_constr()</code> to visualize the effect of this constraint and
+calibrate <code>strength</code> appropriately.
+</p>
+<p>The <code>compet</code> constraint encourages competitiveness by applying the <code>grp_pow</code>
+constraint with target percentages set to 50%. For convenience, it is
+specified with Democratic and Republican vote shares.
+</p>
+<p>The <code>incumbency</code> constraint adds a term counting the number of districts
+containing paired-up incumbents.
+Values of <code>strength</code> should generally be small, given that the underlying values are counts.
+</p>
+<p>The <code>splits</code> constraint adds a term counting the number of
+counties which are split once or more.
+Values of <code>strength</code> should generally be small, given that the underlying values are counts.
+</p>
+<p>The <code>multisplits</code> constraint adds a term counting the number of
+counties which are split twice or more.
+Values of <code>strength</code> should generally be small, given that the underlying values are counts.
+</p>
+<p>The <code>total_splits</code> constraint adds a term counting the total number of times
+each county is split, summed across counties (i.e., counting the number of
+excess district-county pairs). Values of <code>strength</code> should generally be
+small, given that the underlying values are counts.
+</p>
+<p>The <code>edges_rem</code> constraint adds a term counting the number of edges removed from the
+adjacency graph. This is only usable with <code>redist_flip()</code>, as other algorithms
+implicitly use this via the <code>compactness</code> parameter. Values of <code>strength</code> should
+generally be small, given that the underlying values are counts.
+</p>
+<p>The <code>log_st</code> constraint constraint adds a term counting the log number of spanning
+trees. This is only usable with <code>redist_flip()</code>, as other algorithms
+implicitly use this via the <code>compactness</code> parameter.
+</p>
+<p>The <code>polsby</code> constraint adds a term encouraging compactness as defined by the
+Polsby Popper metric. Values of <code>strength</code> may be of moderate size.
+</p>
+<p>The <code>fry_hold</code> constraint adds a term encouraging compactness as defined by the
+Fryer Holden metric. Values of <code>strength</code> should be extremely small, as the
+underlying values are massive when the true minimum Fryer Holden denominator is not known.
+</p>
+<p>The <code>segregation</code> constraint adds a term encouraging segregation among minority groups,
+as measured by the dissimilarity index.
+</p>
+<p>The <code>pop_dev</code> constraint adds a term encouraging plans to have smaller population deviations
+from the target population.
+</p>
+<p>The <code>custom</code> constraint allows the user to specify their own constraint using
+a function which evaluates districts one at a time. The provided function
+<code>fn</code> should take two arguments: a vector describing the current plan
+assignment for each unit as its first argument, and an integer describing the
+district which to evaluate in the second argument. <code style="white-space: pre;">⁠which([plans == distr])⁠</code>
+would give the indices of the units that are assigned to a district <code>distr</code>
+in any iteration. The function must return a single scalar for each plan -
+district combination, where a value of 0 indicates no penalty is applied. If
+users want to penalize an entire plan, they can have the penalty function
+return a scalar that does not depend on the district. It is important that
+<code>fn</code> not use information from precincts not included in <code>distr</code>, since in the
+case of SMC these precincts may not be assigned any district at all (<code>plan</code>
+will take the value of 0 for these precincts). The flexibility of this
+constraint comes with an additional computational cost, since the other
+constraints are written in C++ and so are more performant.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(iowa)
+iowa_map &lt;- redist_map(iowa, existing_plan = cd_2010, pop_tol = 0.05)
+constr &lt;- redist_constr(iowa_map)
+constr &lt;- add_constr_splits(constr, strength = 1.5, admin = name)
+constr &lt;- add_constr_grp_hinge(constr, strength = 100,
+    dem_08, tot_08, tgts_group = c(0.5, 0.6))
+# encourage districts to have the same number of counties
+constr &lt;- add_constr_custom(constr, strength = 1000, fn = function(plan, distr) {
+    # notice that we only use information on precincts in `distr`
+    abs(sum(plan == distr) - 99/4)
+})
+print(constr)
+
+</code></pre>
+
+
+</div>

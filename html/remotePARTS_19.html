@@ -1,0 +1,253 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fitGLS_opt</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fit a PARTS GLS model, with maximum likelihood spatial parameters</h2>
+
+<h3>Description</h3>
+
+<p>Fit a PARTS GLS model, with maximum likelihood spatial parameters
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fitGLS_opt(
+  formula,
+  data = NULL,
+  coords,
+  distm_FUN = "distm_scaled",
+  covar_FUN = "covar_exp",
+  start = c(range = 0.01, nugget = 0),
+  fixed = c(),
+  opt.only = FALSE,
+  formula0 = NULL,
+  save.xx = FALSE,
+  save.invchol = FALSE,
+  no.F = TRUE,
+  trans = list(),
+  backtrans = list(),
+  debug = TRUE,
+  ncores = NA,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a model formula, passed to <code>fitGLS</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>an optional data frame environment in which to search for
+variables given by <code>formula</code>; passed to <code>fitGLS</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coords</code></td>
+<td>
+<p>a numeric coordinate matrix or data frame, with two columns and
+rows corresponding to each pixel</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>distm_FUN</code></td>
+<td>
+<p>a function to calculate a distance matrix from <code>coords</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covar_FUN</code></td>
+<td>
+<p>a function to estimate distance-based covariances</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start</code></td>
+<td>
+<p>a named vector of starting values for each parameter to be estimated;
+names must match the names of arguments in <code>covar_FUN</code> or "nugget"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fixed</code></td>
+<td>
+<p>an optional named vector of fixed parameter values; names
+must match the names of arguments in <code>covar_FUN</code> or "nugget"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>opt.only</code></td>
+<td>
+<p>logical: if TRUE, execution will halt after estimating the parameters;
+a final GLS will not be fit with the estimated parameters</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula0, save.xx, save.invchol, no.F</code></td>
+<td>
+<p>arguments passed to <code>fitGLS</code>
+for final GLS output</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trans</code></td>
+<td>
+<p>optional list of functions for transforming the values in
+<code>start</code> or <code>fixed</code> in order to constrain the parameter space within
+<code>optim</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>backtrans</code></td>
+<td>
+<p>optional list of functions for back-transforming parameters
+to their correct scale (for use with <code>trans</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>debug</code></td>
+<td>
+<p>logical: debug mode (for use with <code>trans</code> and <code>backtrans</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncores</code></td>
+<td>
+<p>an optional integer indicating how many CPU threads to use for calculations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments passed to <code>stats::optim()</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Estimate spatial parameters, via maximum likelihood, from data
+rather than from time series residuals; Fit a GLS with these specifications.
+</p>
+<p><code>fitGLS_opt</code> fits a GLS by estimating spatial parameters from
+data. <code>fitCor</code>, combined with <code>fitGLS(nugget = NA)</code>,
+gives better estimates of spatial parameters, but time-series residuals may
+not be available in all cases. In these cases, spatial parameters can be
+estimated from distances among points and a response vector. Mathematical
+optimization of the log likelihood of different GLS models are computed by
+calling <code>optim()</code> on <code>fitGLS</code>.
+</p>
+<p>Distances are calculated with <code>distm_FUN</code> and a covariance matrix is
+calculated from these distances with <code>covar_FUN</code>. Arguments to to
+<code>covar_FUN</code>, except distances, are given by <code>start</code> and <code>fixed</code>.
+Parameters specified in <code>start</code> will be be estimated while those given
+by <code>fixed</code> will remain constant throughout fitting. Parameter names in
+<code>start</code> and <code>fixed</code> should exactly match the names of arguments in
+<code>covar_FUN</code> and should not overlap (though, <code>fixed</code> takes precedence).
+</p>
+<p>In addition to arguments of <code>covar_FUN</code> a "nugget" component can
+also be occur in <code>start</code> or <code>fixed</code>. If "nugget" does not occur
+in either vector, the GLS are fit with <code>nugget = 0</code>. A zero nugget also
+allows much faster computation, through recycling the common
+inverse cholesky matrix in each GLS computation. A non-zero nugget requires
+inversion of a different matrix at each iteration, which can be
+substantially slower.
+</p>
+<p>If <code>opt.only = FALSE</code>, the estimated parameters are used to fit the final
+maximum likelihood GLS solution with <code>fitGLS()</code> and arguments
+<code>formula0</code>, <code>save.xx</code>, <code>save.invchol</code>, and <code>no.F</code>.
+</p>
+<p>Some parameter combinations may not produce valid covariance matrices. During
+the optimization step messages about non-positive definitive V may result on
+some iterations. These warnings are produced by <code>fitGLS</code> and NA
+log-likelihoods are returned in those cases.
+</p>
+<p>Note that <code>fitGLS_opt</code> fits multiple GLS models, which requires
+inverting a large matrix for each one (unless a fixed 0 nugget is used).
+This process is very computationally intensive and may take a long time to
+finish depending upon your machine and the size of the data.
+</p>
+<p>Sometimes <code>optim</code> can have a difficult time finding a reasonable solution
+and without any constraits on parameter space (with certain algorithms), results
+may even be nonsensical. To combat this, <code>fitGLS_opt</code> has the arguments
+<code>trans</code> and <code>backtrans</code> which allow you to transform
+(and back-transform) parameters to a different scale. For example, you may
+want to force the 'range' parameter between 0 and 1. The logit function can
+do just that, as its limits are -Inf and Inf as x approaches 0 and 1,
+respectively. So, we can set <code>trans</code> to the logit function:
+<code>trans = list(range = function(x)log(x/(1-x)))</code>. Then we need to set
+<code>backtrans</code> to the inverse logit function to return a parameter value
+between 0 and 1: <code>backtrans = list(range = function(x)1/(1+exp(-x)))</code>.
+This will force the optimizer to only search for the range parameter in the
+space from 0 to 1. Any other constraint function can be used for <code>trans</code>
+provided that there is a matching back-transformation.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If <code>opt.only = TRUE</code>, <code>fitGLS_opt</code> returns the
+output from <code>stats::optim()</code>: see it's documentation for more details.
+</p>
+<p>Otherwise, a list with two elements is returned:
+</p>
+
+<dl>
+<dt>opt</dt>
+<dd>
+<p>output from <code>optim</code>, as above</p>
+</dd>
+<dt>GLS</dt>
+<dd>
+<p>a "remoteGLS" object. See <code>fitGLS</code> for more details.</p>
+</dd>
+</dl>
+<h3>See Also</h3>
+
+<p><code>fitCor</code> for estimating spatial parameters from time
+series residuals; <code>fitGLS</code> for fitting GLS and with the option
+of estimating the maximum-likelihood nugget component only.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## read data
+data(ndvi_AK10000)
+df = ndvi_AK10000[seq_len(200), ] # first 200 rows
+
+## estimate nugget and range (very slow)
+fitGLS_opt(formula = CLS_coef ~ 0 + land, data = df,
+            coords = df[, c("lng", "lat")], start = c(range = .1, nugget = 0),
+            opt.only = TRUE)
+
+## estimate range only, fixed nugget at 0, and fit full GLS (slow)
+fitGLS_opt(formula = CLS_coef ~ 0 + land, data = df,
+             coords = df[, c("lng", "lat")],
+             start = c(range = .1), fixed = c("nugget" = 0),
+             method = "Brent", lower = 0, upper = 1)
+
+## constrain nugget to 0 and 1
+logit &lt;- function(p) {log(p / (1 - p))}
+inv_logit &lt;- function(l) {1 / (1 + exp(-l))}
+
+fitGLS_opt(formula = CLS_coef ~ 0 + land, data = df,
+           coords = df[, c("lng", "lat")],
+           start = c(range = .1, nugget = 1e-10),
+           trans = list(nugget = logit), backtrans = list(nugget = inv_logit),
+           opt.only = TRUE)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,138 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rrinf_clust</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Residual randomization inference based on cluster invariances</h2>
+
+<h3>Description</h3>
+
+<p>This function is a wrapper over rrtest_clust and gives confidence intervals for all parameters
+assuming a particular cluster invariance on the errors.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rrinf_clust(
+  y,
+  X,
+  type,
+  clustering = NULL,
+  cover = 0.95,
+  num_R = 999,
+  control = list(num_se = 6, num_breaks = 60)
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Vector of outcomes (length n)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>Covariate matrix (n x p). First column should be ones to include intercept.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>A string, either "perm", "sign" or "double".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>clustering</code></td>
+<td>
+<p>A <code>List</code> that specifies a clustering of datapoint indexes 1, ..., n. See example_clustering for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cover</code></td>
+<td>
+<p>Number from [0, 1] that denotes the confidence interval coverage (e.g., 0.95 denotes 95%)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>num_R</code></td>
+<td>
+<p>Number of test statistic values to calculate in the randomization test (similar to no. of bootstrap samples).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>A <code>List</code> that controls the scope of the test inversion.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function has similar funtionality as standard confint.
+It generates confidence intervals by testing plausible values for each parameter.
+The plausible values are generated as follows.
+For some parameter beta_i we test successively
+</p>
+<p>H0: beta_i = hat_beta_i - <code>num_se</code> * se_i
+</p>
+<p>...up to...
+</p>
+<p>H0: beta_i = hat_beta_i + <code>num_se</code> * se_i
+</p>
+<p>broken in <code>num_breaks</code> intervals. Here, hat_beta_i is the OLS estimate of beta_i and se_i is the standard error.
+We then report the minimum and maximum values in this search space which we cannot reject
+at level <code>alpha</code>. This forms the desired confidence interval.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Matrix that includes the OLS estimate, and confidence interval endpoints.
+</p>
+
+
+<h3>Note</h3>
+
+<p>If the confidence interval appears to be a point or is empty, then this means
+that the nulls we consider are implausible.
+We can try to improve the search through <code>control.tinv</code>.
+For example, we can both increase <code>num_se</code> to increase the width of search,
+and increase <code>num_breaks</code> to make the search space finer.
+</p>
+<p>See rrtest_clust for a description of <code>type</code> and <code>clustering</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Life after bootstrap: residual randomization inference in regression models (Toulis, 2019)
+</p>
+<p><a href="https://www.ptoulis.com/residual-randomization">https://www.ptoulis.com/residual-randomization</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Heterogeneous example
+set.seed(123)
+n = 200
+X = cbind(rep(1, n), 1:n/n)
+beta = c(-1, 0.2)
+ind = c(rep(0, 0.9*n), rep(1, .1*n))  # cluster indicator
+y = X %*% beta + rnorm(n, sd= (1-ind) * 0.1 + ind * 5) # heteroskedastic
+confint(lm(y ~ X + 0))  # normal OLS CI is imprecise
+
+cl = list(which(ind==0), which(ind==1))  #  define the clustering
+rrinf_clust(y, X, "perm", cl)  # improved CI through clustered errors
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,204 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>plsrda_agg</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>PLSDA with aggregation of latent variables</h2>
+
+<h3>Description</h3>
+
+<p>Ensemblist approach where the predictions are calculated by "averaging" the predictions of PLSDA models built with different numbers of latent variables (LVs). 
+</p>
+<p>For instance, if argument <code>nlv</code> is set to <code>nlv = "5:10"</code>, the prediction for a new observation is the most occurent level (vote) over the predictions returned by the models with 5 LVS, 6 LVs, ... 10 LVs.
+</p>
+<p>- <code>plsrda_agg</code>: use <code>plsrda</code>.
+</p>
+<p>- <code>plslda_agg</code>: use <code>plslda</code>.
+</p>
+<p>- <code>plsqda_agg</code>: use <code>plsqda</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">
+plsrda_agg(X, y, weights = NULL, nlv)
+
+plslda_agg(X, y, weights = NULL, nlv, prior = c("unif", "prop"))
+
+plsqda_agg(X, y, weights = NULL, nlv, prior = c("unif", "prop"))
+
+## S3 method for class 'Plsda_agg'
+predict(object, X, ...)  
+
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>For the main functions: Training X-data (<code class="reqn">n, p</code>). — For the auxiliary function: New X-data (<code class="reqn">m, p</code>) to consider.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Training class membership (<code class="reqn">n</code>). <b>Note:</b> If <code>y</code> is a factor, it is replaced by a character vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>Weights (<code class="reqn">n, 1</code>) to apply to the training observations. Internally, weights are "normalized" to sum to 1. Default to <code>NULL</code> (weights are set to <code class="reqn">1 / n</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nlv</code></td>
+<td>
+<p>A character string such as "5:20" defining the range of the numbers of LVs to consider (here: the models with nb LVS = 5, 6, ..., 20 are averaged). Syntax such as "10" is also allowed (here: correponds to the single model with 10 LVs).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior</code></td>
+<td>
+<p>The prior probabilities of the classes. Possible values are "unif" (default; probabilities are set equal for all the classes) or "prop" (probabilities are set equal to the observed proportions of the classes in <code>y</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>For the auxiliary function: A fitted model, output of a call to the main functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>For the auxiliary function: Optional arguments. Not used.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>For <code>plsrda_agg</code>, <code>plslda_agg</code> and <code>plsqda_agg</code>:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>fm</code></td>
+<td>
+<p>list contaning: 
+the model((<code>fm</code>)=(<code>T</code>): X-scores matrix; (<code>P</code>): X-loading matrix;(<code>R</code>): The PLS projection matrix (p,nlv); (<code>W</code>): X-loading weights matrix ;(<code>C</code>): The Y-loading weights matrix; (<code>TT</code>): the X-score normalization factor; (<code>xmeans</code>): the centering vector of X (p,1);  (<code>ymeans</code>): the centering vector of Y (q,1); (<code>weights</code>): vector of observation weights; (<code>U</code>): intermediate output),  (<code>lev</code>):classes, (<code>ni</code>):number of observations in each class</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nlv</code></td>
+<td>
+<p>range of the numbers of LVs considered</p>
+</td>
+</tr>
+</table>
+<p>For <code>predict.Plsda_agg</code>:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>pred</code></td>
+<td>
+<p>Final predictions (after aggregation)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predlv</code></td>
+<td>
+<p>Intermediate predictions (Per nb. LVs)</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>the first example concerns PLSRDA-AGG, and the second one concerns PLSLDA-AGG.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## EXAMPLE OF PLSRDA-AGG
+
+n &lt;- 50 ; p &lt;- 8
+Xtrain &lt;- matrix(rnorm(n * p), ncol = p)
+ytrain &lt;- sample(c(1, 4, 10, 2), size = n, replace = TRUE)
+
+m &lt;- 5
+Xtest &lt;- Xtrain[1:m, ] ; ytest &lt;- ytrain[1:m]
+
+nlv &lt;- "2:5"
+fm &lt;- plsrda_agg(Xtrain, ytrain, nlv = nlv)
+names(fm)
+res &lt;- predict(fm, Xtest)
+names(res)
+res$pred
+err(res$pred, ytest)
+res$predlv
+
+pars &lt;- mpars(nlv = c("1:3", "2:5"))
+pars
+
+res &lt;- gridscore(
+    Xtrain, ytrain, Xtest, ytest, 
+    score = err, 
+    fun = plsrda_agg, 
+    pars = pars)
+res
+
+segm &lt;- segmkf(n = n, K = 3, nrep = 1)
+res &lt;- gridcv(
+    Xtrain, ytrain, 
+    segm, score = err, 
+    fun = plslda_agg, 
+    pars = pars,
+    verb = TRUE)
+res
+
+## EXAMPLE OF PLSLDA-AGG
+
+n &lt;- 50 ; p &lt;- 8
+Xtrain &lt;- matrix(rnorm(n * p), ncol = p)
+ytrain &lt;- sample(c(1, 4, 10, 2), size = n, replace = TRUE)
+#ytrain &lt;- sample(c("a", "10", "d"), size = n, replace = TRUE)
+m &lt;- 5
+Xtest &lt;- Xtrain[1:m, ] ; ytest &lt;- ytrain[1:m]
+
+nlv &lt;- "2:5"
+fm &lt;- plslda_agg(Xtrain, ytrain, nlv = nlv, prior = "unif")
+names(fm)
+res &lt;- predict(fm, Xtest)
+names(res)
+res$pred
+err(res$pred, ytest)
+res$predlv
+
+pars &lt;- mpars(nlv = c("1:3", "2:5"), prior = c("unif", "prop"))
+pars
+res &lt;- gridscore(
+    Xtrain, ytrain, Xtest, ytest, 
+    score = err, 
+    fun = plslda_agg, 
+    pars = pars)
+res
+
+segm &lt;- segmkf(n = n, K = 3, nrep = 1)
+res &lt;- gridcv(
+    Xtrain, ytrain, 
+    segm, score = err, 
+    fun = plslda_agg, 
+    pars = pars,
+    verb = TRUE)
+res
+
+</code></pre>
+
+
+</div>

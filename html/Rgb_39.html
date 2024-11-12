@@ -1,0 +1,306 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>track.bam-class</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Class <code>"track.bam"</code>
+</h2>
+
+<h3>Description</h3>
+
+<p><code>"track.bam"</code> is a drawing wraper for Binary Alignment Map files (SAMtools).
+</p>
+<p>Notice the data are not stored directly in the object, but stay in the original BAM file, thus exported <code>track.bam</code> objects may be broken (the <code>check</code> method can confirm this).
+</p>
+<p>Objects are produced by the <code>track.bam</code> constructor.
+</p>
+
+
+<h3>Extends</h3>
+
+<p>Class <code>sliceable</code>, directly.<br>
+Class <code>drawable</code>, by class <code>sliceable</code>, distance 2.
+</p>
+<p>All reference classes extend and inherit methods from <code>envRefClass</code>.
+</p>
+
+
+<h3>Fields</h3>
+
+
+<dl>
+<dt>
+<code>addChr</code>:</dt>
+<dd>
+<p>Single <code>logical</code> value, whether to automatically add 'chr' ahead chromosome names when querying or not..</p>
+</dd>
+<dt>
+<code>assembly</code>:</dt>
+<dd>
+<p>Single <code>character</code> value, the assembly version for the coordinates stored in the object. Must have length 1, should not be <code>NA</code>.</p>
+</dd>
+<dt>
+<code>baiPath</code>:</dt>
+<dd>
+<p>Single <code>character</code> value, the full path to the BAI index file in use.</p>
+</dd>
+<dt>
+<code>bamPath</code>:</dt>
+<dd>
+<p>Single <code>character</code> value, the full path to the BAM file in use.</p>
+</dd>
+<dt>
+<code>compression</code>:</dt>
+<dd>
+<p>Single <code>numeric</code> value, an estimation of the BAM file compression ratio.</p>
+</dd>
+<dt>
+<code>header</code>:</dt>
+<dd>
+<p>A <code>data.frame</code> describing the @SQ elements of the BAM header (one per row).</p>
+</dd>
+<dt>
+<code>index</code>:</dt>
+<dd>
+<p>The parsed content of the BAI index, as a unamed <code>list</code> with one element by reference sequence, itself a <code>list</code> with 'bins' and 'intervals' elements. 'bins' is a named <code>list</code> of two-column matrices ('start' and 'end'), giving virtual BGZF coordinates of the described bin (as <code>double</code>). 'intervals' is a <code>double</code> vector of virtual BGZF coordinates, used for linear filtering (see SAM specification for further details).</p>
+</dd>
+<dt>
+<code>organism</code>:</dt>
+<dd>
+<p>Single <code>character</code> value, the name of the organism whose data is stored in the object. Must have length 1, should not be <code>NA</code>.</p>
+</dd>
+</dl>
+<p>The following fields are inherited (from the corresponding class):
+</p>
+
+<ul>
+<li>
+<p> name (drawable)
+</p>
+</li>
+<li>
+<p> parameters (drawable)
+</p>
+</li>
+</ul>
+<h3>Methods</h3>
+
+
+<dl>
+<dt>
+<code>coverage(chrom, start = , end = , tracks = , binLevel = , rawSize = )</code>:</dt>
+<dd>
+<p>Fast estimation of depth coverage in a genomic window, from indexing data. Values are normalized into [0:1] over the genomic window.<br>
+- <strong>chrom</strong>      : single integer, numeric or character value, the chromosomal location.<br>
+- <strong>start</strong>      : single integer or numeric value, inferior boundary of the window. If NA, the whole chromosome is considered.<br>
+- <strong>end</strong>        : single integer or numeric value, superior boundary of the window. If NA, the whole chromosome is considered.<br>
+- <strong>tracks</strong>     : single logical value, whether to return a data.frame or a track.table.<br>
+- <strong>binLevel</strong>   : single integer value, the higher bin order to allow<br>
+0 = 537Mb, 1 = 67Mb, 2 = 8Mb, 3 = 1Mb, 4 = 130kb, 5 = 16kb<br>
+incrementing this value enhances boundary precision but discards reads located at bin junctions.<br>
+- <strong>rawSize</strong>    : single logical value, whether to output raw size or normalize by the maximum encountered.
+</p>
+</dd>
+<dt>
+<code>crawl(chrom, start, end, addChr = , maxRange = , maxRangeWarn = , verbosity = , ..., init, loop, final)</code>:</dt>
+<dd>
+<p>Apply a custom processing to reads in a genomic window (used by 'depth', 'extract' and 'pileup' methods).<br>
+- <strong>chrom</strong>          : single integer, numeric or character value, the chromosomal location. NA is not handled.<br>
+- <strong>start</strong>          : single integer or numeric value, inferior boundary of the window. NA is not handled.<br>
+- <strong>end</strong>            : single integer or numeric value, superior boundary of the window. NA is not handled.<br>
+- <strong>addChr</strong>         : single logical value, whether to systematically add 'chr' in front of the 'chrom' value or not.<br>
+- <strong>maxRange</strong>       : single integer value, no extraction will be attempted if end and start are more than this value away (returns NULL).<br>
+- <strong>maxRangeWarn</strong>   : single logical value, whether to throw a warning when 'maxRange' is exceeded and NULL is returned or not.<br>
+- <strong>verbosity</strong>      : single integer value, the level of verbosity during processing (0, 1 or 2).<br>
+- <strong>...</strong>            : arguments to be passed to 'init', 'loop' or 'final'.<br>
+- <strong>init</strong>           : a function taking a single storage environment as argument, to be evaluated before looping on reads for initialization.<br>
+This environment has R 'base' environment as parent and contains :<br>
+* all arguments passed to crawl()<br>
+* a 'self' reference to the current object.<br>
+* 'earlyBreak', a single logical value forcing crawl() to return immediately if set to TRUE.<br>
+* 'output', a place-holder for the variable to be returned by crawl().<br>
+* 'totalReads', the number of matching reads seen since the beginning of the whole looping process.<br>
+* 'blockReads', the number of matching reads seen since the beginning of the current BGZF block.<br>
+The 'init', 'loop' and 'final' functions defined by the user can freely store additionnal variables in this environment to share them.                   <br>
+- <strong>loop</strong>           : a function taking a list-shapped read and the storage environment, to be evaluated for each read with matching coordinates.<br>
+- <strong>final</strong>          : a function taking the storage environment as argument, to be evaluated once all reads were processed for finalization.
+</p>
+</dd>
+<dt>
+<code>depth(..., qBase = , qMap = )</code>:</dt>
+<dd>
+<p>Counts covering bases for each genomic position, similarly to SAMtools' depth.<br>
+- <strong>...</strong>     : arguments to be passed to the crawl() method.<br>
+- <strong>qBase</strong>   : single integer value, minimal base quality for a base to be counted.<br>
+- <strong>qMap</strong>    : single integer value, minimal mapping quality for a base to be counted.
+</p>
+</dd>
+<dt>
+<code>extract(...)</code>:</dt>
+<dd>
+<p>Extract reads as a list, similarly to SAMtools' view.<br>
+- <strong>...</strong>     : arguments to be passed to the crawl() method.
+</p>
+</dd>
+<dt>
+<code>getBlocks(limit = , quiet = )</code>:</dt>
+<dd>
+<p>Jump from BGZF blocks to blocks, recording compressed (bsize) and uncompressed (isize) block sizes<br>
+- <strong>limit</strong>   : single integer value, the amount of blocks to evaluate (NA for the whole BAM file, may be very time consuming).<br>
+- <strong>quiet</strong>   : single logical value, whether to throw diagnostic messages or not.
+</p>
+</dd>
+<dt>
+<code>getCompression(sample = )</code>:</dt>
+<dd>
+<p>Estimate BGZF block compression level from a sample of blocks<br>
+- <strong>sample</strong>   : single integer value, the amount of blocks to use for estimation (the first block is ignored).
+</p>
+</dd>
+<dt>
+<code>pileup(..., qBase = , qMap = )</code>:</dt>
+<dd>
+<p>Counts each nucleotide type for each genomic position, similarly to SAMtools' mpileup.<br>
+- <strong>...</strong>     : arguments to be passed to the crawl() method.<br>
+- <strong>qBase</strong>   : single integer value, minimal base quality for a base to be counted.<br>
+- <strong>qMap</strong>    : single integer value, minimal mapping quality for a base to be counted.
+</p>
+</dd>
+<dt>
+<code>summary(chrom = , tracks = , binLevel = , rawSize = )</code>:</dt>
+<dd>
+<p>Fast estimation of depth coverage for the whole genome, from indexing data. Values are normalized into [0:1] over the whole genome.<br>
+- <strong>chrom</strong>      : character vector, the names of the chromosome to query. If NA, all chromosomes will be queried.<br>
+- <strong>tracks</strong>     : single logical value, whether to return a data.frame or a track.table.<br>
+- <strong>binLevel</strong>   : single integer value, the higher bin order to allow<br>
+0 = 537Mb, 1 = 67Mb, 2 = 8Mb, 3 = 1Mb, 4 = 130kb, 5 = 16kb<br>
+incrementing this value enhances boundary precision but discards reads located at bin junctions<br>
+- <strong>rawSize</strong>    : single logical value, whether to output raw size or normalize by the maximum encountered.
+</p>
+</dd>
+</dl>
+<p>The following methods are inherited (from the corresponding class):
+</p>
+
+<ul>
+<li>
+<p> callParams (drawable)
+</p>
+</li>
+<li>
+<p> callSuper (envRefClass)
+</p>
+</li>
+<li>
+<p> check (drawable, overloaded)
+</p>
+</li>
+<li>
+<p> chromosomes (drawable, overloaded)
+</p>
+</li>
+<li>
+<p> copy (envRefClass)
+</p>
+</li>
+<li>
+<p> defaultParams (sliceable, overloaded)
+</p>
+</li>
+<li>
+<p> draw (sliceable)
+</p>
+</li>
+<li>
+<p> export (envRefClass)
+</p>
+</li>
+<li>
+<p> field (envRefClass)
+</p>
+</li>
+<li>
+<p> fix.param (drawable)
+</p>
+</li>
+<li>
+<p> getChromEnd (sliceable, overloaded)
+</p>
+</li>
+<li>
+<p> getClass (envRefClass)
+</p>
+</li>
+<li>
+<p> getName (drawable)
+</p>
+</li>
+<li>
+<p> getParam (drawable)
+</p>
+</li>
+<li>
+<p> getRefClass (envRefClass)
+</p>
+</li>
+<li>
+<p> import (envRefClass)
+</p>
+</li>
+<li>
+<p> initFields (envRefClass)
+</p>
+</li>
+<li>
+<p> initialize (drawable, overloaded)
+</p>
+</li>
+<li>
+<p> setName (drawable)
+</p>
+</li>
+<li>
+<p> setParam (drawable)
+</p>
+</li>
+<li>
+<p> show (sliceable, overloaded)
+</p>
+</li>
+<li>
+<p> slice (sliceable, overloaded)
+</p>
+</li>
+<li>
+<p> trace (envRefClass)
+</p>
+</li>
+<li>
+<p> untrace (envRefClass)
+</p>
+</li>
+<li>
+<p> usingMethods (envRefClass)
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>Sylvain Mareschal
+</p>
+
+
+<h3>References</h3>
+
+<p><a href="http://samtools.github.io/hts-specs/SAMv1.pdf">http://samtools.github.io/hts-specs/SAMv1.pdf</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>track.table</code>, <code>sliceable-class</code>, <code>drawable-class</code>
+</p>
+
+
+</div>

@@ -1,0 +1,280 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>regDIF</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Regularized Differential Item Functioning</h2>
+
+<h3>Description</h3>
+
+<p>Identify DIF in item response theory models using regularization.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">regDIF(item.data,
+       pred.data,
+       prox.data = NULL,
+       item.type = NULL,
+       pen.type = NULL,
+       pen.deriv = TRUE,
+       tau = NULL,
+       num.tau = 100,
+       alpha = 1,
+       gamma = 3,
+       anchor = NULL,
+       stdz = TRUE,
+       control = list())
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>item.data</code></td>
+<td>
+<p>Matrix or data frame of item responses. See below for
+supported item types.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pred.data</code></td>
+<td>
+<p>Matrix or data frame of predictors affecting item responses
+(DIF) and latent variable (impact). See <code>control</code> option below to
+specify different predictors for impact model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prox.data</code></td>
+<td>
+<p>Optional vector of observed scores to serve as a proxy for
+the latent variable. If a vector is supplied, a multivariate regression model
+will be fit to the data. The default is NULL, indicating that latent scores
+will be estimated during model estimation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>item.type</code></td>
+<td>
+<p>Optional character value or vector indicating the type of
+item to be modeled. The default is NULL, corresponding to a 2PL or graded
+item type. Different item types may be specified for a single model
+by providing a vector equal in length to the number of items in item.data.
+The options include:
+</p>
+
+<ul>
+<li>
+<p><code>"rasch"</code> - Slopes constrained to 1 and intercepts freely
+estimated.
+</p>
+</li>
+<li>
+<p><code>"2pl"</code> - Slopes and intercepts freely estimated.
+</p>
+</li>
+<li>
+<p><code>"graded"</code> - Slopes, intercepts, and thresholds freely
+estimated.
+</p>
+</li>
+<li>
+<p><code>"cfa"</code></p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pen.type</code></td>
+<td>
+<p>Optional character value indicating the penalty
+function to use. The default is NULL, corresponding to the LASSO function.
+The options include:
+</p>
+
+<ul>
+<li>
+<p><code>"lasso"</code> - The least absolute selection and shrinkage
+operator (LASSO), which controls DIF selection through <code class="reqn">\tau</code> (tau).
+</p>
+</li>
+<li>
+<p><code>"mcp"</code> - The minimax concave penalty (MCP), which controls
+DIF selection through <code class="reqn">\tau</code> (tau) and estimator bias through
+<code class="reqn">\gamma</code> (gamma). Uses the firm-thresholding penalty function.
+</p>
+</li>
+<li>
+<p><code>"grp.lasso"</code> - The group version of the LASSO penalty, which
+selects intercept and slope DIF effects on each background characteristic
+together.
+</p>
+</li>
+<li>
+<p><code>"grp.mcp"</code> - The group version of the MCP function.</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pen.deriv</code></td>
+<td>
+<p>Logical value indicating whether to use the second
+derivative of the penalized parameter during regularization. The default is
+TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tau</code></td>
+<td>
+<p>Optional numeric vector of tau values <code class="reqn">\ge</code> 0. If tau is
+supplied, this overrides the automatic construction of tau values.
+Must be non-negative and in descending order, from largest
+to smallest values (e.g., <code>seq(1,0,-.01)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>num.tau</code></td>
+<td>
+<p>Numeric value indicating how many tau values to fit. The
+default is 100.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>Numeric value indicating the alpha parameter in the elastic net
+penalty function. Alpha controls the degree to which LASSO or ridge is used
+during regularization. The default is 1, which is equivalent to LASSO.
+NOTE: If using MCP penalty, alpha may not be exactly 0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gamma</code></td>
+<td>
+<p>Numeric value indicating the gamma parameter in the MCP
+function. Gamma controls the degree of tapering of DIF effects as tau
+decreases. Larger gamma leads to faster tapering (less bias but possibly
+more unstable optimization), whereas smaller gamma leads to slower tapering
+(more bias but more stable optimization). Default is 3. Must be greater
+than 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>anchor</code></td>
+<td>
+<p>Optional numeric value or vector indicating which item
+response(s) are anchors (e.g., <code>anchor = 1</code>). Default is <code>NULL</code>,
+meaning at least one DIF effect per covariate will be fixed to zero as
+tau approaches 0 (required to identify the model).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stdz</code></td>
+<td>
+<p>Logical value indicating whether to standardize DIF and
+impact predictors for regularization. Default is <code>TRUE</code>, as it is
+recommended that all predictors be on the same scale.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>Optional list of different model specifications and
+optimization parameters. May be:
+</p>
+
+<dl>
+<dt>impact.mean.data</dt>
+<dd>
+<p>Matrix or data frame of predictors, which allows
+for a different set of predictors to affect the mean impact equation
+compared to the item response DIF equations. Default includes all
+predictors from pred.data.</p>
+</dd>
+<dt>impact.var.data</dt>
+<dd>
+<p>Matrix or data frame with predictors for
+variance impact. See above. Default includes all predictors in pred.data.</p>
+</dd>
+<dt>tol</dt>
+<dd>
+<p>Convergence threshold of EM algorithm. Default is
+<code>10^-5</code>.</p>
+</dd>
+<dt>maxit</dt>
+<dd>
+<p>Maximum number of EM iterations. Default is <code>2000</code>.</p>
+</dd>
+<dt>adapt.quad</dt>
+<dd>
+<p>Logical value indicating whether to use adaptive
+quadrature to approximate the latent variable. The default is
+<code>FALSE</code>. NOTE: Adaptive quadrature is not supported yet.</p>
+</dd>
+<dt>num.quad</dt>
+<dd>
+<p>Numeric value indicating the number of quadrature
+points to be used. For fixed-point quadrature, the default is <code>21</code>
+points when all item responses are binary or else <code>51</code> points if at
+least one item is ordered categorical.</p>
+</dd>
+<dt>int.limits</dt>
+<dd>
+<p>Vector of 2 numeric values indicating the integral limits
+for quadrature. Default is c(-6,6).</p>
+</dd>
+<dt>optim.method</dt>
+<dd>
+<p>Character value indicating which optimization method
+to use. Default is "UNR", which updates estimates one-at-a-time using univariate
+Newton-Raphson, or a single iteration of coordinate descent. Another option
+is "MNR", which updates the impact and item parameter
+estimates using Multivariate Newton-Raphson. A third option is "CD", or
+coordinate descent with complete iterations through all parameters
+until convergence. "MNR" will be faster in most cases,
+although "UNR" may achieve faster results when the number of
+predictors is large.</p>
+</dd>
+<dt>start.values</dt>
+<dd>
+<p>List of numbers assigned as starting values to the
+regDIF procedure. List must contain only the following names:
+<code>impact</code>, for mean and variance impact parameters, in the order
+that is given by an object of class <code>coef.regDIF</code>;
+<code>base</code>, for base intercept and slope parameters, in order given
+by a <code>coef.regDIF</code> object; and finally,
+<code>dif</code>, for intercept and slope DIF parameters, again in
+order given by a <code>coef.regDIF</code> object.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Function returns an object of class <code>regDIF</code>, which is a list of results from
+the regularization routine
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(regDIF)
+head(ida)
+item.data &lt;- ida[,1:6]
+pred.data &lt;- ida[,7:9]
+prox.data &lt;- rowSums(item.data)
+fit &lt;- regDIF(item.data, pred.data, prox.data, num.tau = 10)
+summary(fit)
+
+
+</code></pre>
+
+
+</div>

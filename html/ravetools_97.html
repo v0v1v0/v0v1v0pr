@@ -1,0 +1,257 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>dijkstras-path</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate distances along a surface</h2>
+
+<h3>Description</h3>
+
+<p>Calculate surface distances of graph or mesh using 'Dijkstra' method.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">dijkstras_surface_distance(
+  positions,
+  faces,
+  start_node,
+  face_index_start = NA,
+  max_search_distance = NA,
+  ...
+)
+
+surface_path(x, target_node)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>positions</code></td>
+<td>
+<p>numeric matrix with no <code>NA</code> values. The number of row
+is the total count of nodes (vertices), and the number of columns represent
+the node dimension. Each row represents a node.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>faces</code></td>
+<td>
+<p>integer matrix with each row containing indices of nodes. For
+graphs, <code>faces</code> is a matrix with two columns defining the connecting
+edges; for '3D' mesh, <code>faces</code> is a three-column matrix defining the
+face index of mesh triangles.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start_node</code></td>
+<td>
+<p>integer, row index of <code>positions</code> on where to start
+calculating the distances. This integer must be 1-indexed and cannot exceed
+the total number of <code>positions</code> rows</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>face_index_start</code></td>
+<td>
+<p>integer, the start of the nodes in <code>faces</code>;
+please specify this input explicitly if the first node is not contained
+in <code>faces</code>.
+Default is <code>NA</code> (determined by the minimal number in <code>faces</code>).
+The reason to set this input is because some programs use <code>1</code> to
+represent the first node, some start from <code>0</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_search_distance</code></td>
+<td>
+<p>numeric, maximum distance to iterate;
+default is <code>NA</code>,
+that is to iterate and search the whole mesh</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>reserved for backward compatibility</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>distance calculation results returned by
+<code>dijkstras_surface_distance</code> function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target_node</code></td>
+<td>
+<p>the target node number to reach (from the starting node);
+<code>target_node</code> is always 1-indexed.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p><code>dijkstras_surface_distance</code> returns a list distance
+table with the meta configurations. <code>surface_path</code> returns a data frame
+of the node ID (from <code>start_node</code> to <code>target_node</code>) and cumulative
+distance along the shortest path.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# ---- Toy example --------------------
+
+# Position is 2D, total 6 points
+positions &lt;- matrix(runif(6 * 2), ncol = 2)
+
+# edges defines connected nodes
+edges &lt;- matrix(ncol = 2, byrow = TRUE, data = c(
+  1,2,
+  2,3,
+  1,3,
+  2,4,
+  3,4,
+  2,5,
+  4,5,
+  2,5,
+  4,6,
+  5,6
+))
+
+# calculate distances
+ret &lt;- dijkstras_surface_distance(
+  start_node = 1,
+  positions = positions,
+  faces = edges,
+  face_index_start = 1
+)
+
+# get shortest path from the first node to the last
+path &lt;- surface_path(ret, target_node = 6)
+
+# plot the results
+from_node &lt;- path$path[-nrow(path)]
+to_node &lt;- path$path[-1]
+plot(positions, pch = 16, axes = FALSE,
+     xlab = "X", ylab = "Y", main = "Dijkstra's shortest path")
+segments(
+  x0 = positions[edges[,1],1], y0 = positions[edges[,1],2],
+  x1 = positions[edges[,2],1], y1 = positions[edges[,2],2]
+)
+
+points(positions[path$path,], col = "steelblue", pch = 16)
+arrows(
+  x0 = positions[from_node,1], y0 = positions[from_node,2],
+  x1 = positions[to_node,1], y1 = positions[to_node,2],
+  col = "steelblue", lwd = 2, length = 0.1, lty = 2
+)
+
+points(positions[1,,drop=FALSE], pch = 16, col = "orangered")
+points(positions[6,,drop=FALSE], pch = 16, col = "purple3")
+
+# ---- Example with mesh ------------------------------------
+
+## Not run: 
+
+  # Please install the down-stream package `threeBrain`
+  # and call library(threeBrain)
+  # the following code set up the files
+
+  read.fs.surface &lt;- internal_rave_function(
+    "read.fs.surface", "threeBrain")
+  default_template_directory &lt;- internal_rave_function(
+    "default_template_directory", "threeBrain")
+  surface_path &lt;- file.path(default_template_directory(),
+                            "N27", "surf", "lh.pial")
+  if(!file.exists(surface_path)) {
+    internal_rave_function(
+      "download_N27", "threeBrain")()
+  }
+
+  # Example starts from here ---&gt;
+  # Load the mesh
+  mesh &lt;- read.fs.surface(surface_path)
+
+  # Calculate the path with maximum radius 100
+  ret &lt;- dijkstras_surface_distance(
+    start_node = 1,
+    positions = mesh$vertices,
+    faces = mesh$faces,
+    max_search_distance = 100,
+    verbose = TRUE
+  )
+
+  # get shortest path from the first node to node 43144
+  path &lt;- surface_path(ret, target_node = 43144)
+
+  # plot
+  from_nodes &lt;- path$path[-nrow(path)]
+  to_nodes &lt;- path$path[-1]
+  # calculate colors
+  pal &lt;- colorRampPalette(
+    colors = c("red", "orange", "orange3", "purple3", "purple4")
+  )(1001)
+  col &lt;- pal[ceiling(
+    path$distance / max(path$distance, na.rm = TRUE) * 1000
+  ) + 1]
+  oldpar &lt;- par(mfrow = c(2, 2), mar = c(0, 0, 0, 0))
+  for(xdim in c(1, 2, 3)) {
+    if( xdim &lt; 3 ) {
+      ydim &lt;- xdim + 1
+    } else {
+      ydim &lt;- 3
+      xdim &lt;- 1
+    }
+    plot(
+      mesh$vertices[, xdim], mesh$vertices[, ydim],
+      pch = ".", col = "#BEBEBE33", axes = FALSE,
+      xlab = "P - A", ylab = "S - I", asp = 1
+    )
+    segments(
+      x0 = mesh$vertices[from_nodes, xdim],
+      y0 = mesh$vertices[from_nodes, ydim],
+      x1 = mesh$vertices[to_nodes, xdim],
+      y1 = mesh$vertices[to_nodes, ydim],
+      col = col
+    )
+  }
+
+  # plot distance map
+  distances &lt;- ret$paths$distance
+  col &lt;- pal[ceiling(distances / max(distances, na.rm = TRUE) * 1000) + 1]
+  selection &lt;- !is.na(distances)
+
+  plot(
+    mesh$vertices[, 2], mesh$vertices[, 3],
+    pch = ".", col = "#BEBEBE33", axes = FALSE,
+    xlab = "P - A", ylab = "S - I", asp = 1
+  )
+  points(
+    mesh$vertices[selection, c(2, 3)],
+    col = col[selection],
+    pch = "."
+  )
+
+  # reset graphic state
+  par(oldpar)
+
+
+## End(Not run)
+
+
+
+
+
+
+</code></pre>
+
+
+</div>

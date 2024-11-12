@@ -1,0 +1,185 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>write.sparse</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Write Sparse Matrix in Text Format</h2>
+
+<h3>Description</h3>
+
+<p>Write a labelled sparse matrix into text format as used by software
+such as SVMLight, LibSVM, ThunderSVM, LibFM, xLearn, XGBoost, LightGBM, and others - i.e.:
+</p>
+<p><code>&lt;labels(s)&gt; &lt;column:value&gt; &lt;column:value&gt; ...</code>
+</p>
+<p>For more information about the format and usage examples, see read.sparse.
+</p>
+<p>Can write labels for regression, classification (binary, multi-class, and multi-label),
+and ranking (with 'qid'), but note that most software that makes use of this data
+format supports only regression and binary classification.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">write.sparse(
+  file,
+  X,
+  y,
+  qid = NULL,
+  integer_labels = TRUE,
+  index1 = TRUE,
+  sort_indices = TRUE,
+  ignore_zeros = TRUE,
+  add_header = FALSE,
+  decimal_places = 8L,
+  append = FALSE,
+  to_string = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>file</code></td>
+<td>
+<p>Output file path into which to write the data.
+Will be ignored when passing 'to_string=TRUE'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>Sparse data to write. Can be a sparse matrix from package 'Matrix'
+(classes: 'dgRMatrix', 'dgTMatrix', 'dgCMatrix', 'ngRMatrix', 'ngTMatrix', 'ngCMatrix')
+or from package 'SparseM' (classes: 'matrix.csr', 'matrix.coo', 'matrix.csc'),
+or a dense matrix of all numeric values, passed either as a 'matrix' or as a 'data.frame'.
+</p>
+<p>If 'X' is a vector (classes 'numeric', 'integer', 'dsparseVector'), will be assumed to
+be a row vector and will thus write one row only.
+</p>
+<p>Note that the data will be casted to 'dgRMatrix' in any case.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Labels for the data. Can be passed as a vector ('integer' or 'numeric')
+if each observation has one label, or as a sparse or dense matrix (same format as 'X')
+if each observation can have more than 1 label. In the latter case, only the non-missing
+column indices will be written, while the values are ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>qid</code></td>
+<td>
+<p>Secondary label information used for ranking algorithms. Must be an integer vector
+if passed. Note that not all software supports this.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>integer_labels</code></td>
+<td>
+<p>Whether to write the labels as integers. If passing 'FALSE', they will
+have a decimal point regardless of whether they are integers or not. If the file is meant
+to be used for a classification algorithm, one should pass 'TRUE' here (the default).
+For multilabel classification, the labels will always be written as integers.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>index1</code></td>
+<td>
+<p>Whether the column and label indices (if multi-label) should have numeration
+starting at 1. Most software assumes this is 'TRUE'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sort_indices</code></td>
+<td>
+<p>Whether to sort the indices of 'X' (and of 'y' if multi-label) before
+writing the data. Note that this will cause in-place modifications if either 'X' or 'y'
+are passed as CSR matrices from the 'Matrix' package.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ignore_zeros</code></td>
+<td>
+<p>Whether to ignore (not write) features with a value of zero
+after rounding to the specified decimal places.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>add_header</code></td>
+<td>
+<p>Whether to add a header with metadata as the first line (number of rows,
+number of columns, number of classes). If passing 'integer_label=FALSE' and 'y' is a
+vector, will write zero as the number of labels. This is not supported by most software.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>decimal_places</code></td>
+<td>
+<p>Number of decimal places to use for numeric values. All values
+will have exactly this number of places after the decimal point. Be aware that values
+are rounded and might turn to zeros (will be skipped by default) if they are too small
+(one can do something like
+'X@x &lt;- ifelse(X@x &gt;= 0, pmin(X@x, 1e-8), pmax(X@x, -1e-8))' to avoid this).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>append</code></td>
+<td>
+<p>Whether to append text at the end of the file instead of overwriting or
+creating a new file. Ignored when passing 'to_string=TRUE'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>to_string</code></td>
+<td>
+<p>Whether to write the result into a string (which will be returned
+from the function) instead of into a file.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Be aware that writing sparse matrices to text is not a lossless operation
+- that is, some information might be lost due to numeric precision, and metadata such
+as row and column names will not be saved. It is recommended to use 'saveRDS' or similar
+for saving data between R sessions, or to use binary formats for passing between
+different software such as R-&gt;Python.
+</p>
+<p>The option 'ignore_zeros' is implemented heuristically, by comparing
+'abs(x) &gt;= 10^(-decimal_places)/2', which might not match exactly with
+the rounding that is done implicitly in string conversions in the libc/libc++
+functions - thus there might still be some corner cases of all-zeros written into
+features if the (absolute) values are very close to the rounding threshold.
+</p>
+<p>While R uses C 'double' type for numeric values, most of the software that is able to
+take input data in this format uses 'float' type, which has less precision.
+</p>
+<p>The function uses different code paths when writing to a file or to a string,
+and there might be slight differences between the generated texts from them.
+If any such difference is encountered, please submit a bug report in the
+package's GitHub page.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If passing 'to_string=FALSE' (the default), will not return anything
+('invisible(NULL)'). If passing 'to_string=TRUE', will return a 'character'
+variable with the data contents written into it.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>read.sparse
+</p>
+
+
+</div>

@@ -1,0 +1,120 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>EQXYresid</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate Residuals
+</h2>
+
+<h3>Description</h3>
+
+<p>Given an earthquake hypocenter
+and a list of station information, retrieve
+the station residuals.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">EQXYresid(XY, vel = list(), h1 = c(0, 0, 0, 0), PLOT = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>XY</code></td>
+<td>
+<p>matrix of station location and arrival times.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vel</code></td>
+<td>
+<p>list, RSEIS velocity model 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>h1</code></td>
+<td>
+<p>hypocenter location, c(x,y,z,t)
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>PLOT</code></td>
+<td>
+<p>logical, TRUE=plot the residuals
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The XY mtrix is in cartesian coordinates, i.e. 
+it has been projected into units of km.  Only 1D velocity
+models are used at this time.
+Only residuals of P and S wave arrivals are estimated.
+</p>
+
+
+<h3>Value</h3>
+
+<p>vector, right hand side of the least squares problem.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Jonathan M. Lees&lt;jonathan.lees@unc.edu&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p>travel.time1D,UPdateEQLOC
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+####  get sample data
+data(GH, package='RSEIS')
+
+pstas  = GH$pickfile
+
+######  get velocity file
+v = GH$velfile
+
+####  project to flatten
+proj = GEOmap::setPROJ(type = 2, LAT0 = mean(pstas$STAS$lat), LON0 = mean(pstas$STAS$lon) )
+
+ XY = GEOmap::GLOB.XY(pstas$STAS$lat, pstas$STAS$lon, proj)
+#######  elevation corrections
+    elcor = rep(0, length(pstas$STAS$lat))
+    DZ = pstas$STAS$z - mean(pstas$STAS$z)
+    elcor[pstas$STAS$phase=="P"] = DZ[pstas$STAS$phase=="P"]/v$vp[1]
+    elcor[pstas$STAS$phase=="S"] = DZ[pstas$STAS$phase=="S"]/v$vs[1]
+
+######   set up requisite vectors
+    XY$cor = elcor
+    XY$phase = pstas$STAS$phase
+    XY$sec = pstas$STAS$sec
+
+    sol = c(GH$pickfile$LOC$lat, GH$pickfile$LOC$lon, GH$pickfile$LOC$z, GH$pickfile$LOC$sec)
+    
+    eqXY = GEOmap::GLOB.XY(sol[1], sol[2], proj)
+
+#######  get residuals
+    res =  EQXYresid(XY, vel=v , h1=c(eqXY$x, eqXY$y, sol[3], sol[4] ) ,
+    PLOT=FALSE)
+
+</code></pre>
+
+
+</div>

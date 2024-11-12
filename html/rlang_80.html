@@ -1,0 +1,114 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>cnd_muffle</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Muffle a condition</h2>
+
+<h3>Description</h3>
+
+<p>Unlike <code>exiting()</code> handlers, <code>calling()</code> handlers must be explicit
+that they have handled a condition to stop it from propagating to
+other handlers. Use <code>cnd_muffle()</code> within a calling handler (or as
+a calling handler, see examples) to prevent any other handlers from
+being called for that condition.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">cnd_muffle(cnd)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>cnd</code></td>
+<td>
+<p>A condition to muffle.</p>
+</td>
+</tr></table>
+<h3>Value</h3>
+
+<p>If <code>cnd</code> is mufflable, <code>cnd_muffle()</code> jumps to the muffle
+restart and doesn't return. Otherwise, it returns <code>FALSE</code>.
+</p>
+
+
+<h3>Mufflable conditions</h3>
+
+<p>Most conditions signalled by base R are muffable, although the name
+of the restart varies. cnd_muffle() will automatically call the
+correct restart for you. It is compatible with the following
+conditions:
+</p>
+
+<ul>
+<li> <p><code>warning</code> and <code>message</code> conditions. In this case <code>cnd_muffle()</code>
+is equivalent to <code>base::suppressMessages()</code> and
+<code>base::suppressWarnings()</code>.
+</p>
+</li>
+<li>
+<p> Bare conditions signalled with <code>signal()</code> or <code>cnd_signal()</code>. Note
+that conditions signalled with <code>base::signalCondition()</code> are not
+mufflable.
+</p>
+</li>
+<li>
+<p> Interrupts are sometimes signalled with a <code>resume</code> restart on
+recent R versions. When this is the case, you can muffle the
+interrupt with <code>cnd_muffle()</code>. Check if a restart is available
+with <code>base::findRestart("resume")</code>.
+</p>
+</li>
+</ul>
+<p>If you call <code>cnd_muffle()</code> with a condition that is not mufflable
+you will cause a new error to be signalled.
+</p>
+
+<ul>
+<li>
+<p> Errors are not mufflable since they are signalled in critical
+situations where execution cannot continue safely.
+</p>
+</li>
+<li>
+<p> Conditions captured with <code>base::tryCatch()</code>, <code>with_handlers()</code> or
+<code>catch_cnd()</code> are no longer mufflable. Muffling restarts <em>must</em>
+be called from a calling handler.
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">fn &lt;- function() {
+  inform("Beware!", "my_particular_msg")
+  inform("On your guard!")
+  "foobar"
+}
+
+# Let's install a muffling handler for the condition thrown by `fn()`.
+# This will suppress all `my_particular_wng` warnings but let other
+# types of warnings go through:
+with_handlers(fn(),
+  my_particular_msg = calling(function(cnd) {
+    inform("Dealt with this particular message")
+    cnd_muffle(cnd)
+  })
+)
+
+# Note how execution of `fn()` continued normally after dealing
+# with that particular message.
+
+# cnd_muffle() can also be passed to with_handlers() as a calling
+# handler:
+with_handlers(fn(),
+  my_particular_msg = calling(cnd_muffle)
+)
+</code></pre>
+
+
+</div>

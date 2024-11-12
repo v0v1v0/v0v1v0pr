@@ -1,0 +1,132 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>find_sky_pixels</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Find sky pixels</h2>
+
+<h3>Description</h3>
+
+<p>Find sky pixels automatically.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">find_sky_pixels(r, z, a, sample_size_pct = 30)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>r</code></td>
+<td>
+<p>SpatRaster. A normalized greyscale image. Typically, the
+blue channel extracted from a canopy photograph. Please see <code>read_caim()</code>
+and <code>normalize()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>z</code></td>
+<td>
+<p>SpatRaster built with <code>zenith_image()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>a</code></td>
+<td>
+<p>SpatRaster built with <code>azimuth_image()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sample_size_pct</code></td>
+<td>
+<p>Numeric vector of length one. Minimum percentage of
+cells to sample. The population is comprised of 1296 cells of <code class="reqn">5 \times
+  5</code> degrees.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function assumes that:
+</p>
+
+<ul>
+<li>
+<p> there is at least one pure sky pixel at the level of cells of <code class="reqn">30
+\times 30</code> degrees, and
+</p>
+</li>
+<li>
+<p> sky pixels have a digital number (DN) greater than canopy pixels have.
+</p>
+</li>
+</ul>
+<p>For each <code class="reqn">30 \times 30</code> cell, this method computes a quantile value and
+uses it as a threshold to select the pure sky pixels from the given cell. As
+a result, a binarized image is produced in a regional binarization fashion
+(<code>regional_thresholding()</code>). This process starts with a quantile
+probability of 0.99. After producing the binarized image, this function uses
+a search grid with cells of <code class="reqn">5 \times 5</code> degrees to count how many of
+these cells have at least one sky pixel (pixels equal to one in the binarized
+image). If the percentage of  cells with sky pixels does not reach argument
+<code>sample_size_pct</code>, it goes back to the binarization step but decreasing
+the probability by 0.01 points.
+</p>
+<p>If probability reach 0.9 and the <code>sample_size_pct</code> criterion were not
+yet satisfied, the <code>sample_size_pct</code> is decreased one percent and the
+process starts all over again.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class SpatRaster with values <code>0</code> and
+<code>1</code>. This layer masks pixels that are very likely pure sky pixels.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Tool Functions: 
+<code>colorfulness()</code>,
+<code>correct_vignetting()</code>,
+<code>defuzzify()</code>,
+<code>extract_dn()</code>,
+<code>extract_feature()</code>,
+<code>extract_rl()</code>,
+<code>extract_sky_points_simple()</code>,
+<code>extract_sky_points()</code>,
+<code>extract_sun_coord()</code>,
+<code>find_sky_pixels_nonnull()</code>,
+<code>masking()</code>,
+<code>optim_normalize()</code>,
+<code>percentage_of_clipped_highlights()</code>,
+<code>read_bin()</code>,
+<code>read_caim_raw()</code>,
+<code>read_caim()</code>,
+<code>write_bin()</code>,
+<code>write_caim()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+caim &lt;- read_caim() %&gt;% normalize(., 0, 20847)
+z &lt;- zenith_image(ncol(caim), lens())
+a &lt;- azimuth_image(z)
+r &lt;- caim$Blue
+r[is.na(r)] &lt;- 0
+bin &lt;- find_sky_pixels(r, z, a)
+plot(bin)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

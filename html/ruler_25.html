@@ -1,0 +1,128 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ruler-report</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Tidy data validation report</h2>
+
+<h3>Description</h3>
+
+<p>A tibble representing the data validation result of certain data units in
+tidy way:
+</p>
+
+<ul>
+<li> <p><strong>pack</strong> <code style="white-space: pre;">⁠&lt;chr&gt;⁠</code> : Name of rule pack from column 'name' of corresponding
+packs_info object.
+</p>
+</li>
+<li> <p><strong>rule</strong> <code style="white-space: pre;">⁠&lt;chr&gt;⁠</code> : Name of the rule defined in rule pack.
+</p>
+</li>
+<li> <p><strong>var</strong> <code style="white-space: pre;">⁠&lt;chr&gt;⁠</code> : Name of the variable which validation result is reported.
+Value '.all' is reserved and interpreted as 'all columns as a whole'.
+<strong>Note</strong> that <code>var</code> doesn't always represent the actual column in data frame
+(see group packs).
+</p>
+</li>
+<li> <p><strong>id</strong> <code style="white-space: pre;">⁠&lt;int&gt;⁠</code> : Index of the row in tested data frame which validation
+result is reported. Value 0 is reserved and interpreted as 'all rows as a
+whole'.
+</p>
+</li>
+<li> <p><strong>value</strong> <code style="white-space: pre;">⁠&lt;lgl&gt;⁠</code> : Whether the described data unit obeys the rule.
+</p>
+</li>
+</ul>
+<h3>Usage</h3>
+
+<pre><code class="language-R">is_report(.x, .skip_class = FALSE)
+
+get_report(.object)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>.x</code></td>
+<td>
+<p>Object to test.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.skip_class</code></td>
+<td>
+<p>Whether to skip checking inheritance from <code>ruler_report</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.object</code></td>
+<td>
+<p>Object to get <code>report</code> value from <code>exposure</code> attribute.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>There are four basic combinations of <code>var</code> and <code>id</code> values which
+define five basic data units:
+</p>
+
+<ul>
+<li> <p><code>var == '.all'</code> and <code>id == 0</code>: Data as a whole.
+</p>
+</li>
+<li> <p><code>var != '.all'</code> and <code>id == 0</code>: Group (<code>var</code> shouldn't be an actual column
+name) or column (<code>var</code> should be an actual column name) as a whole.
+</p>
+</li>
+<li> <p><code>var == '.all'</code> and <code>id != 0</code>: Row as a whole.
+</p>
+</li>
+<li> <p><code>var != '.all'</code> and <code>id != 0</code>: Described cell.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p><code>get_report()</code> returns <code>report</code> element of <code>object</code> if it is
+exposure and of its 'exposure' attribute otherwise.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">my_row_packs &lt;- row_packs(
+  row_mean_props = . %&gt;% dplyr::transmute(row_mean = rowMeans(.)) %&gt;%
+    dplyr::transmute(
+      row_mean_low = row_mean &gt; 20,
+      row_mean_high = row_mean &lt; 60
+    ),
+  row_outlier = . %&gt;% dplyr::transmute(row_sum = rowSums(.)) %&gt;%
+    dplyr::transmute(
+      not_row_outlier = abs(row_sum - mean(row_sum)) / sd(row_sum) &lt; 1.5
+    )
+)
+my_data_packs &lt;- data_packs(
+  data_dims = . %&gt;% dplyr::summarise(
+    nrow = nrow(.) == 32,
+    ncol = ncol(.) == 5
+  )
+)
+
+mtcars_exposed &lt;- mtcars %&gt;%
+  expose(my_data_packs, .remove_obeyers = FALSE) %&gt;%
+  expose(my_row_packs)
+
+mtcars_exposed %&gt;% get_report()
+
+mtcars_exposed %&gt;%
+  get_report() %&gt;%
+  is_report()
+</code></pre>
+
+
+</div>

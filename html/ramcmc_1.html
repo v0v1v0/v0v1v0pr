@@ -1,0 +1,121 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>adapt_S</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Update the Proposal of RAM Algorithm</h2>
+
+<h3>Description</h3>
+
+<p>Given the lower triangular matrix S obtained from the Cholesky decomposition of the shape
+of the proposal distribution, function <code>adapt_S</code> updates S according to the RAM algorithm.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">adapt_S(S, u, current, n, target = 0.234, gamma = 2/3)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>S</code></td>
+<td>
+<p>A lower triangular matrix corresponding to the Cholesky decomposition of the
+scale of the proposal distribution.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>u</code></td>
+<td>
+<p>A vector with with length matching with the dimensions of S.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>current</code></td>
+<td>
+<p>The current acceptance probability.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>Scaling parameter corresponding to the current iteration number.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target</code></td>
+<td>
+<p>The target acceptance rate. Default is 0.234.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gamma</code></td>
+<td>
+<p>Scaling parameter. Default is 2/3.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>If the resulting matrix is positive definite, an updated value of S.
+Otherwise original S is returned.
+</p>
+
+
+<h3>Note</h3>
+
+<p>If the downdating would result non-positive definite matrix, no adaptation is performed.
+</p>
+
+
+<h3>References</h3>
+
+<p>Matti Vihola (2012). "Robust adaptive Metropolis algorithm with coerced acceptance rate".
+Statistics and Computing, 22: 997. doi:10.1007/s11222-011-9269-5
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# sample from standard normal distribution
+# use proposals from the uniform distribution on
+# interval (-s, s), where we adapt s
+
+adapt_mcmc &lt;- function(n = 10000, s) {
+  x &lt;- numeric(n)
+  loglik_old &lt;- dnorm(x[1], log = TRUE)
+  for (i in 2:n) {
+    u &lt;- s * runif(1, -1, 1)
+    prop &lt;- x[i] + u
+    loglik &lt;- dnorm(prop, log = TRUE)
+    accept_prob &lt;- min(1, exp(loglik - loglik_old))
+    if (runif(1) &lt; accept_prob) {
+      x[i] &lt;- prop
+      loglik_old &lt;- loglik
+    } else {
+      x[i] &lt;- x[i - 1]
+    }
+    # Adapt only during the burn-in
+    if (i &lt; n/2) {
+      s &lt;- adapt_S(s, u, accept_prob, i)
+    }
+  }
+  list(x = x[(n/2):n], s = s)
+}
+
+out &lt;- adapt_mcmc(1e5, 2)
+out$s
+hist(out$x)
+# acceptance rate:
+1 / mean(rle(out$x)$lengths)
+
+</code></pre>
+
+
+</div>

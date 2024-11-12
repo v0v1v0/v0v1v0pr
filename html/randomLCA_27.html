@@ -1,0 +1,101 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>refit</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Refit an randomLCA object</h2>
+
+<h3>Description</h3>
+
+<p>Refits an randomLCA object using new data. This is useful when fitting simulated data, for example using a bootstrap. 
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'randomLCA'
+refit(object, newpatterns, newfreq, useinit = FALSE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>randomLCA object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newpatterns</code></td>
+<td>
+<p>the new patterns that are to be fitted using the existing model</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newfreq</code></td>
+<td>
+<p>the frequencies corresponding to the patterns if required</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>useinit</code></td>
+<td>
+<p>use initial values from randomLCA object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p> additional argument; currently none is used. </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The useunit parameter determines whether the parameter estimates from the supplied model are used as initial values or whether the complete model fitting process is repeated. If the initial values are used then fitting will be faster, and the fitted classes will be similar to those in the original model. If the data was not generated from the original model there is an increased risk that the fit will not find the global maxima. For this reason when performing a bootstrap Likelihood ratio test it is better to use useinit = FALSE. However when using useinit = FALSE there may be label switching, where the estimated classes are similar, but in a different order. Unless the estimated parameters are assigned to the correct classes this will invalidate the results of a parametric bootstrap for parameter confidence intervals.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The fitted model to the new data.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Ken Beath</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+myocardial.lca1 &lt;- randomLCA(myocardial[, 1:4], freq = myocardial$freq, nclass = 1, cores = 1)
+myocardial.lca2 &lt;- randomLCA(myocardial[, 1:4], freq = myocardial$freq, cores = 1)
+# calculate observed lrt
+obslrt &lt;- 2*(logLik(myocardial.lca2)-logLik(myocardial.lca1))
+
+print(obslrt)
+
+nsims &lt;- 999
+# generate the simulations
+thesims &lt;- simulate(myocardial.lca1, nsims)
+# for each simulation determin lrt
+simlrt &lt;- rep(NA, nsims)
+for (isim in 1:nsims) {
+  submodel &lt;- refit(myocardial.lca1, newpatterns = thesims[[isim]])
+  fullmodel &lt;- refit(myocardial.lca2, newpatterns = thesims[[isim]])
+  simlrt[isim] &lt;- 2*(logLik(fullmodel)-logLik(submodel))
+  print(c(isim, simlrt[isim]))
+}
+# calculate p value as proportion of simulated lrt greater than observed, 
+# corrected by adding one to numerator and denominator
+print((sum(simlrt &gt;= obslrt)+1)/(nsims+1))
+
+</code></pre>
+
+
+</div>

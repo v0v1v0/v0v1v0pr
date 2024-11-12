@@ -1,0 +1,173 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>f_diss</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Euclidean, Mahalanobis and cosine dissimilarity measurements</h2>
+
+<h3>Description</h3>
+
+<script id="MathJax-script" async src="../../mathjaxr/doc/mathjax/es5/tex-chtml-full.js"></script><a href="https://www.tidyverse.org/lifecycle/#satble"><img src="figures/lifecycle-stable.svg" alt="Stable lifecycle"></a>
+<p>This function is used to compute the dissimilarity between observations
+based on Euclidean or Mahalanobis distance measures or on cosine
+dissimilarity measures (a.k.a spectral angle mapper).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">f_diss(Xr, Xu = NULL, diss_method = "euclid",
+       center = TRUE, scale = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Xr</code></td>
+<td>
+<p>a matrix containing the (reference) data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Xu</code></td>
+<td>
+<p>an optional matrix containing data of a second set of observations
+(samples).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>diss_method</code></td>
+<td>
+<p>the method for computing the dissimilarity between
+observations.
+Options are <code>"euclid"</code> (Euclidean distance), <code>"mahalanobis"</code>
+(Mahalanobis distance) and <code>"cosine"</code> (cosine distance, a.k.a spectral
+angle mapper). See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>center</code></td>
+<td>
+<p>a logical indicating if the spectral data <code>Xr</code> (and
+<code>Xu</code> if specified) must be centered. If <code>Xu</code> is provided, the data
+is scaled on the basis of \(Xr \cup Xu\).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>a logical indicating if <code>Xr</code> (and <code>Xu</code> if specified)
+must be scaled. If <code>Xu</code> is provided the data is scaled on the basis
+of \(Xr \cup Xu\).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The results obtained for Euclidean dissimilarity are equivalent to those
+returned by the <code>stats::dist()</code> function, but are scaled
+differently. However, <code>f_diss</code> is considerably faster (which can be
+advantageous when computing dissimilarities for very large matrices). The
+final scaling of the dissimilarity scores in <code>f_diss</code> where
+the number of variables is used to scale the squared dissimilarity scores. See
+the examples section for a comparison between <code>stats::dist()</code> and
+<code>f_diss</code>.
+</p>
+<p>In the case of both the Euclidean and Mahalanobis distances, the scaled
+dissimilarity matrix \(D\) between between observations in a given
+matrix \(X\) is computed as follows:
+</p>
+\[d(x_i, x_j)^{2} = \sum (x_i - x_j)M^{-1}(x_i - x_j)^{\mathrm{T}}\]
+\[d_{scaled}(x_i, x_j) = \sqrt{\frac{1}{p}d(x_i, x_j)^{2}}\]
+<p>where \(p\) is the number of variables in \(X\), \(M\) is the identity
+matrix in the case of the Euclidean distance and the variance-covariance
+matrix of \(X\) in the case of the Mahalanobis distance. The Mahalanobis
+distance can also be viewed as the Euclidean distance after applying a
+linear transformation of the original variables. Such a linear transformation
+is done by using a factorization of the inverse covariance matrix as
+\(M^{-1} = W^{T}W\), where \(M\) is merely the square root of
+\(M^{-1}\) which can be found by using a singular value decomposition.
+</p>
+<p>Note that when attempting to compute the Mahalanobis distance on a dataset
+with highly correlated variables (i.e. spectral variables) the
+variance-covariance matrix may result in a singular matrix which cannot be
+inverted and therefore the distance cannot be computed.
+This is also the case when the number of observations in the dataset is
+smaller than the number of variables.
+</p>
+<p>For the computation of the Mahalanobis distance, the mentioned method is
+used.
+</p>
+<p>The cosine dissimilarity \(c\) between two observations
+\(x_i\) and \(x_j\) is computed as follows:
+</p>
+\[c(x_i, x_j) = cos^{-1}{\frac{\sum_{k=1}^{p}x_{i,k} x_{j,k}}{\sqrt{\sum_{k=1}^{p} x_{i,k}^{2}} \sqrt{\sum_{k=1}^{p} x_{j,k}^{2}}}}\]
+<p>where \(p\) is the number of variables of the observations.
+The function does not accept input data containing missing values.
+NOTE: The computed distances are divided by the number of variables/columns
+in <code>Xr</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a matrix of the computed dissimilarities.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p><a href="https://orcid.org/0000-0002-5369-5120">Leonardo Ramirez-Lopez</a> and Antoine Stevens
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(prospectr)
+data(NIRsoil)
+
+Xu &lt;- NIRsoil$spc[!as.logical(NIRsoil$train), ]
+Xr &lt;- NIRsoil$spc[as.logical(NIRsoil$train), ]
+
+# Euclidean distances between all the observations in Xr
+
+ed &lt;- f_diss(Xr = Xr, diss_method = "euclid")
+
+# Equivalence with the dist() fucntion of R base
+ed_dist &lt;- (as.matrix(dist(Xr))^2 / ncol(Xr))^0.5
+round(ed_dist - ed, 5)
+
+# Comparing the computational time
+iter &lt;- 20
+tm &lt;- proc.time()
+for (i in 1:iter) {
+  f_diss(Xr)
+}
+f_diss_time &lt;- proc.time() - tm
+
+tm_2 &lt;- proc.time()
+for (i in 1:iter) {
+  dist(Xr)
+}
+dist_time &lt;- proc.time() - tm_2
+
+f_diss_time
+dist_time
+
+# Euclidean distances between observations in Xr and observations in Xu
+ed_xr_xu &lt;- f_diss(Xr, Xu)
+
+# Mahalanobis distance computed on the first 20 spectral variables
+md_xr_xu &lt;- f_diss(Xr[, 1:20], Xu[, 1:20], "mahalanobis")
+
+# Cosine dissimilarity matrix
+cdiss_xr_xu &lt;- f_diss(Xr, Xu, "cosine")
+
+</code></pre>
+
+
+</div>

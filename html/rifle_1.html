@@ -1,0 +1,124 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rifle-package</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Sparse Generalized Eigenvalue Problem
+</h2>
+
+<h3>Description</h3>
+
+<p>This package is called rifle. It implements algorithms for solving sparse generalized eigenvalue problem.  The algorithms are described in the paper "Sparse Generalized Eigenvalue Problem: Optimal Statistical Rates via Truncated Rayleigh Flow", by Tan et al. (2018). 
+</p>
+<p>The main functions are as follows:
+(1) initial.convex
+(2) rifle
+</p>
+<p>The first function, initial.convex, solves the sparse generalized eigenvalue problem using a convex relaxation.  The second function, rifle, refines the initial estimates from initial.convex and gives a more accurate estimator of the leading generalized eigenvector.   
+</p>
+
+
+<h3>Details</h3>
+
+<p>The package includes the following functions:
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+	<code>initial.convex</code>: </td>
+<td style="text-align: left;"> Solve a convex relaxation of the sparse GEP </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+	<code>rifle</code>: </td>
+<td style="text-align: left;"> Perform truncated rayleigh method to obtain the largest generalized eigenvector</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Kean Ming Tan
+</p>
+<p>Maintainer: Kean Ming Tan 
+</p>
+
+
+<h3>References</h3>
+
+<p>Sparse Generalized Eigenvalue Problewm: Optimal Statistical Rates via Truncated Rayleigh Flow", by Tan et al. (2018). To appear in Journal of the Royal Statistical Society: Series B.  https://arxiv.org/pdf/1604.08697.pdf.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>initial.convex</code>
+<code>rifle</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Example on Fisher's Discriminant Analysis	on two class classification
+# A small toy example
+	n &lt;- 50
+	p &lt;- 25
+
+# Generate block diagonal covariance matrix with 5 blocks
+	Sigma &lt;- matrix(0,p,p)
+	for(i in 1:p){
+		Sigma[i,] &lt;- 1:(p)-i
+	}
+	Sigma &lt;- 0.7^abs(Sigma)
+
+# Generate mean vector for two classes
+	mu1 &lt;- rep(0,p)
+	mu2 &lt;- c(rep(c(0,1),5),rep(0,p-10))
+
+# Generate data for two classes
+	X &lt;- rbind(mvrnorm(n=n/2,mu1,Sigma),mvrnorm(n=n/2,mu2,Sigma))
+	y &lt;- rep(1:2,each=n/2)
+
+# Estimate the subspace spanned by the largest eigenvector using convex relaxation
+# Estimates
+ estmu1 &lt;- apply(X[y==1,],2,mean)
+ estmu2 &lt;- apply(X[y==2,],2,mean)
+ estwithin &lt;- cov(X[y==1,])+cov(X[y==2,])
+ estbetween &lt;- outer(estmu1,estmu1)+outer(estmu2,estmu2)
+
+# Running initialization using convex relaxation
+ a &lt;- initial.convex(A=estbetween,B=estwithin,lambda=2*sqrt(log(p)/n),K=1,nu=1,trace=FALSE)
+
+# Use rifle to improve the leading generalized eigenvector
+ init &lt;- eigen(a$Pi+t(a$Pi))$vectors[,1]
+
+# Pick k such that the generalized eigenvector is sparse
+ k &lt;- 10
+#  Rifle 1
+ final.estimator &lt;- rifle(estbetween,estwithin,init,k,0.01,1e-3)
+
+# True direction in this simulation setting
+# truebetween &lt;- mu1 %*% t(mu1)+ mu2 %*% t(mu2)
+# truewithin &lt;- Sigma+Sigma
+# temp &lt;- eigen(truewithin)
+# sqrtwithin &lt;- temp$vectors %*% diag(sqrt(temp$values)) %*% t(temp$vectors)
+
+# vecres &lt;-svd(solve(sqrtwithin)%*% truebetween%*% solve(sqrtwithin))$v[,1]
+
+# oracledirection &lt;- solve(sqrtwithin) %*% vecres
+
+# oracledirection &lt;- oracledirection/sqrt(sum(oracledirection^2))
+
+# Comparing estimated vs true direction by computing the cosine angle
+# 1-sum(abs(oracledirection*final.estimator))
+
+</code></pre>
+
+
+</div>

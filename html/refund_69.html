@@ -1,0 +1,192 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pfr</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Penalized Functional Regression</h2>
+
+<h3>Description</h3>
+
+<p>Implements various approaches to penalized scalar-on-function regression.
+These techniques include
+Penalized Functional Regression (Goldsmith et al., 2011),
+Longitudinal Penalized Functional Regression (Goldsmith, et al., 2012),
+Functional Principal Component Regression (Reiss and Ogden, 2007),
+Partially Empirical Eigenvectors for Regression (Randolph et al., 2012),
+Functional Generalized Additive Models (McLean et al., 2013),
+and
+Variable-Domain Functional Regression (Gellar et al., 2014).
+This function is a wrapper for mgcv's <code>{gam}</code> and its siblings
+to fit models with a scalar (but not necessarily continuous) response.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pfr(formula = NULL, fitter = NA, method = "REML", ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a formula that could contain any of the following special terms:
+<code>{lf}()</code>, <code>{af}()</code>, <code>{lf.vd}()</code>,
+<code>{peer}()</code>,  <code>{fpc}()</code>,
+or <code>{re}()</code>; also <code>mgcv</code>'s <code>{s}()</code>,
+<code>{te}()</code>, or <code>{t2}()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fitter</code></td>
+<td>
+<p>the name of the function used to estimate the model. Defaults
+to <code>{gam}</code> if the matrix of functional responses has less than 2e5
+data points and to <code>{bam}</code> if not. "gamm" (see <code>{gamm}</code>)
+and "gamm4" (see <code>{gamm4}</code>) are valid options as well.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>The smoothing parameter estimation method. Default is
+<code>"REML"</code>. For options, see <code>{gam}</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments that are valid for <code>{gam}</code> or
+<code>{bam}</code>. These include <code>data</code> and <code>family</code> to specify
+the input data and outcome family, as well as many options to control the
+estimation.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A fitted pfr-object, which is a <code>{gam}</code>-object with some
+additional information in a <code>$pfr</code>-element. If fitter is <code>"gamm"</code>
+or <code>"gamm4"</code>, only the <code>$gam</code> part of the returned list is
+modified in this way.
+</p>
+
+
+<h3>Warning</h3>
+
+<p>Binomial responses should be specified as a numeric vector rather than as a
+matrix or a factor.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Jonathan Gellar <a href="mailto:JGellar@mathematica-mpr.com">JGellar@mathematica-mpr.com</a>, Mathew W. McLean,
+Jeff Goldsmith, and Fabian Scheipl
+</p>
+
+
+<h3>References</h3>
+
+<p>Goldsmith, J., Bobb, J., Crainiceanu, C., Caffo, B., and Reich, D. (2011).
+Penalized functional regression. <em>Journal of Computational and Graphical
+Statistics</em>, 20(4), 830-851.
+</p>
+<p>Goldsmith, J., Crainiceanu, C., Caffo, B., and Reich, D. (2012). Longitudinal
+penalized functional regression for cognitive outcomes on neuronal tract
+measurements. <em>Journal of the Royal Statistical Society: Series C</em>,
+61(3), 453-469.
+</p>
+<p>Reiss, P. T., and Ogden, R. T. (2007). Functional principal component
+regression and functional partial least squares. <em>Journal of the
+American Statistical Association</em>, 102, 984-996.
+</p>
+<p>Randolph, T. W., Harezlak, J, and Feng, Z. (2012). Structured penalties for
+functional linear models - partially empirical eigenvectors for regression.
+<em>Electronic Journal of Statistics</em>, 6, 323-353.
+</p>
+<p>McLean, M. W., Hooker, G., Staicu, A.-M., Scheipl, F., and
+Ruppert, D. (2014). Functional generalized additive models. <em>Journal of
+Computational and Graphical Statistics</em>, <b>23 (1)</b>, pp. 249-269.
+</p>
+<p>Gellar, J. E., Colantuoni, E., Needham, D. M., and Crainiceanu, C. M. (2014).
+Variable-Domain Functional Regression for Modeling ICU Data. Journal of the
+American Statistical Association, 109(508): 1425-1439.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>{af}</code>, <code>{lf}</code>, <code>{lf.vd}</code>,
+<code>{fpc}</code>, <code>{peer}</code>, <code>{re}</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># See lf(), lf.vd(), af(), fpc(), and peer() for additional examples
+
+data(DTI)
+DTI1 &lt;- DTI[DTI$visit==1 &amp; complete.cases(DTI),]
+par(mfrow=c(1,2))
+
+# Fit model with linear functional term for CCA
+fit.lf &lt;- pfr(pasat ~ lf(cca, k=30, bs="ps"), data=DTI1)
+plot(fit.lf, ylab=expression(paste(beta(t))), xlab="t")
+## Not run: 
+# Alternative way to plot
+bhat.lf &lt;- coef(fit.lf, n=101)
+bhat.lf$upper &lt;- bhat.lf$value + 1.96*bhat.lf$se
+bhat.lf$lower &lt;- bhat.lf$value - 1.96*bhat.lf$se
+matplot(bhat.lf$cca.argvals, bhat.lf[,c("value", "upper", "lower")],
+        type="l", lty=c(1,2,2), col=1,
+        ylab=expression(paste(beta(t))), xlab="t")
+
+# Fit model with additive functional term for CCA, using tensor product basis
+fit.af &lt;- pfr(pasat ~ af(cca, Qtransform=TRUE, k=c(7,7)), data=DTI1)
+plot(fit.af, scheme=2, xlab="t", ylab="cca(t)", main="Tensor Product")
+plot(fit.af, scheme=2, Qtransform=TRUE,
+     xlab="t", ylab="cca(t)", main="Tensor Product")
+
+# Change basistype to thin-plate regression splines
+fit.af.s &lt;- pfr(pasat ~ af(cca, basistype="s", Qtransform=TRUE, k=50),
+                data=DTI1)
+plot(fit.af.s, scheme=2, xlab="t", ylab="cca(t)", main="TPRS", rug=FALSE)
+plot(fit.af.s, scheme=2, Qtransform=TRUE,
+     xlab="t", ylab="cca(t)", main="TPRS", rug=FALSE)
+
+# Visualize bivariate function at various values of x
+par(mfrow=c(2,2))
+vis.pfr(fit.af, xval=.2)
+vis.pfr(fit.af, xval=.4)
+vis.pfr(fit.af, xval=.6)
+vis.pfr(fit.af, xval=.8)
+
+# Include random intercept for subject
+DTI.re &lt;- DTI[complete.cases(DTI$cca),]
+DTI.re$ID &lt;- factor(DTI.re$ID)
+fit.re &lt;- pfr(pasat ~ lf(cca, k=30) + re(ID), data=DTI.re)
+coef.re &lt;- coef(fit.re)
+par(mfrow=c(1,2))
+plot(fit.re)
+
+# FPCR_R Model
+fit.fpc &lt;- pfr(pasat ~ fpc(cca), data=DTI.re)
+plot(fit.fpc)
+
+# PEER Model with second order difference penalty
+DTI.use &lt;- DTI[DTI$case==1,]
+DTI.use &lt;- DTI.use[complete.cases(DTI.use$cca),]
+fit.peer &lt;- pfr(pasat ~ peer(cca, argvals=seq(0,1,length=93),
+                             integration="riemann", pentype="D"), data=DTI.use)
+plot(fit.peer)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

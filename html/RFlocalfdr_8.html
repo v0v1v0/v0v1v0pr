@@ -1,0 +1,102 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>imp20000</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>20000 importance values</h2>
+
+<h3>Description</h3>
+
+<p>A dataset containing  20000 importance values
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">imp20000
+</code></pre>
+
+
+<h3>Format</h3>
+
+<p>A vector varaible importances with 20000 values
+</p>
+
+<dl>
+<dt>imp1</dt>
+<dd>
+<p>importances </p>
+</dd>
+</dl>
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+require(ranger)
+inv.logit &lt;-function (x) {
+    plogis(x)}
+
+make_data &lt;- function(nVars, nSamples) {
+    as.matrix(sapply(1:nVars, function(t){sample(0:2, nSamples, replace=TRUE)}))
+}
+
+make_cont_response &lt;- function(X, w) {
+    (X-1) %*% w 
+}
+
+make_response &lt;- function(X, w) {
+   as.factor(inv.logit((X-1) %*% w * 2 ) &gt; runif(nrow(X)))
+} 
+
+
+nVars &lt;-   20000
+nSamples &lt;- 1000
+
+set.seed(19)
+X&lt;- make_data(nVars,nSamples)
+
+w &lt;- rep(0, times = nVars)
+w[101] &lt;- 1
+w[102] &lt;- 1/sqrt(2)
+w[103] &lt;- 1/sqrt(4)
+w[104] &lt;- 1/sqrt(8)
+w[105] &lt;- 1/sqrt(16)
+y &lt;- make_response(X, w)
+
+
+colnames(X) &lt;- c(make.names(1:20000))
+set.seed(19)
+rf1&lt;-ranger::ranger(y=y,x=X, num.trees = 2000,importance="impurity")
+table(y,predict(rf1,data=X)$predictions)
+#OOB prediction error:             41.30 % 
+table(y,predict(rf1,data=X)$predictions)
+
+t2 &lt;-count_variables(rf1)
+head(t2)
+dim(t2)
+
+imp&lt;-rf1$variable.importance
+imp&lt;-log(imp)
+plot(density((imp)))
+hist(imp,col=6,lwd=2,breaks=100,main="histogram of importances")
+
+res.temp &lt;- determine_cutoff(imp, t2 ,cutoff=c(0,1,2,3),plot=c(0,1,2,3),Q=0.75,try.counter=1)
+plot(c(0,1,2,3),res.temp[,3])
+imp&lt;-imp[t2 &gt; 1]
+qq &lt;- plotQ(imp,debug.flag = 0)
+ppp&lt;-run.it.importances(qq,imp,debug=0)
+aa&lt;-significant.genes(ppp,imp,cutoff=0.2,debug.flag=0,do.plot=2, use_95_q=TRUE)
+length(aa$probabilities)
+names(aa$probabilities)
+#' #[1] "X101"   "X102"   "X103"   "X104"   "X105"   "X2994"  "X9365"  "X10718"
+# [9] "X13371" "X15517" "X16460"
+
+counts&lt;-t2
+imp20000 &lt;- list(imp,counts)
+names(imp20000) &lt;-c("importances","counts")
+
+
+</code></pre>
+
+
+</div>

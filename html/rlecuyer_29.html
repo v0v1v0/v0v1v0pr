@@ -1,0 +1,78 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rlecuyer-package</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+R Interface to Random Number Generator with Multiple Streams
+</h2>
+
+<h3>Description</h3>
+
+<p>Provides an interface to the C implementation of the
+random number generator (RNG) with multiple independent streams
+developed by L'Ecuyer et al (2002). The package enables to use this random number generator in
+parallel R applications.
+</p>
+
+
+<h3>Details</h3>
+
+<p>When the <span class="pkg">rlecuyer</span> package is loaded, the L'Ecuyer RNG is initialized by creating a global table object (<code>.lec.Random.seed.table</code>) which allows to keep information and account for multiple random number streams that the user can create. The individual streams are identified by names which must be unique. The workflow starts with initializing the RNG with a seed via <code>.lec.SetPackageSeed</code> and creating one or more streams via <code>.lec.CreateStream</code>.
+</p>
+<p>When the RNG is deployed in a parallel application, one stream can be used for generating all random numbers (RNs) on one node, or all RNs generated within one task. The master node would hold the global table object, initialize it with a package seed (via <code>.lec.SetPackageSeed</code>), create the amount of streams that are needed for the application (via <code>.lec.CreateStream</code>) and send each worker information about the stream assigned to it. Alternatively, all workers could be initialized with an identical global table and identical streams, and the master node could be only sending the identifiers of the streams on which each worker should operate. If streams are assigned to tasks instead of nodes, one can assure reproducibility regardless of the number of nodes the application is running on, or regardless if it is run sequentially or in parallel.
+</p>
+<p>To generate RNs from a particular stream, start with the function <code>.lec.CurrentStream</code>. This will assure that any subsequent call to standard R functions that use RNs (e.g. <code>runif</code> or <code>rnorm</code> will draw from the current stream. <code>.lec.CurrentStreamEnd</code> unsets the stream. Thus, by using these two functions in pair, one can switch between different streams. Alternatively, if drawing from a uniform distribution is sufficient, by using the function <code>.lec.uniform</code> one can omit the CurrentStream and CurrentStreamEnd pair, as the <code>.lec.uniform</code> function includes the name of the stream to draw from.
+</p>
+<p>Each stream is given by its current state (see <code>SetPackageSeed</code> for description) that can be viewed by <code>.lec.WriteStateFull</code>. To reset a stream to its initial state, use <code>.lec.ResetStartStream</code>. To extract the curent state of a stream, one can use <code>.lec.GetState</code>. 
+</p>
+<p>Other useful functions are available. For example, one can advance the state of a stream by given number of steps via the <code>.lec.AdvanceState</code> function. Function <code>.lec.GetStreams</code> allows to retrieve names of all streams in the global table.  To delete a stream from the table, use <code>.lec.DeleteStream</code>. If there is a need to delete the whole table of streams and initialize a new one, one can use <code>.lec.init</code> and  <code>.lec.exit</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>P. L'Ecuyer, R. Simard, E.J.Chen and W.D.Kelton: An
+Object-Oriented Random-Number Package With Many Long Streams and
+Substreams; Operations Research, vol. 50, nr. 6, 2002.    
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Initialize the RNG with package seed
+seed &lt;- rep(85424, 6) 
+.lec.SetPackageSeed(seed)
+
+# Create 5 streams
+nstream &lt;- 5
+snames &lt;- as.character(1:nstream) # unique stream identifiers 
+.lec.CreateStream(snames)
+
+# Generate 10 RNs from each of the 5 streams
+# (each of the iterations could run on a different node)
+rns &lt;- NULL
+for (i in 1:nstream) {
+    old.kind &lt;- .lec.CurrentStream(snames[i])
+    rns &lt;- rbind(rns, runif(10))
+   .lec.CurrentStreamEnd(old.kind)
+}
+rns
+
+# Reproduce results on the second stream
+.lec.ResetStartStream("2")
+rns2 &lt;- .lec.uniform("2", 10)
+all(rns2 == rns[2,])
+
+# Reproduce the last three RNs on stream 5
+.lec.ResetStartStream("5")
+.lec.AdvanceState("5", 0, 7) # move the state by 7 steps
+rns5p &lt;- .lec.uniform("5", 3)
+all(rns5p == rns[5, 8:10])
+
+
+</code></pre>
+
+
+</div>

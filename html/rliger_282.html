@@ -1,0 +1,228 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>scaleNotCenter</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Scale genes by root-mean-square across cells</h2>
+
+<h3>Description</h3>
+
+<p>This function scales normalized gene expression data after
+variable genes have been selected. We do not mean-center the data before
+scaling in order to address the non-negativity constraint of NMF.
+Computation applied to each normalized dataset matrix can form the following
+equation:
+</p>
+<p style="text-align: center;"><code class="reqn">S_{i,j}=\frac{N_{i,j}}{\sqrt{\sum_{p}^{n}\frac{N_{i,p}^2}{n-1}}}</code>
+</p>
+
+<p>Where <code class="reqn">N</code> denotes the normalized matrix for an individual dataset,
+<code class="reqn">S</code> is the output scaled matrix for this dataset, and <code class="reqn">n</code> is the
+number of cells in this dataset. <code class="reqn">i, j</code> denotes the specific gene and
+cell index, and <code class="reqn">p</code> is the cell iterator.
+</p>
+<p>Please see detailed section below for explanation on methylation dataset.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">scaleNotCenter(object, ...)
+
+## S3 method for class 'dgCMatrix'
+scaleNotCenter(object, ...)
+
+## S3 method for class 'ligerDataset'
+scaleNotCenter(
+  object,
+  features = NULL,
+  chunk = 1000,
+  verbose = getOption("ligerVerbose", TRUE),
+  ...
+)
+
+## S3 method for class 'ligerMethDataset'
+scaleNotCenter(
+  object,
+  features = NULL,
+  verbose = getOption("ligerVerbose", TRUE),
+  ...
+)
+
+## S3 method for class 'liger'
+scaleNotCenter(
+  object,
+  useDatasets = NULL,
+  features = varFeatures(object),
+  verbose = getOption("ligerVerbose", TRUE),
+  remove.missing = NULL,
+  ...
+)
+
+## S3 method for class 'Seurat'
+scaleNotCenter(
+  object,
+  assay = NULL,
+  layer = "ligerNormData",
+  save = "ligerScaleData",
+  datasetVar = "orig.ident",
+  features = NULL,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>liger object, ligerDataset object,
+dgCMatrix, or a Seurat object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Arguments passed to other methods. The order goes by: "liger"
+method calls "ligerDataset" method", which then calls "dgCMatrix" method.
+"Seurat" method directly calls "dgCMatrix" method.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>features</code></td>
+<td>
+<p>Character, numeric or logical index that choose the variable
+feature to be scaled. "liger" method by default uses
+<code>varFeatures(object)</code>. "ligerDataset" method by default uses all
+features. "Seurat" method by default uses
+<code>Seurat::VariableFeatures(object)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chunk</code></td>
+<td>
+<p>Integer. Number of maximum number of cells in each chunk, when
+scaling is applied to any HDF5 based dataset. Default <code>1000</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Logical. Whether to show information of the progress. Default
+<code>getOption("ligerVerbose")</code> or <code>TRUE</code> if users have not set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>useDatasets</code></td>
+<td>
+<p>A character vector of the names, a numeric or logical
+vector of the index of the datasets to be scaled but not centered. Default
+<code>NULL</code> applies to all datasets.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>remove.missing</code></td>
+<td>
+<p><b>Deprecated</b>. The functionality of this is covered
+through other parts of the whole workflow and is no long needed. Will be
+ignored if specified.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>assay</code></td>
+<td>
+<p>Name of assay to use. Default <code>NULL</code> uses current active
+assay.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>layer</code></td>
+<td>
+<p>For Seurat&gt;=4.9.9, the name of layer to retrieve normalized
+data. Default <code>"ligerNormData"</code>. For older Seurat, always retrieve from
+<code>data</code> slot.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>save</code></td>
+<td>
+<p>For Seurat&gt;=4.9.9, the name of layer to store normalized data.
+Default <code>"ligerScaleData"</code>. For older Seurat, stored to
+<code>scale.data</code> slot.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>datasetVar</code></td>
+<td>
+<p>Metadata variable name that stores the dataset source
+annotation. Default <code>"orig.ident"</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Updated <code>object</code>
+</p>
+
+<ul>
+<li>
+<p>dgCMatrix method - Returns scaled dgCMatrix object
+</p>
+</li>
+<li>
+<p>ligerDataset method - Updates the <code>scaleData</code> and
+<code>scaledUnsharedData</code> (if unshared variable feature available) slot
+of the object
+</p>
+</li>
+<li>
+<p>liger method - Updates the <code>scaleData</code> and
+<code>scaledUnsharedData</code> (if unshared variable feature available) slot
+of chosen datasets
+</p>
+</li>
+<li>
+<p>Seurat method - Adds a named layer in chosen assay (V5), or update the
+<code>scale.data</code> slot of the chosen assay (&lt;=V4)
+</p>
+</li>
+</ul>
+<h3>Methylation dataset</h3>
+
+<p>Because gene body mCH proportions are negatively correlated with gene
+expression level in neurons, we need to reverse the direction of the
+methylation data before performing the integration. We do this by simply
+subtracting all values from the maximum methylation value. The resulting
+values are positively correlated with gene expression. This will only be
+applied to variable genes detected in prior. Please make sure that argument
+<code>modal</code> is set accordingly when running <code>createLiger</code>. In
+this way, this function can automatically detect it and take proper action.
+If it is not set, users can still manually have the equivalent processing
+done by doing <code>scaleNotCenter(lig, useDataset = c("other", "datasets"))</code>,
+and then <code>reverseMethData(lig, useDataset = c("meth", "datasets"))</code>.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Since the scaling on genes is applied on a per dataset base, other scaling
+methods that apply to a whole concatenated matrix of multiple datasets might
+not be considered as equivalent alternatives, even if options like
+<code>center</code> are set to <code>FALSE</code>. Hence we implemented an efficient
+solution that works under such circumstance, provided with the Seurat S3
+method.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">pbmc &lt;- normalize(pbmc)
+pbmc &lt;- selectGenes(pbmc)
+pbmc &lt;- scaleNotCenter(pbmc)
+</code></pre>
+
+
+</div>

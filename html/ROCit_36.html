@@ -1,0 +1,250 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rocit</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>ROC Analysis of Binary Classifier</h2>
+
+<h3>Description</h3>
+
+<p><code>rocit</code> is the main function of <span class="pkg">ROCit</span> package.
+With the diagnostic score and the class of each observation,
+it calculates true positive rate (sensitivity) and
+false positive rate (1-Specificity) at convenient cutoff values
+to construct ROC curve. The function returns <code>"rocit"</code> object,
+which can be passed as arguments for other S3 methods.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rocit(score, class, negref = NULL, method = "empirical", step = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>score</code></td>
+<td>
+<p>An numeric array of diagnostic score.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>class</code></td>
+<td>
+<p>An array of equal length of score,
+containing the class of the observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>negref</code></td>
+<td>
+<p>The reference value, same as the
+<code>reference</code> in <code>convertclass</code>.
+Depending on the class of <code>x</code>,
+it can be numeric or character type. If specified, this value
+is converted to 0 and other is converted to 1. If NULL, reference is
+set alphabetically.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>The method of estimating ROC curve. Currently supports
+<code>"empirical"</code>, <code>"binormal"</code> and <code>"nonparametric"</code>.
+Pattern matching allowed thorough <code>grep</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>step</code></td>
+<td>
+<p>Logical, default in <code>FALSE</code>. Only applicable for
+<code>empirical</code> method and ignored for others. Indicates
+whether only horizontal and vertical steps should be used
+to produce the ROC curve. See "Details".</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>ROC curve is defined as the set of ordered pairs,
+<code class="reqn">(FPR(c), TPR(c))</code>, where, <code class="reqn">-\infty &lt; c &lt; \infty</code>,
+where, <code class="reqn">FPR(c) = P(D \ge c | Y = 0)</code> and <code class="reqn">FPR(c) = P(D \ge c | Y = 1)</code>
+at cutoff <code class="reqn">c</code>.
+Alternately, it can be defined as:
+</p>
+<p style="text-align: center;"><code class="reqn">y(x) = 1 - G[F^{-1}(1-x)],  0 \le x \le 1</code>
+</p>
+
+<p>where <code class="reqn">F</code> and <code class="reqn">G</code> are the cumulative density functions of the
+diagnostic score in negative and positive responses respectively.
+<code>rocit</code> evaluates TPR and FPR values at convenient cutoffs.
+</p>
+<p>As the name implies, empirical TPR and FPR values are evaluated
+for <code>method = "empirical"</code>. For <code>"binormal"</code>, the distribution
+of diagnostic are assumed to be normal and maximum likelihood parameters
+are estimated. If <code>method = "nonparametric"</code>, then kernel density
+estimates (using <code>density</code>) are applied with
+following bandwidth:
+</p>
+
+<ul>
+<li> <p><code class="reqn">h_Y = 0.9 * min(\sigma_Y, IQR(D_Y)/1.34)/((n_Y)^{(1/5)})</code>
+</p>
+</li>
+<li> <p><code class="reqn">h_{\bar{Y}} = 0.9 * min(\sigma_{\bar{Y}},
+ IQR(D_{\bar{Y}})/1.34)/((n_{\bar{Y}})^{(1/5)})</code>
+</p>
+</li>
+</ul>
+<p>as described in Zou et al. From the kernel estimates of PDFs, CDFs are
+estimated using trapezoidal rule.
+</p>
+<p>For <code>"empirical"</code> ROC, the algorithm firt rank orders the
+data and calculates TPR and FPR by treating all predicted
+up to certain level as positive. If <code>step</code> is <code>TRUE</code>,
+then the ROC curve is generated based on all the calculated
+{FPR, TPR} pairs regardless of tie in the data. If <code>step</code> is
+<code>FALSE</code>, then the ROC curve follows a diagonal path for the ties.
+</p>
+<p>For <code>"empirical"</code> ROC, trapezoidal rule is
+applied to estimate area under curve (AUC). For <code>"binormal"</code>, AUC is estimated by
+<code class="reqn">\Phi(A/\sqrt(1 + B^2)</code>, where <code class="reqn">A</code> and <code class="reqn">B</code> are functions
+of mean and variance of the diagnostic in two groups.
+For <code>"nonparametric"</code>, AUC is estimated as
+by
+</p>
+<p style="text-align: center;"><code class="reqn">\frac{1}{n_Yn_{\bar{Y}}}
+\sum_{i=1}^{n_{\bar{Y}}}
+\sum_{j=1}^{n_{Y}}
+\Phi(
+  \frac{D_{Y_j}-D_{{\bar{Y}}_i}}{\sqrt{h_Y^2+h_{\bar{Y}}^2}}
+ )</code>
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>A list of class <code>"rocit"</code>, having following elements:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>The method applied to estimate ROC curve.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pos_count</code></td>
+<td>
+<p>Number of positive responses.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>neg_count</code></td>
+<td>
+<p>Number of negative responses.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pos_D</code></td>
+<td>
+<p>Array of diagnostic scores in positive responses.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>neg_D</code></td>
+<td>
+<p>Array of diagnostic scores in negative responses.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>AUC</code></td>
+<td>
+<p>Area under curve. See "Details".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Cutoff</code></td>
+<td>
+<p>Array of cutoff values at which the
+true positive rates and  false positive rates
+are evaluated. Applicable for <code>"empirical"</code> and
+<code>"nonparametric"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>param</code></td>
+<td>
+<p>Maximum likelihood estimates of <code class="reqn">\mu</code> and <code class="reqn">\sigma</code> of
+the diagnostic score in two groups. Applicable for <code>"binormal"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>TPR</code></td>
+<td>
+<p>Array of true positive rates (or sensitivities or recalls),
+evaluated at the cutoff values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>FPR</code></td>
+<td>
+<p>Array of false positive rates (or 1-specificity),
+evaluated at the cutoff values.</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>The algorithm is designed for complete cases. If NA(s) found in
+either <code>score</code> or <code>class</code>, then removed.
+</p>
+
+
+<h3>References</h3>
+
+<p>Pepe, Margaret Sullivan. <em>The statistical evaluation
+of medical tests for classification and prediction.</em> Medicine, 2003.
+</p>
+<p>Zou, Kelly H., W. J. Hall, and David E. Shapiro.
+"Smooth non-parametric receiver operating characteristic (ROC)
+curves for continuous diagnostic tests." <em>Statistics in medicine</em>
+16, no. 19 (1997): 2143-2156.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>ciROC</code>, <code>ciAUC</code>, <code>plot.rocit</code>,
+<code>gainstable</code>, <code>ksplot</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># ---------------------
+data("Diabetes")
+roc_empirical &lt;- rocit(score = Diabetes$chol, class = Diabetes$dtest,
+                       negref = "-") # default method empirical
+roc_binormal &lt;- rocit(score = Diabetes$chol, class = Diabetes$dtest,
+                     negref = "-", method = "bin")
+
+# ---------------------
+summary(roc_empirical)
+summary(roc_binormal)
+
+# ---------------------
+plot(roc_empirical)
+plot(roc_binormal, col = c("#00BA37", "#F8766D"),
+       legend = FALSE, YIndex = FALSE)
+
+
+</code></pre>
+
+
+</div>

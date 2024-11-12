@@ -1,0 +1,105 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>load</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Initialize an R session by loading the all relevant R profile configurations</h2>
+
+<h3>Description</h3>
+
+<p><code>rprofile::load()</code> attempts to load the global R profile configuration and any other common project configuration.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">  rprofile::load(..., isolate = FALSE, renv = TRUE, dotenv = TRUE, dev = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>ignored; forces named argument passing</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>isolate</code></td>
+<td>
+<p>[<code>logical(1)</code>] whether to isolate the project from the global configuration (default: <code>FALSE</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>renv</code></td>
+<td>
+<p>[<code>logical(1)</code>] whether to activate an <span class="pkg">renv</span>, if present (default: <code>TRUE</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dotenv</code></td>
+<td>
+<p>[<code>logical(1)</code>] whether to load environment variables defined in a local ‘<span class="file">.env</span>’ file (default: <code>TRUE</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dev</code></td>
+<td>
+<p>[<code>logical(1)|call</code>] whether to run <code>pkgload::load_all()</code> if the current project is a development package (default: <code>TRUE</code>; see <strong>Details</strong>)</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function should be the first thing that gets executed inside a project ‘<span class="file">.Rprofile</span>’ file, and it should usually be written exactly as follows: <code>if (requireNamespace("rprofile", quietly = TRUE)) rprofile::load()</code> (the <code>if</code> being present to ensure that <code style="white-space: pre;">⁠R CMD⁠</code> can still run in the current directory when  <span class="pkg">rprofile</span> is not installed).
+</p>
+<p>Unless <code>isolate = TRUE</code> is set, the user R profile configuration is preferentially looked up in the <span class="env">R_PROFILE_USER</span> environment variable. If that is unset, it is instead loaded from ‘<span class="file">~/.Rprofile</span>’. It is loaded (mostly) <em>as-if</em> its code was directly copied into the project ‘<span class="file">.Rprofile</span>’ file. By contrast, if <code>isolate = TRUE</code> is set, no attempt to load any further ‘<span class="file">.Rprofile</span>’ files is made.
+</p>
+<p><code>rprofile::load()</code> will by default also activate the <span class="pkg">renv</span> associated with the current project, if any, and will also load environment variables defined in a local ‘<span class="file">.env</span>’ file. These two actions will happen <em>before</em> the user profile is loaded. See the <strong>Note</strong> below.
+</p>
+<p>Lastly, <code>rprofile::load()</code> will check if the code is being run from an interactive session. If so, and if the project contains a ‘<span class="file">DESCRIPTION</span>’ file, <span class="pkg">rprofile</span> will attempt to load <span class="pkg">pkgload</span> and then execute <code>pkgload::load_all(export_all = FALSE)</code>. To avoid disrupting the regular package load order, this action will be deferred until after all default packages (given by <code>getOption('defaultPackages')</code>) have been loaded and attached. Users can customize which code should be run by passing an unevaluated expression (instead of <code>TRUE</code>) in the <code>dev</code> argument. Since this code will be evaluated <em>after</em> the remaining ‘<span class="file">.Rprofile</span>’ code has been run, the argument may refer to functions defined afterwards (see <strong>Examples</strong>).
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>rprofile::load()</code> will invisibly return whether loading the user R profile file succeeded: in case of an error, it returns <code>FALSE</code> and converts the error into a warning.
+</p>
+
+
+<h3>Note</h3>
+
+<p>You need to ensure that <span class="pkg">renv</span> is not loaded redundantly in your ‘<span class="file">.Rprofile</span>’ file. In other words, please make sure that the line <code>source("renv/activate.R")</code>, which <span class="pkg">renv</span> adds automatically, is <em>not</em> present in the file. <code>rprofile::load()</code> prevents <span class="pkg">renv</span> from subsequently adding this line to the project ‘<span class="file">.Rprofile</span>’ file.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Each option is configurable; in the extreme case, the function does nothing:
+rprofile::load(isolate = TRUE, renv = FALSE, dotenv = FALSE, dev = FALSE)
+
+## Not run: 
+# In general, the following code should be the first line of a project
+# `.Rprofile` file, which first tests whether the package is installed, and then
+# loads it and runs the chosen initializations:
+if (requireNamespace("rprofile", quietly = TRUE)) rprofile::load()
+
+## End(Not run)
+
+## Not run: 
+# We can customize how to load development packages:
+if (requireNamespace("rprofile", quietly = TRUE)) rprofile::load(dev = quote(reload()))
+
+reload = function () {
+  devtools::document()
+  devtools::load_all(quiet = TRUE)
+}
+
+## End(Not run)
+</code></pre>
+
+
+</div>

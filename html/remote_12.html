@@ -1,0 +1,211 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>eot</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>EOT analysis of a predictor and (optionally) a response RasterStack</h2>
+
+<h3>Description</h3>
+
+<p>Calculate a given number of EOT modes either internally or between 
+RasterStacks.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S4 method for signature 'RasterStackBrick'
+eot(x, y = NULL, n = 1, standardised = TRUE,
+  write.out = FALSE, path.out = ".", prefix = "remote",
+  reduce.both = FALSE, type = c("rsq", "ioa"), verbose = TRUE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a RasterStack used as predictor</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>a RasterStack used as response. If <code>y</code> is <code>NULL</code>,
+<code>x</code> is used as <code>y</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>the number of EOT modes to calculate</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>standardised</code></td>
+<td>
+<p>logical. If <code>FALSE</code> the calculated r-squared values 
+will be multiplied by the variance</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>write.out</code></td>
+<td>
+<p>logical. If <code>TRUE</code> results will be written to disk 
+using <code>path.out</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>path.out</code></td>
+<td>
+<p>the file path for writing results if <code>write.out</code> is <code>TRUE</code>.
+Defaults to current working directory</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prefix</code></td>
+<td>
+<p>optional prefix to be used for naming of results if 
+<code>write.out</code> is <code>TRUE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reduce.both</code></td>
+<td>
+<p>logical. If <code>TRUE</code> both <code>x</code> and <code>y</code> 
+are reduced after each iteration. If <code>FALSE</code> only <code>y</code> is reduced</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>the type of the link function. Defaults to <code>'rsq'</code> as in original
+proposed method from <cite>van den Dool 2000</cite>. If set to <code>'ioa'</code> index of agreement is
+used instead</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical. If <code>TRUE</code> some details about the 
+calculation process will be output to the console</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>not used at the moment</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For a detailed description of the EOT algorithm and the mathematics behind it,
+see the References section. In brief, the algorithm works as follows: 
+First, the temporal profiles of each pixel <em>xp</em> of the predictor domain 
+are regressed against the profiles of all pixels <em>xr</em> in the 
+response domain. 
+The calculated coefficients of determination are summed up and the pixel 
+with the highest sum is identified as the 'base point' of the first/leading mode. 
+The temporal profile at this base point is the first/leading EOT. 
+Then, the residuals from the regression are taken to be the basis 
+for the calculation of the next EOT, thus ensuring orthogonality 
+of the identified teleconnections. This procedure is repeated until 
+a predefined amount of <em>n</em> EOTs is calculated. In general, 
+<span class="pkg">remote</span> implements a 'brute force' spatial data mining approach to 
+identify locations of enhanced potential to explain spatio-temporal 
+variability within the same or another geographic field.
+</p>
+
+
+<h3>Value</h3>
+
+<p>if n = 1 an <em>EotMode</em>, if n &gt; 1 an <em>EotStack</em> of <code>n</code> 
+<em>EotMode</em>s. Each <em>EotMode</em> has the following components:
+</p>
+
+<ul>
+<li> <p><em>mode</em> - the number of the identified mode (1 - n)
+</p>
+</li>
+<li> <p><em>eot</em> - the EOT (time series) at the identified base point. 
+Note, this is a simple numeric vector, not of class <code>ts</code>
+</p>
+</li>
+<li> <p><em>coords_bp</em> - the coordinates of the identified base point
+</p>
+</li>
+<li> <p><em>cell_bp</em> - the cell number of the indeified base point
+</p>
+</li>
+<li> <p><em>cum_exp_var</em> - the (cumulative) explained variance of the considered EOT
+</p>
+</li>
+<li> <p><em>r_predictor</em> - the <em>RasterLayer</em> of the correlation coefficients 
+between the base point and each pixel of the predictor domain
+</p>
+</li>
+<li> <p><em>rsq_predictor</em> - as above but for the coefficient of determination
+</p>
+</li>
+<li> <p><em>rsq_sums_predictor</em> - as above but for the sums of coefficient of determination
+</p>
+</li>
+<li> <p><em>int_predictor</em> - the <em>RasterLayer</em> of the intercept of the 
+regression equation for each pixel of the predictor domain
+</p>
+</li>
+<li> <p><em>slp_predictor</em> - same as above but for the slope of the 
+regression equation for each pixel of the predictor domain
+</p>
+</li>
+<li> <p><em>p_predictor</em> - the <em>RasterLayer</em> of the significance (p-value) 
+of the the regression equation for each pixel of the predictor domain
+</p>
+</li>
+<li> <p><em>resid_predictor</em> - the <em>RasterBrick</em> of the reduced data 
+for the predictor domain
+</p>
+</li>
+</ul>
+<p>Apart from <em>rsq_sums_predictor</em>, all <em>*_predictor</em> fields are 
+also returned for the <em>*_response</em> domain, 
+even if predictor and response domain are equal. This is due to that fact, 
+that if not both fields are reduced after the first EOT is found, 
+these <em>RasterLayers</em> will differ.
+</p>
+
+
+<h3>References</h3>
+
+<p><b>Empirical Orthogonal Teleconnections</b><br>
+H. M. van den Dool, S. Saha, A. Johansson (2000)<br>
+Journal of Climate, Volume 13, Issue 8, pp. 1421-1435<br><a href="http://journals.ametsoc.org/doi/abs/10.1175/1520-0442%282000%29013%3C1421%3AEOT%3E2.0.CO%3B2">http://journals.ametsoc.org/doi/abs/10.1175/1520-0442%282000%29013%3C1421%3AEOT%3E2.0.CO%3B2</a>
+</p>
+<p><b>Empirical methods in short-term climate prediction</b><br>
+H. M. van den Dool (2007)<br>
+Oxford University Press, Oxford, New York<br><a href="https://global.oup.com/academic/product/empirical-methods-in-short-term-climate-prediction-9780199202782?cc=de&amp;lang=en&amp;">https://global.oup.com/academic/product/empirical-methods-in-short-term-climate-prediction-9780199202782?cc=de&amp;lang=en&amp;</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">### EXAMPLE I
+### a single field
+data(vdendool)
+
+## claculate 2 leading modes
+nh_modes &lt;- eot(x = vdendool, y = NULL, n = 2, 
+                standardised = FALSE, 
+                verbose = TRUE)
+
+plot(nh_modes, y = 1, show.bp = TRUE)
+plot(nh_modes, y = 2, show.bp = TRUE)
+
+</code></pre>
+
+
+</div>

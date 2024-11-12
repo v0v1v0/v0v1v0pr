@@ -1,0 +1,617 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>dfuncSmu</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate a non-parametric smooth detection function 
+from distance-sampling data</h2>
+
+<h3>Description</h3>
+
+<p>Estimates a smooth detection function for 
+line-transect perpendicular distances or point-transect 
+radial distances.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">dfuncSmu(
+  formula,
+  detectionData,
+  siteData,
+  bw = "SJ-dpi",
+  adjust = 1,
+  kernel = "gaussian",
+  pointSurvey = FALSE,
+  w.lo = units::set_units(0, "m"),
+  w.hi = NULL,
+  x.scl = "max",
+  g.x.scl = 1,
+  observer = "both",
+  warn = TRUE,
+  transectID = NULL,
+  pointID = "point",
+  outputUnits = NULL,
+  length = "length",
+  control = RdistanceControls()
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>A formula object (e.g., dist ~ 1). 
+The left-hand side (before ~)
+is the name of the vector containing distances (perpendicular or 
+radial).  The right-hand side (after ~)
+must be the intercept-only model as <code>Rdistance</code> does not 
+currently allow covariates in smoothed distance functions. 
+If names in <code>formula</code> do not appear in <code>detectionData</code>, 
+the normal scoping rules for model fitting routines (e.g., 
+<code>lm</code> and <code>glm</code>) apply.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>detectionData</code></td>
+<td>
+<p>A data frame containing detection distances 
+(either perpendicular for line-transect or radial for point-transect
+designs), with one row per detected object or group.   
+This data frame must contain at least the following 
+information: 
+</p>
+
+<ul>
+<li>
+<p> Detection Distances: A single column containing 
+detection distances must be specified on the left-hand 
+side of <code>formula</code>.
+</p>
+</li>
+<li>
+<p> Site IDs: The ID of the transect or point 
+(i.e., the 'site') where each object or group was detected.
+The site ID  column(s) (see argument <code>siteID</code>) must 
+specify the site (transect or point) so that this 
+data frame can be merged with <code>siteData</code>.    
+</p>
+</li>
+</ul>
+<p>Optionally, this data frame can contain the following 
+variables: 
+</p>
+
+<ul>
+<li>
+<p> Group Sizes: The number of individuals in the group
+associated with each detection.  If unspecified, <code>Rdistance</code>
+assumes all detections are of single individuals (i.e., 
+all group sizes are 1). 
+</p>
+</li>
+<li>
+<p> When <code>Rdistance</code> allows detection-level 
+covariates in some version after 2.1.1, detection-level 
+covariates will appear in this data frame. 
+</p>
+</li>
+</ul>
+<p>See example data set <code>sparrowDetectionData</code>).
+See also <b>Input data frames</b> below 
+for information on when <code>detectionData</code> and 
+<code>siteData</code> are required inputs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>siteData</code></td>
+<td>
+<p>A data.frame containing site (transect or point)
+IDs and any 
+<em>site level</em> covariates to include in the detection function. 
+Every unique surveyed site (transect or point) is represented on
+one row of this data set, whether or not targets were sighted 
+at the site.  See arguments <code>transectID</code> and 
+<code>pointID</code> for an explanation of site and transect ID's. 
+</p>
+<p>If sites are transects, 
+this data frame must also contain transect length. By 
+default, transect length is assumed to be in column 'length' 
+but can be specified using argument <code>length</code>. 
+</p>
+<p>The total number of sites surveyed is <code>nrow(siteData)</code>. 
+Duplicate site-level IDs are not allowed in <code>siteData</code>. 
+</p>
+<p>See <b>Input data frames</b> 
+for when <code>detectionData</code> and <code>siteData</code> are required inputs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bw</code></td>
+<td>
+<p>Bandwidth of the smooth, which controls
+smoothness.  Smoothing is done by <code>stats::density</code>, and 
+<code>bw</code> is 
+passed straight to it's <code>bw</code> argument.  <code>bw</code> can be 
+numeric, in which case it is the standard deviation of the 
+Gaussian smoothing kernel. Or, <code>bw</code> can be  
+a character string specifying the 
+bandwidth selection rule.  Valid character string values 
+of <code>bw</code> are the following:
+</p>
+
+<ul>
+<li>
+<p> "nrd0" : Silverman's 'rule-of-thumb' equal to 
+<code class="reqn">\frac{0.9s}{1.34n^{-0.2}}</code>, where 
+<code class="reqn">s</code> is the minimum of standard deviation of the distances 
+and the interquartile range.  See <code>bw.nrd0</code>.
+</p>
+</li>
+<li>
+<p> "nrd" : The more common 'rule-of-thumb' variation given by 
+Scott (1992). This rule uses 1.06 in the denominator of the 
+"nrd0" bandwidth. See <code>bw.nrd</code>
+</p>
+</li>
+<li>
+<p> "bcv" : The biased cross-validation method. See <code>bcv</code>. 
+</p>
+</li>
+<li>
+<p> "ucv" : The unbiased cross-validation method. See <code>ucv</code>.
+</p>
+</li>
+<li>
+<p> "SJ" or "SJ-ste" : The 'solve-the-equation' bandwidth of Sheather &amp; 
+Jones (1991).  See <code>bw.SJ</code> or <code>width.SJ</code>.
+</p>
+</li>
+<li>
+<p> "SJ-dpi" (default) : The 'direct-plug-in' bandwidth of Sheather &amp; 
+Jones (1991). See <code>bw.SJ</code> or <code>width.SJ</code>.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adjust</code></td>
+<td>
+<p>Bandwidth adjustment for the amount of smooth. 
+Smoothing is done by <code>density</code>, and 
+this parameter is 
+passed straight to it's <code>adjust</code> argument.  
+In <code>stats::density</code>, the bandwidth used is 
+actually <code>adjust*bw</code>, and inclusion of this parameters makes 
+it easier to specify values like 'half the default' bandwidth.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kernel</code></td>
+<td>
+<p>Character string specifying the smoothing kernel function. 
+This parameters is passed unmodified to <code>stats::density</code>.  Valid 
+values are:
+</p>
+
+<ul>
+<li>
+<p> "gaussian" : Gaussian (normal) kernel, the default
+</p>
+</li>
+<li>
+<p> "rectangular" : Uniform or flat kernel
+</p>
+</li>
+<li>
+<p> "triangular" : Equilateral triangular kernel
+</p>
+</li>
+<li>
+<p> "epanechnikov" : the Epanechnikov kernel
+</p>
+</li>
+<li>
+<p> "biweight" : the biweight kernel
+</p>
+</li>
+<li>
+<p> "cosine" : the S version of the cosine kernel
+</p>
+</li>
+<li>
+<p> "optcosine" : the optimal cosine kernel which is the usual 
+one reported in the literature 
+</p>
+</li>
+</ul>
+<p>Values of <code>kernel</code> may be abbreviated to the first letter of 
+each string. The numeric value of <code>bw</code> used in the smooth 
+is stored in the <code>$fit</code> component of the returned object 
+(i.e., in <code>returned$fit$bw</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pointSurvey</code></td>
+<td>
+<p>A logical scalar specifying whether input data come
+from point-transect surveys (TRUE),
+or line-transect surveys (FALSE).  Point surveys (TRUE) have not been 
+implemented yet.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w.lo</code></td>
+<td>
+<p>Lower or left-truncation limit of the distances in distance data. 
+This is the minimum possible off-transect distance. Default is 0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w.hi</code></td>
+<td>
+<p>Upper or right-truncation limit of the distances 
+in <code>dist</code>. This is the maximum off-transect distance that 
+could be observed. If left unspecified (i.e., at the default of 
+NULL), right-truncation is set to the maximum of the 
+observed distances.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x.scl</code></td>
+<td>
+<p>This parameter is passed to <code>F.gx.estim</code>. 
+See <code>F.gx.estim</code> documentation for definition.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g.x.scl</code></td>
+<td>
+<p>This parameter is passed to <code>F.gx.estim</code>. 
+See <code>F.gx.estim</code> documentation for definition.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>observer</code></td>
+<td>
+<p>This parameter is passed to <code>F.gx.estim</code>. 
+See <code>F.gx.estim</code> documentation for definition.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>warn</code></td>
+<td>
+<p>A logical scalar specifying whether to issue 
+an R warning if the estimation did not converge or if one 
+or more parameter estimates are at their boundaries.  
+For estimation, <code>warn</code> should generally be left at
+its default value of <code>TRUE</code>.  When computing bootstrap 
+confidence intervals, setting <code>warn = FALSE</code> 
+turns off annoying warnings when an iteration does 
+not converge.  Regardless of <code>warn</code>, messages about 
+convergence and boundary conditions are printed 
+by <code>print.dfunc</code>, <code>print.abund</code>, and 
+<code>plot.dfunc</code>, so there should be little harm in 
+setting <code>warn = FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>transectID</code></td>
+<td>
+<p>A character vector naming the transect ID column(s) in
+<code>detectionData</code> and <code>siteData</code>.  Transects can be the 
+basic sampling unit (when <code>pointSurvey</code>=FALSE) or 
+contain multiple sampling units (e.g., when <code>pointSurvey</code>=TRUE). 
+For line-transects, the <code>transectID</code> column(s) alone is 
+sufficient to specify unique sample sites. 
+For point-transects, the amalgamation of <code>transectID</code> and 
+<code>pointID</code> specify unique sampling sites.  
+See <b>Input data frames</b>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pointID</code></td>
+<td>
+<p>When point-transects are used, this is the 
+ID of points on a transect.  When <code>pointSurvey</code>=TRUE, 
+the amalgamation of <code>transectID</code> and 
+<code>pointID</code> specify unique sampling sites.  
+See <b>Input data frames</b>.  
+</p>
+<p>If single points are surveyed, 
+meaning surveyed points were not grouped into transects, each 'transect' consists
+of one point. In this case, set <code>transectID</code> equal to 
+the point's ID and set <code>pointID</code> equal to 1 for all points.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outputUnits</code></td>
+<td>
+<p>A string giving the symbolic measurment 
+units that results should be reported in.   Any 
+distance measurement unit in <code>units::valid_udunits()</code> 
+will work.  The strings for common distance symbolic units are: 
+"m" for meters, "ft" for feet, "cm" for centimeters, "mm" for 
+millimeters, "mi" for miles, "nmile" for 
+nautical miles ("nm" is nano meters), "in" for inches, 
+"yd" for yards, "km" for kilometers, "fathom" for fathoms, 
+"chains" for chains, and "furlong" for furlongs.  
+If <code>outputUnits</code> is unspecified (NULL),
+output units are the same as distance measurements units in 
+<code>data</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>length</code></td>
+<td>
+<p>Character string specifying the (single) column in 
+<code>siteData</code> that contains transect length. This is ignored if 
+<code>pointSurvey</code> = TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>A list containing optimization control parameters such 
+as the maximum number of iterations, tolerance, the optimizer to use, 
+etc.  See the 
+<code>RdistanceControls</code> function for explanation of each value,
+the defaults, and the requirements for this list. 
+See examples below for how to change controls.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Distances are reflected about <code>w.lo</code> before being passed 
+to <code>density</code>.  Distances exactly equal to <code>w.lo</code> are not
+reflected.  Reflection around <code>w.lo</code> greatly improves
+performance of the kernel methods near the <code>w.lo</code> boundary 
+where substantial non-zero probability of sighting typically exists.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class 'dfunc'.  Objects of class 'dfunc' 
+are lists containing the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>parameters</code></td>
+<td>
+<p>A data frame containing the $x and $y
+components of the smooth. $x is a vector of length 
+512 (default for <code>density</code>) evenly spaced points
+between <code>w.lo</code> and <code>w.hi</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loglik</code></td>
+<td>
+<p>The value of the log likelihood. Specifically, 
+the sum of the negative log heights of the smooth at observed
+distances, after the smoothed function has been scaled to integrate
+to one. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w.lo</code></td>
+<td>
+<p>Left-truncation value used during the fit.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w.hi</code></td>
+<td>
+<p>Right-truncation value used during the fit.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dist</code></td>
+<td>
+<p>The input vector of observed distances.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covars</code></td>
+<td>
+<p>NULL. Covariates are not allowed in the 
+smoothed distance function (yet). </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>The original call of this function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call.x.scl</code></td>
+<td>
+<p>The distance at which the distance function 
+is scaled. This is the x at which g(x) = <code>g.x.scl</code>.
+Normally, <code>call.x.scl</code> = 0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call.g.x.scl</code></td>
+<td>
+<p>The value of the distance function at distance
+<code>call.x.scl</code>.  Normally, <code>call.g.x.scl</code> = 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call.observer</code></td>
+<td>
+<p>The value of input parameter <code>observer</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>The smoothed object returned by <code>stats::density</code>. All
+information returned by <code>stats::density</code> is preserved, and 
+in particular the numeric value of the bandwidth used during the 
+smooth is returned in <code>fit$bw</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pointSurvey</code></td>
+<td>
+<p>The input value of <code>pointSurvey</code>. 
+This is TRUE if distances are radial from a point. FALSE 
+if distances are perpendicular off-transect. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>The formula specified for the detection function.</p>
+</td>
+</tr>
+</table>
+<h3>Input data frames</h3>
+
+<p>To save space and to easily specify 
+sites without detections, 
+all site ID's, regardless whether a detection occurred there,
+and <em>site level</em> covariates are stored in 
+the <code>siteData</code> data frame.  Detection distances and group
+sizes are measured at the <em>detection level</em> and 
+are stored in the 
+<code>detectionData</code> data frame.  
+</p>
+
+
+<h4>Data frame requirements</h4>
+
+<p>The following explains  
+conditions under which various combinations of the input data frames 
+are required.
+</p>
+
+<ol>
+<li> <p><b>Detection data and site data both required:</b><br>
+Both <code>detectionData</code> and <code>siteData</code>  
+are required if <em>site level</em> covariates are 
+specified on the right-hand side of <code>formula</code>. 
+<em>Detection level</em> covariates are not currently allowed.
+</p>
+</li>
+<li> <p><b>Detection data only required:</b><br>
+The <code>detectionData</code> data frame alone can be 
+specified if no covariates 
+are included in the distance function (i.e., right-hand side of 
+<code>formula</code> is "~1"). Note that this routine (<code>dfuncEstim</code>)
+does not need to know about sites where zero targets were detected, hence
+<code>siteData</code> can be missing when no covariates are involved.
+</p>
+</li>
+<li> <p><b>Neither detection data nor site data required</b><br>
+Neither <code>detectionData</code> nor <code>siteData</code>  
+are required if all variables specified in <code>formula</code> 
+are within the scope of this routine (e.g., in the global working
+environment). Scoping rules here work the same as for other modeling 
+routines in R such as <code>lm</code> and <code>glm</code>. Like other modeling 
+routines, it is possible to mix and match the location of variables in 
+the model.  Some variables can be in the <code>.GlobalEnv</code> while others 
+are in either <code>detectionData</code> or <code>siteData</code>. 
+</p>
+</li>
+</ol>
+<h4>Relationship between data frames (transect and point ID's)</h4>
+
+<p>The input data frames, <code>detectionData</code> and <code>siteData</code>,
+must be merge-able on unique sites.  For line-transects, 
+site ID's (i.e., transect ID's) are unique values of 
+the <code>transectID</code> column in <code>siteData</code>.  In this case,
+the following merge must work:  
+<code>merge(detectionData,siteData,by=transectID)</code>.
+For point-transects, 
+site ID's (i.e., point ID's) are unique values 
+of the combination <code>paste(transectID,pointID)</code>.
+In this case, the following merge must work:    
+<code>merge(detectionData,siteData,by=c(transectID, pointID)</code>.
+</p>
+<p>By default,<code>transectID</code> and <code>pointID</code> are NULL and
+the merge is done on all common columns.
+That is, when <code>transectID</code> is NULL, this routine assumes unique
+<em>transects</em> are specified by unique combinations of the 
+common variables (i.e., unique values of
+<code>intersect(names(detectionData), names(siteData))</code>). 
+</p>
+<p>An error occurs if there are no common column names between 
+<code>detectionData</code> and <code>siteData</code>.
+Duplicate site IDs are not allowed in <code>siteData</code>. 
+If the same site is surveyed in
+multiple years, specify another transect ID column (e.g., <code>transectID =
+c("year","transectID")</code>).  Duplicate site ID's are allowed in 
+<code>detectionData</code>.  
+</p>
+<p>To help explain the relationship between data frames, bear in 
+mind that  during bootstrap estimation of variance
+in <code>abundEstim</code>, 
+unique <em>transects</em> (i.e., unique values of 
+the transect ID column(s)), not <em>detections</em> or 
+<em>points</em>, are resampled with replacement. 
+</p>
+
+
+
+<h3>References</h3>
+
+<p>Buckland, S.T., D.R. Anderson, K.P. Burnham, J.L. Laake, D.L. Borchers,
+and L. Thomas. (2001) <em>Introduction to distance sampling: estimating
+abundance of biological populations</em>. Oxford University Press, Oxford, UK.
+</p>
+<p>Scott, D. W. (1992) <em>Multivariate Density Estimation: Theory, 
+Practice, and Visualization.</em> Wiley.
+</p>
+<p>Sheather, S. J. and Jones, M. C. (1991) A reliable data-based 
+bandwidth selection method for kernel density estimation. <em>Journal of 
+the Royal Statistical Society series B</em>, 53, 683-690.
+</p>
+<p>Silverman, B. W. (1986) <em>Density Estimation</em>. London: Chapman and Hall.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>abundEstim</code>, <code>autoDistSamp</code>, 
+<code>dfuncEstim</code> for the parametric version.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Load example sparrow data (line transect survey type)
+data(sparrowDetectionData)
+data(sparrowSiteData)
+
+# Compare smoothed and half-normal detection function
+dfuncSmu &lt;- dfuncSmu(dist~1, sparrowDetectionData, w.hi=units::set_units(150, "m"))
+dfuncHn  &lt;- dfuncEstim(formula=dist~1,sparrowDetectionData,w.hi=units::set_units(150, "m"))
+
+# Print and plot results
+dfuncSmu
+dfuncHn
+plot(dfuncSmu,main="",nbins=50)
+
+x &lt;- seq(0,150,length=200)
+y &lt;- dnorm(x, 0, predict(dfuncHn)[1])
+y &lt;- y/y[1]
+lines(x,y, col="orange", lwd=2)
+legend("topright", legend=c("Smooth","Halfnorm"), 
+  col=c("red","orange"), lwd=2)
+
+</code></pre>
+
+
+</div>

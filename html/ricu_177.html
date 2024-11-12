@@ -1,0 +1,207 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>load_src</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Low level functions for loading data</h2>
+
+<h3>Description</h3>
+
+<p>Data loading involves a cascade of S3 generic functions, which can
+individually be adapted to the specifics of individual data sources. A the
+lowest level, <code>load_scr</code> is called, followed by <code>load_difftime()</code>.
+Functions up the chain, are described in <code>load_id()</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">load_src(x, ...)
+
+## S3 method for class 'src_tbl'
+load_src(x, rows, cols = colnames(x), ...)
+
+## S3 method for class 'character'
+load_src(x, src, ...)
+
+load_difftime(x, ...)
+
+## S3 method for class 'mimic_tbl'
+load_difftime(
+  x,
+  rows,
+  cols = colnames(x),
+  id_hint = id_vars(x),
+  time_vars = ricu::time_vars(x),
+  ...
+)
+
+## S3 method for class 'eicu_tbl'
+load_difftime(
+  x,
+  rows,
+  cols = colnames(x),
+  id_hint = id_vars(x),
+  time_vars = ricu::time_vars(x),
+  ...
+)
+
+## S3 method for class 'hirid_tbl'
+load_difftime(
+  x,
+  rows,
+  cols = colnames(x),
+  id_hint = id_vars(x),
+  time_vars = ricu::time_vars(x),
+  ...
+)
+
+## S3 method for class 'aumc_tbl'
+load_difftime(
+  x,
+  rows,
+  cols = colnames(x),
+  id_hint = id_vars(x),
+  time_vars = ricu::time_vars(x),
+  ...
+)
+
+## S3 method for class 'miiv_tbl'
+load_difftime(
+  x,
+  rows,
+  cols = colnames(x),
+  id_hint = id_vars(x),
+  time_vars = ricu::time_vars(x),
+  ...
+)
+
+## S3 method for class 'character'
+load_difftime(x, src, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Object for which to load data</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Generic consistency</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rows</code></td>
+<td>
+<p>Expression used for row subsetting (NSE)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cols</code></td>
+<td>
+<p>Character vector of column names</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>src</code></td>
+<td>
+<p>Passed to <code>as_src_tbl()</code> in order to determine the data source</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id_hint</code></td>
+<td>
+<p>String valued id column selection (not necessarily honored)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time_vars</code></td>
+<td>
+<p>Character vector enumerating the columns to be treated as
+timestamps and thus returned as <code>base::difftime()</code> vectors</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>A function extending the S3 generic <code>load_src()</code> is expected to load a
+subset of rows/columns from a tabular data source. While the column
+specification is provided as character vector of column names, the row
+subsetting involves non-standard evaluation (NSE). Data-sets that are
+included with <code>ricu</code> are represented by <code>prt</code> objects,
+which use <code>rlang::eval_tidy()</code> to evaluate NSE expressions. Furthermore,
+<code>prt</code> objects potentially represent tabular data split into partitions and
+row-subsetting expressions are evaluated per partition (see the <code>part_safe</code>
+flag in <code>prt::subset.prt()</code>). The return value of <code>load_src()</code> is expected
+to be of type <code>data.table</code>.
+</p>
+<p>Timestamps are represented differently among the included data sources:
+while MIMIC-III and HiRID use absolute date/times, eICU provides temporal
+information as minutes relative to ICU admission. Other data sources, such
+as the ICU dataset provided by Amsterdam UMC, opt for relative times as
+well, but not in minutes since admission, but in milliseconds. In order to
+smoothen out such discrepancies, the next function in the data loading
+hierarchy is <code>load_difftime()</code>. This function is expected to call
+<code>load_src()</code> in order to load a subset of rows/columns from a table stored
+on disk and convert all columns that represent timestamps (as specified by
+the argument <code>time_vars</code>) into <code>base::difftime()</code> vectors using <code>mins</code> as
+time unit.
+</p>
+<p>The returned object should be of type <code>id_tbl</code>, with the ID vars
+identifying the ID system the times are relative to. If for example all
+times are relative to ICU admission, the ICU stay ID should be returned as
+ID column. The argument <code>id_hint</code> may suggest an ID type, but if in the raw
+data, this ID is not available, <code>load_difftime()</code> may return data using a
+different ID system. In MIMIC-III, for example, data in the <code>labevents</code>
+table is available for <code>subject_id</code> (patient ID) pr <code>hadm_id</code> (hospital
+admission ID). If data is requested for <code>icustay_id</code> (ICU stay ID), this
+request cannot be fulfilled and data is returned using the ID system with
+the highest cardinality (among the available ones). Utilities such as
+<code>change_id()</code> can the later be used to resolve data to <code>icustay_id</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>data.table</code> object.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">if (require(mimic.demo)) {
+tbl &lt;- mimic_demo$labevents
+col &lt;- c("charttime", "value")
+
+load_src(tbl, itemid == 50809)
+
+colnames(
+  load_src("labevents", "mimic_demo", itemid == 50809, cols = col)
+)
+
+load_difftime(tbl, itemid == 50809)
+
+colnames(
+  load_difftime(tbl, itemid == 50809, col)
+)
+
+id_vars(
+  load_difftime(tbl, itemid == 50809, id_hint = "icustay_id")
+)
+
+id_vars(
+  load_difftime(tbl, itemid == 50809, id_hint = "subject_id")
+)
+}
+
+</code></pre>
+
+
+</div>

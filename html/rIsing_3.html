@@ -1,0 +1,108 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>logreg</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>L1 Regularized Logistic Regression</h2>
+
+<h3>Description</h3>
+
+<p>L1 Regularized logistic regression using OWL-QN L-BFGS-B optimization.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">logreg(X, y, nlambda = 50, lambda.min.ratio = 0.001, lambda = NULL,
+  scale = TRUE, type = 2)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>The design matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Vector of binary observations of length equal to <code>nrow(X)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nlambda</code></td>
+<td>
+<p>(positive integer) The number of parameters in the regularization path (default 50).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda.min.ratio</code></td>
+<td>
+<p>(non-negative double) The ratio of <code>max(lambda) / min(lambda)</code> (default <code>1e-3</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>A user-supplied vector of regularization parameters. Under the default option (<code>NULL</code>), the function computes a regularization path using the input data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>(boolean) Whether to scale <code>X</code> before running the regression. The output parameters will always be rescaled. Use <code>FALSE</code> if <code>X</code> is already scaled.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>(integer 1 or 2) Type 1 aggregates the input data based on repeated rows in <code>X</code>. Type 2 (default) uses the data as is, and is generally faster. Use Type 1 if the data contains several repeated rows.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list containing the matrix of fitted weights (<code>wmat</code>), the vector of regularization parameters, sorted in decreasing order (<code>lambda</code>), and the vector of log-likelihoods corresponding to <code>lambda</code> (<code>logliks</code>).
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># simulate some linear regression data
+n &lt;- 1e3
+p &lt;- 100
+X &lt;- matrix(rnorm(n*p),n,p)
+wt &lt;- sample(seq(0,9),p+1,replace = TRUE) / 10
+z &lt;- cbind(1,X) %*% wt + rnorm(n)
+probs &lt;- 1 / (1 + exp(-z))
+y &lt;- sapply(probs, function(p) rbinom(1,1,p))
+
+m1 &lt;- logreg(X, y)
+m2 &lt;- logreg(X, y, nlambda = 100, lambda.min.ratio = 1e-4, type = 1)
+
+## Not run: 
+# Performance comparison
+library(glmnet)
+library(microbenchmark)
+nlambda = 50; lambda.min.ratio = 1e-3
+microbenchmark(
+  logreg_type1 = logreg(X, y, nlambda = nlambda,
+                         lambda.min.ratio = lambda.min.ratio, type = 1),
+  logreg_type2 = logreg(X, y, nlambda = nlambda,
+                         lambda.min.ratio = lambda.min.ratio, type = 2),
+  glmnet       = glmnet(X, y, family = "binomial",
+                         nlambda = nlambda, lambda.min.ratio = lambda.min.ratio),
+  times = 20L
+)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,204 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>KernelLeastSquaresClassifier</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Kernelized Least Squares Classifier</h2>
+
+<h3>Description</h3>
+
+<p>Use least squares regression as a classification technique using a numeric encoding of classes as targets. Note this method minimizes quadratic loss, not the truncated quadratic loss.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">KernelLeastSquaresClassifier(X, y, lambda = 0, kernel = vanilladot(),
+  x_center = TRUE, scale = TRUE, y_scale = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>Design matrix, intercept term is added within the function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Vector or factor with class assignments</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>Regularization parameter of the l2 penalty in regularized least squares</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kernel</code></td>
+<td>
+<p>kernlab kernel function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x_center</code></td>
+<td>
+<p>TRUE, whether the dependent variables (features) should be centered</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>If TRUE, apply a z-transform to the design matrix X before running the regression</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y_scale</code></td>
+<td>
+<p>TRUE center the target vector</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>S4 object of class LeastSquaresClassifier with the following slots:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>theta</code></td>
+<td>
+<p>weight vector</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>classnames</code></td>
+<td>
+<p>the names of the classes</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>modelform</code></td>
+<td>
+<p>formula object of the model used in regression</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scaling</code></td>
+<td>
+<p>a scaling object containing the parameters of the z-transforms applied to the data</p>
+</td>
+</tr>
+</table>
+<h3>See Also</h3>
+
+<p>Other RSSL classifiers: 
+<code>EMLeastSquaresClassifier</code>,
+<code>EMLinearDiscriminantClassifier</code>,
+<code>GRFClassifier</code>,
+<code>ICLeastSquaresClassifier</code>,
+<code>ICLinearDiscriminantClassifier</code>,
+<code>LaplacianKernelLeastSquaresClassifier()</code>,
+<code>LaplacianSVM</code>,
+<code>LeastSquaresClassifier</code>,
+<code>LinearDiscriminantClassifier</code>,
+<code>LinearSVM</code>,
+<code>LinearTSVM()</code>,
+<code>LogisticLossClassifier</code>,
+<code>LogisticRegression</code>,
+<code>MCLinearDiscriminantClassifier</code>,
+<code>MCNearestMeanClassifier</code>,
+<code>MCPLDA</code>,
+<code>MajorityClassClassifier</code>,
+<code>NearestMeanClassifier</code>,
+<code>QuadraticDiscriminantClassifier</code>,
+<code>S4VM</code>,
+<code>SVM</code>,
+<code>SelfLearning</code>,
+<code>TSVM</code>,
+<code>USMLeastSquaresClassifier</code>,
+<code>WellSVM</code>,
+<code>svmlin()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(RSSL)
+library(ggplot2)
+library(dplyr)
+
+# Two class problem
+df &lt;- generateCrescentMoon(200)
+
+class_lin &lt;- KernelLeastSquaresClassifier(Class~.,df,
+                                          kernel=kernlab::vanilladot(), lambda=1)
+class_rbf1 &lt;- KernelLeastSquaresClassifier(Class~.,df,
+                                          kernel=kernlab::rbfdot(), lambda=1)
+class_rbf5 &lt;- KernelLeastSquaresClassifier(Class~.,df,
+                                          kernel=kernlab::rbfdot(5), lambda=1)
+class_rbf10 &lt;- KernelLeastSquaresClassifier(Class~.,df,
+                                           kernel=kernlab::rbfdot(10), lambda=1)
+
+df %&gt;% 
+  ggplot(aes(x=X1,y=X2,color=Class,shape=Class)) +
+  geom_point() +
+  coord_equal() +
+  stat_classifier(aes(linetype=..classifier..),
+                  classifiers = list("Linear"=class_lin,
+                                     "RBF sigma=1"=class_rbf1,
+                                     "RBF sigma=5"=class_rbf5,
+                                     "RBF sigma=10"=class_rbf10),
+                  color="black")
+
+# Second Example
+dmat&lt;-model.matrix(Species~.-1,iris[51:150,])
+tvec&lt;-droplevels(iris$Species[51:150])
+testdata &lt;- data.frame(tvec,dmat[,1:2])
+colnames(testdata)&lt;-c("Class","X1","X2")
+
+precision&lt;-100
+xgrid&lt;-seq(min(dmat[,1]),max(dmat[,1]),length.out=precision)
+ygrid&lt;-seq(min(dmat[,2]),max(dmat[,2]),length.out=precision)
+gridmat &lt;- expand.grid(xgrid,ygrid)
+
+g_kernel&lt;-KernelLeastSquaresClassifier(dmat[,1:2],tvec,
+                                       kernel=kernlab::rbfdot(0.01),
+                                       lambda=0.000001,scale = TRUE)
+plotframe &lt;- cbind(gridmat, decisionvalues(g_kernel,gridmat))
+colnames(plotframe)&lt;- c("x","y","Output")
+ggplot(plotframe, aes(x=x,y=y)) +
+  geom_tile(aes(fill = Output)) +
+  scale_fill_gradient(low="yellow", high="red",limits=c(0,1)) +
+  geom_point(aes(x=X1,y=X2,shape=Class),data=testdata,size=3) +
+  stat_classifier(classifiers=list(g_kernel))
+
+# Multiclass problem
+dmat&lt;-model.matrix(Species~.-1,iris)
+tvec&lt;-iris$Species
+testdata &lt;- data.frame(tvec,dmat[,1:2])
+colnames(testdata)&lt;-c("Class","X1","X2")
+
+precision&lt;-100
+xgrid&lt;-seq(min(dmat[,1]),max(dmat[,1]),length.out=precision)
+ygrid&lt;-seq(min(dmat[,2]),max(dmat[,2]),length.out=precision)
+gridmat &lt;- expand.grid(xgrid,ygrid)
+
+g_kernel&lt;-KernelLeastSquaresClassifier(dmat[,1:2],tvec,
+                      kernel=kernlab::rbfdot(0.1),lambda=0.00001,
+                      scale = TRUE,x_center=TRUE)
+
+plotframe &lt;- cbind(gridmat, 
+                   maxind=apply(decisionvalues(g_kernel,gridmat),1,which.max))
+ggplot(plotframe, aes(x=Var1,y=Var2)) +
+  geom_tile(aes(fill = factor(maxind,labels=levels(tvec)))) +
+  geom_point(aes(x=X1,y=X2,shape=Class),data=testdata,size=4,alpha=0.5)
+</code></pre>
+
+
+</div>

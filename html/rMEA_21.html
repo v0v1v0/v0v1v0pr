@@ -1,0 +1,94 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>MEAreplace</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Substitute values from MEA data</h2>
+
+<h3>Description</h3>
+
+<p>This function allows to substitute MEA data from a list of time epochs. This is useful to mark and remove artefacts,
+or to substitute extreme values.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">MEAreplace(mea, epochs, replacement, filterLabel = "replaced")
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>mea</code></td>
+<td>
+<p>an object of class <code>MEA</code> or a list of <code>MEA</code> objects (see function <code>readMEA</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>epochs</code></td>
+<td>
+<p>a data.frame containing a list of epochs that must be changed (see Details)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>replacement</code></td>
+<td>
+<p>the value used to mark artefacts. Use 'NA' to remove artefacts and '0' to apply thresholds.
+Other values are allowed but should not be used without a good reason.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>filterLabel</code></td>
+<td>
+<p>can be used to update the <code>filter</code> attribute, to keep track of the data transformations.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>the <code>artefacts</code> data.frame must contain a "start" and "end" columns, with the boundaries of the epochs that must be
+marked as artefacts. The start and end values can be either integers (denoting seconds), or string values in the format hh:mm:ss, or mm:ss.
+Furthermore the data.frame must contain a <code>uid</code> column containing strings in the format "group_id_session", OR three columns <code>group, id, session</code>
+presenting the information separately. Data identifiers must match those of the <code>mea</code> object.
+</p>
+<p>The data.frame can be either hand crafted, for instance by importing a csv file (see <code>read.table</code>), or
+generated through the packages own artefact detection tools such as <code>CCFartefacts</code>
+</p>
+
+
+<h3>Value</h3>
+
+<p>returns the same <code>MEA</code> or <code>MEAlist</code> object, with all artefactual data substituted.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#' ## read the first 4 minutes of the normal sample
+## (intake interviews of patients that carried on therapy)
+path_normal &lt;- system.file("extdata/normal", package = "rMEA")
+mea_normal &lt;- readMEA(path_normal, sampRate = 25, s1Col = 1, s2Col = 2,
+                      s1Name = "Patient", s2Name = "Therapist",
+                      idOrder = c("id","session"), idSep="_", skip=1, nrow = 6000)
+mea_normal &lt;- MEAccf(mea_normal, lagSec = 5, winSec = 30, incSec = 10, ABS = FALSE)
+
+## find potential artefacts
+artefacts = CCFartefacts(mea_normal, threshold = 0.2, delta=1)
+
+##replace values
+mea_replaced &lt;- MEAreplace(mea_normal, epochs = artefacts,
+                           replace = NA, filterLabel = "artefacts deletion")
+
+#visualize results on first case
+plot(mea_normal$all_200_1)
+plot(mea_replaced$all_200_1)
+
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,158 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>analyze_colvars</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Generate rows analyzing different variables across columns</h2>
+
+<h3>Description</h3>
+
+<p>Generate rows analyzing different variables across columns
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">analyze_colvars(
+  lyt,
+  afun,
+  format = NULL,
+  na_str = NA_character_,
+  nested = TRUE,
+  extra_args = list(),
+  indent_mod = 0L,
+  inclNAs = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>lyt</code></td>
+<td>
+<p>(<code>PreDataTableLayouts</code>)<br> layout object pre-data used for tabulation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>afun</code></td>
+<td>
+<p>(<code>function</code> or <code>list</code>)<br> function(s) to be used to calculate the values in each column. The list
+will be repped out as needed and matched by position with the columns during tabulation. This functions
+accepts the same parameters as <code>analyze()</code> like <code>afun</code> and <code>format</code>. For further information see
+additional_fun_params.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>format</code></td>
+<td>
+<p>(<code>string</code>, <code>function</code>, or <code>list</code>)<br> format associated with this split. Formats can be declared via
+strings (<code>"xx.x"</code>) or function. In cases such as <code>analyze</code> calls, they can be character vectors or lists of
+functions. See <code>formatters::list_valid_format_labels()</code> for a list of all available format strings.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na_str</code></td>
+<td>
+<p>(<code>string</code>)<br> string that should be displayed when the value of <code>x</code> is missing. Defaults to <code>"NA"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nested</code></td>
+<td>
+<p>(<code>logical</code>)<br> whether this layout instruction should be applied within the existing layout structure
+<em>if possible</em> (<code>TRUE</code>, the default) or as a new top-level element (<code>FALSE</code>). Ignored if it would nest a split
+underneath analyses, which is not allowed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extra_args</code></td>
+<td>
+<p>(<code>list</code>)<br> extra arguments to be passed to the tabulation function. Element position in the list
+corresponds to the children of this split. Named elements in the child-specific lists are ignored if they do
+not match a formal argument of the tabulation function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>indent_mod</code></td>
+<td>
+<p>(<code>numeric</code>)<br> modifier for the default indent position for the structure created by this
+function (subtable, content table, or row) <em>and all of that structure's children</em>. Defaults to 0, which
+corresponds to the unmodified default behavior.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inclNAs</code></td>
+<td>
+<p>(<code>logical</code>)<br> whether NA observations in the <code>var</code> variable(s) should be included when performing
+the analysis. Defaults to <code>FALSE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A <code>PreDataTableLayouts</code> object suitable for passing to further layouting functions, and to <code>build_table()</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Gabriel Becker
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>split_cols_by_multivar()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(dplyr)
+
+ANL &lt;- DM %&gt;% mutate(value = rnorm(n()), pctdiff = runif(n()))
+
+## toy example where we take the mean of the first variable and the
+## count of &gt;.5 for the second.
+colfuns &lt;- list(
+  function(x) rcell(mean(x), format = "xx.x"),
+  function(x) rcell(sum(x &gt; .5), format = "xx")
+)
+
+lyt &lt;- basic_table() %&gt;%
+  split_cols_by("ARM") %&gt;%
+  split_cols_by_multivar(c("value", "pctdiff")) %&gt;%
+  split_rows_by("RACE",
+    split_label = "ethnicity",
+    split_fun = drop_split_levels
+  ) %&gt;%
+  summarize_row_groups() %&gt;%
+  analyze_colvars(afun = colfuns)
+lyt
+
+tbl &lt;- build_table(lyt, ANL)
+tbl
+
+lyt2 &lt;- basic_table() %&gt;%
+  split_cols_by("ARM") %&gt;%
+  split_cols_by_multivar(c("value", "pctdiff"),
+    varlabels = c("Measurement", "Pct Diff")
+  ) %&gt;%
+  split_rows_by("RACE",
+    split_label = "ethnicity",
+    split_fun = drop_split_levels
+  ) %&gt;%
+  summarize_row_groups() %&gt;%
+  analyze_colvars(afun = mean, format = "xx.xx")
+
+tbl2 &lt;- build_table(lyt2, ANL)
+tbl2
+
+</code></pre>
+
+
+</div>

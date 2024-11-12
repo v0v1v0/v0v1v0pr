@@ -1,0 +1,181 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rrtest_clust</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Residual randomization test under cluster invariances</h2>
+
+<h3>Description</h3>
+
+<p>This function tests the specified linear hypothesis in <code>model</code>
+assuming that the errors have some form of cluster invariance determined by <code>type</code>
+within the clusters determined by <code>clustering</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rrtest_clust(
+  model,
+  type,
+  clustering = NULL,
+  num_R = 999,
+  alpha = 0.05,
+  val_type = "decision"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>Regression model and hypothesis. See example_model for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>A <code>character</code>, either "perm", "sign" or "double".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>clustering</code></td>
+<td>
+<p>A <code>List</code> that specifies a clustering of datapoint indexes 1, ..., n.
+See example_clustering. If NULL it takes default value according to <code>type</code> (see Note)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>num_R</code></td>
+<td>
+<p>Number of test statistic values to calculate in the test.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>Nominal test level (between 0 to 1).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>val_type</code></td>
+<td>
+<p>The type of return value.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For the regression y = X * beta + e, this function is testing the following linear null hypothesis:
+</p>
+<p>H0: lam' beta = lam[1] * beta[1] + ... + lam[p] * beta[p] = lam0,
+</p>
+<p>where y, X, lam, lam0 are specified in <code>model</code>.
+The assumption is that the errors, e, have some form of cluster invariance.
+Specifically:
+</p>
+
+<ul>
+<li>
+<p> If <code>type</code> = "perm" then the errors are assumed exchangeable within the specified clusters:
+</p>
+<p>(e_1, e_2, ..., e_n) ~ cluster_perm(e_1, e_2, ..., e_n),
+</p>
+<p>where ~ denotes equality in distribution, and cluster_perm is any random permutation
+within the clusters defined by <code>clustering</code>. Internally, the test repeatedly calculates a test statistic
+by randomly permuting the residuals within clusters.
+</p>
+</li>
+<li>
+<p> If <code>type</code> = "sign" then the errors are assumed sign-symmetric within the specified clusters:
+</p>
+<p>(e_1, e_2, ..., e_n) ~ cluster_signs(e_1, e_2, ..., e_n),
+</p>
+<p>where cluster_signs is a random signs flip of residuals on the cluster level.
+Internally, the test repeatedly calculates a test statistic by randomly flipping the signs of cluster residuals.
+</p>
+</li>
+<li>
+<p> If <code>type</code> = "double" then the errors are assumed both exchangeable and sign symmetric
+within the specified clusters:
+</p>
+<p>(e_1, e_2, ..., e_n) ~ cluster_signs(cluster_perm(e_1, e_2, ..., e_n)),
+</p>
+<p>Internally, the test repeatedly calculates a test statistic by permuting and randomly flipping the signs of residuals on the cluster level.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>If <code>val_type</code> = "decision" (default) we get the test binary decision (1=REJECT H0).
+</p>
+<p>If <code>val_type</code> = "pval" we get the test p-value.
+</p>
+<p>If  <code>val_type</code> = "full" we get the full test output, i.e., a <code>List</code> with elements <code>tobs</code>, <code>tvals</code>,
+the observed and randomization values of the test statistic, respectively.
+</p>
+
+
+<h3>Note</h3>
+
+<p>If <code>clustering</code> is NULL then it will be assigned a default value:
+</p>
+
+<ul>
+<li> <p><code>list(1:n)</code>if <code>type</code> = "perm", where n is the number of datapoints;
+</p>
+</li>
+<li> <p><code>as.list(1:n)</code> if <code>type</code> = "sign" or "double".
+</p>
+</li>
+</ul>
+<p>As in bootstrap <code>num_R</code> is usually between 1000-5000.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Life after bootstrap: residual randomization inference in regression models (Toulis, 2019)
+</p>
+<p><a href="https://www.ptoulis.com/residual-randomization">https://www.ptoulis.com/residual-randomization</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># 1. Validity example
+set.seed(123)
+n = 50
+X = cbind(rep(1, n), 1:n/n)
+beta = c(0, 0)
+rej = replicate(200, {
+  y = X %*% beta  + rt(n, df=5)
+  model = list(y=y, X=X, lam=c(0, 1), lam0=0)  # H0: beta2 = 0
+  rrtest_clust(model, "perm")
+})
+mean(rej)  # Should be ~ 5% since H0 is true.
+
+# 2. Heteroskedastic example
+set.seed(123)
+n = 200
+X = cbind(rep(1, n), 1:n/n)
+beta = c(-1, 0.2)
+ind = c(rep(0, 0.9*n), rep(1, .1*n))  # cluster indicator
+y = X %*% beta + rnorm(n, sd= (1-ind) * 0.1 + ind * 5) # heteroskedastic
+confint(lm(y ~ X + 0))  # normal OLS does not reject H0: beta2 = 0
+cl = list(which(ind==0), which(ind==1))
+model = list(y=y, X=X, lam=c(0, 1), lam0=0)
+
+rrtest_clust(model, "sign")  # errors are sign symmetric regardless of cluster.
+# Cluster sign test does not reject because of noise.
+
+rrtest_clust(model, "perm", cl)  # errors are exchangeable within clusters
+# Cluster permutation test rejects because inference is sharper.
+</code></pre>
+
+
+</div>

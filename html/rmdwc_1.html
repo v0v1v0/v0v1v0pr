@@ -1,0 +1,175 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rmdcount</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Word, character and non-whitespace characters count</h2>
+
+<h3>Description</h3>
+
+<p><code>rmdcount</code> counts lines, words, bytes, characters and non-whitespace characters in R Markdown files excluding code chunks.
+<code>txtcount</code> counts lines, words, bytes, characters and non-whitespace characters in plain text files.<br>
+Note that the counts may differ a bit from unix <code>wc</code> and Libre Office because
+it depends on the definition of a line, a word and a character.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rmdcount(
+  files = NULL,
+  space = "[[:space:]]",
+  word = "[[:space:]]+",
+  line = "\n",
+  exclude = "```\\{.*?```"
+)
+
+txtcount(
+  files = NULL,
+  space = "[[:space:]]",
+  word = "[[:space:]]+",
+  line = "\n"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>files</code></td>
+<td>
+<p>character: file name(s)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>space</code></td>
+<td>
+<p>character: pattern to split a text at spaces (default: <code>'[[:space:]]'</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>word</code></td>
+<td>
+<p>character: pattern to split a text at word boundaries (default: <code>'[[:space:]]+'</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>line</code></td>
+<td>
+<p>character: pattern to split lines (default: <code>'\n'</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exclude</code></td>
+<td>
+<p>character: pattern to exclude text parts, e.g. code chunks (default: <code>'```\\{.*?```'</code>)</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>We define:
+</p>
+
+<dl>
+<dt>Line</dt>
+<dd>
+<p>the number of lines. It differs from unix <code>wc -l</code> since <code>wc</code> counts the number of newlines.</p>
+</dd>
+<dt>Word</dt>
+<dd>
+<p>it is considered to be a character or characters delimited by white space. However,
+a "word" is in general a fuzzy concept, for example is "3.141593" a word?
+Therefore different programs may count differently, for more details see the discussion to the Libreoffice bug
+<a href="https://bugs.documentfoundation.org/show_bug.cgi?id=55359">Word count gives wrong results - Another Example</a> Comment 5.</p>
+</dd>
+</dl>
+<p>The following approach is used to detect lines, words, characters and non-whitespace characters.
+</p>
+
+<dl>
+<dt>lines</dt>
+<dd>
+<p><code>strsplit(rmd, line)[[1]]</code> with <code>line='\n'</code></p>
+</dd>
+<dt>bytes</dt>
+<dd>
+<p><code>charToRaw(rmd)</code></p>
+</dd>
+<dt>words</dt>
+<dd>
+<p><code>strsplit(rmd, word)[[1]]</code> with <code>word='[[:space:]]+'</code></p>
+</dd>
+<dt>characters</dt>
+<dd>
+<p><code>strsplit(rmd, '')[[1]]</code></p>
+</dd>
+<dt>non-whitespace characters</dt>
+<dd>
+<p><code>strsplit(gsub(space, '', rmd), '')[[1]]</code> with <code>space='[[:space:]]'</code></p>
+</dd>
+</dl>
+<p>If <code>txtcount</code> is used then code chunks are deleted with <code>gsub('```\\{.*?```', '', rmd)</code> before counting.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a data frame with following elements
+</p>
+
+<dl>
+<dt>file</dt>
+<dd>
+<p>basename of file</p>
+</dd>
+<dt>lines</dt>
+<dd>
+<p>number of lines</p>
+</dd>
+<dt>words</dt>
+<dd>
+<p>number of words</p>
+</dd>
+<dt>bytes</dt>
+<dd>
+<p>number of bytes</p>
+</dd>
+<dt>chars</dt>
+<dd>
+<p>number of characters</p>
+</dd>
+<dt>nonws</dt>
+<dd>
+<p>number of non-whitespace characters</p>
+</dd>
+<dt>path</dt>
+<dd>
+<p>path of file</p>
+</dd>
+</dl>
+<h3>Examples</h3>
+
+<pre><code class="language-R"># count excluding code chunks
+files &lt;- system.file('rmarkdown/rstudio_pdf.Rmd', package="rmdwc")
+rmdcount(files)
+# count including code chunks
+txtcount(files) # or rmdcount(files, exclude='')
+# count for a set of R Markdown docs
+files &lt;- list.files(path=system.file('rmarkdown', package="rmdwc"), 
+                    pattern="*.Rmd", full.names=TRUE)
+rmdcount(files)
+# use of rmdcount() in a R Markdown document 
+if (interactive()) {
+  files &lt;- system.file('rmarkdown/rstudio_pdf.Rmd', package="rmdwc")
+  file.edit(files) # SAVE(!) the file and knit it 
+}
+# count including code chunks
+files &lt;- system.file('rmarkdown/rstudio_pdf.Rmd', package="rmdwc")
+txtcount(files)
+</code></pre>
+
+
+</div>

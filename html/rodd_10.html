@@ -1,0 +1,488 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>tpopt</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculation of optimal discriminating design</h2>
+
+<h3>Description</h3>
+
+<p>Calculates an approximation <code class="reqn">\xi^{**}</code> of the <code class="reqn">T_{\mathrm{P}}</code>-optimal design <code class="reqn">\xi^*</code> for discrimination between a given list of models <code class="reqn">\{\eta_i(x,\theta_i),\; i = 1,\dots,\nu\}</code>. This procedure is based on the algorithms developed by Holger Dette, Viatcheslav B. Melas and Roman Guchenko in [7]. <code class="reqn">T_{\mathrm{P}}</code>-optimal design is a probability measure, which maximizes the functional 
+</p>
+<p style="text-align: center;"><code class="reqn">T_{\mathrm{P}}(\xi) = \sum_{i,j=1}^{\nu} p_{i,j} \inf_{\theta_{i,j} \in \Theta_j} \int_{\mathcal{X}} \Big[ \eta_i(x,\overline{\theta}_{i}) - \eta_j(x,\theta_{i,j}) \Big]^2 \xi(dx),</code>
+</p>
+
+<p>where <code class="reqn">\xi</code> is an arbitrary design on <code class="reqn">\mathcal{X}</code> (it is presumed here, that <code class="reqn">\mathcal{X}</code> is an interval from <code class="reqn">\mathbf{R}</code>), <code class="reqn">\mathrm{P} = \{ p_{i,j} \}_{i,j = 1}^{\nu}</code> is a table of non-negative weights with zeros on the diagonal (comparison table) and <code class="reqn">\overline{\theta}_{i}</code> are predefined fixed parameters.
+</p>
+<p>It was also shown in [7] that calculation of Bayesian <code class="reqn">T_{\mathrm{P}}</code>-optimal design, which maximizes more complicated criterion
+</p>
+<p style="text-align: center;"><code class="reqn">T_{\mathrm{P}}^{\mathrm{B}}(\xi) = \sum_{i,j=1}^{\nu} p_{i,j} \int_{\Theta_i} \inf_{\theta_{i,j} \in \Theta_j} \int_{\mathcal{X}} \Big[ \eta_i(x,\lambda_i) - \eta_j(x,\theta_{i,j}) \Big]^2 \xi(dx) \mathcal{P}_i(d \lambda_i),</code>
+</p>
+
+<p>can be reduced to calculation of ordinary <code class="reqn">T_{\mathrm{P}}</code>-optimal design, when distributions <code class="reqn">\mathcal{P}_i</code> are discrete. That is why in this case the current function is also suitable for calculation of Bayesian designs.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">tpopt(  x, 
+        w = rep(1, length(x)) / length(x), 
+        eta, 
+        theta.fix, 
+        theta.var = NULL, 
+        p, 
+        x.lb = min(x), 
+        x.rb = max(x), 
+        opt = list())
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a numeric vector specifying support points from <code class="reqn">\mathcal{X}</code> for initial design. Current algorithm operates under the assumption, that <code class="reqn">\mathcal{X}</code> is an interval from <code class="reqn">\mathbf{R}</code></p>
+</td>
+</tr></table>
+<p>.
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>w</code></td>
+<td>
+<p>a numeric vector specifying weights for initial design. This vector should have the same length as vector of support points. Furthermore, the weights of the design should sum to 1. If this vector is not specified, then the weights are presumed to be equal.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eta</code></td>
+<td>
+<p>a list of models between which proposed optimization should be performed. Every function from this list should be defined in the form of <code class="reqn">\eta_i(x,\theta_i)</code>, where <code class="reqn">x</code> is one dimensional variable from <code class="reqn">\mathcal{X}</code> and <code class="reqn">\theta_i</code> is a vector of corresponding model parameters. We will refer to length of this list as <code class="reqn">\nu</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>theta.fix</code></td>
+<td>
+<p>a list of fixed model parameters <code class="reqn">\overline{\theta}_{i}</code> from the functional <code class="reqn">T_{\mathrm{P}}</code>. This list should have the same length as the list of models.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>theta.var</code></td>
+<td>
+<p>an array with two dimensions specifying initial values for parameter vectors <code class="reqn">\theta_{i,j}</code>. The default value here is NULL, which means that initial guess is calculated automatically.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>a <code class="reqn">\nu\times\nu</code> square table (R-matrix) containing non-negative weights for comparison. The diagonal values of this table should all be zeros. If one want to include comparison of the <code class="reqn">i</code>'th model with fixed parameters against <code class="reqn">j</code>'th model with variable parameters into optimization, then he/she should place non-negative weight <code class="reqn">p_{i,j}</code> into the table; otherwise this weight should be zero.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x.lb</code></td>
+<td>
+<p>a left bound for support points. If it is not specified, then minimal value from input vector <code class="reqn">x</code> is taken.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x.rb</code></td>
+<td>
+<p>a right bound for support points. If it is not specified, then maximal value from input vector <code class="reqn">x</code> is taken.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>opt</code></td>
+<td>
+<p>a list of options containing such named fields:
+</p>
+
+<dl>
+<dt>method</dt>
+<dd>
+<p>a variable specifying the method to be used in inner weight optimization step. See details section for more info. The value “1” stands for quadratic programming based procedure and “2” stands for specific gradient method. See [7] for more details on that methods.</p>
+</dd>
+<dt>max.iter</dt>
+<dd>
+<p>maximum number of iterations for the main loop. Reaching this number of iterations is one of the possible stopping conditions.</p>
+</dd>
+<dt>des.eff</dt>
+<dd>
+<p>desired efficiency for resulted approximation of optimal design. Reaching efficiency of more than des.eff is another stopping condition (to be exact, efficiency lower bound is calculated on each iteration of the algorithm instead of efficiency). See details section for exact definition of efficiency.</p>
+</dd>
+<dt>derivative.epsilon</dt>
+<dd>
+<p>a value that is used for numerical computation of first and second order derivatives.</p>
+</dd>
+<dt>support.epsilon</dt>
+<dd>
+<p>a value that is used for support points exclusion, if corresponding weight's value is less then support.epsilon.</p>
+</dd>
+<dt>weights.evaluation.epsilon</dt>
+<dd>
+<p>a value that is used in the inner loop for weights evaluation.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Firstly, lets define
+</p>
+<p style="text-align: center;"><code class="reqn">\Psi(x,\xi) = \sum_{i,j=1}^{\nu} p_{i,j} \Big[ \eta_i(x,\overline{\theta}_{i}) - \eta_j(x,\widehat{\theta}_{i,j}) \Big]^2, \widehat{\theta}_{i,j} = \arg\inf_{\theta_{i,j} \in \Theta_j} \int_{\mathcal{X}} \Big[ \eta_i(x,\overline{\theta}_i) - \eta_j(x, \theta_{i,j}) \Big]^2 \xi(dx).</code>
+</p>
+
+<p>The simplified algorithm schema is as follows:
+</p>
+<p>Let <code class="reqn">\xi_s</code> denotes the design obtained on the s'th iteration of the algorithm. Then
+</p>
+
+<dl>
+<dt>Step 1.</dt>
+<dd>
+<p>Support of the new design <code class="reqn">\xi_{s+1}</code> consists of all local maximums of function <code class="reqn">\Psi(x,\xi_s)</code> on <code class="reqn">\mathcal{X}</code> united with the support of current design <code class="reqn">\xi_s</code>.</p>
+</dd> 
+<dt>Step 2.</dt>
+<dd>
+<p>Weights of the new design <code class="reqn">\xi_{s+1}</code> are calculated so that the functional <code class="reqn">T_{\mathrm{P}}(\xi)</code> achieves its maximum in the class of all designs with support from previous step.</p>
+</dd>
+</dl>
+<h3>Value</h3>
+
+<p>Object of class “tpopt” which contains the following fields:
+</p>
+
+<dl>
+<dt>x</dt>
+<dd>
+<p>the numeric vector of support points from <code class="reqn">\mathcal{X}</code> for resulting approximation of <code class="reqn">T_{\mathrm{P}}</code>-optimal design.</p>
+</dd>
+<dt>w</dt>
+<dd>
+<p>the numeric vector of weights for resulting approximation of <code class="reqn">T_{\mathrm{P}}</code>-optimal design. The values of this vector sum to 1.</p>
+</dd>
+<dt>efficiency</dt>
+<dd>
+<p>the numeric vector containing efficiency lower bound values by iteration. See details section for definition.</p>
+</dd>
+<dt>functional</dt>
+<dd>
+<p>the numeric vector containing values of functional <code class="reqn">T_{\mathrm{P}}</code> by iteration.</p>
+</dd>
+<dt>eta</dt>
+<dd>
+<p>the list of models, which is exactly the same as one from the arguments list.</p>
+</dd>
+<dt>theta.fix</dt>
+<dd>
+<p>the list of fixed model parameters. It goes to the result without any changes too.</p>
+</dd>
+<dt>theta.var</dt>
+<dd>
+<p>the array with two dimensions specifying calculated values for parameter vectors <code class="reqn">\theta_{i,j}</code> according to resulting design.</p>
+</dd>
+<dt>p, x.lb, x.rb</dt>
+<dd>
+<p>same as in input.</p>
+</dd>
+<dt>max.iter</dt>
+<dd>
+<p>max.iter from options list.</p>
+</dd>
+<dt>done.iter</dt>
+<dd>
+<p>number of iterations done.</p>
+</dd>
+<dt>des.eff</dt>
+<dd>
+<p>desired efficiency from options list.</p>
+</dd>
+<dt>time</dt>
+<dd>
+<p>overall execution time.</p>
+</dd>
+</dl>
+<h3>References</h3>
+
+<p>[1] Atkinson A.C., Fedorov V.V. (1975) <em>The design of experiments for discriminating between two rival models</em>. Biometrika, vol. 62(1), pp. 57–70.
+</p>
+<p>[2] Atkinson A.C., Fedorov V.V. (1975) <em>Optimal design: Experiments for discriminating between several models</em>. Biometrika, vol. 62(2), pp. 289–303.
+</p>
+<p>[3] Dette H., Pepelyshev A. (2008) <em>Efficient experimental designs for sigmoidal growth models</em>. Journal of statistical planning and inference, vol. 138, pp. 2–17.
+</p>
+<p>[4] Dette H., Melas V.B., Shpilev P. (2013) <em>Robust T-optimal discriminating designs</em>. Annals of Statistics, vol. 41(4), pp. 1693–1715.
+</p>
+<p>[5] Braess D., Dette H. (2013) <em>Optimal discriminating designs for several competing regression models</em>. Annals of Statistics, vol. 41(2), pp. 897–922.
+</p>
+<p>[6] Braess D., Dette H. (2013) <em>Supplement to “Optimal discriminating designs for several competing regression models”</em>. Annals of Statistics, online supplementary material.
+</p>
+<p>[7] Dette H., Melas V.B., Guchenko R. (2014) <em>Bayesian T-optimal discriminating designs</em>. <a href="http://arxiv.org/abs/1412.2548">ArXiv link</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>plot.tpopt</code>, <code>summary.tpopt</code>, <code>print.tpopt</code></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">### Auxiliary libraries for examples
+library(mvtnorm)
+### EMAX vs MM
+#List of models
+eta.1 &lt;- function(x, theta.1) 
+    theta.1[1] + theta.1[2] * x / (x + theta.1[3])
+
+eta.2 &lt;- function(x, theta.2) 
+    theta.2[1] * x / (x + theta.2[2])
+
+eta &lt;- list(eta.1, eta.2)
+
+#List of fixed parameters
+theta.1 &lt;- c(1, 1, 1)
+theta.2 &lt;- c(1, 1)
+theta.fix &lt;- list(theta.1, theta.2)
+
+#Comparison table
+p &lt;- matrix(
+    c(
+        0, 1,
+        0, 0
+    ), c(2, 2), byrow = TRUE)
+
+#Design estimation
+res &lt;- tpopt(x = c(1.2, 1.5, 1.7), eta = eta, theta.fix = theta.fix, p = p, 
+    x.lb = 1, x.rb = 2)
+
+plot(res)
+summary(res)
+
+### Sigmoidal second
+#List of models
+eta.1 &lt;- function(x, theta.1)
+    theta.1[1] / (1 + theta.1[2] * exp(-theta.1[3] * x)) ^ theta.1[4]
+    
+eta.2 &lt;- function(x, theta.2)
+    theta.2[1] / (1 + theta.2[2] * exp(-theta.2[3] * x))
+
+eta &lt;- list(eta.1, eta.2)
+
+#List of fixed parameters
+theta.1 &lt;- c(2, 5, 1, 2)
+theta.2 &lt;- c(3, 5, 0.7)
+theta.fix &lt;- list(theta.1, theta.2)
+
+#Comparison table
+p &lt;- matrix(
+    c(  
+        0, 1,
+        0, 0 
+    ), c(2, 2), byrow = TRUE)
+
+#Design estimation
+res &lt;- tpopt(x = seq(0, 10), eta = eta, theta.fix = theta.fix, p = p)
+
+plot(res)
+summary(res)
+
+### Sigmoidal first
+#List of models
+eta.1 &lt;- function(x, theta.1)
+    theta.1[1] - theta.1[2] * exp(-theta.1[3] * x ^ theta.1[4])
+
+eta.2 &lt;- function(x, theta.2)
+    theta.2[1] - theta.2[2] * exp(-theta.2[3] * x)
+
+eta &lt;- list(eta.1, eta.2)
+
+#List of fixed parameters
+theta.1 &lt;- c(2, 1, 0.8, 1.5)
+theta.2 &lt;- c(2, 1, 1)
+theta.fix &lt;- list(theta.1, theta.2)
+
+#Comparision table
+p &lt;- matrix(
+    c(
+        0, 1,
+        0, 0
+    ), c(2, 2), byrow = TRUE)
+
+#Design estimation
+res &lt;- tpopt(x = seq(0, 10), eta = eta, theta.fix = theta.fix, p = p)
+
+plot(res)
+summary(res)
+
+### Sigmoidal first --- Bayes
+
+#List of fixed parameters
+sigma &lt;- sqrt(0.3)
+theta.1.sigma &lt;- matrix(
+    c(
+        sigma^2, 0,
+        0, sigma^2
+    ), c(2, 2), byrow = TRUE)
+grid &lt;- expand.grid(
+    theta.1[1],
+    theta.1[2],
+    seq(theta.1[3] - sigma, theta.1[3] + sigma, length.out = 5),
+    seq(theta.1[4] - sigma, theta.1[4] + sigma, length.out = 5)
+    )
+
+eta &lt;- c(replicate(length(grid[,1]), eta.1, simplify = FALSE), eta.2)
+
+theta.fix &lt;- list()
+for(i in 1:length(grid[,1]))
+    theta.fix[[length(theta.fix) + 1]] &lt;- as.numeric(grid[i,])
+theta.fix[[length(theta.fix) + 1]] &lt;- theta.2
+
+density.on.grid &lt;- dmvnorm(grid[,3:4], mean = theta.1[3:4], sigma = theta.1.sigma)
+density.on.grid &lt;- density.on.grid / sum(density.on.grid)
+
+#Comparison table
+p &lt;- rep(0,length(eta))
+for(i in 1:length(grid[,1]))
+    p &lt;- rbind(p, c(rep(0,length(eta) - 1), density.on.grid[i]))
+p &lt;- rbind(p, rep(0,length(eta)))
+p &lt;- p[-1,]
+
+res &lt;- tpopt(x = seq(0, 10), eta = eta, theta.fix = theta.fix, p = p)
+
+plot(res)
+summary(res)
+
+### Dose response study 
+#List of models
+eta.1 &lt;- function(x, theta.1)
+    theta.1[1] + theta.1[2] * x
+
+eta.2 &lt;- function(x, theta.2)
+    theta.2[1] + theta.2[2] * x * (theta.2[3] - x)
+
+eta.3 &lt;- function(x, theta.3)
+    theta.3[1] + theta.3[2] * x / (theta.3[3] + x)
+
+eta.4 &lt;- function(x, theta.4)
+    theta.4[1] + theta.4[2] / (1 + exp((theta.4[3] - x) / theta.4[4]))
+
+eta &lt;- list(eta.1, eta.2, eta.3, eta.4)
+
+#List of fixed parameters
+theta.1 &lt;- c(60, 0.56)
+theta.2 &lt;- c(60, 7/2250, 600)
+theta.3 &lt;- c(60, 294, 25)
+theta.4 &lt;- c(49.62, 290.51, 150, 45.51)
+
+theta.fix &lt;- list(theta.1, theta.2, theta.3, theta.4)
+
+#Comparison table
+p &lt;- matrix(
+    c(
+        0, 0, 0, 0,
+        1, 0, 0, 0,
+        1, 1, 0, 0,
+        1, 1, 1 ,0
+    ), c(4, 4), byrow = TRUE)
+
+#Design estimation
+res &lt;- tpopt(x = seq(0, 500, 100), eta = eta, theta.fix = theta.fix, p = p)
+
+plot(res)
+summary(res)
+
+### Dose response study --- Bayes
+
+#List of fixed parameters
+sigma &lt;- 37
+theta.4.sigma &lt;- matrix(
+    c(
+        sigma^2, 0, 0, 0,
+        0, sigma^2, 0, 0,
+        0, 0, sigma^2, 0,
+        0, 0, 0, sigma^2
+    ), c(4, 4), byrow = TRUE)
+grid &lt;- expand.grid(
+    seq(theta.4[1] - sigma, theta.4[1] + sigma, length.out = 3),
+    seq(theta.4[2] - sigma, theta.4[2] + sigma, length.out = 3),
+    seq(theta.4[3] - sigma, theta.4[3] + sigma, length.out = 3),
+    seq(theta.4[4] - sigma, theta.4[4] + sigma, length.out = 3)
+    )
+
+eta &lt;- c(eta.1, eta.2, eta.3, replicate(length(grid[,1]), eta.4, simplify = FALSE))
+
+theta.fix &lt;- list(theta.1, theta.2, theta.3)
+for(i in 1:length(grid[,1]))
+    theta.fix[[length(theta.fix) + 1]] &lt;- as.numeric(grid[i,])
+
+density.on.grid &lt;- dmvnorm(grid, mean = theta.4, sigma = theta.4.sigma)
+density.on.grid &lt;- density.on.grid / sum(density.on.grid)
+
+#Comparison table
+p &lt;- rbind(
+    rep(0, length(eta)), 
+    c(1, rep(0, length(eta) - 1)), 
+    c(1, 1, rep(0,length(eta) - 2))
+    )
+for(i in 1:length(grid[,1]))
+    p &lt;- rbind(p, c(rep(density.on.grid[i], 3), rep(0, length(eta) - 3)))
+
+#Design estimation
+## Not run: 
+res &lt;- tpopt(x = seq(0, 500, 100), eta = eta, theta.fix = theta.fix, p = p)
+## End(Not run)
+
+plot(res)
+summary(res)
+
+## Not run: 
+### Example from [8]
+### An example of how case 2 can be computed for example 1 in [8] with tpopt function
+
+#List of models
+eta.1 &lt;- function(x, theta.1) 
+    log(theta.1[1] * x + theta.1[2] * x / (x + theta.1[3]))
+
+eta.2 &lt;- function(x, theta.2) 
+    log(theta.2[1] * x / (x + theta.2[2]))
+
+eta &lt;- list(eta.1, eta.2)
+    
+#List of fixed parameters
+theta.1 &lt;- c(1, 1, 1)
+theta.2 &lt;- c(1, 1)
+theta.fix &lt;- list(theta.1, theta.2)
+
+#Comparison table
+p &lt;- matrix(
+    c(
+        0,1,
+        0,0
+    ), c(length(eta), length(eta)), byrow = TRUE)
+
+#Case 2, method 1
+#Design estimation
+res &lt;- tpopt(
+    x = seq(0.1, 5, length.out = 10), 
+    eta = eta, theta.fix = theta.fix, p = p, x.lb = 0.1, x.rb = 5, 
+    opt = list(method = 1)
+)
+plot(res)
+summary(res)
+
+#Case 2, method 2
+#Design estimation
+res &lt;- tpopt(
+    x = seq(0.1, 5, length.out = 10), 
+    eta = eta, theta.fix = theta.fix, p = p, x.lb = 0.1, x.rb = 5, 
+    opt = list(method = 2)
+)
+plot(res)
+summary(res)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

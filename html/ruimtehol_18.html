@@ -1,0 +1,127 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>starspace_save_model</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Save a starspace model as a binary or tab-delimited TSV file</h2>
+
+<h3>Description</h3>
+
+<p>Save a starspace model as a binary or a tab-delimited TSV file
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">starspace_save_model(
+  object,
+  file = "textspace.ruimtehol",
+  method = c("ruimtehol", "tsv-data.table", "binary", "tsv-starspace"),
+  labels = data.frame(code = character(), label = character(), stringsAsFactors =
+    FALSE)
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>an object of class <code>textspace</code> as returned by <code>starspace</code> or <code>starspace_load_model</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>file</code></td>
+<td>
+<p>character string with the path to the file where to save the model</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>character indicating the method of saving. Possible values are 'ruimtehol', 'binary', 'tsv-starspace' and 'tsv-data.table'. Defaults to 'ruimtehol'.
+</p>
+
+<ul>
+<li>
+<p>The first method: <code>'ruimtehol'</code> saves the R object and the embeddings and optionally the label definitions with saveRDS. This object can be loaded back in with <code>starspace_load_model</code>.
+</p>
+</li>
+<li>
+<p>The second method: <code>'tsv-data.table'</code> saves the model embeddings as a tab-delimited flat file using the fast data.table fwrite function
+</p>
+</li>
+<li>
+<p>The third method: <code>'binary'</code> saves the model as a binary file using the original methods of the Starspace authors
+</p>
+</li>
+<li>
+<p>The fourth method: <code>'tsv-starspace'</code> saves the model as a tab-delimited flat file using the original methods of the Starspace authors
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>labels</code></td>
+<td>
+<p>a data.frame with at least columns code and label which will be saved in case <code>method</code> is set to <code>'ruimtehol'</code>. 
+This allows to store the mapping between Starspace labels and your own codes alongside the model, 
+where code is your internal code and label is your label.<br>
+A new column will be added to this data.frame called <code>label_starspace</code> which combines the 
+Starspace prefix of the label with the code column of your provided data.frame, as this combination is the label starspace uses internally.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>invisibly, the character string with the file of the saved object
+</p>
+
+
+<h3>Note</h3>
+
+<p>It is advised to always use method 'ruimtehol' method as it works nicely together with the 
+<code>starspace_load_model</code> function. It is the advised method unless you need to provide non-R users the models 
+and you prefer using the methods provided by the Starspace authors instead of the faster and more portable 'ruimtehol' method.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>starspace_load_model</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(dekamer, package = "ruimtehol")
+dekamer$text &lt;- strsplit(dekamer$question, "\\W")
+dekamer$text &lt;- lapply(dekamer$text, FUN = function(x) x[x != ""])
+dekamer$text &lt;- sapply(dekamer$text, 
+                       FUN = function(x) paste(x, collapse = " "))
+
+dekamer$target &lt;- as.factor(dekamer$question_theme_main)
+codes &lt;- data.frame(code = seq_along(levels(dekamer$target)), 
+                    label = levels(dekamer$target), stringsAsFactors = FALSE)
+dekamer$target &lt;- as.integer(dekamer$target)
+set.seed(123456789)
+model &lt;- embed_tagspace(x = dekamer$text, 
+                        y = dekamer$target, 
+                        early_stopping = 0.8,
+                        dim = 10, minCount = 5)
+starspace_save_model(model, file = "textspace.ruimtehol", method = "ruimtehol",
+                     labels = codes)
+model &lt;- starspace_load_model("textspace.ruimtehol", method = "ruimtehol")
+starspace_save_model(model, file = "embeddings.tsv", method = "tsv-data.table")
+
+## clean up for cran
+file.remove("textspace.ruimtehol")
+file.remove("embeddings.tsv")
+</code></pre>
+
+
+</div>

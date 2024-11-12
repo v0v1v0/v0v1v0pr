@@ -1,0 +1,240 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>partial_residuals</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Augment a model fit with partial residuals for all terms</h2>
+
+<h3>Description</h3>
+
+<p>Construct a data frame containing the model data, partial residuals for all
+quantitative predictors, and predictor effects, for use in residual
+diagnostic plots and other analyses. The result is in tidy form (one row per
+predictor per observation), allowing it to be easily manipulated for plots
+and simulations.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">partial_residuals(fit, predictors = everything())
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>The model to obtain residuals for. This can be a model fit with
+<code>lm()</code> or <code>glm()</code>, or any model with a <code>predict()</code> method that accepts a
+<code>newdata</code> argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predictors</code></td>
+<td>
+<p>Predictors to calculate partial residuals for. Defaults to
+all predictors, skipping factors. Predictors can be specified using
+tidyselect syntax; see <code>help("language", package = "tidyselect")</code> and the
+examples below.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Data frame (tibble) containing the model data and residuals in tidy
+form. There is one row <em>per selected predictor</em> per observation. All
+predictors are included as columns, plus the following additional columns:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>.obs</code></td>
+<td>
+<p>Row number of this observation in the original model data frame.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.predictor_name</code></td>
+<td>
+<p>Name of the predictor this row gives the partial
+residual for.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.predictor_value</code></td>
+<td>
+<p>Value of the predictor this row gives the partial
+residual for.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.partial_resid</code></td>
+<td>
+<p>Partial residual for this predictor for this
+observation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.predictor_effect</code></td>
+<td>
+<p>Predictor effect <code class="reqn">\hat \mu(X_{if},
+0)</code> for this observation.</p>
+</td>
+</tr>
+</table>
+<h3>Predictors and regressors</h3>
+
+<p>To define partial residuals, we must distinguish between the <em>predictors</em>,
+the measured variables we are using to fit our model, and the <em>regressors</em>,
+which are calculated from them. In a simple linear model, the regressors are
+equal to the predictors. But in a model with polynomials, splines, or other
+nonlinear terms, the regressors may be functions of the predictors.
+</p>
+<p>For example, in a regression with a single predictor <code class="reqn">X</code>, the regression
+model <code class="reqn">Y = \beta_0 + \beta_1 X + e</code> has one regressor, <code class="reqn">X</code>. But if we
+choose a polynomial of degree 3, the model is <code class="reqn">Y = \beta_0 + \beta_1 X +
+\beta_2 X^2 + \beta_3 X^3</code>, and the regressors are <code class="reqn">\{X, X^2, X^3\}</code>.
+</p>
+<p>Similarly, if we have predictors <code class="reqn">X_1</code> and <code class="reqn">X_2</code> and form a model
+with main effects and an interaction, the regressors are <code class="reqn">\{X_1, X_2, X_1
+X_2\}</code>.
+</p>
+<p>Partial residuals are defined in terms of the predictors, not the regressors,
+and are intended to allow us to see the shape of the relationship between a
+particular predictor and the response, and to compare it to how we have
+chosen to model it with regressors. Partial residuals are not useful for
+categorical (factor) predictors, and so these are omitted.
+</p>
+
+
+<h3>Linear models</h3>
+
+<p>Consider a linear model where <code class="reqn">\mathbb{E}[Y \mid X = x] = \mu(x)</code>. The mean function <code class="reqn">\mu(x)</code> is a linear combination of
+regressors. Let <code class="reqn">\hat \mu</code> be the fitted model and <code class="reqn">\hat
+\beta_0</code> be its intercept.
+</p>
+<p>Choose a predictor <code class="reqn">X_f</code>, the <em>focal</em> predictor, to calculate partial
+residuals for. Write the mean function as <code class="reqn">\mu(X_f, X_o)</code>, where
+<code class="reqn">X_f</code> is the value of the focal predictor, and <code class="reqn">X_o</code> represents all
+other predictors.
+</p>
+<p>If <code class="reqn">e_i</code> is the residual for observation <code class="reqn">i</code>, the partial residual is
+</p>
+<p style="text-align: center;"><code class="reqn">r_{if} = e_i + (\hat \mu(x_{if}, 0) - \hat \beta_0).</code>
+</p>
+
+<p>Setting <code class="reqn">X_o = 0</code> means setting all other numeric predictors to 0; factor
+predictors are set to their first (baseline) level.
+</p>
+
+
+<h3>Generalized linear models</h3>
+
+<p>Consider a generalized linear model where <code class="reqn">g(\mathbb{E}[Y \mid X = x]) =
+\mu(x)</code>, where <code class="reqn">g</code> is a link function. Let
+<code class="reqn">\hat \mu</code> be the fitted model and <code class="reqn">\hat \beta_0</code> be
+its intercept.
+</p>
+<p>Let <code class="reqn">e_i</code> be the <em>working residual</em> for observation <code class="reqn">i</code>, defined to
+be
+</p>
+<p style="text-align: center;"><code class="reqn">e_i = (y_i - g^{-1}(x_i)) g'(x_i).</code>
+</p>
+
+<p>Choose a predictor <code class="reqn">X_f</code>, the <em>focal</em> predictor, to calculate partial
+residuals for. Write <code class="reqn">\mu</code> as <code class="reqn">\mu(X_f, X_o)</code>, where <code class="reqn">X_f</code> is the
+value of the focal predictor, and <code class="reqn">X_o</code> represents all other predictors.
+Hence <code class="reqn">\mu(X_f, X_o)</code> gives the model's prediction on the link scale.
+</p>
+<p>The partial residual is again
+</p>
+<p style="text-align: center;"><code class="reqn">r_{if} = e_i + (\hat \mu(x_{if}, 0) - \hat \beta_0).</code>
+</p>
+
+
+
+<h3>Interpretation</h3>
+
+<p>In linear regression, because the residuals <code class="reqn">e_i</code> should have mean zero
+in a well-specified model, plotting the partial residuals against <code class="reqn">x_f</code>
+should produce a shape matching the modeled relationship <code class="reqn">\mu</code>. If the
+model is wrong, the partial residuals will appear to deviate from the fitted
+relationship. Provided the regressors are uncorrelated or approximately
+linearly related to each other, the plotted trend should approximate the true
+relationship between <code class="reqn">x_f</code> and the response.
+</p>
+<p>In generalized linear models, this is approximately true if the link function
+<code class="reqn">g</code> is approximately linear over the range of observed <code class="reqn">x</code> values.
+</p>
+<p>Additionally, the function <code class="reqn">\mu(X_f, 0)</code> can be used to show the
+relationship between the focal predictor and the response. In a linear model,
+the function is linear; with polynomial or spline regressors, it is
+nonlinear. This function is the <em>predictor effect function</em>, and the
+estimated predictor effects <code class="reqn">\hat \mu(X_{if}, 0)</code> are
+included in this function's output.
+</p>
+
+
+<h3>Limitations</h3>
+
+<p>Factor predictors (as factors, logical, or character vectors) are detected
+automatically and omitted. However, if a numeric variable is converted to
+factor in the model formula, such as with <code>y ~ factor(x)</code>, the function
+cannot determine the appropriate type and will raise an error. Create factors
+as needed in the source data frame <em>before</em> fitting the model to avoid this
+issue.
+</p>
+
+
+<h3>References</h3>
+
+<p>R. Dennis Cook (1993). "Exploring Partial Residual Plots",
+<em>Technometrics</em>, 35:4, 351-362. <a href="https://doi.org/10.1080/00401706.1993.10485350">doi:10.1080/00401706.1993.10485350</a>
+</p>
+<p>Cook, R. Dennis, and Croos-Dabrera, R. (1998).
+"Partial Residual Plots in Generalized Linear Models." <em>Journal of the
+American Statistical Association</em> 93, no. 442: 730–39. <a href="https://doi.org/10.2307/2670123">doi:10.2307/2670123</a>
+</p>
+<p>Fox, J., &amp; Weisberg, S. (2018).
+"Visualizing Fit and Lack of Fit in Complex Regression Models with Predictor
+Effect Plots and Partial Residuals." <em>Journal of Statistical Software</em>,
+87(9). <a href="https://doi.org/10.18637/jss.v087.i09">doi:10.18637/jss.v087.i09</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>binned_residuals()</code> for the related binned residuals;
+<code>augment_longer()</code> for a similarly formatted data frame of ordinary
+residuals; <code>vignette("linear-regression-diagnostics")</code>,
+<code>vignette("logistic-regression-diagnostics")</code>, and
+<code>vignette("other-glm-diagnostics")</code> for examples of plotting and
+interpreting partial residuals
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">fit &lt;- lm(mpg ~ cyl + disp + hp, data = mtcars)
+partial_residuals(fit)
+
+# You can select predictors with tidyselect syntax:
+partial_residuals(fit, c(disp, hp))
+
+# Predictors with multiple regressors are supported:
+fit2 &lt;- lm(mpg ~ poly(disp, 2), data = mtcars)
+partial_residuals(fit2)
+
+# Allowing an interaction by number of cylinders is fine, but partial
+# residuals are not generated for the factor. Notice the factor must be
+# created first, not in the model formula:
+mtcars$cylinders &lt;- factor(mtcars$cyl)
+fit3 &lt;- lm(mpg ~ cylinders * disp + hp, data = mtcars)
+partial_residuals(fit3)
+</code></pre>
+
+
+</div>

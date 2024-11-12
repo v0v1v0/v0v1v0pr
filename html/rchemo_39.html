@@ -1,0 +1,255 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>gridcv</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Cross-validation</h2>
+
+<h3>Description</h3>
+
+<p>Functions for cross-validating predictive models.
+</p>
+<p>The functions return "scores" (average error rates) of predictions for a given model and a grid of parameter values, calculated from a cross-validation process. 
+</p>
+<p>- <code>gridcv</code>: Can be used for any model. 
+</p>
+<p>- <code>gridcvlv</code>: Specific to models using regularization by latent variables (LVs) (e.g. PLSR). Much faster than <code>gridcv</code>.
+</p>
+<p>- <code>gridcvlb</code>: Specific to models using ridge regularization (e.g. RR). Much faster than <code>gridcv</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">
+gridcv(X, Y, segm, score, fun, pars, verb = TRUE)
+
+gridcvlv(X, Y, segm, score, fun, nlv, pars = NULL, verb = TRUE)
+
+gridcvlb(X, Y, segm, score, fun, lb, pars = NULL, verb = TRUE)
+
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>Training X-data (<code class="reqn">n, p</code>), or list of training X-data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>Training Y-data (<code class="reqn">n, q</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>segm</code></td>
+<td>
+<p>CV segments, typically output of <code>segmkf</code> or <code>segmts</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>score</code></td>
+<td>
+<p>A function calculating a prediction score (e.g. <code>msep</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fun</code></td>
+<td>
+<p>A function corresponding to the predictive model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nlv</code></td>
+<td>
+<p>For <code>gridcvlv</code>. A vector of numbers of LVs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lb</code></td>
+<td>
+<p>For <code>gridcvlb</code>. A vector of ridge regulariation parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pars</code></td>
+<td>
+<p>A list of named vectors.  Each vector must correspond to an argument of the model function and gives the parameter values to consider for this argument. (see details)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verb</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, fitting information are printed.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Argument <code>pars</code> (the grid) must be a list of named vectors, each vector corresponding to an argument of the model function and giving the parameter values to consider for this argument. This list can eventually be built with function <code>mpars</code>, which returns all the combinations of the input parameters, see the examples. 
+</p>
+<p>For <code>gridcvlv</code>, <code>pars</code> must not contain <code>nlv</code> (nb. LVs), and for <code>gridcvlb</code>, <code>lb</code> (regularization parameter <code class="reqn">lambda</code>).
+</p>
+
+
+<h3>Value</h3>
+
+<p>Dataframes with the prediction scores for the grid.</p>
+
+
+<h3>Note</h3>
+
+<p>Examples are given:
+- with PLSR, using gridcv and gridcvlv (much faster)
+- with PLSLDA, using gridcv and gridcvlv (much faster)
+- with RR, using gridcv and gridcvlb (much faster) 
+- with KRR, using gridcv and gridcvlb (much faster)  
+- with LWPLSR, using gridcvlv 
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## EXAMPLE WITH PLSR
+
+n &lt;- 50 ; p &lt;- 8
+X &lt;- matrix(rnorm(n * p), ncol = p)
+y &lt;- rnorm(n)
+Y &lt;- cbind(y, 10 * rnorm(n))
+
+K = 3
+segm &lt;- segmkf(n = n, K = K, nrep = 1)
+segm
+
+nlv &lt;- 5
+pars &lt;- mpars(nlv = 1:nlv)
+pars
+gridcv(
+    X, Y, segm,
+    score = msep, 
+    fun = plskern, 
+    pars = pars, verb = TRUE)
+
+gridcvlv(
+    X, Y, segm, 
+    score = msep, 
+    fun = plskern, 
+    nlv = 0:nlv, verb = TRUE)
+    
+## EXAMPLE WITH PLSLDA
+
+n &lt;- 50 ; p &lt;- 8
+X &lt;- matrix(rnorm(n * p), ncol = p, byrow = TRUE)
+y &lt;- sample(c(1, 4, 10), size = n, replace = TRUE)
+
+K = 3
+segm &lt;- segmkf(n = n, K = K, nrep = 1)
+segm
+
+nlv &lt;- 5
+pars &lt;- mpars(nlv = 1:nlv, prior = c("unif", "prop"))
+pars
+gridcv(
+    X, y, segm, 
+    score = err, 
+    fun = plslda,
+    pars = pars, verb = TRUE)
+
+pars &lt;- mpars(prior = c("unif", "prop"))
+pars
+gridcvlv(
+    X, y, segm, 
+    score = err, 
+    fun = plslda,
+    nlv = 1:nlv, pars = pars, verb = TRUE)
+
+## EXAMPLE WITH RR
+
+n &lt;- 50 ; p &lt;- 8
+X &lt;- matrix(rnorm(n * p), ncol = p)
+y &lt;- rnorm(n)
+Y &lt;- cbind(y, 10 * rnorm(n))
+
+K = 3
+segm &lt;- segmkf(n = n, K = K, nrep = 1)
+segm
+
+lb &lt;- c(.1, 1)
+pars &lt;- mpars(lb = lb)
+pars
+gridcv(
+    X, Y, segm, 
+    score = msep, 
+    fun = rr, 
+    pars = pars, verb = TRUE)
+
+gridcvlb(
+    X, Y, segm, 
+    score = msep, 
+    fun = rr, 
+    lb = lb, verb = TRUE)
+
+## EXAMPLE WITH KRR
+
+n &lt;- 50 ; p &lt;- 8
+X &lt;- matrix(rnorm(n * p), ncol = p)
+y &lt;- rnorm(n)
+Y &lt;- cbind(y, 10 * rnorm(n))
+
+K = 3
+segm &lt;- segmkf(n = n, K = K, nrep = 1)
+segm
+
+lb &lt;- c(.1, 1)
+gamma &lt;- 10^(-1:1)
+pars &lt;- mpars(lb = lb, gamma = gamma)
+pars
+gridcv(
+    X, Y, segm, 
+    score = msep, 
+    fun = krr, 
+    pars = pars, verb = TRUE)
+
+pars &lt;- mpars(gamma = gamma)
+gridcvlb(
+    X, Y, segm, 
+    score = msep, 
+    fun = krr, 
+    lb = lb, pars = pars, verb = TRUE)
+
+## EXAMPLE WITH LWPLSR
+
+n &lt;- 50 ; p &lt;- 8
+X &lt;- matrix(rnorm(n * p), ncol = p)
+y &lt;- rnorm(n)
+Y &lt;- cbind(y, 10 * rnorm(n))
+
+K = 3
+segm &lt;- segmkf(n = n, K = K, nrep = 1)
+segm
+
+nlvdis &lt;- 5
+h &lt;- c(1, Inf)
+k &lt;- c(10, 20)
+nlv &lt;- 5
+pars &lt;- mpars(nlvdis = nlvdis, diss = "mahal",
+              h = h, k = k)
+pars
+res &lt;- gridcvlv(
+    X, Y, segm, 
+    score = msep, 
+    fun = lwplsr, 
+    nlv = 0:nlv, pars = pars, verb = TRUE)
+res
+
+</code></pre>
+
+
+</div>

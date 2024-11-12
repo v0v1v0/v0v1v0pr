@@ -1,0 +1,555 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>get_stac_data</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Retrieve raster data from STAC endpoints</h2>
+
+<h3>Description</h3>
+
+<p>These functions retrieve raster data from STAC endpoints and optionally
+create composite data sets from multiple files.
+<code>get_stac_data()</code> is a generic function which should be able to download
+raster data from a variety of data sources, while the other helper functions
+have useful defaults for downloading common data sets from standard
+STAC sources.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">get_stac_data(
+  aoi,
+  start_date,
+  end_date,
+  pixel_x_size = NULL,
+  pixel_y_size = NULL,
+  asset_names,
+  stac_source,
+  collection,
+  ...,
+  query_function = rsi_query_api,
+  download_function = rsi_download_rasters,
+  sign_function = NULL,
+  rescale_bands = TRUE,
+  item_filter_function = NULL,
+  mask_band = NULL,
+  mask_function = NULL,
+  output_filename = paste0(proceduralnames::make_english_names(1), ".tif"),
+  composite_function = c("merge", "median", "mean", "sum", "min", "max"),
+  limit = 999,
+  gdalwarp_options = rsi_gdalwarp_options(),
+  gdal_config_options = rsi_gdal_config_options()
+)
+
+get_sentinel1_imagery(
+  aoi,
+  start_date,
+  end_date,
+  ...,
+  pixel_x_size = 10,
+  pixel_y_size = 10,
+  asset_names = rsi::sentinel1_band_mapping$planetary_computer_v1,
+  stac_source = attr(asset_names, "stac_source"),
+  collection = attr(asset_names, "collection_name"),
+  query_function = attr(asset_names, "query_function"),
+  download_function = attr(asset_names, "download_function"),
+  sign_function = attr(asset_names, "sign_function"),
+  rescale_bands = FALSE,
+  item_filter_function = NULL,
+  mask_band = NULL,
+  mask_function = NULL,
+  output_filename = paste0(proceduralnames::make_english_names(1), ".tif"),
+  composite_function = "median",
+  limit = 999,
+  gdalwarp_options = rsi_gdalwarp_options(),
+  gdal_config_options = rsi_gdal_config_options()
+)
+
+get_sentinel2_imagery(
+  aoi,
+  start_date,
+  end_date,
+  ...,
+  pixel_x_size = 10,
+  pixel_y_size = 10,
+  asset_names = rsi::sentinel2_band_mapping$planetary_computer_v1,
+  stac_source = attr(asset_names, "stac_source"),
+  collection = attr(asset_names, "collection_name"),
+  query_function = attr(asset_names, "query_function"),
+  download_function = attr(asset_names, "download_function"),
+  sign_function = attr(asset_names, "sign_function"),
+  rescale_bands = FALSE,
+  item_filter_function = NULL,
+  mask_band = attr(asset_names, "mask_band"),
+  mask_function = attr(asset_names, "mask_function"),
+  output_filename = paste0(proceduralnames::make_english_names(1), ".tif"),
+  composite_function = "median",
+  limit = 999,
+  gdalwarp_options = rsi_gdalwarp_options(),
+  gdal_config_options = rsi_gdal_config_options()
+)
+
+get_landsat_imagery(
+  aoi,
+  start_date,
+  end_date,
+  ...,
+  platforms = c("landsat-9", "landsat-8"),
+  pixel_x_size = 30,
+  pixel_y_size = 30,
+  asset_names = rsi::landsat_band_mapping$planetary_computer_v1,
+  stac_source = attr(asset_names, "stac_source"),
+  collection = attr(asset_names, "collection_name"),
+  query_function = attr(asset_names, "query_function"),
+  download_function = attr(asset_names, "download_function"),
+  sign_function = attr(asset_names, "sign_function"),
+  rescale_bands = TRUE,
+  item_filter_function = landsat_platform_filter,
+  mask_band = attr(asset_names, "mask_band"),
+  mask_function = attr(asset_names, "mask_function"),
+  output_filename = paste0(proceduralnames::make_english_names(1), ".tif"),
+  composite_function = "median",
+  limit = 999,
+  gdalwarp_options = rsi_gdalwarp_options(),
+  gdal_config_options = rsi_gdal_config_options()
+)
+
+get_naip_imagery(
+  aoi,
+  start_date,
+  end_date,
+  ...,
+  pixel_x_size = 1,
+  pixel_y_size = 1,
+  asset_names = "image",
+  stac_source = "https://planetarycomputer.microsoft.com/api/stac/v1",
+  collection = "naip",
+  query_function = rsi_query_api,
+  download_function = rsi_download_rasters,
+  sign_function = sign_planetary_computer,
+  rescale_bands = FALSE,
+  output_filename = paste0(proceduralnames::make_english_names(1), ".tif"),
+  composite_function = "merge",
+  limit = 999,
+  gdalwarp_options = rsi_gdalwarp_options(),
+  gdal_config_options = rsi_gdal_config_options()
+)
+
+get_alos_palsar_imagery(
+  aoi,
+  start_date,
+  end_date,
+  ...,
+  pixel_x_size = 25,
+  pixel_y_size = 25,
+  asset_names = rsi::alos_palsar_band_mapping$planetary_computer_v1,
+  stac_source = attr(asset_names, "stac_source"),
+  collection = attr(asset_names, "collection_name"),
+  query_function = attr(asset_names, "query_function"),
+  download_function = attr(asset_names, "download_function"),
+  sign_function = attr(asset_names, "sign_function"),
+  rescale_bands = FALSE,
+  item_filter_function = NULL,
+  mask_band = attr(asset_names, "mask_band"),
+  mask_function = attr(asset_names, "mask_function"),
+  output_filename = paste0(proceduralnames::make_english_names(1), ".tif"),
+  composite_function = "median",
+  limit = 999,
+  gdalwarp_options = rsi_gdalwarp_options(),
+  gdal_config_options = rsi_gdal_config_options()
+)
+
+get_dem(
+  aoi,
+  ...,
+  start_date = NULL,
+  end_date = NULL,
+  pixel_x_size = 30,
+  pixel_y_size = 30,
+  asset_names = rsi::dem_band_mapping$planetary_computer_v1$`cop-dem-glo-30`,
+  stac_source = attr(asset_names, "stac_source"),
+  collection = attr(asset_names, "collection_name"),
+  query_function = attr(asset_names, "query_function"),
+  download_function = attr(asset_names, "download_function"),
+  sign_function = attr(asset_names, "sign_function"),
+  rescale_bands = FALSE,
+  item_filter_function = NULL,
+  mask_band = NULL,
+  mask_function = NULL,
+  output_filename = paste0(proceduralnames::make_english_names(1), ".tif"),
+  composite_function = "max",
+  limit = 999,
+  gdalwarp_options = rsi_gdalwarp_options(),
+  gdal_config_options = rsi_gdal_config_options()
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>aoi</code></td>
+<td>
+<p>An sf(c) object outlining the area of interest to get imagery for.
+Will be used to get the bounding box used for calculating metrics and the
+output data's CRS.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start_date, end_date</code></td>
+<td>
+<p>Character of length 1: The first and last date,
+respectively, of imagery to include in metrics calculations. Should be in
+YYYY-MM-DD format.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pixel_x_size, pixel_y_size</code></td>
+<td>
+<p>Numeric of length 1: size of pixels in
+x-direction (longitude / easting) and y-direction (latitude / northing).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>asset_names</code></td>
+<td>
+<p>The names of the assets to download. If this vector has
+names, then the names of the vector are assumed to be the names of assets on
+the STAC server, which will be renamed to the elements of the vector in the
+final output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stac_source</code></td>
+<td>
+<p>Character of length 1: the STAC URL to download
+imagery from.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>collection</code></td>
+<td>
+<p>Character of length 1: the STAC collection to download
+images from.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Passed to <code>item_filter_function</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>query_function</code></td>
+<td>
+<p>A function that takes the output from
+<code>rstac::stac_search()</code> and executes the request. See
+<code>rsi_query_api()</code> and the <code>query_function</code> slots of
+sentinel1_band_mapping, sentinel2_band_mapping, and
+landsat_band_mapping.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>download_function</code></td>
+<td>
+<p>A function that takes the output from
+<code>query_function</code> and downloads the assets attached to those items. See
+<code>rsi_download_rasters()</code> for an example.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sign_function</code></td>
+<td>
+<p>A function that takes the output from <code>query_function</code>
+and signs the item URLs, if necessary.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rescale_bands</code></td>
+<td>
+<p>Logical of length 1: If the STAC collection implements
+the <code>raster</code> STAC extension, and that extension includes <code>scale</code> and <code>offset</code>
+values, should this function attempt to automatically rescale the downloaded
+data?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>item_filter_function</code></td>
+<td>
+<p>A function that takes the outputs of
+<code>query_function</code> (usually a <code>STACItemCollection</code>) and <code>...</code> and returns a
+filtered <code>STACItemCollection</code>. This is used, for example, to only download
+images from specific Landsat platforms.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mask_band</code></td>
+<td>
+<p>Character of length 1: The name of the asset in your
+STAC source to use to mask the data. Set to <code>NULL</code> to not mask. See the
+<code>mask_band</code> slots of sentinel1_band_mapping, sentinel2_band_mapping, and
+landsat_band_mapping.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mask_function</code></td>
+<td>
+<p>A function that takes a raster and returns a boolean
+raster, where <code>TRUE</code> pixels will be preserved and <code>FALSE</code> or <code>NA</code> pixels will
+be masked out. See <code>sentinel2_mask_function()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>output_filename</code></td>
+<td>
+<p>The filename to write the output raster to. If
+<code>composite_function</code> is <code>NULL</code>, item datetimes will be appended to this
+in order to create unique filenames. If items do not have datetimes, a
+sequential ID will be appended instead.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>composite_function</code></td>
+<td>
+<p>Character of length 1: The name of a
+function used to combine downloaded images into a single composite
+(i.e., to aggregate pixel values from multiple images into a single value).
+Options include "merge", which 'stamps' images on top of one another such that
+the "last" value downloaded for a pixel – which isn't guaranteed to be the most
+recent one – will be the only value used, or any of "sum", "mean", "median",
+"min", or "max", which consider all values available at each pixel.
+Set to <code>NULL</code> to not composite
+(i.e., to rescale and save each individual file independently).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>limit</code></td>
+<td>
+<p>an <code>integer</code> defining the maximum number of results
+to return. If not informed, it defaults to the service implementation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gdalwarp_options</code></td>
+<td>
+<p>Options passed to <code>gdalwarp</code> through the <code>options</code>
+argument of <code>sf::gdal_utils()</code>. The same set of options are used for all
+downloaded data and the final output images; this means that some common
+options (for instance, <code>PREDICTOR=3</code>) may cause errors if bands are of
+varying data types. The default values are provided by
+<code>rsi_gdalwarp_options()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gdal_config_options</code></td>
+<td>
+<p>Options passed to <code>gdalwarp</code> through the
+<code>config_options</code> argument of <code>sf::gdal_utils()</code>. The default values are
+provided by <code>rsi_gdal_config_options()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>platforms</code></td>
+<td>
+<p>The names of Landsat satellites to download imagery from.
+These do not correspond to the <code>platforms</code> column in <code>spectral_indices()</code>;
+the default argument of <code>c("landsat-9", "landsat-8")</code> corresponds to
+the <code>Landsat-OLI</code> value in that column.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p><code>output_filename</code>, unchanged.
+</p>
+
+
+<h3>Usage Tips</h3>
+
+<p>It's often useful to buffer your <code>aoi</code> object slightly, on the order of 1-2
+cell widths, in order to ensure that data is downloaded for your entire AOI
+even after accounting for any reprojection needed to compare your AOI to
+the data on the STAC server.
+</p>
+<p>These functions allow for parallelizing downloads via <code>future::plan()</code>, and
+for user-controlled progress updates via <code>progressr::handlers()</code>. If
+there are fewer images to download than <code>asset_names</code>, then this function
+uses <code>lapply()</code> to iterate through images and <code>future.apply::future_mapply()</code>
+to iterate through downloading each asset. If there are more images than
+assets, this function uses <code>future.apply::future_lapply()</code> to iterate through
+images.
+</p>
+
+
+<h3>Downloading from Planetary Computer</h3>
+
+<p>Certain data sets in Planetary Computer require
+<a href="https://planetarycomputer.microsoft.com/docs/concepts/sas/">providing a subscription key</a>.
+Even for non-protected data sets, providing a subscription key grants you
+higher rate limits and faster downloads. As such, it's a good idea to
+<a href="https://planetarycomputer.microsoft.com/account/request">request a Planetary Computer account</a>,
+then <a href="https://planetarycomputer.developer.azure-api.net/">generate a subscription key</a>.
+If you set the <code>rsi_pc_key</code> environment variable to your key (either primary
+or secondary; there is no difference), rsi will automatically use
+this key to sign all requests against Planetary Computer.
+</p>
+<p>There are currently some challenges with certain Landsat images in Planetary
+Computer; please see
+https://github.com/microsoft/PlanetaryComputer/discussions/101
+for more information on these images and their current status. These files
+may cause data downloads to fail.
+</p>
+
+
+<h3>Compositing</h3>
+
+<p>This function can either download all data that intersects with your
+spatiotemporal AOI as multiple files (if <code>composite_function = NULL</code>),
+or can be used to rescale band values, apply a mask function, and create a
+composite from the resulting files in a single function call. Each of these
+steps can be skipped by passing <code>NULL</code> to the corresponding argument.
+</p>
+<p>Masks are applied to each downloaded asset separately. Rescaling is applied
+to the final composite after images are combined.
+</p>
+<p>A number of the steps involved in creating composites – rescaling band
+values, running the mask function, masking images, and compositing images –
+currently rely on the <code>terra</code> package for raster calculations. This means
+creating larger composites, either in geographic or temporal dimension, may
+cause errors. It can be a good idea to tile your <code>aoi</code> using
+<code>sf::st_make_grid()</code> and iterate through the tiles to avoid these errors
+(and to make it easier to interrupt and restart a download job).
+</p>
+
+
+<h3>Rescaling</h3>
+
+<p>If <code>rescale_bands</code> is <code>TRUE</code>, then this function is able to use the <code>scale</code>
+and <code>offset</code> values in the <code>bands</code> field of the <code>raster</code> STAC extension.
+This was implemented originally to work with the Landsat collections in the
+Planetary Computer STAC catalogue, but hopefully will work automatically with
+other data sources as well. Note that Sentinel-2 data typically doesn't use
+this STAC extension, and so the returned data is typically not re-scaled;
+divide the downloaded band values by 10000 to get reflectance values in the
+expected values.
+</p>
+
+
+<h3>Sentinel-1 Data</h3>
+
+<p>The <code>get_sentinel1_imagery()</code> function is designed to download Sentinel-1 data
+from the Microsoft Planetary Computer STAC API. Both the GRD and RTC
+Sentinel-1 collections are supported. To download RTC data,
+set <code>collection</code> to <code>sentinel-1-rtc</code>, and supply your subscription key
+as an environment variable named <code>rsi_pc_key</code> (through, e.g., <code>Sys.setenv()</code>
+or your <code>.Renviron</code> file).
+</p>
+
+
+<h3>AlOS PALSAR Data</h3>
+
+<p>The <code>get_alos_palsar_imagery()</code> function is designed to download ALOS PALSAR
+annual mosaic data from the Microsoft Planetary Computer STAC API. Data are
+returned as a digital number (which is appropriate for some applications
+and indices). To convert to backscatter (decibels) use the following formula:
+<code>10 * log10(dn) - 83.0</code> where dn is the radar band in digital number.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+aoi &lt;- sf::st_point(c(-74.912131, 44.080410))
+aoi &lt;- sf::st_set_crs(sf::st_sfc(aoi), 4326)
+aoi &lt;- sf::st_buffer(sf::st_transform(aoi, 5070), 100)
+
+get_stac_data(aoi,
+  start_date = "2022-06-01",
+  end_date = "2022-06-30",
+  pixel_x_size = 30,
+  pixel_y_size = 30,
+  asset_names = c(
+    "red", "blue", "green"
+  ),
+  stac_source = "https://planetarycomputer.microsoft.com/api/stac/v1/",
+  collection = "landsat-c2-l2",
+  query_function = rsi_query_api,
+  sign_function = sign_planetary_computer,
+  mask_band = "qa_pixel",
+  mask_function = landsat_mask_function,
+  item_filter_function = landsat_platform_filter,
+  platforms = c("landsat-9", "landsat-8"),
+  output_filename = tempfile(fileext = ".tif")
+)
+
+# or, mostly equivalently (will download more bands):
+landsat_image &lt;- get_landsat_imagery(
+  aoi,
+  start_date = "2022-06-01",
+  end_date = "2022-08-30",
+  output_filename = tempfile(fileext = ".tif")
+)
+
+landsat_image |&gt; 
+  terra::rast() |&gt;
+  terra::stretch() |&gt;
+  terra::plotRGB()
+
+# The `get_*_imagery()` functions will download 
+# all available "data" assets by default
+# (usually including measured values, and excluding derived bands)
+sentinel1_data &lt;- get_sentinel1_imagery(
+  aoi,
+  start_date = "2022-06-01",
+  end_date = "2022-07-01",
+  output_filename = tempfile(fileext = ".tif")
+)
+names(terra::rast(sentinel1_data))
+
+# You can see what bands will be downloaded by a function
+# by inspecting the corresponding `band_mapping` object:
+sentinel2_band_mapping$planetary_computer_v1
+
+# And you can add additional assets using `c()`:
+c(
+  sentinel2_band_mapping$planetary_computer_v1,
+  "scl"
+)
+
+# Or subset the assets downloaded using `[` or `[[`:
+sentinel2_imagery &lt;- get_sentinel2_imagery(
+  aoi,
+  start_date = "2022-06-01",
+  end_date = "2022-07-01",
+  asset_names = sentinel2_band_mapping$planetary_computer_v1["B01"],
+  output_filename = tempfile(fileext = ".tif")
+)
+names(terra::rast(sentinel2_imagery))
+
+# If you're downloading data for a particularly large AOI,
+# and can't composite the resulting images or want to make
+# sure you can continue an interrupted download,
+# consider tiling your AOI and requesting each tile separately:
+aoi &lt;- sf::st_make_grid(aoi, n = 2)
+tiles &lt;- lapply(
+  seq_along(aoi),
+  function(i) {
+    get_landsat_imagery(
+      aoi[i],
+      start_date = "2022-06-01",
+      end_date = "2022-08-30",
+      output_filename = tempfile(fileext = ".tif")
+    )
+  }
+)
+# You'll get a list of tiles that you can then composite or 
+# work with however you wish:
+unlist(tiles)
+
+</code></pre>
+
+
+</div>

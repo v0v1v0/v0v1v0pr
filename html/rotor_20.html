@@ -1,0 +1,310 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rotate_rds</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Serialize R objects to disk (with backup)</h2>
+
+<h3>Description</h3>
+
+<p>The <code style="white-space: pre;">⁠rotate_rds*()⁠</code> functions are wrappers around base::saveRDS() that
+create a backup of the destination file (if it exists) instead of just
+overwriting it.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rotate_rds(
+  object,
+  file = "",
+  ascii = FALSE,
+  version = NULL,
+  compress = TRUE,
+  refhook = NULL,
+  ...,
+  on_change_only = FALSE
+)
+
+rotate_rds_date(
+  object,
+  file = "",
+  ascii = FALSE,
+  version = NULL,
+  compress = TRUE,
+  refhook = NULL,
+  ...,
+  age = -1L,
+  on_change_only = FALSE
+)
+
+rotate_rds_time(
+  object,
+  file = "",
+  ascii = FALSE,
+  version = NULL,
+  compress = TRUE,
+  refhook = NULL,
+  ...,
+  age = -1L,
+  on_change_only = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p><span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object to serialize.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>file</code></td>
+<td>
+<p>a connection or the name of the file where the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object
+is saved to or read from.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ascii</code></td>
+<td>
+<p>a logical.  If <code>TRUE</code> or <code>NA</code>, an ASCII
+representation is written; otherwise (default), a binary one is used.
+See the comments in the help for <code>save</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>version</code></td>
+<td>
+<p>the workspace format version to use.  <code>NULL</code>
+specifies the current default version (3). The only other supported
+value is 2, the default from <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 1.4.0 to <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.5.0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>compress</code></td>
+<td>
+<p>a logical specifying whether saving to a named file is
+to use <code>"gzip"</code> compression, or one of <code>"gzip"</code>,
+<code>"bzip2"</code> or <code>"xz"</code> to indicate the type of compression to
+be used.  Ignored if <code>file</code> is a connection.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refhook</code></td>
+<td>
+<p>a hook function for handling reference objects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>Arguments passed on to <code>rotate</code>, <code>rotate_date</code>, <code>rotate_time</code>
+</p>
+
+<dl>
+<dt><code>max_backups</code></dt>
+<dd>
+<p>maximum number of backups to keep
+</p>
+
+<ul><li>
+<p> an <code>integer</code> scalar: Maximum number of backups to keep
+</p>
+</li></ul>
+<p>In addition for timestamped backups the following value are supported:
+</p>
+
+<ul>
+<li>
+<p> a <code>Date</code> scalar: Remove all backups before this date
+</p>
+</li>
+<li>
+<p> a <code>character</code> scalar representing a Date in ISO format (e.g. <code>"2019-12-31"</code>)
+</p>
+</li>
+<li>
+<p> a <code>character</code> scalar representing an Interval in the form <code>"&lt;number&gt; &lt;interval&gt;"</code> (see below for more info)
+</p>
+</li>
+</ul>
+</dd>
+<dt><code>size</code></dt>
+<dd>
+<p>scalar <code>integer</code>, <code>character</code> or <code>Inf</code>. Backup/rotate only if
+<code>file</code> is larger than this size. <code>Integers</code> are interpreted as bytes. You
+can pass <code>character</code> vectors that contain a file size suffix like <code style="white-space: pre;">⁠1k⁠</code>
+(kilobytes), <code style="white-space: pre;">⁠3M⁠</code> (megabytes), <code style="white-space: pre;">⁠4G⁠</code> (gigabytes), <code style="white-space: pre;">⁠5T⁠</code> (terabytes). Instead
+of these short forms you can also be explicit and use the IEC suffixes
+<code>KiB</code>, <code>MiB</code>, <code>GiB</code>, <code>TiB</code>. In Both cases <code>1</code> kilobyte is <code>1024</code> bytes, 1
+<code>megabyte</code> is <code>1024</code> kilobytes, etc... .
+</p>
+<p>(if <code>age</code> <em>and</em> <code>size</code> are provided, both criteria must be <code>TRUE</code> to
+trigger rotation)</p>
+</dd>
+<dt><code>dir</code></dt>
+<dd>
+<p><code>character</code> scalar. The directory in which the backups
+of <code>file</code> are stored (defaults to <code>dirname(file)</code>)</p>
+</dd>
+<dt><code>compression</code></dt>
+<dd>
+<p>Whether or not backups should be compressed
+</p>
+
+<ul>
+<li> <p><code>FALSE</code> for uncompressed backups,
+</p>
+</li>
+<li> <p><code>TRUE</code> for zip compression; uses <code>zip()</code>
+</p>
+</li>
+<li>
+<p> a scalar <code>integer</code> between <code>1</code> and <code>9</code> to specify a compression
+level (requires the
+<a href="https://CRAN.R-project.org/package=zip">zip</a> package,
+see its documentation for details)
+</p>
+</li>
+<li>
+<p> the <code>character</code> scalars <code>"utils::zip()"</code> or <code>"zip::zipr"</code> to force a
+specific zip command
+</p>
+</li>
+</ul>
+</dd>
+<dt><code>dry_run</code></dt>
+<dd>
+<p><code>logical</code> scalar. If <code>TRUE</code> no changes are applied to the
+file system (no files are created or deleted)</p>
+</dd>
+<dt><code>verbose</code></dt>
+<dd>
+<p><code>logical</code> scalar. If <code>TRUE</code> additional informative <code>messages</code>
+are printed</p>
+</dd>
+<dt><code>create_file</code></dt>
+<dd>
+<p><code>logical</code> scalar. If <code>TRUE</code> create an empty file in
+place of <code>file</code> after rotating.</p>
+</dd>
+<dt><code>format</code></dt>
+<dd>
+<p>a scalar <code>character</code> that can be a subset of of valid
+<code>strftime()</code> formatting strings. The default setting is
+<code>"%Y-%m-%d--%H-%M-%S"</code>.
+</p>
+
+<ul>
+<li>
+<p> You can use an arbitrary number of dashes anywhere in the format, so
+<code>"%Y-%m-%d--%H-%M-%S"</code> and <code>"%Y%m%d%H%M%S"</code> are both legal.
+</p>
+</li>
+<li> <p><code>T</code> and <code style="white-space: pre;">⁠_⁠</code> can also be used as separators. For example, the following
+datetime formats are also possible:
+<code style="white-space: pre;">⁠%Y-%m-%d_%H-%M-%S⁠</code> (Python logging default),
+<code style="white-space: pre;">⁠%Y%m%dT%H%M%S⁠</code> (<a href="https://en.wikipedia.org/wiki/ISO_8601">ISO 8601</a>)
+</p>
+</li>
+<li>
+<p> All datetime components except <code style="white-space: pre;">⁠%Y⁠</code> are optional. If you leave out part
+of the timestamp, the first point in time in the period is assumed. For
+example (assuming the current year is 2019) <code style="white-space: pre;">⁠%Y⁠</code> is identical to
+<code>2019-01-01--00-00-00</code>.
+</p>
+</li>
+<li>
+<p> The timestamps must be lexically sortable, so <code>"%Y-%m-%d"</code> is legal,
+<code>"%m-%d-%Y"</code> and <code style="white-space: pre;">⁠%Y-%d⁠</code> are not.
+</p>
+</li>
+</ul>
+</dd>
+<dt><code>now</code></dt>
+<dd>
+<p>The current <code>Date</code> or time (<code>POSIXct</code>) as a scalar. You can pass a
+custom value here to to override the real system time. As a convenience you
+can also pass in <code>character</code> strings that follow the guidelines outlined
+above for <code>format</code>, but please note that these differ from the formats
+understood by <code>as.POSIXct()</code> or <code>as.Date()</code>.</p>
+</dd>
+<dt><code>overwrite</code></dt>
+<dd>
+<p><code>logical</code> scalar. If <code>TRUE</code> overwrite backups if a backup
+of the same name (usually due to timestamp collision) exists.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>on_change_only</code></td>
+<td>
+<p><code>logical</code> scalaror a <code>list</code>. Rotate only if <code>object</code>
+is different from the object saved in <code>file</code>. If a <code>list</code>, arguments
+that will be passed on to <code>data.table::all.equal</code> (only when both obects
+are <code>data.tables</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>age</code></td>
+<td>
+<p>minimum age after which to backup/rotate a file; can be
+</p>
+
+<ul>
+<li>
+<p> a <code>character</code> scalar representing an Interval in the form
+<code>"&lt;number&gt; &lt;interval&gt;"</code> (e.g. <code>"2 months"</code>, see <em>Intervals</em> section below).
+</p>
+</li>
+<li>
+<p> a <code>Date</code> or a <code>character</code> scalar representing a Date for
+a fixed point in time after which to backup/rotate. See <code>format</code> for
+which Date/Datetime formats are supported by rotor.
+</p>
+</li>
+</ul>
+<p>(if <code>age</code> <em>and</em> <code>size</code> are provided, both criteria must be <code>TRUE</code> to
+trigger rotation)</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>the path to <code>file</code> (invisibly)
+</p>
+
+
+<h3>Note</h3>
+
+<p>The default value for <code>age</code> is different for <code>rotate_rds_date()</code> (<code>-1</code>)
+than for <code>rotate_date()</code> (<code>1</code>) to make it a bit safer. This means if you
+execute <code>rotate_date()</code> twice on the same file on a given day it will
+silently not rotate the file, while <code>rotate_rds_date()</code> will throw an
+error.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">dest &lt;- tempfile()
+rotate_rds(iris, dest)
+rotate_rds(iris, dest)
+rotate_rds(iris, dest)
+
+list_backups(dest)
+
+# cleanup
+unlink(list_backups(dest))
+unlink(dest)
+</code></pre>
+
+
+</div>

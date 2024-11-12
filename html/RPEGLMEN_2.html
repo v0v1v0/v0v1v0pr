@@ -1,0 +1,190 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>glmnet_exp</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Elastic Net Penalized Exponentially Distributed Response Variables</h2>
+
+<h3>Description</h3>
+
+<p><code>git.glmGammaNet</code> Fit glmnet model for exponentiall distributed response data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">glmnet_exp(
+  A,
+  b,
+  alpha.EN = 0.5,
+  num_lambda = 100L,
+  glm_type = 1L,
+  max_iter = 100L,
+  abs_tol = 1e-04,
+  rel_tol = 0.01,
+  normalize_grad = FALSE,
+  k_fold = 5L,
+  has_intercept = TRUE,
+  k_fold_iter = 5L,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>A</code></td>
+<td>
+<p>The matrix of independent variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>b</code></td>
+<td>
+<p>The vector of response variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha.EN</code></td>
+<td>
+<p>The coefficient of elastic net regularizer (1 means lasso).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>num_lambda</code></td>
+<td>
+<p>Size of the lambda grid.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>glm_type</code></td>
+<td>
+<p>Type of glm model, 1 is exponential, 2 is gamma (not implemented yet).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_iter</code></td>
+<td>
+<p>Max number of iteration for the prox grad descent optimizer.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>abs_tol</code></td>
+<td>
+<p>Absolute error threshold for the pgd optimizer.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rel_tol</code></td>
+<td>
+<p>Relative error threshold for the pgd optimizer (not used for vanilla PGD).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>normalize_grad</code></td>
+<td>
+<p>Swtich for whether to normalize the gradient or not.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k_fold</code></td>
+<td>
+<p>The number of folds for cross validation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>has_intercept</code></td>
+<td>
+<p>Parameter to determine if there is an intercept (TRUE) or not (FALSE).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k_fold_iter</code></td>
+<td>
+<p>The number of iterations for the cross-validation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional Parameters.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Vector of optimal coefficient for the glm model.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Anthony-Alexander Christidis, <a href="mailto:anthony.christidis@stat.ubc.ca">anthony.christidis@stat.ubc.ca</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Function to return the periodogram of data series
+myperiodogram &lt;- function (data, max.freq = 0.5, 
+                           twosided = FALSE, keep = 1){
+  data.fft &lt;- fft(data)
+  N &lt;- length(data)
+  tmp &lt;- Mod(data.fft[2:floor(N/2)])^2/N
+  freq &lt;- ((1:(floor(N/2) - 1))/N)
+  tmp &lt;- tmp[1:floor(length(tmp) * keep)]
+  freq &lt;- freq[1:floor(length(freq) * keep)]
+  if (twosided) {
+    tmp &lt;- c(rev(tmp), tmp)
+    freq &lt;- c(-rev(freq), freq)
+  }
+  return(list(spec = tmp, freq = freq))
+}
+
+# Function to compute the standard error based the periodogram of 
+# the influence functions time series
+SE.Exponential &lt;- function(data, d = 7, alpha = 0.5, keep = 1){
+  N &lt;- length(data)
+  # Compute the periodograms
+  my.periodogram &lt;- myperiodogram(data)
+  my.freq &lt;- my.periodogram$freq
+  my.periodogram &lt;- my.periodogram$spec
+  # Remove values of frequency 0 as it does not contain information 
+  # about the variance
+  my.freq &lt;- my.freq[-1]
+  my.periodogram &lt;- my.periodogram[-1]
+  # Implement cut-off
+  nfreq &lt;- length(my.freq)
+  my.freq &lt;- my.freq[1:floor(nfreq*keep)]
+  my.periodogram &lt;- my.periodogram[1:floor(nfreq*keep)]
+  # GLM with BFGS optimization
+  # Create 1, x, x^2, ..., x^d
+  x.mat &lt;- rep(1,length(my.freq))
+  for(col.iter in 1:d){
+    x.mat &lt;- cbind(x.mat,my.freq^col.iter)
+  }
+  # Fit the Exponential model
+  res &lt;- glmnet_exp(x.mat, my.periodogram, alpha.EN = alpha)
+  # Return the estimated variance
+  return(sqrt(exp(res[1])/N))
+}
+
+# Loading hedge fund data from PA
+data(edhec, package = "PerformanceAnalytics")
+colnames(edhec)
+
+# Computing the expected shortfall for the time series of returns
+# library(RPEIF)
+# test.mat &lt;- apply(edhec, 2, IF.ES)
+# test.mat &lt;- apply(test.mat, 2, as.numeric)
+
+# Returning the standard errors from the Exponential distribution fit
+# apply(test.mat, 2, SE.Exponential)
+
+</code></pre>
+
+
+</div>

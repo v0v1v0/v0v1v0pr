@@ -1,0 +1,255 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rix</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Generate a Nix expression that builds a reproducible development environment</h2>
+
+<h3>Description</h3>
+
+<p>Generate a Nix expression that builds a reproducible development environment
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rix(
+  r_ver = "latest",
+  r_pkgs = NULL,
+  system_pkgs = NULL,
+  git_pkgs = NULL,
+  local_r_pkgs = NULL,
+  tex_pkgs = NULL,
+  ide = c("other", "code", "radian", "rstudio", "rserver"),
+  project_path,
+  overwrite = FALSE,
+  print = FALSE,
+  message_type = "simple",
+  shell_hook = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>r_ver</code></td>
+<td>
+<p>Character, defaults to "latest". The required R version, for
+example "4.0.0". You can check which R versions are available using
+<code>available_r()</code>. For reproducibility purposes, you can also provide a
+<code>nixpkgs</code> revision directly. For older versions of R, <code>nix-build</code> might
+fail with an error stating 'this derivation is not meant to be built'. In
+this case, simply drop into the shell with <code>nix-shell</code> instead of building
+it first. It is also possible to provide either "bleeding_edge" or
+"frozen_edge" if you need an environment with bleeding edge packages. Read
+more in the "Details" section below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>r_pkgs</code></td>
+<td>
+<p>Vector of characters. List the required R packages for your
+analysis here.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>system_pkgs</code></td>
+<td>
+<p>Vector of characters. List further software you wish to
+install that are not R packages such as command line applications for
+example. You can look for available software on the NixOS website
+<a href="https://search.nixos.org/packages?channel=unstable&amp;from=0&amp;size=50&amp;sort=relevance&amp;type=packages&amp;query=">https://search.nixos.org/packages?channel=unstable&amp;from=0&amp;size=50&amp;sort=relevance&amp;type=packages&amp;query=</a> # nolint</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>git_pkgs</code></td>
+<td>
+<p>List. A list of packages to install from Git. See details for
+more information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>local_r_pkgs</code></td>
+<td>
+<p>List. A list of local packages to install. These packages
+need to be in the <code>.tar.gz</code> or <code>.zip</code> formats and must be in the same
+folder as the generated "default.nix" file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tex_pkgs</code></td>
+<td>
+<p>Vector of characters. A set of TeX packages to install. Use
+this if you need to compile <code>.tex</code> documents, or build PDF documents using
+Quarto. If you don't know which package to add, start by adding "amsmath".
+See the Vignette "Authoring LaTeX documents" for more details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ide</code></td>
+<td>
+<p>Character, defaults to "other". If you wish to use RStudio to work
+interactively use "rstudio" or "rserver" for the server version. Use "code"
+for Visual Studio Code. You can also use "radian", an interactive REPL. For
+other editors, use "other". This has been tested with RStudio, VS Code and
+Emacs. If other editors don't work, please open an issue.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>project_path</code></td>
+<td>
+<p>Character. Where to write <code>default.nix</code>, for example
+"/home/path/to/project". The file will thus be written to the file
+"/home/path/to/project/default.nix". If the folder does not exist, it will
+be created.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite</code></td>
+<td>
+<p>Logical, defaults to FALSE. If TRUE, overwrite the
+<code>default.nix</code> file in the specified path.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>print</code></td>
+<td>
+<p>Logical, defaults to FALSE. If TRUE, print <code>default.nix</code> to
+console.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>message_type</code></td>
+<td>
+<p>Character. Message type, defaults to <code>"simple"</code>, which
+gives minimal but sufficient feedback. Other values are currently <code style="white-space: pre;">⁠"quiet⁠</code>,
+which generates the files without message, and <code>"verbose"</code>, displays all
+the messages.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>shell_hook</code></td>
+<td>
+<p>Character of length 1, defaults to <code>NULL</code>. Commands added
+to the <code>shellHook</code> variable are executed when the Nix shell starts. So by
+default, using <code style="white-space: pre;">⁠nix-shell default.nix⁠</code> will start a specific program,
+possibly with flags (separated by space), and/or do shell actions. You can
+for example use <code>shell_hook = R</code>, if you want to directly enter the declared
+Nix R session when dropping into the Nix shell. @details This function will
+write a <code>default.nix</code> and an <code>.Rprofile</code> in the chosen path. Using the Nix
+package manager, it is then possible to build a reproducible development
+environment using the <code>nix-build</code> command in the path. This environment will
+contain the chosen version of R and packages, and will not interfere with any
+other installed version (via Nix or not) on your machine. Every dependency,
+including both R package dependencies but also system dependencies like
+compilers will get installed as well in that environment.
+</p>
+<p>It is possible to use environments built with Nix interactively, either
+from the terminal, or using an interface such as RStudio. If you want to
+use RStudio, set the <code>ide</code> argument to <code>"rstudio"</code>. Please be aware that
+RStudio is not available for macOS through Nix. As such, you may want to
+use another editor on macOS. To use Visual Studio Code (or Codium), set the
+<code>ide</code> argument to <code>"code"</code>, which will add the <code>{languageserver}</code> R package
+to the list of R packages to be installed by Nix in that environment. You
+can use the version of Visual Studio Code or Codium you already use, or
+also install it using Nix (by adding "vscode" or "vscodium" to the list of
+<code>system_pkgs</code>). For non-interactive use, or to use the environment from the
+command line, or from another editor (such as Emacs or Vim), set the <code>ide</code>
+argument to <code>"other"</code>. We recommend reading the
+<code>vignette("e-interactive-use")</code> for more details.
+</p>
+<p>Packages to install from Github or Gitlab must be provided in a list of 3
+elements: "package_name", "repo_url" and "commit". To install several
+packages, provide a list of lists of these 3 elements, one per package to
+install. It is also possible to install old versions of packages by
+specifying a version. For example, to install the latest version of <code>{AER}</code>
+but an old version of <code>{ggplot2}</code>, you could write: <code>r_pkgs = c("AER", "ggplot2@2.2.1")</code>. Note however that doing this could result in dependency
+hell, because an older version of a package might need older versions of
+its dependencies, but other packages might need more recent versions of the
+same dependencies. If instead you want to use an environment as it would
+have looked at the time of <code>{ggplot2}</code>'s version 2.2.1 release, then use
+the Nix revision closest to that date, by setting <code>r_ver = "3.1.0"</code>, which
+was the version of R current at the time. This ensures that Nix builds a
+completely coherent environment. For security purposes, users that wish to
+install packages from Github/Gitlab or from the CRAN archives must provide
+a security hash for each package. <code>{rix}</code> automatically precomputes this
+hash for the source directory of R packages from GitHub/Gitlab or from the
+CRAN archives, to make sure the expected trusted sources that match the
+precomputed hashes in the <code>default.nix</code> are downloaded. If Nix is
+available, then the hash will be computed on the user's machine, however,
+if Nix is not available, then the hash gets computed on a server that we
+set up for this purposes. This server then returns the security hash as
+well as the dependencies of the packages. It is possible to control this
+behaviour using <code>options(rix.sri_hash=x)</code>, where <code>x</code> is one of "check_nix"
+(the default), "locally" (use the local Nix installation) or "api_server"
+(use the remote server to compute and return the hash).
+</p>
+<p>Note that installing packages from Git or old versions using the <code>"@"</code>
+notation or local packages, does not leverage Nix's capabilities for
+dependency solving. As such, you might have trouble installing these
+packages. If that is the case, open an issue on <code>{rix}</code>'s Github
+repository.
+</p>
+<p>By default, the Nix shell will be configured with <code>"en_US.UTF-8"</code> for the
+relevant locale variables (<code>LANG</code>, <code>LC_ALL</code>, <code>LC_TIME</code>, <code>LC_MONETARY</code>,
+<code>LC_PAPER</code>, <code>LC_MEASUREMENT</code>). This is done to ensure locale
+reproducibility by default in Nix environments created with <code>rix()</code>. If
+there are good reasons to not stick to the default, you can set your
+preferred locale variables via <code style="white-space: pre;">⁠options(rix.nix_locale_variables = list(LANG = "de_CH.UTF-8", &lt;...&gt;)⁠</code> and the aforementioned locale variable
+names.
+</p>
+<p>It is possible to use <code style="white-space: pre;">⁠"bleeding_edge⁠</code>" or <code style="white-space: pre;">⁠"frozen_edge⁠</code>" as the value for
+the <code>r_ver</code> argument. This will create an environment with the very latest
+R packages. <code style="white-space: pre;">⁠"bleeding_edge⁠</code>" means that every time you will build the
+environment, the packages will get updated. This is especially useful for
+environments that need to be constantly updated, for example when
+developing a package. In contrast, <code style="white-space: pre;">⁠"frozen_edge⁠</code>" will create an
+environment that will remain stable at build time. So if you create a
+<code>default.nix</code> file using <code style="white-space: pre;">⁠"bleeding_edge⁠</code>", each time you build it using
+<code>nix-build</code> that environment will be up-to-date. With <code style="white-space: pre;">⁠"frozen_edge⁠</code>" that
+environment will be up-to-date on the date that the <code>default.nix</code> will be
+generated, and then each subsequent call to <code>nix-build</code> will result in the
+same environment. We highly recommend you read the vignette titled
+"z - Advanced topic: Understanding the rPackages set release cycle and
+using bleeding edge packages".</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Nothing, this function only has the side-effect of writing two files:
+<code>default.nix</code> and <code>.Rprofile</code> in the working directory. <code>default.nix</code>
+contains a Nix expression to build a reproducible environment using the Nix
+package manager, and <code>.Rprofile</code> ensures that a running R session from a
+Nix environment cannot access local libraries, nor install packages using
+<code>install.packages()</code> (nor remove nor update them).
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# Build an environment with the latest version of R
+# and the dplyr and ggplot2 packages
+rix(
+  r_ver = "latest",
+  r_pkgs = c("dplyr", "ggplot2"),
+  system_pkgs = NULL,
+  git_pkgs = NULL,
+  local_r_pkgs = NULL,
+  ide = "code",
+  project_path = path_default_nix,
+  overwrite = TRUE,
+  print = TRUE,
+  message_type = "simple",
+  shell_hook = NULL
+)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

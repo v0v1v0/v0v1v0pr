@@ -1,0 +1,199 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>add.dosing</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Add dosing to eventTable</h2>
+
+<h3>Description</h3>
+
+<p>This adds a dosing event to the event table.  This is provided for
+piping syntax through magrittr.  It can also be accessed by <code>eventTable$add.dosing(...)</code>
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">add.dosing(
+  eventTable,
+  dose,
+  nbr.doses = 1L,
+  dosing.interval = 24,
+  dosing.to = 1L,
+  rate = NULL,
+  amount.units = NA_character_,
+  start.time = 0,
+  do.sampling = FALSE,
+  time.units = NA_character_,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>eventTable</code></td>
+<td>
+<p>eventTable object; When accessed from object it would be <code style="white-space: pre;">⁠eventTable$⁠</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dose</code></td>
+<td>
+<p>numeric scalar, dose amount in <code>amount.units</code>;</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nbr.doses</code></td>
+<td>
+<p>integer, number of doses;</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dosing.interval</code></td>
+<td>
+<p>required numeric scalar, time between doses
+in <code>time.units</code>, defaults to 24 of
+<code>time.units="hours"</code>;</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dosing.to</code></td>
+<td>
+<p>integer, compartment the dose goes into (first
+compartment by default);</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rate</code></td>
+<td>
+<p>for infusions, the rate of infusion (default is
+<code>NULL</code>, for bolus dosing;</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>amount.units</code></td>
+<td>
+<p>optional string indicating the dosing units.
+Defaults to <code>NA</code> to indicate as per the original
+<code>EventTable</code> definition.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start.time</code></td>
+<td>
+<p>required dosing start time;</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>do.sampling</code></td>
+<td>
+<p>logical, should observation sampling records be
+added at the dosing times? Defaults to <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time.units</code></td>
+<td>
+<p>optional string indicating the time units.
+Defaults to <code>"hours"</code> to indicate as per the original
+<code>EventTable</code> definition.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Other parameters passed to <code>et()</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>eventTable with updated dosing (note the event table will
+be updated anyway)
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Matthew L. Fidler
+</p>
+<p>Matthew L Fidler, Wenping Wang
+</p>
+
+
+<h3>References</h3>
+
+<p>Wang W, Hallow K, James D (2015). "A Tutorial on rxode2: Simulating
+Differential Equation Pharmacometric Models in R." CPT:
+Pharmacometrics and Systems Pharmacology, 5(1), 3-10. ISSN 2163-8306,
+&lt;URL: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4728294/&gt;.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>eventTable</code>, <code>add.sampling</code>,
+<code>add.dosing</code>, <code>et</code>,
+<code>etRep</code>, <code>etRbind</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+
+library(units)
+
+## These are making the more complex regimens of the rxode2 tutorial
+
+## bid for 5 days
+bid &lt;- et(timeUnits="hr") %&gt;%
+       et(amt=10000,ii=12,until=set_units(5, "days"))
+
+## qd for 5 days
+qd &lt;- et(timeUnits="hr") %&gt;%
+      et(amt=20000,ii=24,until=set_units(5, "days"))
+
+## bid for 5 days followed by qd for 5 days
+
+et &lt;- seq(bid,qd) %&gt;% et(seq(0,11*24,length.out=100));
+
+
+## Now Infusion for 5 days followed by oral for 5 days
+
+##  note you can dose to a named compartment instead of using the compartment number
+infusion &lt;- et(timeUnits = "hr") %&gt;%
+      et(amt=10000, rate=5000, ii=24, until=set_units(5, "days"), cmt="centr")
+
+
+qd &lt;- et(timeUnits = "hr") %&gt;% et(amt=10000, ii=24, until=set_units(5, "days"), cmt="depot")
+
+et &lt;- seq(infusion,qd)
+
+
+## 2wk-on, 1wk-off
+
+qd &lt;- et(timeUnits = "hr") %&gt;% et(amt=10000, ii=24, until=set_units(2, "weeks"), cmt="depot")
+
+et &lt;- seq(qd, set_units(1,"weeks"), qd) %&gt;%
+     add.sampling(set_units(seq(0, 5.5,by=0.005),weeks))
+
+
+## You can also repeat the cycle easily with the rep function
+
+qd &lt;-et(timeUnits = "hr") %&gt;% et(amt=10000, ii=24, until=set_units(2, "weeks"), cmt="depot")
+
+et &lt;- etRep(qd, times=4, wait=set_units(1,"weeks")) %&gt;%
+     add.sampling(set_units(seq(0, 12.5,by=0.005),weeks))
+
+
+
+</code></pre>
+
+
+</div>

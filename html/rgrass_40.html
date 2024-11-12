@@ -1,0 +1,221 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>readRAST</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Read and write GRASS raster files</h2>
+
+<h3>Description</h3>
+
+<p>Read GRASS raster files from GRASS into R <span class="pkg">terra</span> <code>"SpatRaster"</code> or <span class="pkg">sp</span> <code>"SpatialGridDataFrame"</code> objects, and write single columns of <span class="pkg">terra</span> <code>"SpatRaster"</code> or <span class="pkg">sp</span> <code>"SpatialGridDataFrame"</code> objects to GRASS. When <code>return_format="terra"</code>, temporary binary files and r.out.bin and r.in.bin are used for speed reasons. <code>read_RAST()</code> and <code>write_RAST()</code> by default use <code>"RRASTER"</code> files written and read by GDAL.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">read_RAST(vname, cat=NULL, NODATA=NULL,
+ return_format="terra", close_OK=return_format=="SGDF",
+ flags=NULL, Sys_ignore.stdout = FALSE, ignore.stderr=get.ignore.stderrOption())
+write_RAST(x, vname, zcol = 1, NODATA=NULL, flags=NULL,
+ ignore.stderr = get.ignore.stderrOption(), overwrite=FALSE, verbose=TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>vname</code></td>
+<td>
+<p>A vector of GRASS raster file names in mapsets in the current search path, as set by “g.mapsets”; the file names may be given as fully-qualified map names using “name@mapset”, in which case only the mapset given in the full path will be searched for the existence of the raster; if more than one raster with the same name is found in mapsets in the current search path, an error will occur, in which case the user should give the fully-qualified map name. If the fully-qualified name is used, <code>@</code> will be replaced by underscore in the output object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cat</code></td>
+<td>
+<p>default NULL; if not NULL, must be a logical vector matching vname, stating which (CELL) rasters to return as factor</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return_format</code></td>
+<td>
+<p>default <code>"terra"</code>, optionally <code>"SGDF"</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Sys_ignore.stdout</code></td>
+<td>
+<p>Passed to <code>system</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ignore.stderr</code></td>
+<td>
+<p>default taking the value set by <code>set.ignore.stderrOption</code>; can be set to TRUE to silence <code>system()</code> output to standard error; does not apply on Windows platforms</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>close_OK</code></td>
+<td>
+<p>default TRUE - clean up possible open connections used for reading metadata; may be set to FALSE to avoid the side-effect of other user-opened connections being broken</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A <span class="pkg">terra</span> <code>"SpatRaster"</code> or <span class="pkg">sp</span> <code>"SpatialGridDataFrame"</code> object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zcol</code></td>
+<td>
+<p>Attribute column number or name</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>NODATA</code></td>
+<td>
+<p>by default NULL, in which case it is set to one less than <code>floor()</code> of the data values for FCELL rasters or the range maximum for CELL Byte, UInt16 and Uint32 rasters (with no negative values), and an attempt is made to set NODATA to the upper Int16 and Int32 range if the lower range is occupied; otherwise an integer NODATA value (required to be integer by GRASS r.out.bin)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite</code></td>
+<td>
+<p>default FALSE, if TRUE inserts <code>"overwrite"</code> into the value of the <code>flags</code> argument if not already there to allow existing GRASS rasters to be overwritten</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flags</code></td>
+<td>
+<p>default NULL, character vector, for example <code>"overwrite"</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>default TRUE, report how writing to GRASS is specified</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p><code>read_RAST</code> by default returns a SpatRaster object, but may return a legacy SpatialGridDataFrame object if <code>return_format="SGDF"</code>. <code>write_RAST</code> silently returns the object being written to GRASS.</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Roger S. Bivand, e-mail: <a href="mailto:Roger.Bivand@nhh.no">Roger.Bivand@nhh.no</a></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">run &lt;- FALSE
+if (nchar(Sys.getenv("GISRC")) &gt; 0 &amp;&amp;
+    read.dcf(Sys.getenv("GISRC"))[1,"LOCATION_NAME"] == "nc_basic_spm_grass7") run &lt;- TRUE
+GV &lt;- Sys.getenv("GRASS_VERBOSE")
+Sys.setenv("GRASS_VERBOSE"=0)
+ois &lt;- get.ignore.stderrOption()
+set.ignore.stderrOption(TRUE)
+if (run) {
+  meta &lt;- gmeta()
+  location_path &lt;- file.path(meta$GISDBASE, meta$LOCATION_NAME)
+  previous_mapset &lt;- meta$MAPSET
+  example_mapset &lt;- "RGRASS_EXAMPLES"
+  execGRASS("g.mapset", "c", mapset = example_mapset)
+}
+
+if (run) {
+  unlist(strsplit(execGRASS("g.mapsets", flags="p", intern=TRUE), " "))
+}
+if (run) {
+  execGRASS("g.list", type="raster", pattern="soils", flags="m", intern=TRUE)
+}
+if (run) {
+  execGRASS("g.list", type="raster", pattern="soils@PERMANENT", mapset=".", flags="m", intern=TRUE)
+}
+if (run) {
+  execGRASS("g.list", type="raster", pattern="soils", mapset="PERMANENT", flags="m", intern=TRUE)
+}
+run &lt;- run &amp;&amp; require("terra", quietly=TRUE)
+if (run) {
+  v1 &lt;- read_RAST("landuse", cat=TRUE, return_format="terra")
+  v1
+  inMemory(v1)
+}
+if (run) {
+  write_RAST(v1, "landuse1", flags=c("o", "overwrite"))
+  execGRASS("r.stats", flags="c", input="landuse1")
+  execGRASS("g.remove", flags="f", name="landuse1", type="raster")
+}
+Sys.setenv("_SP_EVOLUTION_STATUS_"="2")
+run &lt;- run &amp;&amp; require("sp", quietly=TRUE)
+if (run) {
+  nc_basic &lt;- read_RAST(c("geology", "elevation"), cat=c(TRUE, FALSE),
+                        return_format="SGDF")
+  print(table(nc_basic$geology))
+}
+if (run) {
+  execGRASS("r.stats", flags=c("c", "l", "quiet"), input="geology")
+}
+if (run) {
+  boxplot(nc_basic$elevation ~ nc_basic$geology)
+}
+if (run) {
+  nc_basic$sqdem &lt;- sqrt(nc_basic$elevation)
+}
+if (run) {
+  write_RAST(nc_basic, "sqdemSP", zcol="sqdem", flags=c("quiet", "overwrite"))
+  execGRASS("r.info", map="sqdemSP")
+}
+if (run) {
+  print(system.time(sqdemSP &lt;- read_RAST(c("sqdemSP", "elevation"),
+                                         return_format="SGDF")))
+}
+if (run) {
+  print(system.time(sqdem &lt;- read_RAST(c("sqdemSP", "elevation"),
+    return_format="terra")))
+}
+if (run) {
+names(sqdem)
+}
+if (run) {
+  sqdem1 &lt;- read_RAST(c("sqdemSP@RGRASS_EXAMPLES", "elevation@PERMANENT"))
+}
+if (run) {
+  names(sqdem1)
+}
+if (run) {
+  execGRASS("g.remove", flags="f", name="sqdemSP", type="raster")
+  execGRASS("r.mapcalc", expression="basins0 = basins - 1", flags="overwrite")
+  execGRASS("r.stats", flags="c", input="basins0")
+}
+if (run) {
+  basins0 &lt;- read_RAST("basins0", return_format="SGDF")
+  print(table(basins0$basins0))
+}
+if (run) {
+  execGRASS("g.remove", flags="f", name="basins0", type="raster")
+}
+if (run) {
+  execGRASS(cmd = "r.mapcalc", expression="test_t=66000", flags="overwrite")
+  execGRASS("r.info", flags = "r", map = "test_t", intern = TRUE) # #82
+}
+if (run) {
+  (tt = read_RAST(vname = "test_t"))
+}
+if (run) {
+  execGRASS("g.remove", flags="f", name="test_t", type="raster")
+}
+if (run) {
+  execGRASS("g.mapset", mapset = previous_mapset)
+  if (example_mapset != previous_mapset) {
+    unlink(file.path(location_path, example_mapset), recursive = TRUE)
+  }
+}
+Sys.setenv("GRASS_VERBOSE"=GV)
+set.ignore.stderrOption(ois)
+</code></pre>
+
+
+</div>

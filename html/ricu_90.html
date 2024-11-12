@@ -1,0 +1,149 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>id_origin</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Data loading utilities</h2>
+
+<h3>Description</h3>
+
+<p>Two important tools for smoothing out differences among used datasets are
+<code>id_origin()</code> which returns origin times for a given ID and <code>id_map()</code>
+which returns a mapping between two ID systems alongside start and end
+columns of the target ID system relative to the source ID system. As both
+these function are called frequently during data loading and might involve
+somewhat expensive operations, both rely on internal helper functions
+(<code>id_orig_helper()</code> and <code>id_map_helper()</code>) which perform the heavy lifting
+and wrap those helper functions, providing a memoization layer. When adding
+a new data source, a class specific implementation of the S3 generic
+function <code>id_map_helper()</code> might be required, as this is used during data
+loading using <code>load_id()</code> and <code>load_ts()</code> via <code>change_id()</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">id_origin(x, id, origin_name = NULL, copy = TRUE)
+
+id_orig_helper(x, id)
+
+## S3 method for class 'src_env'
+id_orig_helper(x, id)
+
+## S3 method for class 'miiv_env'
+id_orig_helper(x, id)
+
+id_windows(x, copy = TRUE)
+
+id_win_helper(x)
+
+## S3 method for class 'mimic_env'
+id_win_helper(x)
+
+## S3 method for class 'eicu_env'
+id_win_helper(x)
+
+## S3 method for class 'hirid_env'
+id_win_helper(x)
+
+## S3 method for class 'aumc_env'
+id_win_helper(x)
+
+## S3 method for class 'miiv_env'
+id_win_helper(x)
+
+id_map(x, id_var, win_var, in_time = NULL, out_time = NULL)
+
+id_map_helper(x, id_var, win_var)
+
+## S3 method for class 'src_env'
+id_map_helper(x, id_var, win_var)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Object identify the ID system (passed to <code>as_src_env()</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id</code></td>
+<td>
+<p>ID name for which to return origin times</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>origin_name</code></td>
+<td>
+<p>String-valued name which will be used to label the origin
+column</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>copy</code></td>
+<td>
+<p>Logical flag indicating whether to return a copy of the memoized
+<code style="white-space: pre;">⁠0data.table⁠</code> for safety</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id_var</code></td>
+<td>
+<p>Type of ID all returned times are relative to</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>win_var</code></td>
+<td>
+<p>Type of ID for which the in/out times is returned</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>in_time, out_time</code></td>
+<td>
+<p>column names of the returned in/out times</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For the internal datasets, <code>id_map_helper()</code> relies on yet another S3
+generic function <code>id_windows()</code>, which provides a table containing all
+available ID systems, as well as all ID windows for a given data source. As
+for the other two functions, the same helper-function approach is in place,
+with the data loading function <code>id_win_helper()</code>. The function
+<code>id_map_helper()</code> is then implemented in a data source agnostic manner
+(dispatching on the <code>src_env</code> class), providing subsetting of this larger
+ID map table and ensuring timestamps are relative to the correct ID system.
+For adding a new data source however, this layer can be forgone. Similarly
+for <code>id_origin()</code>, this is used for the internal datasets in
+<code>load_difftime()</code>. An implementation of <code>load_difftime()</code>, specific to a
+new data source can be provided that does not rely on <code>id_windows()</code>,
+making this function irrelevant for this specific dataset.
+</p>
+
+
+<h3>Value</h3>
+
+
+<ul>
+<li> <p><code>id_origin()</code>/<code>id_orig_helper()</code>: an <code>id_tbl</code> with admission time stamps
+corresponding to the selected ID
+</p>
+</li>
+<li> <p><code>id_windows()</code>/<code>id_win_helper()</code>: an <code>id_tbl</code> holding all IDs and their
+respective start and end times
+</p>
+</li>
+<li> <p><code>id_map()</code>/<code>id_map_helper()</code>: an <code>id_tbl</code> containing the selected IDs and
+depending on values passed as <code>in_time</code> and <code>out_time</code>, start and end
+times of the ID passed as <code>win_var</code>
+</p>
+</li>
+</ul>
+</div>

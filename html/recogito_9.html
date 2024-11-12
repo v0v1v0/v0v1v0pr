@@ -1,0 +1,128 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>read_annotorious</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Parse annotorious annotations</h2>
+
+<h3>Description</h3>
+
+<p>Parse annotorious annotations
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">read_annotorious(x, src = character())
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a character string with json as returned by the htmlwidget</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>src</code></td>
+<td>
+<p>a character string with the image src which was used in <code>x</code></p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>a data.frame with annotations with columns: id, type, label, comment, x, y, width, height, polygon
+and an attribute <code>src</code> with the provided <code>src</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">url &lt;- paste("https://upload.wikimedia.org/",
+             "wikipedia/commons/a/a0/Pamphlet_dutch_tulipomania_1637.jpg",
+             sep = "")
+url &lt;- system.file(package = "recogito", "examples", "Pamphlet_dutch_tulipomania_1637.jpg")
+x &lt;- '[
+{
+"type":"Annotation",
+"body":[{"type":"TextualBody","value":"IMAGE","purpose":"tagging"}],
+"target":{"selector":{
+  "type":"FragmentSelector",
+  "conformsTo":"http://www.w3.org/TR/media-frags/",
+  "value":"xywh=pixel:41,249.5234375,371,245"}},
+"@context":"http://www.w3.org/ns/anno.jsonld",
+"id":"#58f0096c-4675-4ea8-9f38-bffce0887ab8"
+},
+{
+"type":"Annotation",
+"body":[{"type":"TextualBody","value":"TEXT","purpose":"tagging"}],
+"target":{"selector":{
+  "type":"FragmentSelector",
+  "conformsTo":"http://www.w3.org/TR/media-frags/",
+  "value":"xywh=pixel:46,5.523437976837158,371,239.99999952316284"}},
+"@context":"http://www.w3.org/ns/anno.jsonld",
+"id":"#50035dda-c62b-4f30-bf95-1879d60288a5"}]'
+anno &lt;- read_annotorious(x, src = url)
+anno
+
+
+library(magick)
+img  &lt;- image_read(url)
+area &lt;- head(anno, n = 1)
+image_crop(img, geometry_area(x = area$x, y = area$y,
+                              width = area$width, height = area$height))
+area &lt;- subset(anno, type == "RECTANGLE")
+allrectangles &lt;- Map(
+  x      = area$x,
+  y      = area$y,
+  width  = area$width,
+  height = area$height,
+  f = function(x, y, width, height){
+    image_crop(img, geometry_area(x = x, y = y, width = width, height = height))
+})
+allrectangles &lt;- do.call(c, allrectangles)
+allrectangles
+
+
+
+x &lt;- '[
+{
+  "type":"Annotation",
+  "body":[{"type":"TextualBody","value":"IMAGE","purpose":"tagging"}],
+  "target":{"selector":{
+    "type":"FragmentSelector",
+    "conformsTo":"http://www.w3.org/TR/media-frags/",
+    "value":"xywh=pixel:43,244.5234375,362,252"
+    }},
+ "@context":"http://www.w3.org/ns/anno.jsonld",
+ "id":"#4eaa8788-0c7e-42d2-b004-4d66b57018a1"},
+{
+  "type":"Annotation",
+  "body":[{"type":"TextualBody","value":"TEXT","purpose":"tagging"}],
+  "target":{"selector":{
+    "type":"SvgSelector",
+    "value":"&lt;svg&gt;
+    &lt;polygon points=\\\"75,4 75,58 32,95 32,194 410,195 391,70 373,63 368,3 222,1.5\\\"&gt;
+    &lt;/polygon&gt;&lt;/svg&gt;"}},
+  "@context":"http://www.w3.org/ns/anno.jsonld",
+  "id":"#8bf0a557-c847-4a07-91bc-68a98c499615"}]'
+x    &lt;- gsub(x, pattern = "\n", replacement = "")
+anno &lt;- read_annotorious(x, src = url)
+anno
+anno$polygon
+
+
+library(opencv)
+img  &lt;- ocv_read(url)
+area &lt;- subset(anno, type == "POLYGON")
+ocv_polygon(img, pts = area$polygon[[1]])
+
+</code></pre>
+
+
+</div>

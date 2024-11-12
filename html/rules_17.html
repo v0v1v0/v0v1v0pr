@@ -1,0 +1,317 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>tidy.C5.0</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Turn C5.0 and rule-based models into tidy tibbles</h2>
+
+<h3>Description</h3>
+
+<p>Turn C5.0 and rule-based models into tidy tibbles
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'C5.0'
+tidy(x, trees = x$trials["Actual"], ...)
+
+## S3 method for class 'cubist'
+tidy(x, committees = x$committee, ...)
+
+## S3 method for class 'xrf'
+tidy(x, penalty = NULL, unit = c("rules", "columns"), ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A <code>Cubist</code>, <code>C5.0</code>, or <code>xrf</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trees</code></td>
+<td>
+<p>The number of boosting iterations to tidy (defaults to the entire
+ensemble).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Not currently used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>committees</code></td>
+<td>
+<p>The number of committees to tidy (defaults to the entire
+ensemble).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>penalty</code></td>
+<td>
+<p>A single numeric value for the <code>lambda</code> penalty value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>unit</code></td>
+<td>
+<p>What data should be returned? For <code>unit = 'rules'</code>, each row
+corresponds to a rule. For <code>unit = 'columns'</code>, each row is a predictor
+column. The latter can be helpful when determining variable importance.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The outputs for these tidy functions are different since the model
+structures are different.
+</p>
+<p>Let’s look at Cubist and RuleFit first, using the Ames data, then C5.0
+with a different data set.
+</p>
+
+
+<h4>An example using the Ames data</h4>
+
+<p>First we will fit a Cubist model and tidy it:
+</p>
+<div class="sourceCode r"><pre>library(tidymodels)
+library(rules)
+library(rlang)
+
+data(ames, package = "modeldata")
+
+ames &lt;- ames %&gt;% 
+  mutate(Sale_Price = log10(Sale_Price)) %&gt;% 
+  select(Sale_Price, Longitude, Latitude, Central_Air)
+
+cb_fit &lt;-
+  cubist_rules(committees = 10) %&gt;%
+  set_engine("Cubist") %&gt;%
+  fit(Sale_Price ~ ., data = ames)
+
+cb_res &lt;- tidy(cb_fit)
+
+cb_res
+</pre></div>
+<div class="sourceCode"><pre>## # A tibble: 223 x 5
+##    committee rule_num rule                                    estimate statistic
+##        &lt;int&gt;    &lt;int&gt; &lt;chr&gt;                                   &lt;list&gt;   &lt;list&gt;   
+##  1         1        1 ( Central_Air == 'N' ) &amp; ( Latitude &lt;=~ &lt;tibble&gt; &lt;tibble&gt; 
+##  2         1        2 ( Latitude &lt;= 41.992611 ) &amp; ( Latitude~ &lt;tibble&gt; &lt;tibble&gt; 
+##  3         1        3 ( Central_Air == 'N' ) &amp; ( Latitude &gt; ~ &lt;tibble&gt; &lt;tibble&gt; 
+##  4         1        4 ( Latitude &lt;= 42.026997 ) &amp; ( Longitud~ &lt;tibble&gt; &lt;tibble&gt; 
+##  5         1        5 ( Longitude &gt; -93.63002 ) &amp; ( Latitude~ &lt;tibble&gt; &lt;tibble&gt; 
+##  6         1        6 ( Latitude &lt;= 42.035858 ) &amp; ( Longitud~ &lt;tibble&gt; &lt;tibble&gt; 
+##  7         1        7 ( Latitude &lt;= 42.024029 ) &amp; ( Latitude~ &lt;tibble&gt; &lt;tibble&gt; 
+##  8         1        8 ( Longitude &gt; -93.602348 ) &amp; ( Latitud~ &lt;tibble&gt; &lt;tibble&gt; 
+##  9         1        9 ( Latitude &lt;= 41.991756 ) &amp; ( Longitud~ &lt;tibble&gt; &lt;tibble&gt; 
+## 10         1       10 ( Latitude &gt; 42.041813 ) &amp; ( Longitude~ &lt;tibble&gt; &lt;tibble&gt; 
+## # ... with 213 more rows
+</pre></div>
+<p>Since Cubist fits linear regressions within the data from each rule, the
+coefficients are in the <code>estimate</code> column and other information are in
+<code>statistic</code>:
+</p>
+<div class="sourceCode r"><pre>cb_res$estimate[[1]]
+</pre></div>
+<div class="sourceCode"><pre>## # A tibble: 3 x 2
+##   term        estimate
+##   &lt;chr&gt;          &lt;dbl&gt;
+## 1 (Intercept)  -509.  
+## 2 Longitude      -5.05
+## 3 Latitude        0.99
+</pre></div>
+<div class="sourceCode r"><pre>cb_res$statistic[[1]]
+</pre></div>
+<div class="sourceCode"><pre>## # A tibble: 1 x 6
+##   num_conditions coverage  mean   min   max error
+##            &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+## 1              3       38  4.87  4.12  5.22 0.149
+</pre></div>
+<p>Note that we can get the data for this rule by using
+<code>rlang::parse_expr()</code> with it:
+</p>
+<div class="sourceCode r"><pre>rule_1_expr &lt;- parse_expr(cb_res$rule[1])
+rule_1_expr
+</pre></div>
+<div class="sourceCode"><pre>## (Central_Air == "N") &amp; (Latitude &lt;= 42.026997) &amp; (Longitude &gt; 
+##     -93.639572)
+</pre></div>
+<p>then use it to get the data back:
+</p>
+<div class="sourceCode r"><pre>filter(ames, !!rule_1_expr)
+</pre></div>
+<div class="sourceCode"><pre>## # A tibble: 38 x 4
+##    Sale_Price Longitude Latitude Central_Air
+##         &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt; &lt;fct&gt;      
+##  1       5.04     -93.6     42.0 N          
+##  2       4.74     -93.6     42.0 N          
+##  3       4.75     -93.6     42.0 N          
+##  4       4.54     -93.6     42.0 N          
+##  5       4.64     -93.6     42.0 N          
+##  6       5.22     -93.6     42.0 N          
+##  7       4.80     -93.6     42.0 N          
+##  8       4.99     -93.6     42.0 N          
+##  9       5.09     -93.6     42.0 N          
+## 10       4.89     -93.6     42.0 N          
+## # ... with 28 more rows
+</pre></div>
+<p>Now let’s fit a RuleFit model. First, we’ll use a recipe to convert the
+Central Air predictor to an indicator:
+</p>
+<div class="sourceCode r"><pre>xrf_reg_mod &lt;-
+  rule_fit(trees = 3, penalty = .001) %&gt;%
+  set_engine("xrf") %&gt;%
+  set_mode("regression")
+# Make dummy variables since xgboost will not
+
+ames_rec &lt;-
+  recipe(Sale_Price ~ ., data = ames) %&gt;%
+  step_dummy(Central_Air) %&gt;%
+  step_zv(all_predictors())
+
+ames_processed &lt;- prep(ames_rec) %&gt;% bake(new_data = NULL)
+
+xrf_reg_fit &lt;-
+  xrf_reg_mod %&gt;%
+  fit(Sale_Price ~ ., data = ames_processed)
+
+xrf_rule_res &lt;- tidy(xrf_reg_fit, penalty = .001)
+
+xrf_rule_res
+</pre></div>
+<div class="sourceCode"><pre>## # A tibble: 8 x 3
+##   rule_id       rule                                                    estimate
+##   &lt;chr&gt;         &lt;chr&gt;                                                      &lt;dbl&gt;
+## 1 (Intercept)   ( TRUE )                                                 16.4   
+## 2 Central_Air_Y ( Central_Air_Y )                                         0.0567
+## 3 Latitude      ( Latitude )                                             -0.424 
+## 4 Longitude     ( Longitude )                                            -0.0694
+## 5 r1_1          ( Longitude &lt;  -93.6299744 )                              0.102 
+## 6 r2_3          ( Central_Air_Y &lt;  0.5 ) &amp; ( Latitude &lt;  42.0460129 )    -0.136 
+## 7 r2_5          ( Latitude &gt;= 42.0460129 ) &amp; ( Longitude &lt;  -93.650901~   0.302 
+## 8 r2_6          ( Latitude &gt;= 42.0460129 ) &amp; ( Longitude &gt;= -93.650901~   0.0853
+</pre></div>
+<p>Here, the focus is on the model coefficients produced by <code>glmnet</code>. We
+can also break down the results and sort them by the original predictor
+columns:
+</p>
+<div class="sourceCode r"><pre>tidy(xrf_reg_fit, penalty = .001, unit = "columns")
+</pre></div>
+<div class="sourceCode"><pre>## # A tibble: 11 x 3
+##    rule_id       term          estimate
+##    &lt;chr&gt;         &lt;chr&gt;            &lt;dbl&gt;
+##  1 r1_1          Longitude       0.102 
+##  2 r2_3          Latitude       -0.136 
+##  3 r2_5          Latitude        0.302 
+##  4 r2_6          Latitude        0.0853
+##  5 r2_3          Central_Air_Y  -0.136 
+##  6 r2_5          Longitude       0.302 
+##  7 r2_6          Longitude       0.0853
+##  8 (Intercept)   (Intercept)    16.4   
+##  9 Longitude     Longitude      -0.0694
+## 10 Latitude      Latitude       -0.424 
+## 11 Central_Air_Y Central_Air_Y   0.0567
+</pre></div>
+
+
+
+<h4>C5.0 classification models</h4>
+
+<p>Here, we’ll use the Palmer penguin data:
+</p>
+<div class="sourceCode r"><pre>data(penguins, package = "modeldata")
+
+penguins &lt;- drop_na(penguins)
+</pre></div>
+<p>First, let’s fit a boosted rule-based model and tidy:
+</p>
+<div class="sourceCode r"><pre>rule_model &lt;- 
+  C5_rules(trees = 3) %&gt;% 
+  fit(island ~ ., data = penguins)
+
+rule_info &lt;- tidy(rule_model)
+
+rule_info
+</pre></div>
+<div class="sourceCode"><pre>## # A tibble: 25 x 4
+##    trial rule_num rule                                                 statistic
+##    &lt;int&gt;    &lt;int&gt; &lt;chr&gt;                                                &lt;list&gt;   
+##  1     1        1 ( bill_length_mm &gt; 37.5 )                            &lt;tibble&gt; 
+##  2     1        2 ( species == 'Chinstrap' )                           &lt;tibble&gt; 
+##  3     1        3 ( body_mass_g &gt; 3200 ) &amp; ( body_mass_g &lt; 3700 ) &amp; (~ &lt;tibble&gt; 
+##  4     1        4 ( flipper_length_mm &lt; 193 )                          &lt;tibble&gt; 
+##  5     1        5 ( species == 'Adelie' ) &amp; ( bill_length_mm &gt; 38.299~ &lt;tibble&gt; 
+##  6     1        6 ( bill_length_mm &lt; 40.799999 ) &amp; ( bill_depth_mm &gt; ~ &lt;tibble&gt; 
+##  7     1        7 ( species == 'Adelie' ) &amp; ( bill_length_mm &gt; 41.599~ &lt;tibble&gt; 
+##  8     1        8 ( species == 'Adelie' ) &amp; ( bill_depth_mm &gt; 18.9 ) ~ &lt;tibble&gt; 
+##  9     2        1 ( species == 'Gentoo' )                              &lt;tibble&gt; 
+## 10     2        2 ( body_mass_g &gt; 3700 ) &amp; ( sex == 'female' )         &lt;tibble&gt; 
+## # ... with 15 more rows
+</pre></div>
+<div class="sourceCode r"><pre># The statistic column has the pre-computed data about the 
+# data covered by the rule:
+rule_info$statistic[[1]]
+</pre></div>
+<div class="sourceCode"><pre>## # A tibble: 1 x 4
+##   num_conditions coverage  lift class 
+##            &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt; 
+## 1              1      286  1.10 Biscoe
+</pre></div>
+<p>Tree-based models can also be tidied. Rather than saving the results in
+a recursive tree structure, we can show the paths to each of the
+terminal nodes (which is just a rule).
+</p>
+<p>Let’s fit a model and tidy:
+</p>
+<div class="sourceCode r"><pre>tree_model &lt;- 
+  boost_tree(trees = 3) %&gt;% 
+  set_engine("C5.0") %&gt;% 
+  set_mode("classification") %&gt;% 
+  fit(island ~ ., data = penguins)
+
+tree_info &lt;- tidy(tree_model)
+
+tree_info
+</pre></div>
+<div class="sourceCode"><pre>## # A tibble: 34 x 4
+##    trial  node rule                                                    statistic
+##    &lt;int&gt; &lt;int&gt; &lt;chr&gt;                                                   &lt;list&gt;   
+##  1     1     1 "( species %in% c(\"Adelie\") ) &amp; ( sex == \"female\" ~ &lt;tibble&gt; 
+##  2     1     2 "( species %in% c(\"Adelie\") ) &amp; ( sex == \"female\" ~ &lt;tibble&gt; 
+##  3     1     3 "( species %in% c(\"Adelie\") ) &amp; ( sex == \"female\" ~ &lt;tibble&gt; 
+##  4     1     4 "( species %in% c(\"Adelie\") ) &amp; ( sex == \"female\" ~ &lt;tibble&gt; 
+##  5     1     5 "( species %in% c(\"Adelie\") ) &amp; ( sex == \"female\" ~ &lt;tibble&gt; 
+##  6     1     6 "( species %in% c(\"Adelie\") ) &amp; ( sex == \"female\" ~ &lt;tibble&gt; 
+##  7     1     7 "( species %in% c(\"Adelie\") ) &amp; ( sex == \"female\" ~ &lt;tibble&gt; 
+##  8     1     8 "( species %in% c(\"Adelie\") ) &amp; ( sex == \"male\" ) ~ &lt;tibble&gt; 
+##  9     1     9 "( species %in% c(\"Adelie\") ) &amp; ( sex == \"male\" ) ~ &lt;tibble&gt; 
+## 10     1    10 "( species %in% c(\"Adelie\") ) &amp; ( sex == \"male\" ) ~ &lt;tibble&gt; 
+## # ... with 24 more rows
+</pre></div>
+<div class="sourceCode r"><pre># The statistic column has the class breakdown:
+tree_info$statistic[[1]]
+</pre></div>
+<div class="sourceCode"><pre>## # A tibble: 3 x 2
+##   value     count
+##   &lt;chr&gt;     &lt;dbl&gt;
+## 1 Biscoe        3
+## 2 Dream         1
+## 3 Torgersen     0
+</pre></div>
+<p>Note that C5.0 models can have fractional estimates of counts in the
+terminal nodes.
+</p>
+
+
+
+</div>

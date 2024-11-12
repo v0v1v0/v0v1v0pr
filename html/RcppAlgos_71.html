@@ -1,0 +1,240 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>partitionsGeneral</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Generate Partitions/Compositions
+</h2>
+
+<h3>Description</h3>
+
+<p>The algorithms in <code>RcppAlgos</code> go beyond the traditional integer partition algorithms and can tackle a wide variety of cases.
+</p>
+
+<ul>
+<li>
+<p> Efficient algorithms for partitioning numbers under various constraints:
+</p>
+
+<ul>
+<li>
+<p> Standard (with repetition)
+</p>
+</li>
+<li>
+<p> Distinct
+</p>
+</li>
+<li>
+<p> Restricted
+</p>
+</li>
+<li>
+<p> Where each part has a specific multiplicity (i.e. when using <code>freqs</code> for multisets).
+</p>
+</li>
+<li>
+<p> Arbitrary target and source vector (<em>e.g.</em> <code>partitionsGeneral(sample(1000, 20), 10, TRUE, target = 5000)</code>)
+</p>
+</li>
+</ul>
+</li>
+<li>
+<p> Produce results in parallel using the <code>nThreads</code> arguments.
+</p>
+</li>
+<li>
+<p> Alternatively, the arguments <code>lower</code> and <code>upper</code> make it possible to generate partitions/compositions in chunks allowing for parallelization via the parallel package.
+</p>
+</li>
+<li>
+<p> GMP support allows for exploration of cases where the number of partitions/compositions is large.
+</p>
+</li>
+<li>
+<p> The output is in lexicographical order.
+</p>
+</li>
+</ul>
+<h3>Usage</h3>
+
+<pre><code class="language-R">partitionsGeneral(v, m = NULL, ...)
+compositionsGeneral(v, m = NULL, ...)
+
+## Default S3 method:
+partitionsGeneral(
+    v, m = NULL, repetition = FALSE, freqs = NULL, target = NULL,
+    lower = NULL, upper = NULL, nThreads = NULL, tolerance = NULL, ...
+)
+## Default S3 method:
+compositionsGeneral(
+    v, m = NULL, repetition = FALSE, freqs = NULL, target = NULL, weak = FALSE,
+    lower = NULL, upper = NULL, nThreads = NULL, tolerance = NULL, ...
+)
+
+## S3 method for class 'table'
+partitionsGeneral(
+    v, m = NULL, target = NULL, lower = NULL,
+    upper = NULL, nThreads = NULL, tolerance = NULL, ...
+)
+## S3 method for class 'table'
+compositionsGeneral(
+    v, m = NULL, target = NULL, weak = FALSE, lower = NULL,
+    upper = NULL, nThreads = NULL, tolerance = NULL, ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>v</code></td>
+<td>
+<p>Source vector. If <code>v</code> is a positive integer, it will be converted to the sequence <code>1:v</code>. If <code>v</code> is a negative integer, it will be converted to the sequence <code>v:-1</code>. Only integer and numeric vectors are accepted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m</code></td>
+<td>
+<p>Width of the partition. If <code>m = NULL</code>, the length will be determined by the partitioning case (<em>e.g.</em> When we are generating distinct partitions of <code class="reqn">n</code>, the width will be equal to the smallest <code class="reqn">m</code> such that <code>sum(1:m) &gt;= n</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments passed to methods.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>repetition</code></td>
+<td>
+<p>Logical value indicating whether partitions/compositions should be with or without repetition. The default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>freqs</code></td>
+<td>
+<p>A vector of frequencies used for producing all partitions of a multiset of <code>v</code>. Each element of <code>freqs</code> represents how many times each element of the source vector, <code>v</code>, is repeated. It is analogous to the <code>times</code> argument in <code>rep</code>. The default value is <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lower</code></td>
+<td>
+<p>The lower bound. Partitions/compositions are generated lexicographically, thus utilizing this argument will determine which specific partition to start generating from (<em>e.g.</em> <code>partitionsGeneral(15, 3, lower = 6)</code> is equivalent to <code>partitionsGeneral(15, 3)[6:partitionsCount(15, 3), ]</code>). This argument along with <code>upper</code> is very useful for generating partitions/compositions in chunks allowing for easy parallelization.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>upper</code></td>
+<td>
+<p>The upper bound. Similar to <code>lower</code>, however this parameter allows the user to <em>stop</em> generation at a specific partition (<em>e.g.</em> <code>partitionsGeneral(15, 3, upper = 5)</code> is equivalent to <code>partitionsGeneral(15, 3)[1:5, ]</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target</code></td>
+<td>
+<p>Number to be partitioned. If <code>NULL</code>, <code>max(v)</code> will be used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weak</code></td>
+<td>
+<p>(Compositions only) Logical flag indicating whether to allow terms of the sequence to be zero.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nThreads</code></td>
+<td>
+<p>Specific number of threads to be used. The default is <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tolerance</code></td>
+<td>
+<p>A numeric value greater than or equal to zero. This parameter is utilized when a constraint is applied on a numeric vector. The default value is 0 when it can be determined that whole values are being utilized, otherwise it is <code>sqrt(.Machine$double.eps)</code> which is approximately <code class="reqn">1.5e-8</code>. N.B. If the input vector is of type integer, this parameter will be ignored and strict equality will be enforced.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A matrix is returned with each row containing a vector of length <code class="reqn">m</code>.
+</p>
+
+
+<h3>Note</h3>
+
+
+<ul>
+<li>
+<p><code>nThreads</code> will be ignored in the following cases (i.e. Generating the <code class="reqn">n^{th}</code> partition in these cases are currently unavailable):
+</p>
+
+<ul>
+<li>
+<p> With standard multisets. If zero is the only element with a non-trivial multiplicity, multithreading is possible (<em>e.g.</em> <code>partitionsGeneral(0:100, freqs = c(100, rep(1, 100)), nThreads = 4)</code>).
+</p>
+</li>
+<li>
+<p> If the source vector is not isomorphic to <code>1:length(v)</code> (<em>e.g.</em> <code>v = c(1, 4, 6, 7, 8)</code>).
+</p>
+</li>
+</ul>
+</li>
+<li>
+<p> The maximum number of partitions/compositions that can be generated at one time is <code class="reqn">2^{31} - 1</code>. Utilizing <code>lower</code> and <code>upper</code> makes it possible to generate additional partitions/compositions.
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>Joseph Wood
+</p>
+
+
+<h3>References</h3>
+
+
+<ul>
+<li>
+<p><a href="https://en.wikipedia.org/wiki/Lexicographical_order">Lexicographical Order</a>
+</p>
+</li>
+<li>
+<p><a href="https://en.wikipedia.org/wiki/Subset_sum_problem">Subset Sum Problem</a>
+</p>
+</li>
+<li>
+<p><a href="https://en.wikipedia.org/wiki/Partition_(number_theory)">Partition (number theory)</a>
+</p>
+</li>
+<li>
+<p><a href="https://en.wikipedia.org/wiki/Composition_(combinatorics)">Composition (combinatorics))</a>
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">partitionsGeneral(1)
+partitionsGeneral(-1:0, 1)
+partitionsGeneral(-1:0, 1, target = -1)
+partitionsGeneral(20, 5)
+partitionsGeneral(20, 5, repetition = TRUE)
+partitionsGeneral(20, 5, freqs = rep(1:4, 5))
+partitionsGeneral(20, 5, TRUE, target = 80)
+partitionsGeneral(0:10, repetition = TRUE)
+partitionsGeneral(seq(2L, 500L, 23L), 5, target = 1804)
+
+compositionsGeneral(0:10, 5, repetition = TRUE)
+
+set.seed(111)
+partitionsGeneral(sample(1000, 20), 5, TRUE, target = 2500)
+
+system.time(one_thread  &lt;- partitionsGeneral(80, 10, TRUE))
+system.time(two_threads &lt;- partitionsGeneral(80, 10, TRUE, nThreads = 2))
+identical(one_thread, two_threads)
+</code></pre>
+
+
+</div>

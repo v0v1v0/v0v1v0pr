@@ -1,0 +1,146 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>drw.sim</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Simulating univariate and multiviarate damped random walk processes</h2>
+
+<h3>Description</h3>
+
+<p>The function <code>drw.sim</code> simulates time series data set(s) following either univariate or multivariate damped random walk process.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">drw.sim(time, n.datasets, measure.error.SD, mu, sigma, tau, rho)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>time</code></td>
+<td>
+<p>A vector containing observation times. Let us use <code class="reqn">n</code> to denote the length of this vector.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.datasets</code></td>
+<td>
+<p>Any positive integer value that denotes the number of time series data sets to be simulated. In simulation, there is no upper limit in the number of time series data sets. Let's use <code class="reqn">k</code> to denote this number of time series data sets.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>measure.error.SD</code></td>
+<td>
+<p>Optional if measurement error standard deviations are known and available. If one time series data set is simulated, it is a vector of length <code class="reqn">n</code> containing measurement error standard deviations. If more than one time series data sets are simulated, it is an <code class="reqn">n</code> by <code class="reqn">k</code> matrix composed of measurement error standard deviations. If such information is not available, it is automatically set to zeros.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mu</code></td>
+<td>
+<p>A vector of length <code class="reqn">k</code>, containing the long-term average parameter(s) of the process.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma</code></td>
+<td>
+<p>A vector of length <code class="reqn">k</code>, containing the short-term variability parameter(s) (standard deviation) of the process.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tau</code></td>
+<td>
+<p>A vector of length <code class="reqn">k</code>, containing the timescale parameter(s) of the process.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rho</code></td>
+<td>
+<p>Required if more than one time series data sets are simulated <code class="reqn">(k&gt;1)</code>. A vector of length <code class="reqn">k(k-1)/2</code>, containing the cross-correlation parameters of the process. For example, if <code class="reqn">k=3</code>, this is a vector composed of <code class="reqn">\rho_{12}</code>, <code class="reqn">\rho_{13}</code>, <code class="reqn">\rho_{23}</code>. If <code class="reqn">k=5</code>, this is a vector composed of <code class="reqn">\rho_{12}</code>, <code class="reqn">\rho_{13}</code>, <code class="reqn">\rho_{14}</code>, <code class="reqn">\rho_{15}</code>, <code class="reqn">\rho_{23}</code>, <code class="reqn">\rho_{24}</code>, <code class="reqn">\rho_{25}</code>, <code class="reqn">\rho_{34}</code>, <code class="reqn">\rho_{35}</code>, <code class="reqn">\rho_{45}</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Given the <code class="reqn">n</code> observation times and model parameter values (mu, sigma, tau, rho) possibly with known measurement error standard deviations, this function simulates <code class="reqn">k</code> time series data sets.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The outcome of <code>drw.sim</code> is composed of:
+</p>
+
+<dl>
+<dt>x</dt>
+<dd>
+<p>An <code class="reqn">n</code> by <code class="reqn">k</code> matrix composed of <code class="reqn">k</code> simulated time series data each with length <code class="reqn">n</code>. That is, each column is corresponding to one simulated time series data set.</p>
+</dd>
+</dl>
+<h3>Author(s)</h3>
+
+<p>Zhirui Hu and Hyungsuk Tak
+</p>
+
+
+<h3>References</h3>
+
+<p>Zhirui Hu and Hyungsuk Tak (2020+), "Modeling Stochastic Variability in  Multi-Band Time Series Data," arXiv:2005.08049.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">########## Simulating a multivariate damped random walk process
+
+n &lt;- 100
+k &lt;- 5
+obs.time &lt;- cumsum(rgamma(n, shape = 3, rate = 1))
+
+tau &lt;- 100 + 20 * (1 : 5) #rnorm(k, 0, 5)
+sigma &lt;- 0.01 * (1 : 5)
+#tau &lt;- c(1 : 5) #rnorm(k, 0, 5)
+#sigma &lt;- 0.05  + 0.007 * (0 : 4) #rnorm(k, 0, 0.002)
+mu &lt;- 17 + 0.5 * (1 : 5)
+
+rho.m &lt;- matrix(0, k, k)
+for(i in 1 : k) {
+  for(j in 1 : k) {
+    rho.m[i, j] = 1.1^(-abs(i - j))
+  }
+}
+
+rho &lt;- rho.m[upper.tri(rho.m)]
+
+measure.error.band &lt;- c(0.010, 0.014, 0.018, 0.022, 0.026)
+measure.error &lt;- NULL
+for(i in 1 : k) {
+  measure.error &lt;- cbind(measure.error, rnorm(n, measure.error.band[i], 0.002))
+}
+
+x &lt;- drw.sim(time = obs.time, n.datasets = 5, measure.error.SD = measure.error,
+             mu = mu, sigma = sigma, tau = tau, rho = rho)
+
+
+plot(obs.time, x[, 1], xlim = c(min(obs.time), max(obs.time)), ylim = c(17, 20),
+     xlab = "time", ylab = "observation")
+points(obs.time, x[, 2], col = 2, pch = 2)
+points(obs.time, x[, 3], col = 3, pch = 3)
+points(obs.time, x[, 4], col = 4, pch = 4)
+points(obs.time, x[, 5], col = 5, pch = 5)
+
+########## Simulating a univariate damped random walk process
+
+x &lt;- drw.sim(time = obs.time, n.datasets = 1, measure.error.SD = measure.error[, 1],
+             mu = mu[1], sigma = sigma[1], tau = tau[1])
+plot(obs.time, x)
+</code></pre>
+
+
+</div>

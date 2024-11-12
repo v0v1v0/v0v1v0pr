@@ -1,0 +1,94 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>make_refreshable</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Making dataframes/tables refreshable</h2>
+
+<h3>Description</h3>
+
+<p>Makes a dataframe/table refreshable, i.e. connects it with a
+data source and specifies code that is applied to the raw data after the
+data has been loaded (optional).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">make_refreshable(df, load_code, prep_code = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>df</code></td>
+<td>
+<p>The dataframe/table that is to be made refreshable</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>load_code</code></td>
+<td>
+<p>The code used to load the data from the data source. Please
+not that quotes need to be escaped (code\").</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prep_code</code></td>
+<td>
+<p>The code used to transform the raw data downloaded from the
+data source. The placeholder <code>#</code> can be used in this code to refer to
+the data downloaded from the data source.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A dataframe/table of class <code>refreshr</code> that can be refreshed by
+calling <code>refresh()</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+
+library(data.table)
+library(dplyr)
+
+# Load US unemployment rate from Bureau of Labor Statistics
+data &lt;- fread("https://download.bls.gov/pub/time.series/ln/ln.data.1.AllData", sep="\t")
+
+# Make refreshable and specify code for data preparation (filter raw data for
+# the overall US employment rate) with # being a placeholder for the downloaded
+# raw data
+data_refresh &lt;- make_refreshable(data,
+                     load_code = "data.table::fread(
+                        \"https://download.bls.gov/pub/time.series/ln/ln.data.1.AllData\",
+                        sep=\"\t\")",
+                     prep_code = "filter(#, series_id==\"LNS14000000\")")
+
+# Save refreshable dataframe as RData file (e.g. to share dataset with coworkers or public)
+save(data_refresh, file = "refresh.RData")
+
+# Remove dataframe and reload it from file
+rm(data_refresh)
+load(file = "refresh.RData")
+
+# Refresh the dataframe
+data_refresh &lt;- refresh(data_refresh)
+
+# Show properties of refreshable dataframe
+properties(data_refresh)
+
+# Check if refreshable dataframe is up-to-date with the remote data source
+uptodate(data_refresh)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

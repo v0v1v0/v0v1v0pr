@@ -1,0 +1,217 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Mine.seis</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Mine a seismic data base to extract secions of time limited data</h2>
+
+<h3>Description</h3>
+
+<p>Mine a seismic data base to extract secions of time limited data
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">Mine.seis(at1, at2, DB, grepsta, grepcomp, kind = 1, Iendian=1,
+BIGLONG=FALSE, CHOP=TRUE, verbose=FALSE, chtoken=NULL, statoken=NULL, RAW=FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>at1</code></td>
+<td>
+<p>time 1 in julian days</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>at2</code></td>
+<td>
+<p>time 2 in julian days</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>DB</code></td>
+<td>
+<p>data base structure to searcth through that provides the
+files where data is to extracted from</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grepsta</code></td>
+<td>
+<p>which stations to extract</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grepcomp</code></td>
+<td>
+<p>which components to extract</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kind</code></td>
+<td>
+<p>kind of data, -1="RDS", 0="RDATA" ,  0="RDATA", 1 = "segy",
+2 = "sac"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Iendian</code></td>
+<td>
+<p> Endian-ness of the data: 1,2,3: "little", "big", "swap".
+Default = 1 (little)
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>BIGLONG</code></td>
+<td>
+<p> logical, TRUE=long=8 bytes
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>CHOP</code></td>
+<td>
+<p>cut the data to a window using CHOP.SEISN </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>print out intermediate information for debugging </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chtoken</code></td>
+<td>
+<p>channel token for selecting channels (NULL) </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>statoken</code></td>
+<td>
+<p>station token for selecting stations (NULL) </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>RAW</code></td>
+<td>
+<p>logical, default=FALSE(convert to volts) , TRUE (return counts intead of
+volts) </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The data base is a list or dataframe containing the files names, the
+beginning time (t1) and ending time (t2) for each file in the data
+base.  Mine.seis uses grep on the file names to
+extract specific files from the DB list.
+</p>
+<p>Mine.seis needs to know what format the data was
+created in: little/big endian and the size of the LONG.
+</p>
+<p>If data was created on a little endian machine but
+is being read on big endian machine, need to call
+the endian "swap" for swapping.
+</p>
+<p>If data was created on a machine with LONG=4 bytes,
+be sure to call the program with BIGLONG=FALSE.
+</p>
+<p>Use sysinfo to findout the system parameters for the local
+system.  You need to know, however, what machine the binary files
+were created on.
+</p>
+<p>In some situation the chanel name and the station name are not embedded in the
+file headers - in that case use the token from the file name.
+</p>
+
+
+<h3>Value</h3>
+
+<p>List of seismograms cut from the database
+</p>
+
+
+<h3>Note</h3>
+
+<p>The headers in the digital (segy or SAC) data files
+may not necessarily match the file names.  Note that
+program JGET.seis extracts the station name and component
+name from the digital header and does not use the
+file name.  It may be prudent to force the file names
+and header files to match prior to using Mine.seis.
+For SEGY files, in LINUX-UNIX, use:
+rename,    segymod (PASSCAL) to modify the headers.
+</p>
+<p>For SAC files, use sac software.
+</p>
+<p>For R-based codes save the files in
+a format that has the relevant information (DAT format).
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Jonathan M. Lees&lt;jonathan.lees.edu&gt;</p>
+
+
+<h3>See Also</h3>
+
+<p>makeDB, GLUEseisMAT, JGET.seis, JSAC.seis, JSEGY.seis, sysinfo</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+data(GH)
+
+DD = data.frame(GH$info)
+
+#### get only vertical traces
+WV = which( GH$COMPS=='V' )
+L1 = length(WV)
+
+GIVE = vector(mode='list')
+
+for(j in 1:L1 )
+{
+    i = WV[j]
+    AA = DD[i,]
+    GIVE[[j]] = list(fn = AA$fn, sta =GH$STNS[i] , comp = GH$COMP[i], 
+                     dt = AA$dt, DATTIM = AA, N = AA$n1, units = NA, 
+                     coords = NA, amp = GH$JSTR[[i]]  )
+}
+#### par(mfrow=c(length(GIVE) , 1) )
+#   for(i in 1:length(GIVE) ) { plotGH(GIVE[[i]])   }
+tdir = tempdir()
+for(i in 1:length(GIVE) )
+{
+    sig = GIVE[[i]]
+  d1 =  dateStamp(sig$DATTIM, sep='_')
+   nam1 =  paste(d1,sig$sta, sig$comp, sep='_')
+    nam2 = paste0(nam1, '.RDS')
+    nam3 = paste(tdir, nam2, sep='/')
+    saveRDS(file=nam3, sig) 
+    }
+########################  Now  read files and make the DataBase:
+LF  = list.files(path=tdir,pattern='.RDS',  full.names=TRUE)
+DB = FmakeDB(LF, kind=-1)
+IDB = infoDB(DB)
+
+
+SAMPseis &lt;- Mine.seis(IDB$at1, IDB$at2, DB, IDB$usta[1:3], IDB$ucomp[1], kind = -1   )
+
+w &lt;- swig(SAMPseis, SHOWONLY=0)
+
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,361 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rlmer</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Robust Scoring Equations Estimator for Linear Mixed Models</h2>
+
+<h3>Description</h3>
+
+<p>Robust estimation of linear mixed effects models, for hierarchical nested
+and non-nested, e.g., crossed, datasets.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rlmer(
+  formula,
+  data,
+  ...,
+  method = c("DAStau", "DASvar"),
+  setting,
+  rho.e,
+  rho.b,
+  rho.sigma.e,
+  rho.sigma.b,
+  rel.tol = 1e-08,
+  max.iter = 40 * (r + 1)^2,
+  verbose = 0,
+  doFit = TRUE,
+  init
+)
+
+lmerNoFit(formula, data = NULL, ..., initTheta)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a two-sided linear formula object describing the
+fixed-effects part of the model, with the response on the left of a
+<code>~</code> operator and the terms, separated by <code>+</code> operators, on the
+right.  The vertical bar character <code>"|"</code> separates an expression for
+a model matrix and a grouping factor.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>an optional data frame containing the variables named in
+<code>formula</code>.  By default the variables are taken from the environment
+from which <code>lmer</code> is called.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional parameters passed to lmer to find the initial
+estimates. See <code>lmer</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>method to be used for estimation of theta and sigma, see
+Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>setting</code></td>
+<td>
+<p>a string specifying suggested choices for the arguments
+<code>rho.e</code>, <code>rho.sigma.e</code>, <code>rho.b</code> and <code>rho.sigma.b</code>.
+Use <code>"RSEn"</code> (the default) or <code>"RSEa"</code>. Both use
+<code>smoothPsi</code> for all the “rho” arguments. For
+<code>rho.sigma.e</code>, squared robustness weights are used (see
+<code>psi2propII</code>). <code>"RSEn"</code> uses the same tuning parameter as
+for <code>rho.e</code>, which leads to higher robustness but lower efficiency.
+<code>"RSEa"</code> adjusts the tuning parameter for higher asymptotic efficiency
+which results in lower robustness (<code>k = 2.28</code> for default <code>rho.e</code>).
+For diagonal random effects covariance matrices, <code>rho.sigma.b</code> is
+treated exactly as <code>rho.sigma.e</code>. For block diagonal random effects
+covariance matrices (with correlation terms), regular robustness weights
+are used for <code>rho.sigma.b</code>, not squared ones, as they're not needed.
+But the tuning parameters are adjusted for both <code>rho.b</code> and
+<code>rho.sigma.b</code> according to the dimensions of the blocks (for both
+<code>"RSEn"</code> or <code>"RSEa"</code>). For a block of dimension 2 (e.g.,
+correlated random intercept and slope) <code>k = 5.14</code> is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rho.e</code></td>
+<td>
+<p>object of class psi_func, specifying the functions to use for
+the huberization of the residuals.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rho.b</code></td>
+<td>
+<p>object of class psi_func or list of such objects (see Details),
+specifying the functions to use for the huberization of the random
+effects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rho.sigma.e</code></td>
+<td>
+<p>object of class psi_func, specifying the weight functions
+to use for the huberization of the residuals when estimating the variance
+components, use the <code>psi2propII</code> function to specify squared
+weights and custom tuning parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rho.sigma.b</code></td>
+<td>
+<p>(optional) object of class psi_func or list of such
+objects, specifying the weight functions to use for the huberization of
+the random effects when estimating the variance components (see Details).
+Use <code>psi2propII</code> to specify squared weights and custom tuning
+parameters or <code>chgDefaults</code> for regular weights for variance
+components including correlation parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rel.tol</code></td>
+<td>
+<p>relative tolerance used as criteria in the fitting process.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.iter</code></td>
+<td>
+<p>maximum number of iterations allowed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>verbosity of output. Ranges from 0 (none) to 3 (a lot of
+output)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>doFit</code></td>
+<td>
+<p>logical scalar. When <code>doFit = FALSE</code> the model is not fit
+but instead a structure with the model matrices for the random-effects
+terms is returned (used to speed up tests). When <code>doFit = TRUE</code>, the
+default, the model is fit immediately.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init</code></td>
+<td>
+<p>optional lmerMod- or rlmerMod-object to use for starting values,
+a list with elements ‘fixef’, ‘u’, ‘sigma’,
+‘theta’, or a function producing an lmerMod object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>initTheta</code></td>
+<td>
+<p>parameter to initialize theta with (optional)</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+ <dl>
+<dt>Overview:</dt>
+<dd>
+<p>This function implements the Robust Scoring Equations estimator for linear
+mixed effect models. It can be used much like the function
+<code>lmer</code> in the package <code>lme4</code>. The supported models
+are the same as for <code>lmer</code> (gaussian family only). The
+robust approach used is based on the robustification of the scoring
+equations and an application of the Design Adaptive Scale approach.
+</p>
+<p>Example analyses and theoretical details on the method are available in the
+vignette (see <code>vignette("rlmer")</code>).
+</p>
+<p>Models are specified using the <code>formula</code> argument, using the same
+syntax as for <code>lmer</code>. Additionally, one also needs to
+specify what robust scoring or weight functions are to be used (arguments
+starting with <code>rho.</code>). By default a smoothed version of the Huber
+function is used. Furthermore, the <code>method</code> argument can be used to
+speed up computations at the expense of accuracy of the results. </p>
+</dd>
+<dt>Computation methods:</dt>
+<dd>
+<p>Currently, there are two different methods available for fitting models.
+They only differ in how the consistency factors for the Design Adaptive
+Scale estimates are computed. Available fitting methods for theta and
+sigma.e: </p>
+
+<ul>
+<li> <p><code>DAStau</code> (default): For this method, the consistency factors are
+computed using numerical quadrature. This is slower but yields more accurate
+results. This is the direct analogue to the DAS-estimate in robust linear
+regression.
+</p>
+</li>
+<li> <p><code>DASvar</code>: This method computes the consistency factors using a
+direct approximation which is faster but less accurate. For complex models
+with correlated random effects with more than one correlation term, this is
+the only method available.
+</p>
+</li>
+</ul>
+</dd>
+<dt>Weight functions:</dt>
+<dd>
+<p>The tuning parameters of the weight functions “rho” can be used to
+adjust robustness and efficiency of the resulting estimates (arguments
+<code>rho.e</code>, <code>rho.b</code>, <code>rho.sigma.e</code> and <code>rho.sigma.b</code>).
+Better robustness will lead to a decrease of the efficiency. With the default
+setting, <code>setting = "RSEn"</code>, the tuning parameters are set to yield
+estimates with approximately 95% efficiency for the fixed effects. The
+variance components are estimated with a lower efficiency but better
+robustness properties.
+</p>
+<p>One has to use different weight functions and tuning parameters for simple
+variance components and for such including correlation parameters. By
+default, they are chosen appropriately to the model at hand. However, when
+using the <code>rho.sigma.e</code> and <code>rho.sigma.b</code> arguments, it is up to
+the user to specify the appropriate function. See
+<code>asymptoticEfficiency</code> for methods to find tuning parameters
+that yield a given asymptotic efficiency. </p>
+
+<ul>
+<li>
+<p> For simple variance components and the residual error scale use the
+function <code>psi2propII</code> to change the tuning parameters. This is
+similar to Proposal 2 in the location-scale problem (i.e., using the
+squared robustness weights of the location estimate for the scale estimate;
+otherwise the scale estimate is not robust).
+</p>
+</li>
+<li>
+<p> For multi-dimensional blocks of random effects modeled, e.g.,
+a model with correlated random intercept and slope, (referred to as
+block diagonal case below), use the <code>chgDefaults</code> function to
+change the tuning parameters. The parameter estimation problem is
+multivariate, unlike the case without correlation where the problem was
+univariate. For the employed estimator, this amounts to switching from
+simple scale estimates to estimating correlation matrices. Therefore
+different weight functions have to be used. Squaring of the weights (using
+the function <code>psi2propII</code>) is no longer necessary. To yield
+estimates with the same efficiency, the tuning parameters for the
+block diagonal are larger than for the simple case. Tables of tuning parameters
+are given in Table 2 and 3 of the vignette (<code>vignette("rlmer")</code>).
+</p>
+</li>
+</ul>
+</dd>
+<dt>Recommended tuning parameters:</dt>
+<dd>
+<p>For a more robust estimate, use <code>setting = "RSEn"</code> (the default). For
+higher efficiency, use <code>setting = "RSEa"</code>. The settings described in
+the following paragraph are used when <code>setting = "RSEa"</code> is specified.
+</p>
+<p>For the smoothed Huber function the tuning parameters to get approximately
+95% efficiency are <code class="reqn">k=1.345</code> for <code>rho.e</code> and
+<code class="reqn">k=2.28</code> for <code>rho.sigma.e</code> (using the squared version). For
+simple variance components, the same can be used for <code>rho.b</code> and
+<code>rho.sigma.b</code>. For variance components including correlation
+parameters, use <code class="reqn">k=5.14</code> for both <code>rho.b</code> and
+<code>rho.sigma.b</code>. Tables of tuning parameter are given in Table 2 and 3 of
+the vignette (<code>vignette("rlmer")</code>). </p>
+</dd>
+<dt>Specifying (multiple) weight functions:</dt>
+<dd>
+<p>If custom weight functions are specified using the argument <code>rho.b</code>
+(<code>rho.e</code>) but the argument <code>rho.sigma.b</code> (<code>rho.sigma.e</code>) is
+missing, then the squared weights are used for simple variance components
+and the regular weights are used for variance components including
+correlation parameters. The same tuning parameters will be used when
+<code>setting = "RSEn"</code> is used. To get
+higher efficiency either use <code>setting = "RSEa"</code> (and only set arguments
+<code>rho.e</code> and <code>rho.b</code>). Or specify the tuning parameters by hand
+using the <code>psi2propII</code> and <code>chgDefaults</code> functions.
+</p>
+<p>To specify separate weight functions <code>rho.b</code> and <code>rho.sigma.b</code> for
+different variance components, it is possible to pass a list instead of a
+psi_func object. The list entries correspond to the groups as shown by
+<code>VarCorr(.)</code> when applied to the model fitted with <code>lmer</code>. A set
+of correlated random effects count as just one group. </p>
+</dd>
+<dt>
+<code>lmerNoFit</code>:</dt>
+<dd>
+<p>The <code>lmerNoFit</code> function can be used to get trivial starting values.
+This is mainly used to verify the algorithms to reproduce the fit by
+<code>lmer</code> when starting from trivial initial values. </p>
+</dd> </dl>
+<h3>Value</h3>
+
+<p>object of class rlmerMod.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Manuel Koller, with thanks to Vanda Lourenço for improvements.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>lmer</code>, <code>vignette("rlmer")</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## dropping of VC
+system.time(print(rlmer(Yield ~ (1|Batch), Dyestuff2, method="DASvar")))
+
+## Not run: 
+  ## Default method "DAStau"
+  system.time(rfm.DAStau &lt;- rlmer(Yield ~ (1|Batch), Dyestuff))
+  summary(rfm.DAStau)
+  ## DASvar method (faster, less accurate)
+  system.time(rfm.DASvar &lt;- rlmer(Yield ~ (1|Batch), Dyestuff,
+                                  method="DASvar"))
+  ## compare the two
+  compare(rfm.DAStau, rfm.DASvar)
+
+  ## Fit variance components with higher efficiency
+  ## psi2propII yields squared weights to get robust estimates
+  ## this is the same as using rlmer's argument `setting = "RSEa"`
+  rlmer(diameter ~ 1 + (1|plate) + (1|sample), Penicillin,
+        rho.sigma.e = psi2propII(smoothPsi, k = 2.28),
+        rho.sigma.b = psi2propII(smoothPsi, k = 2.28))
+
+  ## use chgDefaults for variance components including
+  ## correlation terms (regular, non squared weights suffice)
+  ## this is the same as using rlmer's argument `setting = "RSEa"`
+  rlmer(Reaction ~ Days + (Days|Subject), sleepstudy,
+        rho.sigma.e = psi2propII(smoothPsi, k = 2.28),
+        rho.b = chgDefaults(smoothPsi, k = 5.14, s=10),
+        rho.sigma.b = chgDefaults(smoothPsi, k = 5.14, s=10))
+
+## End(Not run)
+
+## Not run: 
+  ## start from lmer's initial estimate, not its fit
+  rlmer(Yield ~ (1|Batch), Dyestuff, init = lmerNoFit)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

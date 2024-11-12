@@ -1,0 +1,155 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>FGR</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Formula wrapper for crr from cmprsk</h2>
+
+<h3>Description</h3>
+
+<p>Formula interface for Fine-Gray regression competing risk models.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">FGR(formula, data, cause = 1, y = TRUE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>A formula whose left hand side is a <code>Hist</code> object – see
+<code>Hist</code>.  The right hand side specifies (a linear combination of)
+the covariates. See examples below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data.frame in which all the variables of <code>formula</code> can be
+interpreted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cause</code></td>
+<td>
+<p>The failure type of interest. Defaults to <code>1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>logical value: if <code>TRUE</code>, the response vector is returned in component <code>response</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>...</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Formula interface for the function <code>crr</code> from the <code>cmprsk</code>
+package.
+</p>
+<p>The function <code>crr</code> allows to multiply some covariates by time before
+they enter the linear predictor. This can be achieved with the formula
+interface, however, the code becomes a little cumbersome. See the examples.
+Note that FGR does not allow for delayed entry (left-truncation).
+The assumed value for indicating censored observations in the event variable
+is <code>0</code>. The function <code>Hist</code> has an argument <code>cens.code</code>
+which can change this (if you do not want to change the event variable).
+</p>
+
+
+<h3>Value</h3>
+
+<p>See <code>crr</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Thomas Alexander Gerds <a href="mailto:tag@biostat.ku.dk">tag@biostat.ku.dk</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>Gerds, TA and Scheike, T and Andersen, PK (2011) Absolute risk
+regression for competing risks: interpretation, link functions and
+prediction Research report 11/7. Department of Biostatistics, University of
+Copenhagen
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>riskRegression</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(prodlim)
+library(survival)
+library(cmprsk)
+library(lava)
+d &lt;- prodlim::SimCompRisk(100)
+f1 &lt;- FGR(Hist(time,cause)~X1+X2,data=d)
+print(f1)
+
+## crr allows that some covariates are multiplied by
+## a function of time (see argument tf of crr)
+## by FGR uses the identity matrix
+f2 &lt;- FGR(Hist(time,cause)~cov2(X1)+X2,data=d)
+print(f2)
+
+## same thing, but more explicit:
+f3 &lt;- FGR(Hist(time,cause)~cov2(X1)+cov1(X2),data=d)
+print(f3)
+
+## both variables can enter cov2:
+f4 &lt;- FGR(Hist(time,cause)~cov2(X1)+cov2(X2),data=d)
+print(f4)
+
+## change the function of time
+qFun &lt;- function(x){x^2}
+noFun &lt;- function(x){x}
+sqFun &lt;- function(x){x^0.5}
+
+## multiply X1 by time^2 and X2 by time:
+f5 &lt;- FGR(Hist(time,cause)~cov2(X1,tf=qFun)+cov2(X2),data=d)
+print(f5)
+print(f5$crrFit)
+## same results as crr
+with(d,crr(ftime=time,
+           fstatus=cause,
+           cov2=d[,c("X1","X2")],
+           tf=function(time){cbind(qFun(time),time)}))
+
+## still same result, but more explicit
+f5a &lt;- FGR(Hist(time,cause)~cov2(X1,tf=qFun)+cov2(X2,tf=noFun),data=d)
+f5a$crrFit
+
+## multiply X1 by time^2 and X2 by sqrt(time)
+f5b &lt;- FGR(Hist(time,cause)~cov2(X1,tf=qFun)+cov2(X2,tf=sqFun),data=d,cause=1)
+
+## additional arguments for crr
+f6&lt;- FGR(Hist(time,cause)~X1+X2,data=d, cause=1,gtol=1e-5)
+f6
+f6a&lt;- FGR(Hist(time,cause)~X1+X2,data=d, cause=1,gtol=0.1)
+f6a
+</code></pre>
+
+
+</div>

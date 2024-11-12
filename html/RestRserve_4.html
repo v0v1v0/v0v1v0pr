@@ -1,0 +1,703 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Application</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Creates application - RestRserve usage starts from here</h2>
+
+<h3>Description</h3>
+
+<p>Creates Application object.
+Application provides an interface for building high-performance
+REST API by registering R functions as handlers http requests.
+</p>
+
+
+<h3>Details</h3>
+
+<p>There are several advanced options to control how HTTP headers are
+processed:
+</p>
+
+<ul>
+<li> <p><code>options("RestRserve.headers.server")</code> controls response <code>"Server"</code> header
+</p>
+</li>
+<li> <p><code>options("RestRserve.headers.split")</code> controls which header values
+split by comma during parsing. See
+<a href="https://en.wikipedia.org/wiki/List_of_HTTP_header_fields">https://en.wikipedia.org/wiki/List_of_HTTP_header_fields</a>,
+<a href="https://stackoverflow.com/a/29550711/3048453">https://stackoverflow.com/a/29550711/3048453</a>
+</p>
+</li>
+</ul>
+<p>There is also an option to switch-off runtime types validation in
+the Request/Response handlers. This might provide some performance gains,
+but ultimately leads to less robust applications. Use at your own risk!
+See <code>options("RestRserve.runtime.asserts")</code>
+</p>
+
+
+<h3>Public fields</h3>
+
+<div class="r6-fields">
+
+<dl>
+<dt><code>logger</code></dt>
+<dd>
+<p>Logger object which records events during request processing.
+Alternatively user can use loggers from lgr package as a drop-in
+replacement - <code>Logger</code> methods and loggers created by <code>lgr</code> share
+function signatures.</p>
+</dd>
+<dt><code>content_type</code></dt>
+<dd>
+<p>Default response body content type.</p>
+</dd>
+<dt><code>HTTPError</code></dt>
+<dd>
+<p>Class which raises HTTP errors.
+Global HTTPError is used by default. In theory user can replace it with
+his own class (see <code>RestRserve:::HTTPErrorFactory</code>). However we believe
+in the majority of the cases using HTTPError will be enough.</p>
+</dd>
+</dl>
+</div>
+
+
+<h3>Active bindings</h3>
+
+<div class="r6-active-bindings">
+
+<dl>
+<dt><code>endpoints</code></dt>
+<dd>
+<p>Prints all the registered routes with allowed methods.</p>
+</dd>
+</dl>
+</div>
+
+
+<h3>Methods</h3>
+
+
+
+<h4>Public methods</h4>
+
+
+<ul>
+<li> <p><a href="#method-Application-new"><code>Application$new()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Application-add_route"><code>Application$add_route()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Application-add_get"><code>Application$add_get()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Application-add_post"><code>Application$add_post()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Application-add_static"><code>Application$add_static()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Application-add_openapi"><code>Application$add_openapi()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Application-add_swagger_ui"><code>Application$add_swagger_ui()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Application-append_middleware"><code>Application$append_middleware()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Application-process_request"><code>Application$process_request()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Application-print"><code>Application$print()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Application-clone"><code>Application$clone()</code></a>
+</p>
+</li>
+</ul>
+<hr>
+<a id="method-Application-new"></a>
+
+
+
+<h4>Method <code>new()</code>
+</h4>
+
+<p>Creates Application object.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Application$new(
+  middleware = list(EncodeDecodeMiddleware$new()),
+  content_type = "text/plain",
+  ...
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>middleware</code></dt>
+<dd>
+<p>List of Middleware objects.</p>
+</dd>
+<dt><code>content_type</code></dt>
+<dd>
+<p>Default response body content (media) type. <code>"text/plain"</code> by default.</p>
+</dd>
+<dt><code>...</code></dt>
+<dd>
+<p>Not used at the moment.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-Application-add_route"></a>
+
+
+
+<h4>Method <code>add_route()</code>
+</h4>
+
+<p>Adds endpoint and register user-supplied R function as a handler.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Application$add_route(
+  path,
+  method,
+  FUN,
+  match = c("exact", "partial", "regex"),
+  ...
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>path</code></dt>
+<dd>
+<p>Endpoint path.</p>
+</dd>
+<dt><code>method</code></dt>
+<dd>
+<p>HTTP method. Allowed methods at the moment:
+<code>GET</code>, <code>HEAD</code>, <code>POST</code>, <code>PUT</code>, <code>DELETE</code>, <code>OPTIONS</code>, <code>PATCH</code>.</p>
+</dd>
+<dt><code>FUN</code></dt>
+<dd>
+<p>User function to handle requests. <code>FUN</code> <strong>must</strong> take two arguments:
+first is <code>request</code> (Request) and second is <code>response</code> (Response).<br>
+The goal of the user function is to <strong>modify</strong> <code>response</code> or throw
+exception (call <code>raise()</code> or <code>stop()</code>).<br>
+Both <code>response</code> and <code>request</code> objects modified in-place and internally
+passed further to RestRserve execution pipeline.</p>
+</dd>
+<dt><code>match</code></dt>
+<dd>
+<p>Defines how route will be processed. Allowed values:
+</p>
+
+<ul>
+<li> <p><code>exact</code> - match route as is. Returns 404 if route is not matched.
+</p>
+</li>
+<li> <p><code>partial</code> - match route as prefix. Returns 404 if prefix are not matched.
+</p>
+</li>
+<li> <p><code>regex</code> - match route as template. Returns 404 if template pattern not matched.
+</p>
+</li>
+</ul>
+</dd>
+<dt><code>...</code></dt>
+<dd>
+<p>Not used.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-Application-add_get"></a>
+
+
+
+<h4>Method <code>add_get()</code>
+</h4>
+
+<p>Shorthand to <code>Application$add_route()</code> with <code>GET</code> method.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Application$add_get(
+  path,
+  FUN,
+  match = c("exact", "partial", "regex"),
+  ...,
+  add_head = TRUE
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>path</code></dt>
+<dd>
+<p>Endpoint path.</p>
+</dd>
+<dt><code>FUN</code></dt>
+<dd>
+<p>User function to handle requests. <code>FUN</code> <strong>must</strong> take two arguments:
+first is <code>request</code> (Request) and second is <code>response</code> (Response).<br>
+The goal of the user function is to <strong>modify</strong> <code>response</code> or throw
+exception (call <code>raise()</code> or <code>stop()</code>).<br>
+Both <code>response</code> and <code>request</code> objects modified in-place and internally
+passed further to RestRserve execution pipeline.</p>
+</dd>
+<dt><code>match</code></dt>
+<dd>
+<p>Defines how route will be processed. Allowed values:
+</p>
+
+<ul>
+<li> <p><code>exact</code> - match route as is. Returns 404 if route is not matched.
+</p>
+</li>
+<li> <p><code>partial</code> - match route as prefix. Returns 404 if prefix are not matched.
+</p>
+</li>
+<li> <p><code>regex</code> - match route as template. Returns 404 if template pattern not matched.
+</p>
+</li>
+</ul>
+</dd>
+<dt><code>...</code></dt>
+<dd>
+<p>Not used.</p>
+</dd>
+<dt><code>add_head</code></dt>
+<dd>
+<p>Adds HEAD method.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-Application-add_post"></a>
+
+
+
+<h4>Method <code>add_post()</code>
+</h4>
+
+<p>Shorthand to <code>Application$add_route()</code> with <code>POST</code> method.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Application$add_post(path, FUN, match = c("exact", "partial", "regex"), ...)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>path</code></dt>
+<dd>
+<p>Endpoint path.</p>
+</dd>
+<dt><code>FUN</code></dt>
+<dd>
+<p>User function to handle requests. <code>FUN</code> <strong>must</strong> take two arguments:
+first is <code>request</code> (Request) and second is <code>response</code> (Response).<br>
+The goal of the user function is to <strong>modify</strong> <code>response</code> or throw
+exception (call <code>raise()</code> or <code>stop()</code>).<br>
+Both <code>response</code> and <code>request</code> objects modified in-place and internally
+passed further to RestRserve execution pipeline.</p>
+</dd>
+<dt><code>match</code></dt>
+<dd>
+<p>Defines how route will be processed. Allowed values:
+</p>
+
+<ul>
+<li> <p><code>exact</code> - match route as is. Returns 404 if route is not matched.
+</p>
+</li>
+<li> <p><code>partial</code> - match route as prefix. Returns 404 if prefix are not matched.
+</p>
+</li>
+<li> <p><code>regex</code> - match route as template. Returns 404 if template pattern not matched.
+</p>
+</li>
+</ul>
+</dd>
+<dt><code>...</code></dt>
+<dd>
+<p>Not used.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-Application-add_static"></a>
+
+
+
+<h4>Method <code>add_static()</code>
+</h4>
+
+<p>Adds <code>GET</code> method to serve file or directory at <code>file_path</code>.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Application$add_static(path, file_path, content_type = NULL, ...)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>path</code></dt>
+<dd>
+<p>Endpoint path.</p>
+</dd>
+<dt><code>file_path</code></dt>
+<dd>
+<p>Path file or directory.</p>
+</dd>
+<dt><code>content_type</code></dt>
+<dd>
+<p>MIME-type for the content.<br>
+If <code>content_type = NULL</code> then MIME code <code>content_type</code>  will be inferred
+automatically (from file extension).<br>
+If it will be impossible to guess about file type then <code>content_type</code> will
+be set to <code>application/octet-stream</code>.</p>
+</dd>
+<dt><code>...</code></dt>
+<dd>
+<p>Not used.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-Application-add_openapi"></a>
+
+
+
+<h4>Method <code>add_openapi()</code>
+</h4>
+
+<p>Adds endpoint to serve <a href="https://www.openapis.org/">OpenAPI</a> description of
+available methods.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Application$add_openapi(path = "/openapi.yaml", file_path = "openapi.yaml")</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>path</code></dt>
+<dd>
+<p>path Endpoint path.</p>
+</dd>
+<dt><code>file_path</code></dt>
+<dd>
+<p>Path to the OpenAPI specification file.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-Application-add_swagger_ui"></a>
+
+
+
+<h4>Method <code>add_swagger_ui()</code>
+</h4>
+
+<p>Adds endpoint to show <a href="https://swagger.io/tools/swagger-ui/">Swagger UI</a>.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Application$add_swagger_ui(
+  path = "/swagger",
+  path_openapi = "/openapi.yaml",
+  use_cdn = TRUE,
+  path_swagger_assets = "/__swagger__/",
+  file_path = "swagger-ui.html"
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>path</code></dt>
+<dd>
+<p>path Endpoint path.</p>
+</dd>
+<dt><code>path_openapi</code></dt>
+<dd>
+<p>Path to the OpenAPI specification file.</p>
+</dd>
+<dt><code>use_cdn</code></dt>
+<dd>
+<p>Use CDN to load Swagger UI libraries.</p>
+</dd>
+<dt><code>path_swagger_assets</code></dt>
+<dd>
+<p>Swagger UI asstes endpoint.</p>
+</dd>
+<dt><code>file_path</code></dt>
+<dd>
+<p>Path to Swagger UI HTML file.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-Application-append_middleware"></a>
+
+
+
+<h4>Method <code>append_middleware()</code>
+</h4>
+
+<p>Appends middleware to handlers pipeline.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Application$append_middleware(mw)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>mw</code></dt>
+<dd>
+<p>Middleware object.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-Application-process_request"></a>
+
+
+
+<h4>Method <code>process_request()</code>
+</h4>
+
+<p>Process incoming request and generate Response object.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Application$process_request(request = NULL)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>request</code></dt>
+<dd>
+<p>Request object.<br>
+Useful for tests your handlers before deploy application.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-Application-print"></a>
+
+
+
+<h4>Method <code>print()</code>
+</h4>
+
+<p>Prints application details.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Application$print()</pre></div>
+
+
+<hr>
+<a id="method-Application-clone"></a>
+
+
+
+<h4>Method <code>clone()</code>
+</h4>
+
+<p>The objects of this class are cloneable with this method.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Application$clone(deep = FALSE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>deep</code></dt>
+<dd>
+<p>Whether to make a deep clone.</p>
+</dd>
+</dl>
+</div>
+
+
+
+
+<h3>See Also</h3>
+
+<p>HTTPError Middleware
+Request Response
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># init logger
+app_logger = Logger$new()
+# set log level for the middleware
+app_logger$set_log_level("debug")
+# set logger name
+app_logger$set_name("MW Logger")
+# init middleware to logging
+mw = Middleware$new(
+  process_request = function(rq, rs) {
+    app_logger$info(sprintf("Incomming request (id %s): %s", rq$id, rq$path))
+  },
+  process_response = function(rq, rs) {
+    app_logger$info(sprintf("Outgoing response (id %s): %s", rq$id, rs$status))
+  },
+  id = "awesome-app-logger"
+)
+
+# init application
+app = Application$new(middleware = list(mw))
+
+# set internal log level
+app$logger$set_log_level("error")
+
+# define simply request handler
+status_handler = function(rq, rs) {
+  rs$set_body("OK")
+  rs$set_content_type("text/plain")
+  rs$set_status_code(200L)
+}
+# add route
+app$add_get("/status", status_handler, "exact")
+
+# add static file handler
+desc_file = system.file("DESCRIPTION", package = "RestRserve")
+# add route
+app$add_static("/desc", desc_file, "text/plain")
+
+# define say message handler
+say_handler = function(rq, rs) {
+  who = rq$parameters_path[["user"]]
+  msg = rq$parameters_query[["message"]]
+  if (is.null(msg)) msg = "Hello"
+  rs$set_body(paste(who, "say", dQuote(msg)))
+  rs$set_content_type("text/plain")
+  rs$set_status_code(200L)
+}
+# add route
+app$add_get("/say/{user}", say_handler, "regex")
+
+# print application info
+app
+
+# test app
+# simulate requests
+not_found_rq = Request$new(path = "/no")
+status_rq = Request$new(path = "/status")
+desc_rq = Request$new(path = "/desc")
+say_rq = Request$new(path = "/say/anonym", parameters_query = list("message" = "Hola"))
+# process prepared requests
+app$process_request(not_found_rq)
+app$process_request(status_rq)
+app$process_request(desc_rq)
+app$process_request(say_rq)
+
+# run app
+backend = BackendRserve$new()
+
+if (interactive()) {
+  backend$start(app, 8080)
+}
+
+
+</code></pre>
+
+
+</div>

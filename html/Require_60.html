@@ -1,0 +1,364 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pkgDepTopoSort</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Reverse package depends</h2>
+
+<h3>Description</h3>
+
+<p>This is a wrapper around <code>tools::dependsOnPkgs</code>,
+but with the added option of <code>topoSort</code>, which
+will sort them such that the packages at the top will have
+the least number of dependencies that are in <code>pkgs</code>.
+This is essentially a topological sort, but it is done
+heuristically. This can be used to e.g., <code>detach</code> or
+<code>unloadNamespace</code> packages in order so that they each
+of their dependencies are detached or unloaded first.
+</p>
+<p><code>pkgDep2</code> is a convenience wrapper of <code>pkgDep</code> that "goes one level in",
+i.e., the first order dependencies, and runs the <code>pkgDep</code> on those.
+</p>
+<p>This will first look in local filesystem (in <code>.libPaths()</code>) and will use a
+local package to find its dependencies. If the package does not exist
+locally, including whether it is the correct version, then it will look in
+(currently) <code>CRAN</code> and its archives (if the current <code>CRAN</code> version is not the
+desired version to check). It will also look on <code>GitHub</code> if the package
+description is of the form of a GitHub package with format
+<code>account/repo@branch</code> or <code>account/repo@commit</code>. For this, it will attempt to
+get package dependencies from the GitHub ‘<span class="file">DESCRIPTION</span>’ file. This is
+intended to replace <code>tools::package_dependencies</code> or <code>pkgDep</code> in the
+<span class="pkg">miniCRAN</span> package, but with modifications to allow multiple sources to
+be searched in the same function call.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pkgDepTopoSort(
+  pkgs,
+  deps,
+  reverse = FALSE,
+  topoSort = TRUE,
+  libPaths,
+  useAllInSearch = FALSE,
+  returnFull = TRUE,
+  recursive = TRUE,
+  purge = getOption("Require.purge", FALSE),
+  which = c("Depends", "Imports", "LinkingTo"),
+  type = getOption("pkgType"),
+  verbose = getOption("Require.verbose"),
+  ...
+)
+
+pkgDep2(...)
+
+pkgDep(
+  packages,
+  libPaths,
+  which = c("Depends", "Imports", "LinkingTo"),
+  recursive = TRUE,
+  depends,
+  imports,
+  suggests,
+  linkingTo,
+  repos = getOption("repos"),
+  keepVersionNumber = TRUE,
+  includeBase = FALSE,
+  includeSelf = TRUE,
+  sort = TRUE,
+  simplify = TRUE,
+  purge = getOption("Require.purge", FALSE),
+  verbose = getOption("Require.verbose"),
+  type = getOption("pkgType"),
+  Additional_repositories = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>pkgs</code></td>
+<td>
+<p>A vector of package names to evaluate their
+reverse depends (i.e., the packages that <em>use</em> each
+of these packages)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deps</code></td>
+<td>
+<p>An optional named list of (reverse) dependencies.
+If not supplied, then <code>tools::dependsOnPkgs(..., recursive = TRUE)</code>
+will be used</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reverse</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, then this will use <code>tools::pkgDependsOn</code>
+to determine which packages depend on the <code>pkgs</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>topoSort</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, the default, then
+the returned list of packages will be in order with the
+least number of dependencies listed in <code>pkgs</code> at
+the top of the list.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>libPaths</code></td>
+<td>
+<p>A path to search for installed packages. Defaults to
+<code>.libPaths()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>useAllInSearch</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, then all non-core
+R packages in <code>search()</code> will be appended to <code>pkgs</code>
+to allow those to also be identified</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>returnFull</code></td>
+<td>
+<p>Logical. Primarily useful when <code>reverse = TRUE</code>.
+If <code>TRUE</code>, then then all installed packages will be searched.
+If <code>FALSE</code>, the default, only packages that are currently in
+the <code>search()</code> path and passed in <code>pkgs</code> will be included
+in the possible reverse dependencies.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>recursive</code></td>
+<td>
+<p>Logical. Should dependencies of dependencies be searched,
+recursively. NOTE: Dependencies of suggests will not be recursive. Default
+<code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>purge</code></td>
+<td>
+<p>Logical. Should all caches be purged? Default is
+<code>getOption("Require.purge", FALSE)</code>. There is a lot of internal caching of
+results throughout the <code>Require</code> package. These help with speed and reduce
+calls to internet sources. However, sometimes these caches must be purged.
+The cached values are renewed when found to be too old, with the age limit.
+This maximum age can be set in seconds with the environment variable
+<code>R_AVAILABLE_PACKAGES_CACHE_CONTROL_MAX_AGE</code>, or if unset, defaults to 3600
+(one hour – see <code>utils::available.packages</code>).
+</p>
+<p>Internally, there are calls to <code>available.packages</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>which</code></td>
+<td>
+<p>a character vector listing the types of dependencies, a subset
+of <code>c("Depends", "Imports", "LinkingTo", "Suggests", "Enhances")</code>.
+Character string <code>"all"</code> is shorthand for that vector, character string
+<code>"most"</code> for the same vector without <code>"Enhances"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>See <code>utils::install.packages</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Numeric or logical indicating how verbose should the function
+be. If -1 or -2, then as little verbosity as possible. If 0 or FALSE,
+then minimal outputs; if <code>1</code> or TRUE, more outputs; <code>2</code> even more. NOTE: in
+<code>Require</code> function, when <code>verbose &gt;= 2</code>, also returns details as if
+<code>returnDetails = TRUE</code> (for backwards compatibility).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Currently only <code>dependencies</code> as an alternative to <code>which</code>. If specified,
+then <code>which</code> will be ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>packages</code></td>
+<td>
+<p>Either a character vector of packages to install via
+<code>install.packages</code>, then load (i.e., with <code>library</code>), or, for convenience,
+a vector or list (using <code>c</code> or <code>list</code>) of unquoted package names to install
+and/or load (as in <code>require</code>, but vectorized). Passing vectors of names may
+not work in all cases, so user should confirm before relying on this behaviour
+in operational code.
+In the case of a GitHub package, it
+will be assumed that the name of the repository is the name of the package.
+If this is not the case, then pass a <em>named</em> character vector here, where the
+names are the package names that could be different than the GitHub
+repository name.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>depends</code></td>
+<td>
+<p>Logical. Include packages listed in "Depends". Default <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>imports</code></td>
+<td>
+<p>Logical. Include packages listed in "Imports". Default <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>suggests</code></td>
+<td>
+<p>Logical. Include packages listed in "Suggests". Default
+<code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>linkingTo</code></td>
+<td>
+<p>Logical. Include packages listed in "LinkingTo". Default
+<code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>repos</code></td>
+<td>
+<p>The remote repository (e.g., a CRAN mirror), passed to either
+<code>install.packages</code>, <code>install_github</code> or <code>installVersions</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keepVersionNumber</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, then the package dependencies
+returned will include version number. Default is <code>FALSE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>includeBase</code></td>
+<td>
+<p>Logical. Should R base packages be included, specifically,
+those in <code>tail(.libPaths(), 1)</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>includeSelf</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, the default, then the dependencies
+will include the package itself in the returned list elements, otherwise,
+only the "dependencies"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sort</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, the default, then the packages will be sorted
+alphabetically. If <code>FALSE</code>, the packages will not have a discernible order
+as they will be a concatenation of the possibly recursive package
+dependencies.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>simplify</code></td>
+<td>
+<p>Logical or numeric. If <code>TRUE</code> (or &gt; 0), the default,
+the return object is "just" a character vector of package names
+(with version requirements). If <code>FALSE</code> (or <code>0</code>),
+then a <code>data.table</code> will be returned with 4 columns,
+<code>Package</code>, <code>packageFullName</code>, <code>parentPackage</code> (the package name for which the
+given line entry is a dependency; will be "user" if it was user supplied)
+and <code>deps</code>, which is a list of <code>data.table</code>s
+of all dependencies. If a negative number, then it will return a similar <code>data.table</code>
+as with <code>FALSE</code>, however, duplications in the recursive package dependencies
+are left intact.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Additional_repositories</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, then <code>pkgDep</code> will return
+a list of <code>data.table</code> objects (instead of character vectors)
+with a column <code>packageFullName</code> and possibly a second column <code>Additional_repositories</code>,
+which may have been specified in a <code>DESCRIPTION</code> file. NOTE: THIS ALTERS
+THE OUTPUT CLASS</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A possibly ordered, named (with packages as names) list where list elements
+are either full reverse depends.
+</p>
+
+
+<h3>Note</h3>
+
+<p><code>tools::package_dependencies</code> and <code>pkgDep</code> will differ under the
+following circumstances: </p>
+ <ol>
+<li>
+<p> GitHub packages are not detected
+using <code>tools::package_dependencies</code>; </p>
+</li>
+<li> <p><code>tools::package_dependencies</code>
+does not detect the dependencies of base packages among themselves, <em>e.g.</em>,
+<code>methods</code> depends on <code>stats</code> and <code>graphics</code>. </p>
+</li>
+</ol>
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+if (Require:::.runLongExamples()) {
+  opts &lt;- Require:::.setupExample()
+
+  pkgDepTopoSort(c("Require", "data.table"), reverse = TRUE)
+
+  Require:::.cleanup(opts)
+}
+
+## End(Not run)
+
+## Not run: 
+if (Require:::.runLongExamples()) {
+  opts &lt;- Require:::.setupExample()
+
+  pkgDep2("reproducible")
+  # much bigger one
+  pkgDep2("tidyverse")
+
+  Require:::.cleanup(opts)
+}
+
+## End(Not run)
+## Not run: 
+if (Require:::.runLongExamples()) {
+  opts &lt;- Require:::.setupExample()
+
+  pkgDep("tidyverse", recursive = TRUE)
+
+  # GitHub, local, and CRAN packages
+  pkgDep(c("PredictiveEcology/reproducible", "Require", "plyr"))
+
+  Require:::.cleanup(opts)
+}
+
+## End(Not run)
+</code></pre>
+
+
+</div>

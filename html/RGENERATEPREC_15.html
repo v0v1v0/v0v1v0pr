@@ -1,0 +1,164 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PrecipitationOccurrenceMultiSiteModel</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Precipitation Occurrence Multi-Site Model</h2>
+
+<h3>Description</h3>
+
+<p>This functions creates a stochastic Occurrence Multi-Site Model for the variable  <code>x</code> (<code>PrecipitationOccurrenceMultiSiteModel</code> S3 object) through a calibration from observed data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PrecipitationOccurrenceMultiSiteModel(
+  x,
+  exogen = NULL,
+  station = names(x),
+  origin = origin,
+  valmin = 0.5,
+  multisite_type = "wilks",
+  tolerance_wilks = 0.001,
+  p = 2,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>data frame (each column is a site) of variable utilized for the auto-regression of its occurrence, e.g. daily precipitaton</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exogen</code></td>
+<td>
+<p>exogenous predictors</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>station</code></td>
+<td>
+<p>character string vectors containing the codes of the station used for model calibration</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>origin</code></td>
+<td>
+<p>character string (yyyy-dd-mm) indicating the date of the first row of <code>"x"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>valmin</code></td>
+<td>
+<p>minimum admitted value for daily precipitation amount</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>multisite_type</code></td>
+<td>
+<p>string indicating the utilized approach for spatial multi-site dependence description. Default is <code>"wilks"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tolerance_wilks</code></td>
+<td>
+<p>see <code>tolerance</code> used by <code>omega_inv</code> through <code>CCGamma</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>auto-regression order</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The function returns a <code>PrecipitationOccurrenceModel-class</code> S3 object containing the following elements:
+</p>
+<p>... <code>PrecipitationOccurrenceModel</code> S3 class objects for each analyzed site. The name is the site (or station) code
+</p>
+<p><code>ccgama</code> <code>CCGammaObjectListPerEachMonth</code> object, i.e. matices of Gaussian Inter-Site  Correlation returned by <code>CCGamma</code>;
+</p>
+<p><code>type</code> string indicating the utilized approach for spatial multi-site dependence description, only <code>"wilks"</code> type is implemented;
+</p>
+<p><code>station</code> character string vectors containing the codes of the station used in <code>PrecipitationMultiSiteOccurrenceModel</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>PrecipitationOccurrenceModel</code>,<code>CCGamma</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(RGENERATEPREC)
+
+data(trentino)
+
+year_min &lt;- 1961
+year_max &lt;- 1990
+origin &lt;- paste(year_min,1,1,sep="-")
+
+period &lt;- PRECIPITATION$year&gt;=year_min &amp; PRECIPITATION$year&lt;=year_max
+period_temp &lt;- TEMPERATURE_MAX$year&gt;=year_min &amp; TEMPERATURE_MAX$year&lt;=year_max
+
+prec_mes &lt;- PRECIPITATION[period,]
+Tx_mes &lt;- TEMPERATURE_MAX[period_temp,]
+Tn_mes &lt;- TEMPERATURE_MIN[period_temp,]
+accepted &lt;- array(TRUE,length(names(prec_mes)))
+names(accepted) &lt;- names(prec_mes)
+for (it in names(prec_mes)) {
+	acc &lt;- TRUE
+	acc &lt;- (length(which(!is.na(Tx_mes[,it])))==length(Tx_mes[,it]))
+	acc &lt;- (length(which(!is.na(Tn_mes[,it])))==length(Tn_mes[,it])) &amp; acc
+	accepted[it]  &lt;- (length(which(!is.na(prec_mes[,it])))==length(prec_mes[,it])) &amp; acc
+	
+}
+
+valmin &lt;- 1.0
+prec_mes &lt;- prec_mes[,accepted]
+
+
+
+Tx_mes &lt;- Tx_mes[,accepted]
+Tn_mes &lt;- Tn_mes[,accepted]
+prec_occurrence_mes &lt;- prec_mes&gt;=valmin
+
+station &lt;- names(prec_mes)[!(names(prec_mes) %in% c("day","month","year"))]
+station &lt;- station[1:2] # to save example elapsed time!!
+exogen &lt;- Tx_mes-Tn_mes
+months &lt;- factor(prec_mes$month)
+
+#' ### Not Run!! 
+# The following lines are commented to save example elapsed time!!
+model_multisite &lt;- PrecipitationOccurrenceMultiSiteModel(x=prec_mes,exogen=exogen,
+origin=origin,multisite_type="wilks")
+
+### Not Run!! 
+#  The following lines are commented to save example elapsed time!!
+model_multisite_logit &lt;- PrecipitationOccurrenceMultiSiteModel(x=prec_mes,exogen=exogen,
+origin=origin,multisite_type="logit")
+ 
+
+</code></pre>
+
+
+</div>

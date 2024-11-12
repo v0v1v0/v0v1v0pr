@@ -1,0 +1,258 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ugarchboot-methods</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>function: Univariate GARCH Forecast via Bootstrap</h2>
+
+<h3>Description</h3>
+
+<p>Method for forecasting the GARCH density based on a bootstrap procedures (see 
+details and references).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ugarchboot(fitORspec, data = NULL, method = c("Partial", "Full"), 
+sampling = c("raw", "kernel", "spd"), spd.options = list(upper = 0.9, 
+lower = 0.1, type = "pwm", kernel = "normal"), n.ahead = 10, 
+n.bootfit = 100, n.bootpred = 500, out.sample = 0, rseed = NA, solver = "solnp", 
+solver.control = list(), fit.control = list(), 
+external.forecasts = list(mregfor = NULL, vregfor = NULL), mexsimdata = NULL, 
+vexsimdata = NULL, cluster = NULL, verbose = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>fitORspec</code></td>
+<td>
+
+<p>Either a univariate GARCH fit object of class <code>uGARCHfit</code> or
+alternatively a univariate GARCH specification object of class <code>uGARCHspec</code> 
+with valid parameters supplied via the <code>setfixed&lt;-</code> function in the 
+specification.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+
+<p>Required if a specification rather than a fit object is supplied.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+
+<p>Either the full or partial bootstrap (see note).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sampling</code></td>
+<td>
+
+<p>Whether to sample from the raw residuals, the kernel-fitted distribution of the
+residuals or the spd-fitted distribution of the residuals.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>spd.options</code></td>
+<td>
+
+<p>If sampling is from the SPD distribution, this controls the options for fitting
+this distribution to the residuals (see <code>spd</code> package for details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.ahead</code></td>
+<td>
+
+<p>The forecast horizon.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.bootfit</code></td>
+<td>
+
+<p>The number of simulation based re-fits used to generate the parameter 
+distribution (i.e the parameter uncertainty). Not relevant for the “Partial” 
+method. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.bootpred</code></td>
+<td>
+
+<p>The number of bootstrap replications per parameter distribution per n.ahead 
+forecasts used to generate the predictive density. If this is for the partial 
+method, simply the number of random samples from the empirical distribution to 
+generate per n.ahead.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>out.sample</code></td>
+<td>
+
+<p>Optional. If a specification object is supplied, indicates how many data points
+to keep for out of sample testing.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rseed</code></td>
+<td>
+
+<p>A vector of seeds to initialize the random number generator for the resampling
+with replacement method (if supplied should be equal to n.bootfit + n.bootpred).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>solver</code></td>
+<td>
+
+<p>One of either “nlminb” or “solnp”. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>solver.control</code></td>
+<td>
+
+<p>Control arguments list passed to optimizer.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit.control</code></td>
+<td>
+
+<p>Control arguments passed to the fitting routine (as in the <code>ugarchfit</code>
+method).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>external.forecasts</code></td>
+<td>
+
+<p>A list with forecasts for the external regressors in the mean and/or variance 
+equations if specified.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mexsimdata</code></td>
+<td>
+
+<p>List of matrices (size of list n.bootpred, with each matrix having n.ahead rows) of 
+simulated external regressor-in-mean data. If the fit object contains 
+external regressors in the mean equation, this must be provided else will be
+assumed zero.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vexsimdata</code></td>
+<td>
+
+<p>List of matrices (size of list n.bootpred, with each matrix having n.ahead rows) of 
+simulated external regressor-in-variance data. If the fit object contains 
+external regressors in the mean equation, this must be provided else will be
+assumed zero.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cluster</code></td>
+<td>
+
+<p>A cluster object created by calling <code>makeCluster</code> from the parallel 
+package. If it is not NULL, then this will be used for parallel estimation
+of the refits (remember to stop the cluster on completion).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+
+<p>Whether to print out progress messages.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>There are two main sources of uncertainty about n.ahead forecasting from GARCH 
+models, namely that arising from the form of the predictive density and due to 
+parameter estimation. The bootstrap method considered here, is based on 
+resampling innovations from the empirical distribution of the fitted GARCH model 
+to generate future realizations of the series and sigma. The “full” method, 
+based on the referenced paper by Pascual et al (2006), takes into account 
+parameter uncertainty by building a simulated distribution of the parameters 
+through simulation and refitting. This process, while more accurate, is very time 
+consuming which is why choice of parallel computation via a cluster (as in the 
+<code>ugarchdistribution</code> is available and recommended). The 
+“partial” method, only considers distribution uncertainty and while faster, 
+will not generate prediction intervals for the sigma 1-ahead forecast for which 
+only the parameter uncertainty is relevant in GARCH type models.<br>
+If using external regressors, the routine requires both the forecast (of length
+n.ahead as in the <code>ugarchforecast</code> routine) and a list
+of simulated forecasts as in the <code>ugarchsim</code> routine (else with be 
+assumed zero). Finally, it is possible to resample based on 3 schemes, namely 
+the “raw” innovations as in the original paper of Pascual et al (2006),
+“kernel” fits a Gaussian kernel to the innovations from the <code>ks</code>
+package in order to then generate random samples, and the “spd” fits
+a semi-parametric distribution to the innovations based on the <code>spd</code> 
+package in order to generate the random samples, for which an optional list 
+(<code>spd.options</code>) may be further passed to the spd fitting routine.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>uGARCHboot</code> object containing details of the GARCH 
+bootstrapped forecast density.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Alexios Ghalanos</p>
+
+
+<h3>References</h3>
+
+<p>Pascual, L., Romo, J. and Ruiz, E. 2004, Bootstrap predictive inference for 
+ARIMA processes, <em>Journal of Time Series Analysis</em>.<br>
+Pascual, L., Romo, J. and Ruiz, E. 2006, Bootstrap prediction for returns and 
+volatilities in GARCH models, <em>Computational Statistics and Data Analysis</em>.<br></p>
+
+
+<h3>See Also</h3>
+
+<p>For specification <code>ugarchspec</code>, fitting <code>ugarchfit</code>, 
+filtering <code>ugarchfilter</code>, forecasting <code>ugarchforecast</code>, 
+simulation <code>ugarchsim</code>, rolling forecast and estimation 
+<code>ugarchroll</code>, parameter distribution and uncertainty 
+<code>ugarchdistribution</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+data(dji30ret)
+spec = ugarchspec(variance.model=list(model="gjrGARCH", garchOrder=c(1,1)), 
+		mean.model=list(armaOrder=c(1,1), arfima=FALSE, include.mean=TRUE, 
+		archm = FALSE, archpow = 1), distribution.model="std")
+ctrl = list(tol = 1e-7, delta = 1e-9)
+fit = ugarchfit(data=dji30ret[, "BA", drop = FALSE], out.sample = 0, 
+				spec = spec, solver = "solnp", solver.control = ctrl,
+				fit.control = list(scale = 1))
+bootpred = ugarchboot(fit, method = "Partial", n.ahead = 120, n.bootpred = 2000)
+bootpred
+# as.data.frame(bootpred, which = "sigma", type = "q", qtile = c(0.01, 0.05))
+
+## End(Not run)</code></pre>
+
+
+</div>

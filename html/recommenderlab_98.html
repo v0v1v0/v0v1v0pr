@@ -1,0 +1,118 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>HybridRecommender</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Create a Hybrid Recommender
+</h2>
+
+<h3>Description</h3>
+
+<p>Creates and combines recommendations using several recommender algorithms.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">HybridRecommender(..., weights = NULL, aggregation_type = "sum")
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p> objects of class 'Recommender'. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p> weights for the recommenders. The recommenders are equally
+weighted by default. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aggregation_type</code></td>
+<td>
+<p> How are the recommendations aggregated. Options are "sum", "min", and
+"max". </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The hybrid recommender is initialized with a set of pretrained Recommender objects.
+Typically, the algorithms are trained using the same training set. If different
+training sets are used, then, at least the training sets
+need to have the same items in the same order.
+</p>
+<p>Alternatively, hybrid recommenders can be created using the regular <code>Recommender()</code>
+interface. Here <code>method</code> is set to <code>HYBRID</code> and <code>parameter</code> contains
+a list with recommenders and weights. recommenders are a list of recommender alorithms,
+where each algorithms is represented as a list with elements name (method of the recommender)
+and parameters (the algorithms parameters). This method can be used in <code>evaluate()</code>
+</p>
+<p>For creating recommendations (<code>predict</code>), each recommender algorithm
+is used to create ratings. The individual ratings are combined using
+a weighted sum where missing ratings are ignored. Weights can be specified in <code>weights</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class 'Recommender'.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>Recommender</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data("MovieLense")
+MovieLense100 &lt;- MovieLense[rowCounts(MovieLense) &gt;100,]
+train &lt;- MovieLense100[1:100]
+test &lt;- MovieLense100[101:103]
+
+## mix popular movies with a random recommendations for diversity and
+## rerecommend some movies the user liked.
+recom &lt;- HybridRecommender(
+  Recommender(train, method = "POPULAR"),
+  Recommender(train, method = "RANDOM"),
+  Recommender(train, method = "RERECOMMEND"),
+  weights = c(.6, .1, .3)
+  )
+
+recom
+
+getModel(recom)
+
+as(predict(recom, test), "list")
+
+## create a hybrid recommender using the regular Recommender interface.
+## This is needed to use hybrid recommenders with evaluate().
+recommenders &lt;- list(
+  RANDOM = list(name = "POPULAR", param = NULL),
+  POPULAR = list(name = "RANDOM", param = NULL),
+  RERECOMMEND = list(name = "RERECOMMEND", param = NULL)
+)
+
+weights &lt;- c(.6, .1, .3)
+
+recom &lt;- Recommender(train, method = "HYBRID",
+  parameter = list(recommenders = recommenders, weights = weights))
+recom
+
+as(predict(recom, test), "list")
+</code></pre>
+
+
+</div>

@@ -1,0 +1,189 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>build.start.fit</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Constructs a start fit for use in the <code>rpql</code> function</h2>
+
+<h3>Description</h3>
+
+<p>Takes a GLMM fitted using the <code>lme4</code> package i.e., using either the <code>lmer</code> or <code>glmer</code> functions, and construct a list containing starting values for use in the <code>start</code> argument in main fitting function <code>rpql</code>. It also constructs adaptive lasso weights, which can subsequently be used in the <code>pen.weights</code> arguments in the <code>rpql</code> function, if the adaptive lasso penalty is used for variable selection.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">build.start.fit(lme4.fit, id = NULL, gamma = 0, cov.groups = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>lme4.fit</code></td>
+<td>
+<p>An object of class "lmerMod" or "glmerMod", obtained when fitting a (G)LMM using the <code>lmer</code> and <code>glmer</code> functions in the <code>lme4</code> package.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id</code></td>
+<td>
+<p>A optional list with each element being a vector of IDs that reference the model matrix in the corresponding element in the list <code>Z</code>. Each vector of IDs <em>must</em> be integers (but not factors). Note this is optional argument as it is only use for non-compulsory formatting purposes in the function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gamma</code></td>
+<td>
+<p>A vector of power parameters, <code class="reqn">\gamma</code>, for use in constructing adaptive lasso weights. Can be a vector of one or two elements. If two elements, then the first and second elements are the power parameter for the fixed and random effect weights respectively. If one element, the same power parameter is used for both fixed and random effect weights. Defaults to 0, in which case the weights are all equal to 1 i.e., it reverts to the unweighted lasso penalty.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cov.groups</code></td>
+<td>
+<p>A vector specifying if fixed effect coefficients (including the intercept) should be regarded and therefore penalized in groups. For example, if one or more of the fixed effect covariates are factors, then <code>lme4</code> will automatically create dummy variables in the model matrix and estimate coefficients for each level, using one level as the reference. <code>cov.groups</code> is then used to identify all the coefficients that corresponds to that factor, such that all of these coefficients are penalized collectively as a group. Defaults to NULL, in which case it is assumed all coefficients should be treated independently. Please see the details and examples for more details.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function is mainly used when: 1) you want to produce good starting values for the main fitting function <code>rpql</code>, and so you fit a saturated (full) GLMM using <code>lme4</code> and use the estimates from there as starting values, and/or 2) you want to obtain adaptive lasso weights of the form <code class="reqn">weight_k = |\tilde{parameter}_k|^{-\gamma}</code>, where <code class="reqn">\gamma &gt; 0</code> is the power parameter and <code class="reqn">\tilde{parameter}_k</code> is the parameter estimate from the saturated model fit. For regularized PQL specifically, this function will construct adaptive lasso weights from the <code>lme4</code> fit as follows: Let <code class="reqn">w^F</code> and <code class="reqn">w^R</code> denote fixed and random effect adaptive weights respectively. Then we have,
+</p>
+<p style="text-align: center;"><code class="reqn">w^F_k = |\tilde{\beta}_k|^{-\gamma_1}</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">w^R_l = |\tilde{\Sigma}_{ll}|^{-\gamma_2},</code>
+</p>
+
+<p>where <code class="reqn">\tilde{\beta}_k</code> is the estimated coefficient for the <code class="reqn">k^{th}</code> fixed effect, <code class="reqn">\tilde{\Sigma}_{ll}</code> is the <code class="reqn">l^{th}</code> diagonal element from the estimated random effects covariance matrix, and <code class="reqn">\gamma</code> is a vector of two power parameters; see Zou (2006) for the adaptive lasso, and Hui et al. (2016) for regularized PQL selection in GLMMs using on adaptive lasso type penalties. 
+</p>
+<p>If <code>cov.groups</code> is supplied, this means that some of the fixed effects coefficients should be treated and penalized collectively as a group. The most common cases where this is used is when you have factor or categorical variables with more than two levels, or when you have polynomial terms that should be dealt with together. For instance, suppose you have a model matrix consisting of six columns, where first three columns correspond to separate covariates (including the intercept) and the last three columns all correspond to dummy variables created for a factor variable with four levels , e.g. soil moisture with levels dry, moderately moist, very moist, wet. The coefficients from the last three columns should then be penalized together, and so we can set <code>cov.groups = c(1,2,3,4,4,4)</code>.  
+</p>
+<p>In doing so, the adaptive lasso weights for the grouped coefficients are then constructed differently. Following on from the example above, we have the fixed effect weight for soil moisture defined as
+</p>
+<p style="text-align: center;"><code class="reqn">w^F = \|\tilde{\beta}\|^{-\gamma_1},</code>
+</p>
+
+<p>where <code class="reqn">\| \cdot \|</code> corresponds to the L2-norm and <code class="reqn">\tilde{\beta}</code> are the fixed effect coefficients belonging in the group (three in this case). When entered into the <code>rpql</code> function, an adaptive group lasso (Wang and Leng, 2008) is applied to these set of coefficients, such that they are all encouraged to be shrunk to zero at the same time.
+</p>
+<p>Of course, after construction the adaptive lasso weights can be manually altered before entering into the main <code>rpql</code> function e.g., if one wants certain fixed and/or random effects to not be penalized.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list containing the following elements
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>fixef</code></td>
+<td>
+<p>Fixed effect coefficient estimates from <code>lme4.fit</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ranef</code></td>
+<td>
+<p>A list of random effect predicted coefficients from <code>lme4.fit</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ran.cov</code></td>
+<td>
+<p>A list of random effects covariance matrices from <code>lme4.fit</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cov.groups</code></td>
+<td>
+<p>The argument <code>cov.groups</code>. Defaults to <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pen.weights</code></td>
+<td>
+<p>A list of adaptive lasso weights constructed from <code>lme4.fit</code>. Contains elements <code>pen.weight$fixed</code> and <code>pen.weights$random</code>, which are the weights for the fixed and random effects respectively. Please see details above as to their construction.</p>
+</td>
+</tr>
+</table>
+<h3>Warnings</h3>
+
+
+<ul><li>
+<p> In order to construct sensible starting values and weights, this function should really only be used when <code>lme4.fit</code> is a fit of the saturated GLMM, i.e. all fixed and random effects included. 
+</p>
+</li></ul>
+<h3>Author(s)</h3>
+
+<p>Francis K.C. Hui &lt;francis.hui@gmail.com&gt;, with contributions from Samuel Mueller &lt;samuel.mueller@sydney.edu.au&gt; and A.H. Welsh &lt;Alan.Welsh@anu.edu.au&gt;
+</p>
+<p>Maintainer: Francis Hui &lt;fhui28@gmail.com&gt;
+</p>
+
+
+<h3>References</h3>
+
+
+<ul>
+<li>
+<p> Hui, F.K.C., Mueller, S., and Welsh, A.H. (2016). Joint Selection in Mixed Models using Regularized PQL. Journal of the American Statistical Association: accepted for publication.
+</p>
+</li>
+<li>
+<p> Wang, H., and Leng, C. (2008). A note on adaptive group lasso. Computational Statistics &amp; Data Analysis, 52, 5277-5286.
+</p>
+</li>
+<li>
+<p> Zou, H. (2006). The adaptive lasso and its oracle properties. Journal of the American statistical association, 101, 1418-1429.
+</p>
+</li>
+</ul>
+<h3>See Also</h3>
+
+<p><code>rpql</code> for fitting and performing model selection in GLMMs using regularized PQL, which may use the values obtained from <code>build.start.fit</code> for starting values and adaptive lasso weights.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+##-------------------------
+## Example 1: Bernoulli GLMM with grouped covariates. 
+## Independent cluster model with 50 clusters and equal cluster sizes of 10
+## Nine covariates where the last covariate (soil type) is a factor with four levels
+##-------------------------
+n &lt;- 50; p &lt;- 8; m &lt;- 10
+set.seed(123)
+X &lt;- data.frame(matrix(rnorm(n*m*p),n*m,p), soil=sample(1:4,size=m*n,replace=TRUE))
+X$soil &lt;- factor(X$soil)
+X &lt;- model.matrix(~ ., data = X)
+colnames(X) &lt;- paste("X",1:ncol(X),sep="")
+
+Z &lt;- X[,1:5] ## Random effects model matrix taken as first five columns
+true_betas &lt;- c(-0.1,1,-1,1,-1,1,-1,0,0,0,0,0) 
+true_D &lt;- matrix(0,ncol(Z),ncol(Z))
+true_D[1:3,1:3] &lt;- matrix(c(9,4.8,0.6,4.8,4,1,0.6,1,1),
+	3,3,byrow=TRUE) ## 3 important random effects 
+
+simy &lt;- gendat.glmm(id = list(cluster = rep(1:n,each=m)), X = X, beta = true_betas, 
+	Z = list(cluster = Z), D = list(cluster = true_D), family = binomial())
+
+  
+## Not run: 
+library(lme4)
+dat &lt;- data.frame(y = simy$y, simy$X, simy$Z$cluster, simy$id)
+fit_satlme4 &lt;- glmer(y ~ X - 1 + (Z - 1 | cluster), data = dat, 
+	family = "binomial")
+fit_sat &lt;- build.start.fit(fit_satlme4, id = simy$id, gamma = 2, 
+	cov.groups = c(1:9,10,10,10)) 
+
+new.fit &lt;- rpql(y = simy$y, X = simy$X, Z = simy$Z, id = simy$id, lambda = 0.01, 
+	pen.type = "adl", pen.weights = fit_sat$pen.weights,
+	cov.groups = fit_sat$cov.groups, start = fit_sat, family = binomial())  
+	
+## End(Not run)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,298 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>som_gap</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Self-Organizing Map and Selection of k</h2>
+
+<h3>Description</h3>
+
+<p>Produces a low-dimensional representation of the input feature space for
+subsequent estimation of the "optimal" number of clusters (<em>k</em>) in a
+multivariate dataset. The dimension reduction is based on the
+self-organizing map technique (SOM) of Kohonen (1982; 1990), and implemented
+in R by the function <code>supersom</code> of Wehrens and
+Kruisselbrink (2018). To estimate the optimal <em>k</em>, the partitioning
+around medoids (PAM) of Kaufman and Rousseeuw (1990), coupled with the gap
+statistic of Tibshirani et al. (2001), is performed on the SOM's codebook
+vectors. This is achieved by internally calling <code>pam</code>
+and <code>clusGap</code> (Maechler et al., 2021). See
+<em>Details</em> for a brief theoretical background.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">som_gap(
+  var.rast,
+  xdim = 12,
+  ydim = 12,
+  topo = "hexagonal",
+  neighbourhood.fct = "gaussian",
+  rlen = 600,
+  dist.fcts = c("sumofsquares", "manhattan"),
+  mode = "pbatch",
+  K.max,
+  stand = FALSE,
+  B = 500,
+  d.power = 2,
+  spaceH0 = "original",
+  method = "globalSEmax",
+  SE.factor = 1,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>var.rast</code></td>
+<td>
+<p>SpatRaster, as in <code>rast</code>. This Multi-layer
+SpatRaster must contain <em>n</em> continuous variables from which the SOM
+will be created.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xdim</code></td>
+<td>
+<p>Integer. Horizontal dimension of the SOM's grid. Default: 12</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ydim</code></td>
+<td>
+<p>Integer. Vertical dimension of the SOM's grid. Default: 12</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>topo</code></td>
+<td>
+<p>Character. Topology of the SOM's grid. Options = "rectangular",
+"hexagonal". Default: "hexagonal"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>neighbourhood.fct</code></td>
+<td>
+<p>Character. Neighborhood of the SOM's grid. Options =
+"bubble", "gaussian". Default: "gaussian"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rlen</code></td>
+<td>
+<p>Integer. Number of times the complete dataset will be presented
+to the SOM's network. Default: 600</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dist.fcts</code></td>
+<td>
+<p>Character. Vector of length 2 containing the distance
+functions to use for SOM (First element, options = "sumofsquares",
+"euclidean", "manhattan") and for PAM (second element, options =
+"euclidean", "manhattan"). Default: c("sumofsquares", "manhattan")</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mode</code></td>
+<td>
+<p>Character. Type of learning algorithm. Options are “online",
+"batch", and "pbatch". Default: "pbatch"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K.max</code></td>
+<td>
+<p>Integer. Maximum number of clusters to consider, must be at
+least two (2).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stand</code></td>
+<td>
+<p>Boolean. For PAM function, does SOM's codebook vectors need to
+be standardized? Default: FALSE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B</code></td>
+<td>
+<p>Integer. Number of bootstrap samples for the gap statistic. Default:
+500</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d.power</code></td>
+<td>
+<p>Integer. Positive Power applied to euclidean distances for the
+gap statistic. Default: 2</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>spaceH0</code></td>
+<td>
+<p>Character. Space of the reference distribution for the gap
+statistic. Options = "scaledPCA", "original" (See <strong>Details</strong>).
+Default: "original"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Character. Optimal k selection criterion for the gap statistic.
+Options = "globalmax", "firstmax", "Tibs2001SEmax", "firstSEmax",
+"globalSEmax". See  <code>clusGap</code> for more details.
+Default: "globalSEmax"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SE.factor</code></td>
+<td>
+<p>Numeric. Factor to feed into the standard error rule for the
+gap statistic. Only applicable for methods based on standard error (SE).
+See <code>clusGap</code> for more details. Default: 1</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments as for <code>supersom</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The clustering of SOM's codebook vectors has been proposed in several works,
+notably in that from Vesanto and Alhoniemi (2000). These authors proposed a
+two-stage clustering routine as an efficient method to reduce computational
+load, while obtaining satisfactory correspondence between the clustered
+codebook vectors and the clustered original feature space.
+</p>
+<p>The main purpose of this function is to allow the use of clustering and
+k-selection algorithms that may result prohibitive for large datasets, such
+as matrices derived from raster layers commonly used during geocomputational
+routines. Thus, the SOM's codebook vectors can be subsequently used for the
+calculation of distance matrices, which given the large size of their input
+feature space, may otherwise be impossible to create due to insufficient
+memory allocation capacity. Similarly, robust clustering algorithms that
+require full pairwise distance matrices (e.g., hierarchical clustering, PAM)
+and/or eigenvalues (e.g., spectral clustering) may also be performed on SOM's
+codebook vectors.
+</p>
+<p>Note that <code>supersom</code> will internally equalize the
+importance (i.e., weights) of variables such that differences in scale will
+not affect distance calculations. This behavior can be prevented by setting
+<em>normalizeDataLayers = FALSE</em> in additional arguments passed to
+<code>supersom</code>. Moreover, custom weights can also be passed
+through the additional argument <em>user.weights</em>. In such case, user
+weights are applied on top of the internal weights.
+</p>
+<p>When working with large matrices, the additional SOM argument
+<em>keep.data</em> may be set to FALSE. However, note that by doing so, the
+suggested follow-up function for raster products <code>som_pam</code> will
+not work since it requires both original data and winning units.
+</p>
+<p>For the gap statistic, <em>method = "scaledPCA"</em> has resulted in errors for
+R sessions with BLAS/LAPACK supported by the Intel Math Kernel Library (MKL).
+</p>
+
+
+<h3>Value</h3>
+
+<p><strong>SOM</strong>: An object of class <strong>kohonen</strong> (see
+<code>supersom</code>). The components of class kohonen returned by
+this function are: (1) <em>data</em> = original input matrix, (2)
+<em>unit.classif</em> = winning units for all observations, (3)
+<em>distances</em> = distance between each observation and its corresponding
+winning unit, (4) <em>grid</em> = object of class <strong>somgrid</strong> (see
+<code>somgrid</code>), (5) <em>codes</em> = matrix of codebook
+vectors, (6) <em>changes</em> = matrix of mean average deviations from codebook
+vectors, (7) <em>dist.fcts</em> = selected distance function, and other
+arguments passed to <code>supersom</code> (e.g., <em>radius</em>,
+<em>distance.weights</em>, etc.). Note that components 1, 2, and 3 will only be
+returned if <em>keep.data = TRUE</em>, which is the default.
+</p>
+<p><strong>SOMdist</strong>: Object of class <strong>dist</strong>. Matrix of pairwise distances
+calculated from the SOM's codebook vectors.
+</p>
+<p><strong>SOMgap</strong>: Object of class <strong>clusGap</strong>. The main component of
+class clusGap returned by this function is <em>Tab</em>, which is a matrix of
+the gap statistic results (see <code>clusGap</code>). Additional
+components are the arguments passed to the function (i.e., <em>spaceH0</em>,
+<em>B</em>), the PAM function, <em>n</em> (number of observations) and
+<em>call</em> (the clusGap call-type object).
+</p>
+<p><strong>Kopt</strong>: Optimal <em>k</em>, as selected by arguments <em>method</em> and
+(possibly) <em>SE.factor</em>.
+</p>
+
+
+<h3>References</h3>
+
+<p>L. Kaufman and P. Rousseeuw. Finding groups in data: an introduction to
+cluster analysis. John Wiley &amp; Sons, 1990.
+<a href="https://doi.org/10.1002/9780470316801">doi:10.1002/9780470316801</a>
+</p>
+<p>T. Kohonen. Self-organized formation of topologically correct feature maps.
+Biological cybernetics, 43 (1):59–69, 1982.
+<a href="https://doi.org/10.1007/bf00337288">doi:10.1007/bf00337288</a>
+</p>
+<p>T. Kohonen. The self-organizing map. Proceedings of the IEEE,
+78(9):1464–1480, 1990. <a href="https://doi.org/10.1016/s0925-2312%2898%2900030-7">doi:10.1016/s0925-2312(98)00030-7</a>
+</p>
+<p>M. Maechler, P. Rousseeuw, A. Struyf, M. Hubert, and K. Hornik. cluster:
+Cluster Analysis Basics and Extensions, 2021.
+<a href="https://CRAN.R-project.org/package=cluster">https://CRAN.R-project.org/package=cluster</a>
+</p>
+<p>R. Tibshirani, G. Walther, and T. Hastie. Estimating the number of clusters
+in a data set via the gap statistic. Journal of the Royal Statistical
+Society: Series B (Statistical Methodology), 63(2):411–423, 2001.
+<a href="https://doi.org/10.1111/1467-9868.00293">doi:10.1111/1467-9868.00293</a>
+</p>
+<p>J. Vesanto and E. Alhoniemi. Clustering of the self-organizing map. IEEE
+Transactions on Neural Networks, 11(3):586–600, 2000.
+<a href="https://doi.org/10.1109/72.846731">doi:10.1109/72.846731</a>
+</p>
+<p>R. Wehrens and J. Kruisselbrink. Flexible self-organizing maps in kohonen
+3.0. Journal of Statistical Software, 87(1):1–18, 2018.
+<a href="https://doi.org/10.18637/jss.v087.i07">doi:10.18637/jss.v087.i07</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Functions for Landscape Stratification: 
+<code>som_pam()</code>,
+<code>strata()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">require(terra)
+# Multi-layer SpatRaster with topographic variables
+p &lt;- system.file("exdat", package = "rassta")
+tf &lt;- list.files(path = p, pattern = "^height|^slope|^wetness",
+                 full.names = TRUE
+                )
+t &lt;- rast(tf)
+# Scale topographic variables (mean = 0, StDev = 1)
+ts &lt;- scale(t)
+# Self-organizing map and gap statistic for optimum k
+set.seed(963)
+tsom &lt;- som_gap(var.rast = ts, xdim = 8, ydim = 8, rlen = 150,
+               mode = "online", K.max = 6, B = 300, spaceH0 = "original",
+               method = "globalSEmax"
+              )
+# Optimum k
+tsom$Kopt
+
+</code></pre>
+
+
+</div>

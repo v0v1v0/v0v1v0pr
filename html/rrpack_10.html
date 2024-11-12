@@ -1,0 +1,190 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>cv.mrrr</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Mixed-response reduced-rank regression with rank selected by
+cross validation</h2>
+
+<h3>Description</h3>
+
+<p>Mixed-response reduced-rank regression with rank selected by
+cross validation
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">cv.mrrr(
+  Y,
+  X,
+  is.pca = NULL,
+  offset = NULL,
+  ctrl.id = c(),
+  family = list(gaussian(), binomial(), poisson()),
+  familygroup = NULL,
+  maxrank = min(ncol(Y), ncol(X)),
+  penstr = list(),
+  init = list(),
+  control = list(),
+  nfold = 5,
+  foldid = NULL,
+  nlam = 20,
+  warm = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>response matrix</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>covariate matrix</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>is.pca</code></td>
+<td>
+<p>If TRUE, mixed principal component analysis with X=I</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>offset</code></td>
+<td>
+<p>matrix of the same dimension as Y for offset</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ctrl.id</code></td>
+<td>
+<p>indices of unpenalized predictors</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>a list of family functions as used in <code>glm</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>familygroup</code></td>
+<td>
+<p>a list of family indices of the responses</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxrank</code></td>
+<td>
+<p>integer giving the maximum rank allowed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>penstr</code></td>
+<td>
+<p>a list of penalty structure of SVD.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init</code></td>
+<td>
+<p>a list of initial values of kappaC0, kappaS0, C0, and S0</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>a list of controling parameters for the fitting</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nfold</code></td>
+<td>
+<p>number of folds in cross validation</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>foldid</code></td>
+<td>
+<p>to specify the folds if desired</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nlam</code></td>
+<td>
+<p>number of tuning parameters; not effective when using rank
+constrained estimation</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>warm</code></td>
+<td>
+<p>if TRUE, use warm start in fitting the solution paths</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>S3 <code>mrrr</code> object, a list containing </p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>the output from
+the selected model</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dev</code></td>
+<td>
+<p>deviance measures</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+library(rrpack)
+simdata &lt;- rrr.sim3(n = 100, p = 30, q.mix = c(5, 20, 5),
+                    nrank = 2, mis.prop = 0.2)
+Y &lt;- simdata$Y
+Y_mis &lt;- simdata$Y.mis
+X &lt;- simdata$X
+X0 &lt;- cbind(1,X)
+C &lt;- simdata$C
+family &lt;- simdata$family
+familygroup &lt;- simdata$familygroup
+svdX0d1 &lt;- svd(X0)$d[1]
+init1 = list(kappaC0 = svdX0d1 * 5)
+offset = NULL
+control = list(epsilon = 1e-4, sv.tol = 1e-2, maxit = 2000,
+               trace = FALSE, gammaC0 = 1.1, plot.cv = TRUE,
+               conv.obj = TRUE)
+fit.cv.mrrr &lt;- cv.mrrr(Y_mis, X, family = family,
+                       familygroup = familygroup,
+                       maxrank = 20,
+                       penstr = list(penaltySVD = "rankCon",
+                                     lambdaSVD = c(1 : 6)),
+                       control = control, init = init1,
+                       nfold = 10, nlam = 50)
+summary(fit.cv.mrrr)
+coef(fit.cv.mrrr)
+fit.mrrr &lt;- fit.cv.mrrr$fit
+
+## plot(svd(fit.mrrr$coef[- 1,])$d)
+plot(C ~ fit.mrrr$coef[- 1, ])
+abline(a = 0, b = 1)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

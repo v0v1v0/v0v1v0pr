@@ -1,0 +1,144 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>complete</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Impute missing values using imputation model</h2>
+
+<h3>Description</h3>
+
+<p>Having trained an imputation model, complete() produces <code>m</code> completed datasets, saved as a list.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">complete(
+  mid_obj,
+  m = 10L,
+  unscale = TRUE,
+  bin_label = TRUE,
+  cat_coalesce = TRUE,
+  fast = FALSE,
+  file = NULL,
+  file_root = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>mid_obj</code></td>
+<td>
+<p>Object of class <code>midas</code>, the result of running <code>rMIDAS::train()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m</code></td>
+<td>
+<p>An integer, the number of completed datasets required</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>unscale</code></td>
+<td>
+<p>Boolean, indicating whether to unscale any columns that were previously minmax scaled between 0 and 1</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bin_label</code></td>
+<td>
+<p>Boolean, indicating whether to add back labels for binary columns</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cat_coalesce</code></td>
+<td>
+<p>Boolean, indicating whether to decode the one-hot encoded categorical variables</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fast</code></td>
+<td>
+<p>Boolean, indicating whether to impute category with highest predicted probability (TRUE), or to use predicted probabilities to make weighted sample of category levels (FALSE)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>file</code></td>
+<td>
+<p>Path to save completed datasets. If <code>NULL</code>, completed datasets are only loaded into memory.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>file_root</code></td>
+<td>
+<p>A character string, used as the root for all filenames when saving completed datasets if a <code>filepath</code> is supplied. If no file_root is provided, completed datasets will be saved as "file/midas_impute_yymmdd_hhmmss_m.csv"</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For more information, see Lall and Robinson (2023): <a href="doi:10.18637/jss.v107.i09">doi:10.18637/jss.v107.i09</a>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>List of length <code>m</code>, each element of which is a completed data.frame (i.e. no missing values)
+</p>
+
+
+<h3>References</h3>
+
+<p>Lall R, Robinson T (2023).
+“Efficient Multiple Imputation for Diverse Data in Python and R: MIDASpy and rMIDAS.”
+<em>Journal of Statistical Software</em>, <b>107</b>(9), 1–38.
+<a href="https://doi.org/10.18637/jss.v107.i09">doi:10.18637/jss.v107.i09</a>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Generate raw data, with numeric, binary, and categorical variables
+## Not run: 
+# Run where Python available and configured correctly
+if (python_configured()) {
+set.seed(89)
+n_obs &lt;- 10000
+raw_data &lt;- data.table(a = sample(c("red","yellow","blue",NA),n_obs, replace = TRUE),
+                       b = 1:n_obs,
+                       c = sample(c("YES","NO",NA),n_obs,replace=TRUE),
+                       d = runif(n_obs,1,10),
+                       e = sample(c("YES","NO"), n_obs, replace = TRUE),
+                       f = sample(c("male","female","trans","other",NA), n_obs, replace = TRUE))
+
+# Names of bin./cat. variables
+test_bin &lt;- c("c","e")
+test_cat &lt;- c("a","f")
+
+# Pre-process data
+test_data &lt;- convert(raw_data,
+                     bin_cols = test_bin,
+                     cat_cols = test_cat,
+                     minmax_scale = TRUE)
+
+# Run imputations
+test_imp &lt;- train(test_data)
+
+# Generate datasets
+complete_datasets &lt;- complete(test_imp, m = 5, fast = FALSE)
+
+# Use Rubin's rules to combine m regression models
+midas_pool &lt;- combine(formula = d~a+c+e+f,
+                      complete_datasets)
+}
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

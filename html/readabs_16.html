@@ -1,0 +1,197 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>abs_api</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>ABS.Stat API functions</h2>
+
+<h3>Description</h3>
+
+<p><a href="https://lifecycle.r-lib.org/articles/stages.html#experimental"><img src="../help/figures/lifecycle-experimental.svg" alt="[Experimental]"></a>
+</p>
+<p>These experimental functions provide a minimal interface to the ABS.Stat API.
+</p>
+<p>More information on the ABS.Stat API can be found
+on the <a href="https://www.abs.gov.au/about/data-services/application-programming-interfaces-apis/data-api-user-guide/using-api">ABS website</a>
+</p>
+<p>Note that an ABS.Stat 'dataflow' is like a table. A 'datastructure'
+contains metadata that describes the variables in the dataflow. To load data
+from the ABS.Stat API, you need to either:
+</p>
+
+<ul>
+<li>
+<p> Using <code>read_api_dataflows()</code> you can get information on the available dataflows
+</p>
+</li>
+<li>
+<p> Using <code>read_api_datastructure()</code> you can get metadata relating to a
+specific dataflow, including the variables available in each dataflow
+</p>
+</li>
+<li>
+<p> Using <code>read_api()</code> you can get the data belonging to a given dataflow.
+</p>
+</li>
+<li>
+<p> Using <code>read_api_url()</code> you can get the data for a given query url
+generated using the <a href="https://explore.data.abs.gov.au/">online data viewer</a>.
+</p>
+</li>
+</ul>
+<h3>Usage</h3>
+
+<pre><code class="language-R">read_api_dataflows()
+
+read_api(
+  id,
+  datakey = NULL,
+  start_period = NULL,
+  end_period = NULL,
+  version = NULL
+)
+
+read_api_url(url)
+
+read_api_datastructure(id)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>id</code></td>
+<td>
+<p>A dataflow id. Use <code>read_api_dataflows()</code> to obtain a dataframe
+listing available dataflows.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>datakey</code></td>
+<td>
+<p>A named list matching filter variables to codes. All variables
+with a <code>position</code> in the datastructure are filterable. Use
+<code>read_api_datastructure()</code> to obtain information about the variables in
+a dataflow and the values of that variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start_period</code></td>
+<td>
+<p>The start period (used to filter by time). This is
+inclusive. The supported formats are:
+</p>
+
+<ul>
+<li> <p><code>"YYYY"</code> for annual data (e.g. 2019)
+</p>
+</li>
+<li> <p><code>"YYYY-S[1-2]"</code> for semi-annual data (e.g. 2019-S1)
+</p>
+</li>
+<li> <p><code>"YYYY-Q[1-4]"</code> for quarterly data (e.g. 2019-Q1)
+</p>
+</li>
+<li> <p><code>"YYYY-MM[01-12]"</code> for monthly data (e.g. 2019-01)
+</p>
+</li>
+<li> <p><code>"YYYY-W[01-53]"</code> for weekly data (e.g. 2019-W01)
+</p>
+</li>
+<li> <p><code>"YYYY-MM-DD"</code> for daily and business data (e.g. 2019-01-01)
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>end_period</code></td>
+<td>
+<p>The end period (used to filter on time). This is inclusive.
+The supported formats are the same as for <code>start_period</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>version</code></td>
+<td>
+<p>A version number, if unspecified the latest version of the
+dataset is used. Use <code>read_api_dataflows()</code> to see
+available dataflow versions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>url</code></td>
+<td>
+<p>A complete query url</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Note that the API enforces a reasonably strict gateway timeout policy. This
+means that, if you're trying to access a reasonably large dataset, you will
+need to filter it on the server side using the <code>datakey</code>. You might like to
+review the data manually via the <a href="https://explore.data.abs.gov.au/">ABS website</a>
+to figure out what subset of the data you require.
+</p>
+<p>Note, furthermore, that the datastructure contains a complete codebook for
+the variables appearing in the relevant dataflow. Since some variables are
+shared across multiple dataflows, this means that the datastructure
+corresponding to a particular <code>id</code> may contain values for a given variable
+which are not in the corresponding dataflow.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A data.frame
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# List available dataflows
+read_api_dataflows()
+
+# Say we want the "Estimated resident population, Country of birth"
+# data flow, with the id ERP_COB. We load the data like this:
+# Get full data set for a given flow by providing id and start period:
+read_api("ERP_COB", start_period = 2020)
+
+# In some cases, loading a whole dataflow (as above) won't work.
+# For eg., the `ABS_C16_T10_SA` dataflow is very large,
+# so the gateway will timeout if we try to collect the full data set
+try(read_api("ABS_C16_T10_SA"))
+
+# We need to filter the dataflow before downlaoding it.
+# To figure out how to filter it, we get metadata ('datastructure').
+ds &lt;- read_api_datastructure("ABS_C16_T10_SA")
+
+# The `asgs_2016` code for 'Australia' is 0
+ds[ds$var == "asgs_2016" &amp; ds$label == "Australia", ]
+
+# The `sex_abs` code for 'Persons' (i.e. all persons) is 3
+ds[ds$var == "sex_abs" &amp; ds$label == "Persons", ]
+
+# So we have:
+x &lt;- read_api("ABS_C16_T10_SA", datakey = list(asgs_2016 = 0, sex_abs = 3))
+unique(x["asgs_2016"]) # Confirming only 'Australia' level records came through
+unique(x["sex_abs"]) # Confirming only 'Persons' level records came through
+
+# Please note however that not all values in the datastructure necessarily
+# appear in the data. You get 404s in this case
+ds[ds$var == "regiontype" &amp; ds$label == "Destination Zones", ]
+try(read_api("ABS_C16_T10_SA", datakey = list(regiontype = "DZN")))
+
+# If you already have a query url, then use `read_api_url()`
+wpi_url &lt;- ""https://api.data.abs.gov.au/data/ABS,WPI/all""
+read_api_url(wpi_url)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

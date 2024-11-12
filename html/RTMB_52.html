@@ -1,0 +1,166 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>MVgauss</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Multivariate Gaussian densities</h2>
+
+<h3>Description</h3>
+
+<p>Multivariate Gaussian densities
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">dmvnorm(x, mu = 0, Sigma, log = FALSE, scale = 1)
+
+dgmrf(x, mu = 0, Q, log = FALSE, scale = 1)
+
+dautoreg(x, mu = 0, phi, log = FALSE, scale = 1)
+
+dseparable(...)
+
+unstructured(k)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Density evaluation point</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mu</code></td>
+<td>
+<p>Mean parameter vector</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Sigma</code></td>
+<td>
+<p>Covariance matrix</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>log</code></td>
+<td>
+<p>Logical; Return log density?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>Extra scale parameter - see section 'Scaling'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Q</code></td>
+<td>
+<p>Sparse precision matrix</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phi</code></td>
+<td>
+<p>Autoregressive parameters</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Log densities</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>Dimension</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Multivariate normal density evaluation is done using <code>dmvnorm()</code>. This is meant for dense covariance matrices. If <em>many evaluations</em> are needed for the <em>same covariance matrix</em> please note that you can pass matrix arguments: When <code>x</code> is a matrix the density is applied to each row of <code>x</code> and the return value will be a vector (length = <code>nrow(x)</code>) of densities.
+</p>
+<p>The function <code>dgmrf()</code> is essentially identical to <code>dmvnorm()</code> with the only difference that <code>dgmrf()</code> is specified via the <em>precision</em> matrix (inverse covariance) assuming that this matrix is <em>sparse</em>.
+</p>
+<p>Autoregressive density evaluation is implemented for all orders via <code>dautoreg()</code> (including the simplest AR1).
+We note that this variant is for a <em>stationary</em>, <em>mean zero</em> and <em>variance one</em> process.
+FIXME: Provide parameterization via partial correlations.
+</p>
+<p>Separable extension can be constructed for an unlimited number of inputs. Each input must be a function returning a <em>gaussian</em> <em>mean zero</em> <strong>log</strong> density. The output of <code>dseparable</code> is another <strong>log</strong> density which can be evaluated for array arguments. For example <code>dseparable(f1,f2,f3)</code> takes as input a 3D array <code>x</code>. <code>f1</code> acts in 1st array dimension of <code>x</code>, <code>f2</code> in 2nd dimension and so on. In addition to <code>x</code>, parameters <code>mu</code> and <code>scale</code> can be supplied - see below.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Vector of densities.
+</p>
+
+
+<h3>Functions</h3>
+
+
+<ul>
+<li> <p><code>dmvnorm()</code>: Multivariate normal distribution. OSA-residuals can be used for argument <code>x</code>.
+</p>
+</li>
+<li> <p><code>dgmrf()</code>: Multivariate normal distribution. OSA is <em>not</em> implemented.
+</p>
+</li>
+<li> <p><code>dautoreg()</code>: Gaussian stationary mean zero AR(k) density
+</p>
+</li>
+<li> <p><code>dseparable()</code>: Separable extension of Gaussian log-densities
+</p>
+</li>
+<li> <p><code>unstructured()</code>: Helper to generate an unstructured correlation matrix to use with <code>dmvnorm</code>
+</p>
+</li>
+</ul>
+<h3>Scaling</h3>
+
+<p>All the densities accept a <code>scale</code> argument which replaces <code>SCALE</code> and <code>VECSCALE</code> functionality of TMB.
+Scaling is applied elementwise on the residual <code>x-mu</code>. This works as expected when <code>scale</code> is a <em>scalar</em> or a <em>vector</em> object of the same length as <code>x</code>.
+In addition, <code>dmvnorm</code> and <code>dgmrf</code> can be scaled by a vector of length equal to the covariance/precision dimension. In this case the <code>scale</code> parameter is recycled by row to meet the special row-wise vectorization of these densities.
+</p>
+
+
+<h3>Unstructured correlation</h3>
+
+<p>Replacement of <code>UNSTRUCTURED_CORR</code> functionality of TMB. Constuct object using <code>us &lt;- unstructured(k)</code>.
+Now <code>us</code> has two methods: <code>x &lt;- us$parms()</code> gives the parameter vector used as input to the objective function, and <code>us$corr(x)</code> turns the parameter vector into an unstructured correlation matrix.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">func &lt;- function(x, sd, parm, phi) {
+   ## IID N(0, sd^2)
+   f1 &lt;- function(x)sum(dnorm(x, sd=sd, log=TRUE))
+   Sigma &lt;- diag(2) + parm
+   ## MVNORM(0, Sigma)
+   f2 &lt;- function(x)dmvnorm(x, Sigma=Sigma, log=TRUE)
+   ## AR(2) process
+   f3 &lt;- function(x)dautoreg(x, phi=phi, log=TRUE)
+   ## Separable extension (implicit log=TRUE)
+   -dseparable(f1, f2, f3)(x)
+}
+parameters &lt;- list(x = array(0, c(10, 2, 10)), sd=2, parm=1, phi=c(.9, -.2))
+obj &lt;- MakeADFun(function(p)do.call(func, p), parameters, random="x")
+## Check that density integrates to 1
+obj$fn()
+## Check that integral is independent of the outer parameters
+obj$gr()
+## Check that we can simulate from this density
+s &lt;- obj$simulate()
+</code></pre>
+
+
+</div>

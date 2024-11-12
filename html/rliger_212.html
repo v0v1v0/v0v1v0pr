@@ -1,0 +1,230 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>quantileNorm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Quantile Align (Normalize) Factor Loadings</h2>
+
+<h3>Description</h3>
+
+<p>This process builds a shared factor neighborhood graph to
+jointly cluster cells, then quantile normalizes corresponding clusters.
+</p>
+<p>The first step, building the shared factor neighborhood graph, is performed
+in SNF(), and produces a graph representation where edge weights between
+cells (across all datasets) correspond to their similarity in the shared
+factor neighborhood space. An important parameter here is <code>nNeighbors</code>,
+the number of neighbors used to build the shared factor space.
+</p>
+<p>Next we perform quantile alignment for each dataset, factor, and cluster (by
+stretching/compressing datasets' quantiles to better match those of the
+reference dataset).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">quantileNorm(object, ...)
+
+## S3 method for class 'liger'
+quantileNorm(
+  object,
+  quantiles = 50,
+  reference = NULL,
+  minCells = 20,
+  nNeighbors = 20,
+  useDims = NULL,
+  center = FALSE,
+  maxSample = 1000,
+  eps = 0.9,
+  refineKNN = TRUE,
+  clusterName = "quantileNorm_cluster",
+  seed = 1,
+  verbose = getOption("ligerVerbose", TRUE),
+  ...
+)
+
+## S3 method for class 'Seurat'
+quantileNorm(
+  object,
+  reduction = "inmf",
+  quantiles = 50,
+  reference = NULL,
+  minCells = 20,
+  nNeighbors = 20,
+  useDims = NULL,
+  center = FALSE,
+  maxSample = 1000,
+  eps = 0.9,
+  refineKNN = TRUE,
+  clusterName = "quantileNorm_cluster",
+  seed = 1,
+  verbose = getOption("ligerVerbose", TRUE),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>A liger or Seurat object with valid factorization
+result available (i.e. <code>runIntegration</code> performed in advance).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Arguments passed to other S3 methods of this function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quantiles</code></td>
+<td>
+<p>Number of quantiles to use for quantile normalization.
+Default <code>50</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reference</code></td>
+<td>
+<p>Character, numeric or logical selection of one dataset, out
+of all available datasets in <code>object</code>, to use as a "reference" for
+quantile normalization. Default <code>NULL</code> tries to find an RNA dataset with
+the largest number of cells; if no RNA dataset available, use the globally
+largest dataset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minCells</code></td>
+<td>
+<p>Minimum number of cells to consider a cluster shared across
+datasets. Default <code>20</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nNeighbors</code></td>
+<td>
+<p>Number of nearest neighbors for within-dataset knn graph.
+Default <code>20</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>useDims</code></td>
+<td>
+<p>Indices of factors to use for shared nearest factor
+determination. Default <code>NULL</code> uses all factors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>center</code></td>
+<td>
+<p>Whether to center the data when scaling factors. Could be
+useful for less sparse modalities like methylation data. Default
+<code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxSample</code></td>
+<td>
+<p>Maximum number of cells used for quantile normalization of
+each cluster and factor. Default <code>1000</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eps</code></td>
+<td>
+<p>The error bound of the nearest neighbor search. Lower values give
+more accurate nearest neighbor graphs but take much longer to compute.
+Default <code>0.9</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refineKNN</code></td>
+<td>
+<p>whether to increase robustness of cluster assignments using
+KNN graph. Default <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>clusterName</code></td>
+<td>
+<p>Variable name that will store the clustering result
+in metadata of a liger object or a <code>Seurat</code> object.
+Default <code>"quantileNorm_cluster"</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>Random seed to allow reproducible results. Default <code>1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Logical. Whether to show information of the progress. Default
+<code>getOption("ligerVerbose")</code> or <code>TRUE</code> if users have not set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reduction</code></td>
+<td>
+<p>Name of the reduction where LIGER integration result is
+stored. Default <code>"inmf"</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Updated input object
+</p>
+
+<ul>
+<li>
+<p>liger method
+</p>
+
+<ul>
+<li>
+<p>Update the <code>H.norm</code> slot for the alignment cell factor
+loading, ready for running graph based community detection
+clustering or dimensionality reduction for visualization.
+</p>
+</li>
+<li>
+<p>Update the <code>cellMata</code> slot with a cluster assignment basing
+on cell factor loading
+</p>
+</li>
+</ul>
+</li>
+<li>
+<p>Seurat method
+</p>
+
+<ul>
+<li>
+<p>Update the <code>reductions</code> slot with a new <code>DimReduc</code>
+object containing the aligned cell factor loading.
+</p>
+</li>
+<li>
+<p>Update the metadata with a cluster assignment basing on cell
+factor loading
+</p>
+</li>
+</ul>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">pbmc &lt;- quantileNorm(pbmcPlot)
+</code></pre>
+
+
+</div>

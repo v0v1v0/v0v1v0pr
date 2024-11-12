@@ -1,0 +1,174 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>calculate_indices</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate indices from the bands of a raster</h2>
+
+<h3>Description</h3>
+
+<p>This function computes any number of indices from an input raster via
+<code>terra::predict()</code>. By default, this function is designed to work with
+subsets of <code>spectral_indices()</code>, but it will work with any data frame with a
+<code>formula</code>, <code>bands</code>, and <code>short_name</code> column.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">calculate_indices(
+  raster,
+  indices,
+  output_filename,
+  ...,
+  cores = 1L,
+  wopt = list(),
+  overwrite = FALSE,
+  extra_objects = list(),
+  names_suffix = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>raster</code></td>
+<td>
+<p>The raster (either as a SpatRaster or object readable by
+<code>terra::rast()</code>) to compute indices from.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>indices</code></td>
+<td>
+<p>A data frame of indices to compute. The intent is for this
+function to work with subsets of spectral_indices, but any data frame with
+columns <code>formula</code> (containing a string representation of the equation used
+to calculate the index), <code>bands</code> (a list column containing character vectors
+of the necessary bands) and <code>short_name</code> (which will be used as the band
+name) will work.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>output_filename</code></td>
+<td>
+<p>The filename to write the computed metrics to.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>These dots are for future extensions and must be empty.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cores</code></td>
+<td>
+<p>positive integer. If <code>cores &gt; 1</code>, a 'parallel' package cluster with that many cores is created and used</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>wopt</code></td>
+<td>
+<p>list with named options for writing files as in <code>writeRaster</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite</code></td>
+<td>
+<p>logical. If <code>TRUE</code>, <code>filename</code> is overwritten</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extra_objects</code></td>
+<td>
+<p>A named list of additional objects to pass to the
+minimal environment that formulas are executed in. For instance, if you
+need to use the <code>pmax</code> function in order to calculate an index, you can
+make it available in the environment by setting
+<code>extra_objects = list("pmax" = pmax)</code>. Providing extra functionality is
+inherently less safe than the default minimal environment, and as such always
+emits a warning, which you can suppress with <code>suppressWarnings()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>names_suffix</code></td>
+<td>
+<p>If not <code>NULL</code>, will be used (with <code>paste()</code>) to add a
+suffix to each of the band names returned.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p><code>output_filename</code>, unchanged.
+</p>
+
+
+<h3>Security</h3>
+
+<p>Note that this function is running code from the <code>formula</code> column of the
+spectral indices data frame, which is derived from a JSON file downloaded off
+the internet. It's not impossible that an attacker could take advantage of
+this to run arbitrary code on your computer. To mitigate this, indices are
+calculated in a minimal environment that contains very few functions or
+symbols (preventing an attacker from accessing, for example, <code>system()</code>).
+</p>
+<p>Still, it's good practice to inspect your <code>formula</code> column to make sure
+there's nothing nasty hiding in any of the formulas you're going to run.
+Additionally, consider using pre-saved indices tables or
+<code>spectral_indices(download_indices = FALSE)</code> if using this in an unsupervised
+workload.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">our_raster &lt;- system.file("rasters/example_sentinel1.tif", package = "rsi")
+calculate_indices(
+  our_raster,
+  filter_bands(bands = names(terra::rast(our_raster))),
+  tempfile(fileext = ".tif"),
+  names_suffix = "sentinel1"
+)
+
+# Formulas aren't able to access most R functions or operators,
+# in order to try and keep formulas from doing something bad:
+example_indices &lt;- filter_platforms(platforms = "Sentinel-1 (Dual Polarisation VV-VH)")[1, ]
+example_indices$formula &lt;- 'system("echo something bad")'
+# So this will error:
+try(
+  calculate_indices(
+    system.file("rasters/example_sentinel1.tif", package = "rsi"),
+    example_indices,
+    tempfile(fileext = ".tif")
+  )
+)
+
+# Because of this, formulas which try to use most R functions
+# will wind up erroring as well:
+example_indices$formula &lt;- "pmax(VH, VV)"
+try(
+  calculate_indices(
+    system.file("rasters/example_sentinel1.tif", package = "rsi"),
+    example_indices,
+    tempfile(fileext = ".tif")
+  )
+)
+
+# To fix this, pass the objects you want to use to `extra_objects`
+calculate_indices(
+  system.file("rasters/example_sentinel1.tif", package = "rsi"),
+  example_indices,
+  tempfile(fileext = ".tif"),
+  extra_objects = list(pmax = pmax)
+) |&gt;
+  suppressWarnings(classes = "rsi_extra_objects")
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,155 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>predictCoxPL</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Computation of survival probabilities from Cox regression models using the product limit estimator.</h2>
+
+<h3>Description</h3>
+
+<p>Same as predictCox except that the survival is estimated using the product limit estimator.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">predictCoxPL(
+  object,
+  times,
+  newdata = NULL,
+  type = c("cumhazard", "survival"),
+  keep.strata = TRUE,
+  keep.infoVar = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>The fitted Cox regression model object either
+obtained with <code>coxph</code> (survival package) or <code>cph</code>
+(rms package).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>times</code></td>
+<td>
+<p>[numeric vector] Time points at which to return
+the estimated hazard/cumulative hazard/survival.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newdata</code></td>
+<td>
+<p>[data.frame or data.table]  Contain the values of the predictor variables
+defining subject specific predictions.
+Should have the same structure as the data set used to fit the <code>object</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>[character vector] the type of predicted value. Choices are </p>
+
+<ul>
+<li> <p><code>"hazard"</code> the baseline hazard function when
+argument <code>newdata</code> is not used and the hazard function
+when argument <code>newdata</code> is used.  </p>
+</li>
+<li> <p><code>"cumhazard"</code>
+the cumulative baseline hazard function when argument
+<code>newdata</code> is not used and the cumulative hazard function
+when argument <code>newdata</code> is used.  </p>
+</li>
+<li> <p><code>"survival"</code>
+the survival baseline hazard function when argument
+<code>newdata</code> is not used and the cumulative hazard function
+when argument <code>newdata</code> is used.  </p>
+</li>
+</ul>
+<p> Several choices can be
+combined in a vector of strings that match (no matter the case)
+strings <code>"hazard"</code>,<code>"cumhazard"</code>, <code>"survival"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep.strata</code></td>
+<td>
+<p>[logical] If <code>TRUE</code> add the (newdata) strata
+to the output. Only if there any.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep.infoVar</code></td>
+<td>
+<p>[logical] For internal use.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments to be passed to <code>predictCox</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Note: the iid and standard errors are computed using the exponential approximation.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(survival)
+
+#### generate data ####
+set.seed(10)
+d &lt;- sampleData(40,outcome="survival")
+nd &lt;- sampleData(4,outcome="survival")
+d$time &lt;- round(d$time,1)
+
+#### Cox model ####
+fit &lt;- coxph(Surv(time,event)~ X1 + X2 + X6,
+             data=d, ties="breslow", x = TRUE, y = TRUE)
+
+## exponential approximation
+predictCox(fit, newdata = d, times = 1:5)
+
+## product limit
+predictCoxPL(fit, newdata = d, times = 1:5)
+
+#### stratified Cox model ####
+fitS &lt;- coxph(Surv(time,event)~ X1 + strata(X2) + X6,
+             data=d, ties="breslow", x = TRUE, y = TRUE)
+
+## exponential approximation
+predictCox(fitS, newdata = d, times = 1:5)
+
+## product limit
+predictCoxPL(fitS, newdata = d, times = 1:5)
+
+#### fully stratified Cox model ####
+fitS &lt;- coxph(Surv(time,event)~ 1,
+             data=d, ties="breslow", x = TRUE, y = TRUE)
+
+## product limit
+GS &lt;- survfit(Surv(time,event)~1, data = d)
+range(predictCoxPL(fitS)$survival - GS$surv)
+
+fitS &lt;- coxph(Surv(time,event)~ strata(X2),
+             data=d, ties="breslow", x = TRUE, y = TRUE)
+
+## product limit
+GS &lt;- survfit(Surv(time,event)~X2, data = d)
+range(predictCoxPL(fitS)$survival - GS$surv)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,187 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>add_overall_level</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Add overall or combination levels to split groups</h2>
+
+<h3>Description</h3>
+
+<p><code>add_overall_level</code> is a split function that adds a global level to the current levels in the split. Similarly,
+<code>add_combo_df</code> uses a user-provided <code>data.frame</code> to define the combine the levels to be added. If you need a
+single overall column, after all splits, please check <code>add_overall_col()</code>. Consider also defining
+your custom split function if you need more flexibility (see custom_split_funs).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">add_overall_level(
+  valname = "Overall",
+  label = valname,
+  extra_args = list(),
+  first = TRUE,
+  trim = FALSE
+)
+
+select_all_levels
+
+add_combo_levels(combosdf, trim = FALSE, first = FALSE, keep_levels = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>valname</code></td>
+<td>
+<p>(<code>string</code>)<br> value to be assigned to the implicit all-observations split level. Defaults to
+<code>"Overall"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>label</code></td>
+<td>
+<p>(<code>string</code>)<br> a label (not to be confused with the name) for the object/structure.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extra_args</code></td>
+<td>
+<p>(<code>list</code>)<br> extra arguments to be passed to the tabulation function. Element position in the list
+corresponds to the children of this split. Named elements in the child-specific lists are ignored if they do
+not match a formal argument of the tabulation function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>first</code></td>
+<td>
+<p>(<code>flag</code>)<br> whether the implicit level should appear first (<code>TRUE</code>) or last (<code>FALSE</code>). Defaults
+to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trim</code></td>
+<td>
+<p>(<code>flag</code>)<br> whether splits corresponding with 0 observations should be kept when tabulating.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>combosdf</code></td>
+<td>
+<p>(<code>data.frame</code> or <code>tbl_df</code>)<br> a data frame with columns <code>valname</code>, <code>label</code>, <code>levelcombo</code>, and
+<code>exargs</code>. <code>levelcombo</code> and <code>exargs</code> should be list columns. Passing the <code>select_all_levels</code> object as a value in
+<code>comblevels</code> column indicates that an overall/all-observations level should be created.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep_levels</code></td>
+<td>
+<p>(<code>character</code> or <code>NULL</code>)<br> if non-<code>NULL</code>, the levels to retain across both combination and
+individual levels.</p>
+</td>
+</tr>
+</table>
+<h3>Format</h3>
+
+<p>An object of class <code>AllLevelsSentinel</code> of length 0.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A splitting function (<code>splfun</code>) that adds or changes the levels of a split.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Analysis or summary functions for which the order matters should never be used within the tabulation framework.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>custom_split_funs and split_funcs.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">lyt &lt;- basic_table() %&gt;%
+  split_cols_by("ARM", split_fun = add_overall_level("All Patients",
+    first = FALSE
+  )) %&gt;%
+  analyze("AGE")
+
+tbl &lt;- build_table(lyt, DM)
+tbl
+
+lyt2 &lt;- basic_table() %&gt;%
+  split_cols_by("ARM") %&gt;%
+  split_rows_by("RACE",
+    split_fun = add_overall_level("All Ethnicities")
+  ) %&gt;%
+  summarize_row_groups(label_fstr = "%s (n)") %&gt;%
+  analyze("AGE")
+lyt2
+
+tbl2 &lt;- build_table(lyt2, DM)
+tbl2
+
+
+
+library(tibble)
+combodf &lt;- tribble(
+  ~valname, ~label, ~levelcombo, ~exargs,
+  "A_B", "Arms A+B", c("A: Drug X", "B: Placebo"), list(),
+  "A_C", "Arms A+C", c("A: Drug X", "C: Combination"), list()
+)
+
+lyt &lt;- basic_table(show_colcounts = TRUE) %&gt;%
+  split_cols_by("ARM", split_fun = add_combo_levels(combodf)) %&gt;%
+  analyze("AGE")
+
+tbl &lt;- build_table(lyt, DM)
+tbl
+
+lyt1 &lt;- basic_table(show_colcounts = TRUE) %&gt;%
+  split_cols_by("ARM",
+    split_fun = add_combo_levels(combodf,
+      keep_levels = c(
+        "A_B",
+        "A_C"
+      )
+    )
+  ) %&gt;%
+  analyze("AGE")
+
+tbl1 &lt;- build_table(lyt1, DM)
+tbl1
+
+smallerDM &lt;- droplevels(subset(DM, SEX %in% c("M", "F") &amp;
+  grepl("^(A|B)", ARM)))
+lyt2 &lt;- basic_table(show_colcounts = TRUE) %&gt;%
+  split_cols_by("ARM", split_fun = add_combo_levels(combodf[1, ])) %&gt;%
+  split_cols_by("SEX",
+    split_fun = add_overall_level("SEX_ALL", "All Genders")
+  ) %&gt;%
+  analyze("AGE")
+
+lyt3 &lt;- basic_table(show_colcounts = TRUE) %&gt;%
+  split_cols_by("ARM", split_fun = add_combo_levels(combodf)) %&gt;%
+  split_rows_by("SEX",
+    split_fun = add_overall_level("SEX_ALL", "All Genders")
+  ) %&gt;%
+  summarize_row_groups() %&gt;%
+  analyze("AGE")
+
+tbl3 &lt;- build_table(lyt3, smallerDM)
+tbl3
+
+</code></pre>
+
+
+</div>

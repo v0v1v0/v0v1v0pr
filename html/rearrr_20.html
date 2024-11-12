@@ -1,0 +1,419 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>expand_distances_each</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Expand the distances to an origin in each dimension</h2>
+
+<h3>Description</h3>
+
+<p><a href="https://lifecycle.r-lib.org/articles/stages.html#experimental"><img src="../help/figures/lifecycle-experimental.svg" alt="[Experimental]"></a>
+</p>
+<p>Moves the data points in n-dimensional space such that their distance
+to the specified origin is increased/decreased <em>in each dimension separately</em>.
+A <code>`multiplier`</code> greater than 1 leads to expansion,
+while a positive <code>`multiplier`</code> lower than 1 leads to contraction.
+</p>
+<p>The origin can be supplied as coordinates or as a function that returns coordinates. The
+latter can be useful when supplying a grouped <code>data.frame</code> and expanding around e.g. the centroid
+of each group.
+</p>
+<p>The multipliers/exponents can be supplied as constant(s) or as a function that returns constants.
+The latter can be useful when supplying a grouped <code>data.frame</code> and the multiplier/exponent depends
+on the data in the groups.
+If supplying multiple constants, there must be one per dimension (length of <code>`cols`</code>).
+</p>
+<p>For expansion of the <em>multidimensional</em> distance, use <code>expand_distances()</code>.
+</p>
+<p><strong>NOTE</strong>: When exponentiating, the default is to first add <code>1</code> or <code>-1</code>
+(depending on the sign of the distance) to the distances,
+to ensure expansion even when the distance is between <code>-1</code> and <code>1</code>.
+If you need the purely exponentiated distances,
+disable <code>`add_one_exp`</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">expand_distances_each(
+  data,
+  cols = NULL,
+  multipliers = NULL,
+  multipliers_fn = NULL,
+  origin = NULL,
+  origin_fn = NULL,
+  exponentiate = FALSE,
+  add_one_exp = TRUE,
+  suffix = "_expanded",
+  keep_original = TRUE,
+  mult_col_name = ifelse(isTRUE(exponentiate), ".exponents", ".multipliers"),
+  origin_col_name = ".origin",
+  overwrite = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p><code>data.frame</code> or <code>vector</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cols</code></td>
+<td>
+<p>Names of columns in <code>`data`</code> to expand.
+Each column is considered a dimension to expand in.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>multipliers</code></td>
+<td>
+<p>Constant(s) to multiply/exponentiate the distance to the origin by.
+A scalar to use in all dimensions or
+a <code>vector</code> with one scalar per dimension.
+</p>
+<p><strong>N.B.</strong> When <code>`exponentiate`</code> is <code>TRUE</code>, the <code>`multipliers`</code> become <em>exponents</em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>multipliers_fn</code></td>
+<td>
+<p>Function for finding the <code>`multipliers`</code>.
+</p>
+<p><strong>Input</strong>: Each column will be passed as a <code>vector</code> in the order of <code>`cols`</code>.
+</p>
+<p><strong>Output</strong>: A <code>numeric vector</code> with one element per dimension.
+</p>
+<p>Just as for <code>`origin_fn`</code>, it can be created with
+<code>create_origin_fn()</code> if you want to apply
+the same function to each dimension. See <code>`origin_fn`</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>origin</code></td>
+<td>
+<p>Coordinates of the origin to expand around.
+A scalar to use in all dimensions
+or a <code>vector</code> with one scalar per dimension.
+</p>
+<p><strong>N.B.</strong> Ignored when <code>`origin_fn`</code> is not <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>origin_fn</code></td>
+<td>
+<p>Function for finding the origin coordinates.
+</p>
+<p><strong>Input</strong>: Each column will be passed as a <code>vector</code> in the order of <code>`cols`</code>.
+</p>
+<p><strong>Output</strong>: A <code>vector</code> with one scalar per dimension.
+</p>
+<p>Can be created with <code>create_origin_fn()</code> if you want to apply
+the same function to each dimension.
+</p>
+<p>E.g. <code>`create_origin_fn(median)`</code> would find the median of each column.
+</p>
+<p><strong>Built-in functions</strong> are <code>centroid()</code>,
+<code>most_centered()</code>,
+and <code>midrange()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exponentiate</code></td>
+<td>
+<p>Whether to exponentiate instead of multiplying. (Logical)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>add_one_exp</code></td>
+<td>
+<p>Whether to add the <code>sign</code> (either <code>1</code> or <code>-1</code>)
+before exponentiating to ensure the values don't contract.
+The added value is subtracted after the exponentiation. (Logical)
+</p>
+<p>Exponentiation becomes:
+</p>
+<p><code>x &lt;- x + sign(x)</code>
+</p>
+<p><code>x &lt;- sign(x) * abs(x) ^ multiplier</code>
+</p>
+<p><code>x &lt;- x - sign(x)</code>
+</p>
+<p><strong>N.B.</strong> Ignored when <code>`exponentiate`</code> is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>suffix</code></td>
+<td>
+<p>Suffix to add to the names of the generated columns.
+</p>
+<p>Use an empty string (i.e. <code>""</code>) to overwrite the original columns.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep_original</code></td>
+<td>
+<p>Whether to keep the original columns. (Logical)
+</p>
+<p>Some columns may have been overwritten, in which case only the newest versions are returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mult_col_name</code></td>
+<td>
+<p>Name of new column with the multiplier(s). If <code>NULL</code>, no column is added.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>origin_col_name</code></td>
+<td>
+<p>Name of new column with the origin coordinates. If <code>NULL</code>, no column is added.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite</code></td>
+<td>
+<p>Whether to allow overwriting of existing columns. (Logical)</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For each value of each dimension (column), either multiply or exponentiate by the multiplier:
+</p>
+<p><code># Multiplication</code>
+</p>
+<p><code>x &lt;- x * multiplier</code>
+</p>
+<p><code># Exponentiation</code>
+</p>
+<p><code>x &lt;- sign(x) * abs(x) ^ multiplier</code>
+</p>
+<p>Note: By default (when <code>`add_one_exp`</code> is <code>TRUE</code>),
+we add the sign (<code>1 / -1</code>) of the value before the exponentiation
+and subtract it afterwards. See <code>`add_one_exp`</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>data.frame</code> (<code>tibble</code>) with the expanded columns,
+along with the applied multiplier/exponent and origin coordinates.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Ludvig Renbo Olsen, <a href="mailto:r-pkgs@ludvigolsen.dk">r-pkgs@ludvigolsen.dk</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other mutate functions: 
+<code>apply_transformation_matrix()</code>,
+<code>cluster_groups()</code>,
+<code>dim_values()</code>,
+<code>expand_distances()</code>,
+<code>flip_values()</code>,
+<code>roll_values()</code>,
+<code>rotate_2d()</code>,
+<code>rotate_3d()</code>,
+<code>shear_2d()</code>,
+<code>shear_3d()</code>,
+<code>swirl_2d()</code>,
+<code>swirl_3d()</code>
+</p>
+<p>Other expander functions: 
+<code>expand_distances()</code>
+</p>
+<p>Other distance functions: 
+<code>closest_to()</code>,
+<code>dim_values()</code>,
+<code>distance()</code>,
+<code>expand_distances()</code>,
+<code>furthest_from()</code>,
+<code>swirl_2d()</code>,
+<code>swirl_3d()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Attach packages
+library(rearrr)
+library(dplyr)
+library(purrr)
+has_ggplot &lt;- require(ggplot2)  # Attach if installed
+
+# Set seed
+set.seed(1)
+
+# Create a data frame
+df &lt;- data.frame(
+  "x" = runif(20),
+  "y" = runif(20),
+  "g" = rep(1:4, each = 5)
+)
+
+# Expand values in the two dimensions (x and y)
+# With the origin at x=0.5, y=0.5
+# We expand x by 2 and y by 4
+expand_distances_each(
+  data = df,
+  cols = c("x", "y"),
+  multipliers = c(2, 4),
+  origin = c(0.5, 0.5)
+)
+
+# Expand values in the two dimensions (x and y)
+# With the origin at x=0.5, y=0.5
+# We expand both by 3
+expand_distances_each(
+  data = df,
+  cols = c("x", "y"),
+  multipliers = 3,
+  origin = 0.5
+)
+
+# Expand values in one dimension (x)
+# With the origin at x=0.5
+# We expand by 3
+expand_distances_each(
+  data = df,
+  cols = c("x"),
+  multipliers = 3,
+  origin = 0.5
+)
+
+# Expand x and y around the centroid
+# We use exponentiation for a more drastic effect
+# The add_one_exp makes sure it expands
+# even when x or y is in the range [&gt;-1, &lt;1]
+# To compare multiple exponents, we wrap the
+# call in purrr::map_dfr
+df_expanded &lt;- purrr::map_dfr(
+  .x = c(1, 2.0, 3.0, 4.0),
+  .f = function(exponent) {
+    expand_distances_each(
+      data = df,
+      cols = c("x", "y"),
+      multipliers = exponent,
+      origin_fn = centroid,
+      exponentiate = TRUE,
+      add_one_exp = TRUE
+    )
+  }
+)
+df_expanded
+
+# Plot the expansions of x and y around the overall centroid
+if (has_ggplot){
+  ggplot(df_expanded, aes(x = x_expanded, y = y_expanded, color = factor(.exponents))) +
+    geom_vline(
+      xintercept = df_expanded[[".origin"]][[1]][[1]],
+      size = 0.2, alpha = .4, linetype = "dashed"
+    ) +
+    geom_hline(
+      yintercept = df_expanded[[".origin"]][[1]][[2]],
+      size = 0.2, alpha = .4, linetype = "dashed"
+    ) +
+    geom_point() +
+    theme_minimal() +
+    labs(x = "x", y = "y", color = "Exponent")
+}
+
+# Expand x and y around the centroid using multiplication
+# To compare multiple multipliers, we wrap the
+# call in purrr::map_dfr
+df_expanded &lt;- purrr::map_dfr(
+  .x = c(1, 2.0, 3.0, 4.0),
+  .f = function(multiplier) {
+    expand_distances_each(df,
+      cols = c("x", "y"),
+      multipliers = multiplier,
+      origin_fn = centroid,
+      exponentiate = FALSE
+    )
+  }
+)
+df_expanded
+
+# Plot the expansions of x and y around the overall centroid
+if (has_ggplot){
+ggplot(df_expanded, aes(x = x_expanded, y = y_expanded, color = factor(.multipliers))) +
+    geom_vline(
+      xintercept = df_expanded[[".origin"]][[1]][[1]],
+      size = 0.2, alpha = .4, linetype = "dashed"
+    ) +
+    geom_hline(
+      yintercept = df_expanded[[".origin"]][[1]][[2]],
+      size = 0.2, alpha = .4, linetype = "dashed"
+    ) +
+    geom_point() +
+    theme_minimal() +
+    labs(x = "x", y = "y", color = "Multiplier")
+}
+
+# Expand x and y with different multipliers
+# around the centroid using multiplication
+df_expanded &lt;- expand_distances_each(
+  df,
+  cols = c("x", "y"),
+  multipliers = c(1.25, 10),
+  origin_fn = centroid,
+  exponentiate = FALSE
+)
+df_expanded
+
+# Plot the expansions of x and y around the overall centroid
+# Note how the y axis is expanded a lot more than the x-axis
+if (has_ggplot){
+  ggplot(df_expanded, aes(x = x_expanded, y = y_expanded)) +
+    geom_vline(
+      xintercept = df_expanded[[".origin"]][[1]][[1]],
+      size = 0.2, alpha = .4, linetype = "dashed"
+    ) +
+    geom_hline(
+      yintercept = df_expanded[[".origin"]][[1]][[2]],
+      size = 0.2, alpha = .4, linetype = "dashed"
+    ) +
+    geom_line(aes(color = "Expanded")) +
+    geom_point(aes(color = "Expanded")) +
+    geom_line(aes(x = x, y = y, color = "Original")) +
+    geom_point(aes(x = x, y = y, color = "Original")) +
+    theme_minimal() +
+    labs(x = "x", y = "y", color = "Multiplier")
+}
+
+#
+# Contraction
+#
+
+# Group-wise contraction to create clusters
+df_contracted &lt;- df %&gt;%
+  dplyr::group_by(g) %&gt;%
+  expand_distances_each(
+    cols = c("x", "y"),
+    multipliers = 0.07,
+    suffix = "_contracted",
+    origin_fn = centroid
+  )
+
+# Plot the clustered data point on top of the original data points
+if (has_ggplot){
+  ggplot(df_contracted, aes(x = x_contracted, y = y_contracted, color = factor(g))) +
+    geom_point(aes(x = x, y = y, color = factor(g)), alpha = 0.3, shape = 16) +
+    geom_point() +
+    theme_minimal() +
+    labs(x = "x", y = "y", color = "g")
+}
+</code></pre>
+
+
+</div>

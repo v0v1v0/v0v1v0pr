@@ -1,0 +1,235 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>mrrr</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Generalized or mixed-response reduced-rank regression</h2>
+
+<h3>Description</h3>
+
+<p>Peforms either rank constrained maximum likelihood estimation or
+singular value penalized estimation.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">mrrr(
+  Y,
+  X,
+  is.pca = NULL,
+  offset = NULL,
+  ctrl.id = c(),
+  family = list(gaussian(), binomial()),
+  familygroup = NULL,
+  maxrank = min(ncol(Y), ncol(X)),
+  penstr = list(),
+  init = list(),
+  control = list()
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>response matrix</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>covariate matrix</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>is.pca</code></td>
+<td>
+<p>If TRUE, mixed principal component analysis with X=I</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>offset</code></td>
+<td>
+<p>matrix of the same dimension as Y for offset</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ctrl.id</code></td>
+<td>
+<p>indices of unpenalized predictors</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>a list of family functions as used in <code>glm</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>familygroup</code></td>
+<td>
+<p>a list of family indices of the responses</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxrank</code></td>
+<td>
+<p>integer giving the maximum rank allowed. Usually this can be
+set to min(n,p,q)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>penstr</code></td>
+<td>
+<p>a list of penalty structure of SVD, contains penstr$penaltySVD
+is the penalty of SVD, penstr$lambdaSVD is the regularization parameter</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init</code></td>
+<td>
+<p>a list of initial values of kappaC0, kappaS0, C0, and S0</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>a list of controling parameters for the fitting</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The model fitting process can be fine tuned through argument <code>control</code>.
+The available elements for <code>control</code> include
+</p>
+
+<ul>
+<li>
+<p>epsilon: positive convergence tolerance epsilon; the
+iterations converge when |new - old | / (old + 0.1) &lt; epsilon.
+treated as zero.
+</p>
+</li>
+<li>
+<p>sv.tol: tolerance for singular values.
+</p>
+</li>
+<li>
+<p>maxit: integer giving the maximal number of iterations.
+</p>
+</li>
+<li>
+<p>trace:logical indicating if tracing the objective is needed.
+</p>
+</li>
+<li>
+<p>conv.obj:if TRUE, track objective function.
+</p>
+</li>
+<li>
+<p>equal.phi:if TRUE, use a single dispersion parameter for Gaussian
+responses.
+</p>
+</li>
+<li>
+<p>plot.obj:if TRUE, plot obj values along iterations; for checking
+only
+</p>
+</li>
+<li>
+<p>plot.cv:if TRUE, plot cross validation error.
+</p>
+</li>
+<li>
+<p>gammaC0:adaptive scaling to speed up computation.
+</p>
+</li>
+</ul>
+<p>Similarly, the available elements for arguments <code>penstr</code> specifying
+penalty structure of SVD include
+</p>
+
+<ul>
+<li>
+<p>penaltySVD: penalty for reducing rank
+</p>
+</li>
+<li>
+<p>lambdaSVD: tuning parameter. For penaltySVD = rankCon, this is the
+specified rank.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>S3 <code>mrrr</code> object, a list containing
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>obj</code></td>
+<td>
+<p>the objective function tracking</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>converged</code></td>
+<td>
+<p>TRUE/FALSE for convergence</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coef</code></td>
+<td>
+<p>the estimated coefficient matrix</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outlier</code></td>
+<td>
+<p>the estimated outlier matrix</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nrank</code></td>
+<td>
+<p>the rank of the fitted model</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(rrpack)
+simdata &lt;- rrr.sim3(n = 100, p = 30, q.mix = c(5, 20, 5),
+                    nrank = 2, mis.prop = 0.2)
+Y &lt;- simdata$Y
+Y_mis &lt;- simdata$Y.mis
+X &lt;- simdata$X
+X0 &lt;- cbind(1, X)
+C &lt;- simdata$C
+family &lt;- simdata$family
+familygroup &lt;- simdata$familygroup
+svdX0d1 &lt;- svd(X0)$d[1]
+init1 = list(kappaC0 = svdX0d1 * 5)
+offset = NULL
+control = list(epsilon = 1e-4, sv.tol = 1e-2, maxit = 2000,
+               trace = FALSE, gammaC0 = 1.1, plot.cv = TRUE,
+               conv.obj = TRUE)
+fit.mrrr &lt;- mrrr(Y_mis, X, family = family, familygroup = familygroup,
+                 penstr = list(penaltySVD = "rankCon", lambdaSVD = 2),
+                 control = control, init = init1)
+summary(fit.mrrr)
+coef(fit.mrrr)
+par(mfrow = c(1, 2))
+plot(fit.mrrr$obj)
+plot(C ~ fit.mrrr$coef[- 1 ,])
+abline(a = 0, b = 1)
+</code></pre>
+
+
+</div>

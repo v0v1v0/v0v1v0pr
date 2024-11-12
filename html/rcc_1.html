@@ -1,0 +1,128 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>nonpar_bs_ci</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Non-Parametric bootstrapped confidence intervals to control RCC</h2>
+
+<h3>Description</h3>
+
+<p>This function implements Algorithm 3 in the paper (see Section 2.4). 
+The user supplies individual level data and an analysis function that generates
+test statistics and point estimates. The function resamples individuals from the 
+original data and recalculates test statistics and estimates 
+in order to calculate confidence intervals.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">nonpar_bs_ci(data, analysis.func, rank.func = NULL, level = 0.9,
+  res.orig = NULL, n.rep = 1000, use.abs = TRUE, parallel = FALSE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>An n by K matrix of data</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>analysis.func</code></td>
+<td>
+<p>A function that performs the analysis. This function should take exactly one argument (data) and return a
+list or data frame including an item called 'estimate' and an item called 'statistic'. 
+These should both be vectors of length p, the number of parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rank.func</code></td>
+<td>
+<p>A function that takes, as first argument, the statistics returned by analysis.func.
+The second argument should be use.abs which can take a logical value. This argument indicates
+if ranking should be based on signed or absolute value of the statistics. rank.func should
+return a list including items named order and rank. See rcc:::basic_rank for an example.
+If NULL, the basic_rank function 
+will be used which ranks based on the size of the
+test statistics.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>level</code></td>
+<td>
+<p>Confidence level</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>res.orig</code></td>
+<td>
+<p>Results of applying analysis.funct to the original data if they are already available.
+If NULL, these will be calculated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.rep</code></td>
+<td>
+<p>Number of bootstrap replications</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use.abs</code></td>
+<td>
+<p>Logical. Rank based on absolute value of the statistics</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel</code></td>
+<td>
+<p>Logical. If true, use the parallel package to make use of multiple cores.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional parameters to pass to rank.func</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A data frame giving original estimates and statistics, 
+confidence intervals, debiased point estimates, and rank for each parameter.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#Generate some data -- 10 parameters, 30 samples
+#Most problems will have many more parameters!
+set.seed(4e8)
+dat &lt;- matrix(rnorm(n=10*30), nrow=10)
+
+#Write a function to do a t-test comparing
+#the first 15 samples and the last 15 samples
+my.analysis.func &lt;- function(data){
+    x &lt;- rep(c(1, 0), each=15)
+    B &lt;- t(apply(data, MARGIN=1, FUN=function(y){
+        f &lt;- t.test(y~x)
+        est &lt;- f$estimate[2]-f$estimate[1]
+        stat &lt;- f$statistic
+        return(c(est, stat))
+    }))
+    B &lt;- data.frame(B)
+    names(B) &lt;- c("estimate", "statistic")
+    return(B)
+}
+
+#Calculate confidence intervals
+cis &lt;- nonpar_bs_ci(data=dat, analysis.func=my.analysis.func, n.rep=500)
+head(cis)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,367 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>register_fpca</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Register curves using constrained optimization and GFPCA</h2>
+
+<h3>Description</h3>
+
+<p>Function combines constrained optimization and GFPCA to estimate warping functions for 
+exponential family curves. See argument <code>family</code> for which families are
+supported. Warping functions are calculated by the function <code>registr</code>.
+The GFPCA step can be performed either using the variational EM-based GFPCA
+approaches of Wrobel et al. (2019) (<code>fpca_type = "variationalEM"</code>, default)
+or the mixed model-based two-step approach of Gertheiss et al. (2017)
+(<code>fpca_type = "two-step"</code>). <br><br>
+Warping functions by default are forced to start and end on the diagonal to be
+domain-preserving. This behavior can be changed by setting
+<code>incompleteness</code> to some other value than NULL and a reasonable <code>lambda_inc</code> value.
+For further details see the accompanying vignette. <br><br>
+The number of functional principal components (FPCs) can either be specified
+directly (argument <code>npc</code>) or chosen based on the explained share of
+variance in each iteration (argument <code>npc_criterion</code>). <br><br>
+By specifying <code>cores &gt; 1</code> the registration call can be parallelized.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">register_fpca(
+  Y,
+  Kt = 8,
+  Kh = 4,
+  family = "gaussian",
+  incompleteness = NULL,
+  lambda_inc = NULL,
+  Y_template = NULL,
+  max_iterations = 10,
+  npc = NULL,
+  npc_criterion = NULL,
+  fpca_type = "variationalEM",
+  fpca_maxiter = 50,
+  fpca_seed = 1988,
+  fpca_error_thresh = 1e-04,
+  fpca_index_significantDigits = 4L,
+  cores = 1L,
+  verbose = 1,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>Dataframe. Should have values id, value, index.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Kt</code></td>
+<td>
+<p>Number of B-spline basis functions used to estimate mean functions
+and functional principal components. Default is 8. If
+<code>fpca_type = "variationalEM"</code> and <code>npc_criterion</code> is used,
+<code>Kt</code> is set to 20.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Kh</code></td>
+<td>
+<p>Number of B-spline basis functions used to estimate warping functions <em>h</em>. Default is 4.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>One of <code>c("gaussian","binomial","gamma","poisson")</code>.
+Families <code>"gamma"</code> and <code>"poisson"</code> are only supported by
+<code>fpca_type = "two-step"</code>. Defaults to <code>"gaussian"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>incompleteness</code></td>
+<td>
+<p>Optional specification of incompleteness structure.
+One of <code>c("leading","trailing","full")</code>, specifying that incompleteness
+is present only in the initial measurements, only in the trailing measurements, or
+in both, respectively. For details see the accompanying vignette.
+Defaults to NULL, i.e. no incompleteness structure.
+Can only be set when <code>warping = "nonparametric"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda_inc</code></td>
+<td>
+<p>Penalization parameter to control the amount of
+overall dilation of the domain.
+The higher this lambda, the more the registered domains are forced to have the
+same length as the observed domains.
+Only used if <code>incompleteness</code> is not NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y_template</code></td>
+<td>
+<p>Optional dataframe with the same structure as <code>Y</code>.
+Only used for the initial registration step. If NULL,
+curves are registered to the overall mean of all curves in <code>Y</code> as template function.
+If specified, the template function is taken as the mean
+of all curves in <code>Y_template</code>. Defaults to NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_iterations</code></td>
+<td>
+<p>Number of iterations for overall algorithm. Defaults to 10.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>npc, npc_criterion</code></td>
+<td>
+<p>The number of functional principal components (FPCs)
+has to be specified either directly as <code>npc</code> or based on their explained
+share of variance. In the latter case, <code>npc_criterion</code> has to be set
+to a number between 0 and 1. For <code>fpca_type = "two-step"</code>, it is also
+possible to cut off potential tails of subordinate FPCs (see
+<code>gfpca_twoStep</code> for details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fpca_type</code></td>
+<td>
+<p>One of <code>c("variationalEM","two-step")</code>.
+Defaults to <code>"variationalEM"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fpca_maxiter</code></td>
+<td>
+<p>Only used if <code>fpca_type = "variationalEM"</code>. Number
+to pass to the <code>maxiter</code> argument of 'bfpca()' or 'fpca_gauss()'. 
+Defaults to 50.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fpca_seed</code></td>
+<td>
+<p>Only used if <code>fpca_type = "variationalEM"</code>. Number to
+pass to the <code>seed</code> argument of 'bfpca()' or 'fpca_gauss()'. Defaults to
+1988.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fpca_error_thresh</code></td>
+<td>
+<p>Only used if <code>fpca_type = "variationalEM"</code>.
+Number to pass to the <code>error_thresh</code> argument of 'bfpca()' or
+'fpca_gauss()'. Defaults to 0.0001.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fpca_index_significantDigits</code></td>
+<td>
+<p>Only used if <code>fpca_type = "two-step"</code>.
+Positive integer <code>&gt;= 2</code>, stating the number of significant digits to which
+the index grid should be rounded in the GFPCA step. Coarsening the index grid
+is necessary since otherwise the covariance surface matrix explodes in size
+in the presence of too many unique index values (which is the case after some
+registration step). Defaults to 4. Set to <code>NULL</code> to prevent rounding.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cores</code></td>
+<td>
+<p>Number of cores to be used. If <code>cores &gt; 1</code>, the registration
+call is parallelized by using <code>parallel::mclapply</code> (for Unix-based
+systems) or <code>parallel::parLapply</code> (for Windows). Defaults to 1,
+no parallelized call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Can be set to integers between 0 and 4 to control the level of
+detail of the printed diagnostic messages. Higher numbers lead to more detailed
+messages. Defaults to 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments passed to registr and to the gfpca functions
+(if <code>fpca_type = "variationalEM"</code>).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Requires input data <code>Y</code> to be a dataframe in long format with variables 
+<code>id</code>, <code>index</code>, and <code>value</code> to indicate subject IDs, 
+observation times on the domain, and observations, respectively.
+</p>
+<p>One joint iteration consists of a GFPCA step and a registration step.
+As preprocessing, one initial registration step is performed.
+The template function for this registration step is defined by argument
+<code>Y_template</code>.
+After convergence or <code>max_iterations</code> is reached, one final GFPCA step
+is performed.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>registration</code> containing:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>The observed data plus variables <code>t_star</code> and <code>t_hat</code> which are the
+unregistered grid and registered grid, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fpca_obj</code></td>
+<td>
+<p>List of items from FPCA step.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>Used exponential family.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>index_warped</code></td>
+<td>
+<p>List of the (warped) index values for each iteration.
+Has <code>'convergence$iterations + 2'</code> elements since the first two elements
+contain the original (observed) index and the warped index values from the
+preprocessing registration step (see Details), respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hinv_innerKnots</code></td>
+<td>
+<p>List of inner knots for setting up the spline bases
+for the inverse warping functions. Only contains <code>NULL</code> values for
+<code>Kh &lt;= 4</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hinv_beta</code></td>
+<td>
+<p>Matrix of B-spline basis coefficients used to construct the
+subject-specific inverse warping functions. From the last performed
+registration step. For details see <code>?registr</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>convergence</code></td>
+<td>
+<p>List with information on the convergence of the joint
+approach. Containing the following elements: <br><br><em>converged</em> <br>
+Indicator if the joint algorithm converged or if not
+(i.e., <code>max_iterations</code> was reached) <br><br><em>iterations</em> <br>
+Number of joint iterations that were performed. <br><br><em>delta_index</em> <br>
+Vector of mean squared differences between the (warped) index values
+(scaled to [0,1] based on the size of the observed domain)
+in the current and the previous iteration.
+Convergence is reached if this measure drops below 0.0001. <br><br><em>registration_loss</em> <br>
+Vector of the loss in each iteration of the algorithm.
+Calculated in the registration step using the exponential family
+likelihood with natural parameter from the FPCA step.
+Has <code>'iterations + 1'</code> elements since the first element contains the
+loss of the preprocessing registration step (see Details).
+</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Julia Wrobel <a href="mailto:julia.wrobel@cuanschutz.edu">julia.wrobel@cuanschutz.edu</a>
+Jeff Goldsmith <a href="mailto:ajg2202@cumc.columbia.edu">ajg2202@cumc.columbia.edu</a>,
+Alexander Bauer <a href="mailto:alexander.bauer@stat.uni-muenchen.de">alexander.bauer@stat.uni-muenchen.de</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+### complete binomial curves
+Y = simulate_unregistered_curves(I = 20, D = 200)
+
+# estimation based on Wrobel et al. (2019)
+reg = register_fpca(Y, npc = 2, family = "binomial",
+                    fpca_type = "variationalEM", max_iterations = 5)
+
+if (requireNamespace("ggplot2", quietly = TRUE)) {
+  library(ggplot2)
+  
+  ggplot(reg$Y, aes(x = tstar, y = t_hat, group = id)) +
+    geom_line(alpha = 0.2) + ggtitle("Estimated warping functions")
+  
+  plot(reg$fpca_obj, response_function = function(x) { 1 / (1 + exp(-x)) })
+}
+
+
+
+
+# estimation based on Gertheiss et al. (2017)
+reg2 = register_fpca(Y, npc = 2, family = "binomial",
+                     fpca_type = "two-step", max_iterations = 5,
+                     fpca_index_significantDigits = 4)
+                     
+# example using accelerometer data from nhanes 2003-2004 study
+data(nhanes)
+nhanes_short = nhanes[nhanes$id %in% unique(nhanes$id)[1:5],]
+reg_nhanes   = register_fpca(nhanes_short, npc = 2, family = "binomial", max_iterations = 5)
+
+
+### incomplete Gaussian curves
+data(growth_incomplete)
+
+# Force the warping functions to start and end on the diagonal
+reg2a = register_fpca(growth_incomplete, npc = 2, family = "gaussian",
+                      incompleteness = NULL, max_iterations = 5)
+if (requireNamespace("ggplot2", quietly = TRUE)) {
+  
+  ggplot(reg2a$Y, aes(x = tstar, y = t_hat, group = id)) +
+    geom_line(alpha = 0.2) +
+    ggtitle("Estimated warping functions")
+  ggplot(reg2a$Y, aes(x = t_hat, y = value, group = id)) +
+    geom_line(alpha = 0.2) +
+    ggtitle("Registered curves")
+}
+# Allow the warping functions to not start / end on the diagonal.
+# The higher lambda_inc, the more the starting points and endpoints are forced
+# towards the diagonal.
+reg2b = register_fpca(growth_incomplete, npc = 2, family = "gaussian",
+                      incompleteness = "full", lambda_inc = 0.1,
+                      max_iterations = 5)
+if (requireNamespace("ggplot2", quietly = TRUE)) {
+  ggplot(reg2b$Y, aes(x = tstar, y = t_hat, group = id)) +
+    geom_line(alpha = 0.2) +
+    ggtitle("Estimated warping functions")
+  ggplot(reg2b$Y, aes(x = t_hat, y = value, group = id)) +
+    geom_line(alpha = 0.2) +
+    ggtitle("Registered curves")
+}
+
+### complete Gamma curves
+Y             = simulate_unregistered_curves(I = 20, D = 100)
+Y$value       = exp(Y$latent_mean)
+registr_gamma = register_fpca(Y, npc = 2, family = "gamma", fpca_type = "two-step",
+                              gradient = FALSE, max_iterations = 3)
+
+
+</code></pre>
+
+
+</div>

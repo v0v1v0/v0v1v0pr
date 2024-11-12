@@ -1,0 +1,181 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>NumDeconv</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Numerical deconvolution method
+</h2>
+
+<h3>Description</h3>
+
+<p>Numerical deconvolution method based on the convolution and the <code>optim()</code> BFGS method to find in vivo absorption profile through the convolution approach. The function works iteratively with the cumulative in vivo absorption profile optimization performed by the BFGS method in regard to the convolved PK profile and its proximity to the real known p.o. profile.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">NumDeconv(impulse.matrix,resp.matrix,dose_iv=NULL,dose_po=NULL, 
+	    deconv.timescale = NULL, explicit.interpolation = 20, 
+	    implicit.interpolation = 10, optim.maxit = 200)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>impulse.matrix</code></td>
+<td>
+
+<p>matrix of the PK profile after the drug intravenous (i.v.) administration 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>resp.matrix</code></td>
+<td>
+
+<p>PK profile after oral (p.o.) administration of the drug
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dose_iv</code></td>
+<td>
+
+<p>drug dose after i.v. administration; not obligatory but if provided must be in the same units like the dose p.o.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dose_po</code></td>
+<td>
+
+<p>drug dose after p.o. administration; not obligatory but if provided must be in the same units like the dose i.v.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deconv.timescale</code></td>
+<td>
+
+<p>a timescale of deconvolution defined either as a whole vector with specific timepoints <code>c(t1,t2,...tN)</code> or two-element vector containing only lower and upper boundery of the required prediction timescale <code>c(lower,upper)</code>; in the latter case system creates the time vector based on the parameter <code>explicit.interpolation</code>; if omitted it computes deconvolution timescale based on the impulse matrix
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>explicit.interpolation</code></td>
+<td>
+
+<p>deconvolution explicit interpolation parameter, namely number of the curve interpolation points used directly by the <code>optim()</code> method
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>implicit.interpolation</code></td>
+<td>
+
+<p>implicit interpolation  - a factor multiplying <code>explicit.interpolation</code> for better accuracy
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optim.maxit</code></td>
+<td>
+
+<p>maximum number of iterations used by <code>optim()</code> method
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This method is an empirical approach to the deconvolution method with minimum mechanistic assumptions. Yet the latter involve kinetics linearity when the doses of i.v. and p.o. are different, thus the i.v. profile is scaled by multiplication with the factor of <code>dose_po/dose_iv</code>. It is also important to know that large values of explicit and/or implicit accuracy lead to the long execution times. The recommended values are <code>explicit = 20</code> and <code>implicit = 10</code>, however this is only a rule of thumb used here. When looking for higher accuracy it is advisable to increase implicit interpolation prior to the explicit.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Three matrices are returned at the output of the function:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>$par </code></td>
+<td>
+<p>represents original timescale provided at the input</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>$par_explicit </code></td>
+<td>
+<p>provides deconvolution with the explicit interpolation</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>$par_implicit </code></td>
+<td>
+<p>provides deconvolution with the implicit interpolation</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Aleksander Mendyk and Sebastian Polak
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>RivivcA</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+require(Rivivc)
+require(graphics)
+
+#i.v. data
+data("impulse")
+#p.o. PK profile
+data("resp")
+#in vitro dissolution for correlation purposes
+data("input")
+
+#preparing data matrices
+input_mtx&lt;-as.matrix(input)
+impulse_mtx&lt;-as.matrix(impulse)
+resp_mtx&lt;-as.matrix(resp)
+
+#setting accuracy for both interpolation modes
+accur_explic&lt;-10
+accur_implic&lt;-5
+
+
+#for deconvolution
+result&lt;-NumDeconv(impulse_mtx,resp_mtx,explicit.interp=accur_explic,implicit.interp=accur_implic)
+
+
+print("Raw results")
+print(result$par)
+
+print("Explicit interpolation")
+print(result$par_explicit)
+
+
+print("Implicit interpolation")
+print(result$par_implicit)
+
+#let's compare the deconvolved curve with known input
+dev.new()
+plot(input_mtx)
+lines(result$par, type="l", col="blue")
+
+
+</code></pre>
+
+
+</div>

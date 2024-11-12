@@ -1,0 +1,92 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>do_base_split</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Apply basic split (for use in custom split functions)</h2>
+
+<h3>Description</h3>
+
+<p>This function is intended for use inside custom split functions. It applies the current split <em>as if it had no
+custom splitting function</em> so that those default splits can be further manipulated.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">do_base_split(spl, df, vals = NULL, labels = NULL, trim = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>spl</code></td>
+<td>
+<p>(<code>Split</code>)<br> a <code>Split</code> object defining a partitioning or analysis/tabulation of the data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>df</code></td>
+<td>
+<p>(<code>data.frame</code> or <code>tibble</code>)<br> dataset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vals</code></td>
+<td>
+<p>(<code>ANY</code>)<br> already calculated/known values of the split. Generally should be left as <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>labels</code></td>
+<td>
+<p>(<code>character</code>)<br> labels associated with <code>vals</code>. Should be <code>NULL</code> whenever <code>vals</code> is, which should
+almost always be the case.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trim</code></td>
+<td>
+<p>(<code>flag</code>)<br> whether groups corresponding to empty data subsets should be removed. Defaults to
+<code>FALSE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The result of the split being applied as if it had no custom split function. See custom_split_funs.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">uneven_splfun &lt;- function(df, spl, vals = NULL, labels = NULL, trim = FALSE) {
+  ret &lt;- do_base_split(spl, df, vals, labels, trim)
+  if (NROW(df) == 0) {
+    ret &lt;- lapply(ret, function(x) x[1])
+  }
+  ret
+}
+
+lyt &lt;- basic_table() %&gt;%
+  split_cols_by("ARM") %&gt;%
+  split_cols_by_multivar(c("USUBJID", "AESEQ", "BMRKR1"),
+    varlabels = c("N", "E", "BMR1"),
+    split_fun = uneven_splfun
+  ) %&gt;%
+  analyze_colvars(list(
+    USUBJID = function(x, ...) length(unique(x)),
+    AESEQ = max,
+    BMRKR1 = mean
+  ))
+
+tbl &lt;- build_table(lyt, subset(ex_adae, as.numeric(ARM) &lt;= 2))
+tbl
+
+</code></pre>
+
+
+</div>

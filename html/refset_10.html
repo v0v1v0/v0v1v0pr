@@ -1,0 +1,177 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>refset</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create a reference to a subset of an object</h2>
+
+<h3>Description</h3>
+
+<p>Create a refset - a reference to a subset of an object. 
+When the object changes, the
+contents of the refset change, and when the refset is changed, the object
+is changed too.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">refset(x, data, ..., drop = TRUE, dyn.idx = TRUE, read.only = FALSE,
+  eval.env = parent.frame(), assign.env = parent.frame())
+
+x %r% data
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>name of the refset to create, as a bare name or character string</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>the object to refer to</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>indices to subset with</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drop</code></td>
+<td>
+<p>passed to <code>Extract</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dyn.idx</code></td>
+<td>
+<p>update indices dynamically</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>read.only</code></td>
+<td>
+<p>create a read-only refset which throws an error if assigned
+to</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eval.env</code></td>
+<td>
+<p>environment in which <code>data</code> and indices will be evaluated</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>assign.env</code></td>
+<td>
+<p>environment in which the variable named by <code>x</code> will be created</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>There are two ways to call <code>refset</code>. The two-argument form, e.g.
+<code>refset(myref, mydata[rows,"column"])</code>, creates a reference to the 
+subset of <code>mydata</code> passed in the second argument. 
+</p>
+<p>The three-or-more argument form acts like the <code>subset</code> function:
+the indices in <code>...</code> are applied to <code>data</code>. If <code>data</code> is a
+data.frame, then the indices are interpreted within it, so you can refer to
+columns directly: <code>refset(myref, mydata, a&gt;1 &amp; b&lt;a,)</code>. Bare column names
+must be quoted, however.
+</p>
+<p>Empty arguments in <code>...</code> are allowed and are treated as indexing 
+the whole dimension, just as in <code>Extract</code>.
+</p>
+<p>By default, the indices in subset are updated dynamically. 
+For example, if you call <code>refset(myref, mydata, x &gt;= 3,)</code> and then
+set <code>mydata$x &lt;- 3</code>, the number of rows in <code>myref</code> will probably
+increase. To turn this behaviour off and make a reference to a "fixed" 
+subset of your object, use <code>dyn.idx=FALSE</code>.
+</p>
+<p><code>%r%</code> is an infix version of the two-argument form.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>refset</code> returns <code>NULL</code>, but the <code>x</code> argument 
+will be assigned to
+in the calling environment (or in <code>env</code>, if it is specified). 
+<code>x</code> will have an attribute <code>".refset."</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Refsets are implemented using <code>makeActiveBinding</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">dfr &lt;- data.frame(a=1:4, b=1:4)
+ss &lt;- dfr[1:2,]
+refset(rs, dfr[1:2,])
+dfr$a &lt;- 4:1
+ss # 1:2
+rs # 4:3
+
+# same:
+refset(rs, dfr, 1:2, )
+
+# same:
+rs %r% dfr[1:2,]
+
+vec &lt;- 1:10
+refset(middle, vec[4:6])
+vec[4:6] &lt;- NA
+middle 
+middle &lt;- 4:6 + 100
+vec
+
+# dynamic versus static indices:
+dfr &lt;- data.frame(a=rnorm(100), b=rnorm(100))
+refset(ss, dfr, a&gt;1,)
+refset(ss.static, dfr, a&gt;1,, dyn.idx=FALSE)
+nrow(ss) == nrow(ss.static)
+dfr$a &lt;- dfr$a + 2 * dfr$b
+
+
+precious.data &lt;- rnorm(100)
+refset(big, precious.data, precious.data&gt;1, read.only=TRUE)
+big
+## Not run: 
+big &lt;- big * 2 # throws an error
+
+## End(Not run)
+
+# Using refset with other functions:
+# dynamically updated calculated column
+dfr &lt;- data.frame(a=rnorm(10), b=rnorm(10))
+refset(rs, transform(dfr, x=a+2*b+rnorm(10)))
+rs
+rs # different
+
+# Non-readonly refset with other functions. Works but gives a warning:
+## Not run: 
+vec &lt;- 1:5
+refset(ssv, names(vec), read.only=FALSE)
+ssv &lt;- LETTERS[1:5]
+vec
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,253 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>niftyreg</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Two and three dimensional image registration</h2>
+
+<h3>Description</h3>
+
+<p>The <code>niftyreg</code> function performs linear or nonlinear registration for
+two and three dimensional images. 4D images may also be registered
+volumewise to a 3D image, or 3D images slicewise to a 2D image. This
+function is a common wrapper for <code>niftyreg.linear</code> and
+<code>niftyreg.nonlinear</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">niftyreg(source, target, scope = c("affine", "rigid", "nonlinear"),
+  init = NULL, sourceMask = NULL, targetMask = NULL, symmetric = TRUE,
+  interpolation = 3L, estimateOnly = FALSE, sequentialInit = FALSE,
+  internal = NA, precision = c("double", "single"),
+  threads = getOption("RNiftyReg.threads"), ...)
+
+## S3 method for class 'niftyreg'
+asNifti(x, ...)
+
+## S3 method for class 'niftyreg'
+as.array(x, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>source</code></td>
+<td>
+<p>The source image, an object of class <code>"nifti"</code> or
+<code>"internalImage"</code>, or a plain array, or a NIfTI-1 filename. Must have
+2, 3 or 4 dimensions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target</code></td>
+<td>
+<p>The target image, an object of class <code>"nifti"</code> or
+<code>"internalImage"</code>, or a plain array, or a NIfTI-1 filename. Must have
+2 or 3 dimensions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scope</code></td>
+<td>
+<p>A string describing the scope, or number of degrees of freedom
+(DOF), of the registration. The currently supported values are
+<code>"affine"</code> (12 DOF), <code>"rigid"</code> (6 DOF) or <code>"nonlinear"</code>
+(high DOF, with the exact number depending on the image sizes).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init</code></td>
+<td>
+<p>Transformation(s) to be used for initialisation, which may be
+<code>NULL</code>, for no initialisation, or an affine matrix or control point
+image (nonlinear only). For multiple registration, where the source image
+has one more dimension than the target, this may also be a list whose
+components are likewise <code>NULL</code> or a suitable initial transform.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sourceMask</code></td>
+<td>
+<p>An optional mask image in source space, whose nonzero
+region will be taken as the region of interest for the registration.
+Ignored when <code>symmetric</code> is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>targetMask</code></td>
+<td>
+<p>An optional mask image in target space, whose nonzero
+region will be taken as the region of interest for the registration.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>symmetric</code></td>
+<td>
+<p>Logical value. Should forward and reverse transformations
+be estimated simultaneously?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interpolation</code></td>
+<td>
+<p>A single integer specifying the type of interpolation
+to be applied to the final resampled image. May be 0 (nearest neighbour),
+1 (trilinear) or 3 (cubic spline). No other values are valid.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estimateOnly</code></td>
+<td>
+<p>Logical value: if <code>TRUE</code>, transformations will be
+estimated, but images will not be resampled.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sequentialInit</code></td>
+<td>
+<p>If <code>TRUE</code> and <code>source</code> has higher
+dimensionality than <code>target</code>, transformations which are not
+explicitly initialised will begin from the result of the previous
+registration.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>internal</code></td>
+<td>
+<p>If <code>NA</code>, the default, the final resampled image will be
+returned as a standard R array, but control point maps will be objects of
+class <code>"internalImage"</code>, containing only basic metadata and a C-level
+pointer to the full image. (See also <code>readNifti</code>.) If
+<code>TRUE</code>, all image-type objects in the result will be internal images;
+if <code>FALSE</code>, they will all be R arrays. The default is fine for most
+purposes, but using <code>TRUE</code> may save memory, while using <code>FALSE</code>
+can be necessary if there is a chance that external pointers will be
+invalidated, for example when returning from worker threads.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>precision</code></td>
+<td>
+<p>Working precision for the registration. Using single-
+precision may be desirable to save memory when coregistering large images.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threads</code></td>
+<td>
+<p>For OpenMP-capable builds of the package, the maximum number
+of threads to use.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments to <code>niftyreg.linear</code> or
+<code>niftyreg.nonlinear</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A <code>"niftyreg"</code> object.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list of class <code>"niftyreg"</code> with components:
+</p>
+
+<dl>
+<dt>image</dt>
+<dd>
+<p>An array or internal image representing the registered and
+resampled <code>source</code> image in the space of the <code>target</code> image.
+This element is <code>NULL</code> if the <code>estimateOnly</code> parameter is
+<code>TRUE</code>.</p>
+</dd>
+<dt>forwardTransforms</dt>
+<dd>
+<p>A list of (linear or nonlinear) transformations
+from source to target space.</p>
+</dd>
+<dt>reverseTransforms</dt>
+<dd>
+<p>A list of (linear or nonlinear) transformations
+from target to source space.</p>
+</dd>
+<dt>iterations</dt>
+<dd>
+<p>A list of integer vectors, giving the number of
+iterations completed at each “level” of the algorithm. Note that for
+the first level of the linear algorithm specifically, twice the
+specified number of iterations is allowed.</p>
+</dd>
+<dt>source</dt>
+<dd>
+<p>An internal representation of the source image for each
+registration.</p>
+</dd>
+<dt>target</dt>
+<dd>
+<p>An internal representation of the target image.</p>
+</dd>
+</dl>
+<p>The <code>as.array</code> method for this class returns the <code>image</code>
+element.
+</p>
+
+
+<h3>Note</h3>
+
+<p>If substantial parts of the target image are zero-valued, for example
+because the target image has been brain-extracted, it can be useful to
+pass it as a target mask as well as the target image, viz.
+<code>niftyreg(source, target, targetMask=target)</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Jon Clayden &lt;code@clayden.org&gt;
+</p>
+
+
+<h3>References</h3>
+
+<p>Please see <code>niftyreg.linear</code> or
+<code>niftyreg.nonlinear</code> for references relating to each type of
+registration.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>niftyreg.linear</code> and <code>niftyreg.nonlinear</code>,
+which do most of the work. Also, <code>forward</code> and
+<code>reverse</code> to extract transformations, and
+<code>applyTransform</code> to apply them to new images or points.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+source &lt;- readNifti(system.file("extdata", "epi_t2.nii.gz",
+  package="RNiftyReg"))
+target &lt;- readNifti(system.file("extdata", "flash_t1.nii.gz",
+  package="RNiftyReg"))
+
+result &lt;- niftyreg(source, target, scope="affine")
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

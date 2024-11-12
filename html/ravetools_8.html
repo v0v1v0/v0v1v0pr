@@ -1,0 +1,233 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>baseline_array</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate Contrasts of Arrays in Different Methods</h2>
+
+<h3>Description</h3>
+
+<p>Provides five methods to baseline an array and calculate
+contrast.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">baseline_array(x, along_dim, unit_dims = seq_along(dim(x))[-along_dim], ...)
+
+## S3 method for class 'array'
+baseline_array(
+  x,
+  along_dim,
+  unit_dims = seq_along(dim(x))[-along_dim],
+  method = c("percentage", "sqrt_percentage", "decibel", "zscore", "sqrt_zscore",
+    "subtract_mean"),
+  baseline_indexpoints = NULL,
+  baseline_subarray = NULL,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>array (tensor) to calculate contrast</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>along_dim</code></td>
+<td>
+<p>integer range from 1 to the maximum dimension of <code>x</code>.
+baseline along this dimension, this is usually the time dimension.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>unit_dims</code></td>
+<td>
+<p>integer vector, baseline unit: see Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>passed to other methods</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>character, baseline method options are:
+<code>"percentage"</code>, <code>"sqrt_percentage"</code>, <code>"decibel"</code>,
+<code>"zscore"</code>, and <code>"sqrt_zscore"</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>baseline_indexpoints</code></td>
+<td>
+<p>integer vector, which index points are counted
+into baseline window? Each index ranges from 1 to <code>dim(x)[[along_dim]]</code>.
+See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>baseline_subarray</code></td>
+<td>
+<p>sub-arrays that should be used to calculate
+baseline; default is <code>NULL</code> (automatically determined by
+<code>baseline_indexpoints</code>).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Consider a scenario where we want to baseline a bunch of signals recorded
+from different locations. For each location, we record <code>n</code> sessions.
+For each session, the signal is further decomposed into frequency-time
+domain. In this case, we have the input <code>x</code> in the following form:
+</p>
+<p style="text-align: center;"><code class="reqn">session x frequency x time x location</code>
+</p>
+
+<p>Now we want to calibrate signals for each session, frequency and location
+using the first 100 time points as baseline points, then the code will be
+</p>
+<p style="text-align: center;"><code class="reqn">baseline_array(x, along_dim=3, baseline_window=1:100, unit_dims=c(1,2,4))</code>
+</p>
+
+<p><code>along_dim=3</code> is dimension of time, in this case, it's the
+third dimension of <code>x</code>. <code>baseline_indexpoints=1:100</code>, meaning
+the first 100 time points are used to calculate baseline.
+<code>unit_dims</code> defines the unit signal. Its value <code>c(1,2,4)</code>
+means the unit signal is per session (first dimension), per frequency
+(second) and per location (fourth).
+</p>
+<p>In some other cases, we might want to calculate baseline across frequencies
+then the unit signal is <code class="reqn">frequency x time</code>, i.e. signals that share the
+same session and location also share the same baseline. In this case,
+we assign <code>unit_dims=c(1,4)</code>.
+</p>
+<p>There are five baseline methods. They fit for different types of data.
+Denote <code class="reqn">z</code> is an unit signal, <code class="reqn">z_0</code> is its baseline slice. Then
+these baseline methods are:
+</p>
+
+<dl>
+<dt><code>"percentage"</code></dt>
+<dd>
+<p style="text-align: center;"><code class="reqn">
+  \frac{z - \bar{z_{0}}}{\bar{z_{0}}} \times 100\%
+</code>
+</p>
+
+</dd>
+<dt><code>"sqrt_percentage"</code></dt>
+<dd>
+<p style="text-align: center;"><code class="reqn">
+  \frac{\sqrt{z} - \bar{\sqrt{z_{0}}}}{\bar{\sqrt{z_{0}}}} \times 100\%
+</code>
+</p>
+
+</dd>
+<dt><code>"decibel"</code></dt>
+<dd>
+<p style="text-align: center;"><code class="reqn">
+  10 \times ( \log_{10}(z) - \bar{\log_{10}(z_{0})} )
+</code>
+</p>
+
+</dd>
+<dt><code>"zscore"</code></dt>
+<dd>
+<p style="text-align: center;"><code class="reqn">
+  \frac{z-\bar{z_{0}}}{sd(z_{0})}
+</code>
+</p>
+
+</dd>
+<dt><code>"sqrt_zscore"</code></dt>
+<dd>
+<p style="text-align: center;"><code class="reqn">
+  \frac{\sqrt{z}-\bar{\sqrt{z_{0}}}}{sd(\sqrt{z_{0}})}
+</code>
+</p>
+
+</dd>
+</dl>
+<h3>Value</h3>
+
+<p>Contrast array with the same dimension as <code>x</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Set ncores = 2 to comply to CRAN policy. Please don't run this line
+ravetools_threads(n_threads = 2L)
+
+
+library(ravetools)
+set.seed(1)
+
+# Generate sample data
+dims = c(10,20,30,2)
+x = array(rnorm(prod(dims))^2, dims)
+
+# Set baseline window to be arbitrary 10 timepoints
+baseline_window = sample(30, 10)
+
+# ----- baseline percentage change ------
+
+# Using base functions
+re1 &lt;- aperm(apply(x, c(1,2,4), function(y){
+  m &lt;- mean(y[baseline_window])
+  (y/m - 1) * 100
+}), c(2,3,1,4))
+
+# Using ravetools
+re2 &lt;- baseline_array(x, 3, c(1,2,4),
+                      baseline_indexpoints = baseline_window,
+                      method = 'percentage')
+
+# Check different, should be very tiny (double precisions)
+range(re2 - re1)
+
+
+# Check speed for large dataset, might take a while to profile
+
+ravetools_threads(n_threads = -1)
+
+dims &lt;- c(200,20,300,2)
+x &lt;- array(rnorm(prod(dims))^2, dims)
+# Set baseline window to be arbitrary 10 timepoints
+baseline_window &lt;- seq_len(100)
+f1 &lt;- function(){
+  aperm(apply(x, c(1,2,4), function(y){
+    m &lt;- mean(y[baseline_window])
+    (y/m - 1) * 100
+  }), c(2,3,1,4))
+}
+f2 &lt;- function(){
+  # equivalent as bl = x[,,baseline_window, ]
+  #
+  baseline_array(x, along_dim = 3,
+                 baseline_indexpoints = baseline_window,
+                 unit_dims = c(1,2,4), method = 'percentage')
+}
+range(f1() - f2())
+microbenchmark::microbenchmark(f1(), f2(), times = 10L)
+
+
+
+
+
+</code></pre>
+
+
+</div>

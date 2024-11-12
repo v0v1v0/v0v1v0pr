@@ -1,0 +1,174 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rmap_save_map</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Save maps</h2>
+
+<h3>Description</h3>
+
+<p><code>Maps</code> are aggregate summaries computed for each canvas cell.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rmap_save_map(con, fun, src, v, subset, dst, ...)
+
+## S4 method for signature 
+## 'rmapConnection,missing,missing,missing,missing,missing'
+rmap_save_map(con)
+
+## S4 method for signature 
+## 'rmapConnection,missing,missing,missing,character,character'
+rmap_save_map(con, subset, dst)
+
+## S4 method for signature 
+## 'rmapConnection,character,character,character,missing,character'
+rmap_save_map(con, fun, src, v, dst)
+
+## S4 method for signature 
+## 'rmapConnection,character,character,character,character,character'
+rmap_save_map(con, fun, src, v, subset, dst)
+
+## S4 method for signature 
+## 'rmapConnection,‘function',character,character,missing,character’
+rmap_save_map(con, fun, src, v, subset, dst, ...)
+
+## S4 method for signature 
+## 'rmapConnection,‘function',character,character,character,character’
+rmap_save_map(con, fun, src, v, subset, dst, ...)
+
+## S4 method for signature 
+## 'rmapConnection,‘function',character,ANY,missing,character’
+rmap_save_map(con, fun, src, v, subset, dst, ...)
+
+## S4 method for signature 
+## 'rmapConnection,‘function',character,ANY,character,character’
+rmap_save_map(con, fun, src, v, subset, dst, ...)
+
+## S4 method for signature 
+## 'rmapConnection,character,Raster,missing,missing,character'
+rmap_save_map(con, fun, src, v, subset, dst, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>con</code></td>
+<td>
+<p>a rangeMapper connection made with  <code>rmap_connect()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fun</code></td>
+<td>
+<p>the name of the function to save, either an SQLite or an R function.
+see Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>src</code></td>
+<td>
+<p>the name of the source table previously imported by <code>rmap_add_bio()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>v</code></td>
+<td>
+<p>the variable to map or a function taking several variables as arguments.
+and returning one or several values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subset</code></td>
+<td>
+<p>the name of a subset table. see rmap_save_subset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dst</code></td>
+<td>
+<p>the name of the new map table.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>arguments passed to fun.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>rmap_save_map</code> makes maps based on data within the project or based on external raster objects.
+Aggregate functions can be:
+</p>
+
+<ul>
+<li>
+<p> internal <code>SQL</code> aggregate functions: <code style="white-space: pre;">⁠'avg', 'count', 'max', 'min', 'sum', 'stdev',    'variance', 'mode', 'median', 'lower_quartile', 'upper_quartile', 'group_concat'⁠</code>.
+</p>
+</li>
+<li> <p><code>R</code> functions taking one argument and returning one value.
+</p>
+</li>
+<li>
+<p> arbitrary statistical models applied on <code>bio</code> tables.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>TRUE when a table or a database view is written to the project file, FALSE otherwise.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">require(rangeMapper)
+require(data.table)
+con = rmap_connect()
+wrens = read_wrens()
+rmap_add_ranges(con, x = wrens, ID = 'sci_name')
+rmap_prepare(con, 'hex', cellsize=500)
+rmap_save_map(con) # default is a species_richness map.
+
+rmap_add_bio(con, wrens, 'sci_name')
+rmap_save_map(con, fun='avg', src='wrens',v='body_mass', dst='avg_bodymass')
+
+rmap_save_subset(con,dst ='ss1', species_richness = 'species_richness &gt; 10')
+rmap_save_map(con,subset = 'ss1', dst ='sr2')
+rmap_save_map(con, fun='avg', src='wrens',v='body_mass', 
+ subset='ss1', dst='avg_bodymass_high_SR')
+
+rmap_save_map(con, fun= mean, na.rm = TRUE, src='wrens',
+ v='body_mass', dst='mean_bodymass')
+
+Median = function(x) median(x,na.rm = TRUE)
+
+rmap_save_map(con, fun = Median, src='wrens',
+ v='body_mass', dst='median_bodymass')
+
+rmap_save_map(con, fun= mean, na.rm = TRUE, src='wrens',v='body_mass', 
+ subset='ss1', dst='mean_bodymass_high_SR')
+
+linmod = function(x) {
+  lm(clutch_size ~ log(female_tarsus), x) %&gt;% 
+  summary %&gt;% coefficients %&gt;% data.table %&gt;% .[-1] }
+rmap_save_map(con, fun= linmod, src='wrens', dst='slope_clutch_size')
+
+data(dem)
+rmap_save_map(con, fun= 'mean', src= dem ,  dst='dem', progress = FALSE)
+
+x = rmap_to_sf(con)
+
+dbDisconnect(con)
+
+</code></pre>
+
+
+</div>

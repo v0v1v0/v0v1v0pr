@@ -1,0 +1,226 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fit_modls</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fit one set of concentration-response data using types of models</h2>
+
+<h3>Description</h3>
+
+<p>A convenient function to fit data using available models
+and to sort the outcomes by AIC values.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fit_modls(Conc, Resp, Mask = NULL, modls, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Conc</code></td>
+<td>
+<p>A vector of log10 concentrations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Resp</code></td>
+<td>
+<p>A vector of numeric responses.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Mask</code></td>
+<td>
+<p>Default = NULL or a vector of 1 or 0.
+1 is for masking the respective response.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>modls</code></td>
+<td>
+<p>The model types for the fitting.
+Currently available models are 3-parameter Hill model (hill), constant model (cnst),
+and Curve Class2 4-parameter Hill model (cc2).
+Multiple values are only allowed for the hill and cnst combination.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>The named input configurations for replacing the default configurations.
+The input configuration needs to add model type as the prefix.
+For example, hill_pdir = -1 will set the Hill fit only to the decreasing direction.
+Another common parameter for cc2 model is cc2_classSD.
+The default value of cc2_classSD is 5%, which might be too small for noiser endpoints.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The backbone of fit method using hill (3-parameter Hill model) and cnst (constant model) is based on the implementation from tcpl package.
+But the lower bound of ga is lower by log10(1/100).
+The cc2 model is the 4-parameter Hill model from Curve Class2.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list of components named by the models.
+The models are sorted by their AIC values (when multiple models are used).
+Thus, the first component has the best fit.
+</p>
+
+
+<h4>hill</h4>
+
+<p>Fit output from Hill equation
+</p>
+
+<ul>
+<li>
+<p> modl: model type, i.e., hill
+</p>
+</li>
+<li>
+<p> fit: fittable, 1 (yes) or 0 (no)
+</p>
+</li>
+<li>
+<p> aic: AIC value
+</p>
+</li>
+<li>
+<p> tp: model top, &lt;0 means the fit for decreasing direction is preferred
+</p>
+</li>
+<li>
+<p> ga: ac50 (log10 scale)
+</p>
+</li>
+<li>
+<p> gw: Hill coefficient
+</p>
+</li>
+<li>
+<p> er: scale term for Student's t distribution
+</p>
+</li>
+</ul>
+<h4>cnst</h4>
+
+<p>Fit output from constant model
+</p>
+
+<ul>
+<li>
+<p> modl: model type, i.e., cnst
+</p>
+</li>
+<li>
+<p> fit: fittable?, 1 or 0
+</p>
+</li>
+<li>
+<p> aic: AIC value
+</p>
+</li>
+<li>
+<p> er: scale term
+</p>
+</li>
+</ul>
+<h4>cc2</h4>
+
+<p>Fit output from Curve Class 2 model
+</p>
+
+<ul>
+<li>
+<p> modl: model type, i.e., cc2
+</p>
+</li>
+<li>
+<p> fit: fittable, 1 (yes) or 0 (no)
+</p>
+</li>
+<li>
+<p> aic: NA, it is not calculated for this model. The parameter is kept for compatability.
+</p>
+</li>
+<li>
+<p> cc2: curve class2, default = 4
+</p>
+</li>
+<li>
+<p> tp: model top, &lt;0 means the fit for decreasing direction is preferred
+</p>
+</li>
+<li>
+<p> ga: ac50 (log10 scale)
+</p>
+</li>
+<li>
+<p> gw: Hill coefficient
+</p>
+</li>
+<li>
+<p> bt: model bottom
+</p>
+</li>
+<li>
+<p> pvalue: from F-test, for fit quality
+</p>
+</li>
+<li>
+<p> r2: fitness
+</p>
+</li>
+<li>
+<p> masks: a string to indicate at which positions of response are masked
+</p>
+</li>
+<li>
+<p> nmasks: number of masked responses
+</p>
+</li>
+</ul>
+<h3>See Also</h3>
+
+<p><code>tcpl::tcplObjHill()</code>, <code>tcpl::tcplObjCnst()</code>, <code>get_hill_fit_config()</code>
+<code>fit_cc2_modl()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+concd &lt;- c(-9, -8, -7, -6, -5, -4)
+respd &lt;- c(0, 2, 30, 40, 50, 20)
+maskd &lt;- c(0, 0, 0, 0, 0, 1)
+
+# run hill only
+fit_modls(concd, respd, modls = "hill")
+
+# run hill only + increasing direction only
+fit_modls(concd, respd, modls = "hill", hill_pdir = 1)
+
+# run cc2 only + change of classSD
+fit_modls(concd, respd, modls = "cc2", cc2_classSD = 10)
+
+# run hill + cnst
+fit_modls(concd, respd, modls = c("hill", "cnst"))
+
+# run with mask at the highest concentration
+fit_modls(concd, respd, maskd, modls = "hill")
+
+
+</code></pre>
+
+
+</div>

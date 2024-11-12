@@ -1,0 +1,153 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>robustbetareg.control</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Auxiliary for Controlling robustbetareg Fitting</h2>
+
+<h3>Description</h3>
+
+<p>Several parameters that control fitting of robust beta regression models using
+<code>robustbetareg.</code>
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">robustbetareg.control(
+  start = NULL,
+  alpha.optimal = TRUE,
+  tolerance = 0.001,
+  maxit = 5000,
+  L = 0.02,
+  M = 3,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>start</code></td>
+<td>
+<p>an optional vector with starting values for the parameter estimates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha.optimal</code></td>
+<td>
+<p>a logical value. If <code>TRUE</code> the tuning constant will
+be select via the data-driven algorithm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tolerance</code></td>
+<td>
+<p>numeric tolerance for convergence.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxit</code></td>
+<td>
+<p>argument passed to <code>optim</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>L</code></td>
+<td>
+<p>numeric specifying the threshold for the data-driven algorithm.
+Default is <code>L = 0.02</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>M</code></td>
+<td>
+<p>integer specifying the number of grid spacing for the data-driven
+algorithm. Default is <code>M = 3</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>currently not used.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The <code>robustbetareg.control</code> controls the fitting process of
+the robust estimation in beta regression via the LMDPDE, LSMLE, MDPDE, and
+SMLE. The arguments <code>L</code> and <code>M</code> are passed to the data-driven
+algorithm for selecting the optimum alpha value; details can be found in
+Ribeiro and Ferrari (2022). Starting values for the parameters associated
+to the mean and precision submodels may be supplied via <code>start</code>. <br>
+We do not recommend changing the arguments passed to the data-driven algorithm.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with components named as the arguments.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Yuri S. Maluf (<a href="mailto:yurimaluf@gmail.com">yurimaluf@gmail.com</a>),
+Francisco F. Queiroz (<a href="mailto:ffelipeq@outlook.com">ffelipeq@outlook.com</a>) and Silvia L. P. Ferrari.
+</p>
+
+
+<h3>References</h3>
+
+<p>Maluf, Y.S., Ferrari, S.L.P., and Queiroz, F.F. (2022). Robust
+beta regression through the logit transformation. <em>arXiv</em>:2209.11315.<br><br>
+Ribeiro, K.A.T. and Ferrari, S.L.P.  (2022). Robust estimation in beta regression
+via maximum Lq-likelihood. <em>Statistical Papers</em>. DOI: 10.1007/s00362-022-01320-0. <br><br></p>
+
+
+<h3>See Also</h3>
+
+<p><code>robustbetareg</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+data("Firm")
+
+# Using a robust start value for the parameters associated with the
+# mean submodel
+# using the robustbase package
+# robust regression to obtain a starting value for beta
+fit_lm_Rob &lt;- robustbase::lmrob(FIRMCOST ~ SIZELOG + INDCOST,
+                                data = Firm)
+initials_beta_rob &lt;-  as.numeric(coef(fit_lm_Rob))
+etarob &lt;- model.matrix(fit_lm_Rob)%*%initials_beta_rob
+muhat_Rob &lt;- set.link(link.mu = "logit",
+                      link.phi = "log")$linkfun.mu$inv.link(etarob)
+T_1_Rob &lt;- 1/set.link(link.mu = "logit",
+                      link.phi = "log")$linkfun.mu$d.linkfun(muhat_Rob)
+#estimate of variance of y based on robustbase package
+sigma2hat_Rob &lt;- ((fit_lm_Rob$scale^2)*(T_1_Rob^2))
+#phi estimate from robust method
+phihat_Rob &lt;- mean((muhat_Rob*(1-muhat_Rob))/sigma2hat_Rob)
+gama1hat_rob &lt;- log(phihat_Rob)
+#gamma estimates from robustbase package
+initials_gama_rob &lt;-  as.numeric(gama1hat_rob)
+#robust starting values for beta and gamma
+thetaStart &lt;- c(initials_beta_rob, initials_gama_rob)
+
+fit_LSMLE &lt;- robustbetareg(FIRMCOST ~ SIZELOG + INDCOST,
+                           data = Firm,
+                           type = "LSMLE", link.phi = "log",
+                           control = robustbetareg.control(start = thetaStart))
+
+</code></pre>
+
+
+</div>

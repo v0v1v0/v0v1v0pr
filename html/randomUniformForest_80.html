@@ -1,0 +1,361 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>importance.randomUniformForest</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Variable Importance for random Uniform Forests</h2>
+
+<h3>Description</h3>
+
+<p>Compute object that leads to a full analysis of features (importance, dependency, interactions, selection, ...).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">	## S3 method for class 'randomUniformForest'
+importance(object,
+	maxVar = 30,
+	maxInteractions = 3,
+	Xtest = NULL,
+	predObject = NULL,
+	...)
+	## S3 method for class 'importance'
+plot(x,
+	nGlobalFeatures = 30,
+	nLocalFeatures = 5,
+	Xtest =	NULL,
+	whichFeature = NULL,
+	whichOrder = if (ncol(x$globalVariableImportance) &gt; 5) 
+	{  
+		if (nrow(x$localVariableImportance$obsVariableImportance) &gt; 1000) 
+		"first" else "all" 
+	} 
+	else
+	{  if (nrow(x$localVariableImportance) &gt; 1000) "first" else "all" },
+    outliersFilter = FALSE,
+	formulaInput = NULL,
+	border = NA,
+	...)
+	## S3 method for class 'importance'
+print(x, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x, object</code></td>
+<td>
+
+<p>an object of class randomUniformForest (for the 'print' and  'plot' method, an object of class 'Importance').
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nGlobalFeatures, nLocalFeatures</code></td>
+<td>
+<p> for the 'plot' method, number of global and local features to show.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxVar</code></td>
+<td>
+
+<p>maximum  number of features to display.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxInteractions </code></td>
+<td>
+
+<p>maximum  order of interactions. Default value is 3, meaning function will compute interactions for each variable at first order (current variable is supposed to be the most important), second order (current variable is supposed to be the second most important, but the first is unknown) and third order (current variable is supposed to be the third most important, but the first and the second are unknown) and so on, depending on the value of 'maxInteractions'.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Xtest</code></td>
+<td>
+
+<p>current matrix used to compute 'object' model. Can be either training or test matrix. If it is the latter, please read below.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>whichFeature</code></td>
+<td>
+
+<p>for the 'plot' method, the feature (by its name or position) that one need to be assessed. It will be used in partial dependence. Useful only if the feature is not an important one for the model.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>whichOrder</code></td>
+<td>
+ 
+<p>for the 'plot' method, the order(s) at which some of the computation, e.g. partial dependence, has to be done. At "first" order, computation is done considering only each feature as the most important. At "second", the feature is considered at the second most important (and the first is unknown). At "all", each feature is assessed considering it is the most important, then the second most (and the first is unknown), then the third most (and the first and the second are unknown), and so on until 'maxInteractions' value is reached. Then one has to first look to this latter value to know at which maximum order a feature will be assessed. Influence of the variable will be a combination of all orders of local importance, depending on the level of interactions specified by 'maxInteractions'.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outliersFilter</code></td>
+<td>
+
+<p>for the 'plot' method, do outliers of a feature need to be removed ? if TRUE, observations above 0.95 quantile and below 0.05 quantile will be removed.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formulaInput</code></td>
+<td>
+
+<p>for the 'plot' method, if one uses formula, it has to be copy there in order to match figures. Not recommended, since formula can lead to unexpected effects.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>border</code></td>
+<td>
+
+<p>for the 'plot' method, if positive value, draw borders around barplots.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predObject</code></td>
+<td>
+
+<p>if 'object' was computed without an evaluation of test data, one must provide test data in 'Xtest' option and a full prediction object (calling option type = "all", when using predict() function. See examples).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>others options currently not used.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>'Importance' retrieves (or computes) global importance from 'object' which is "variable importance from the model and for training data based on most predictive (by score) and discriminant(by class and class.frequency) features". 
+</p>
+<p>Then it computes, either for train or test data and for at least two orders :<br>
+1 - 'interactions', which show a kind of dependence between two features, for all pairs of variables. Interactions shows links between variables by using informations at the leaf level. Most important (highly predictive) features usually have more interactions, but a low predictive feature can have many interactions that provide insights about the big picture. Interactions are currently computed and plotted at the first and second order.<br></p>
+<p>2 - 'overall interactions' that leads to "variable importance based on interaction". It shows how response values can be explained, using more than just predictive features and it is an aggregated function of interactions.<br></p>
+<p>3 - 'partial dependence', that leads to show how response values are evolving according to one feature, and knowing the distribution of all others. See <code>partialDependenceOverResponses</code>.<br></p>
+<p>4 - 'variable importance over labels' (in classification), that shows, on the same figure, how each important feature is matching labels from the point of view of the model. More precisely, this object acts a conditional importance. First a label is selected. Then importance is assessed conditionally. Hence features take influence, once the class is known (or predicted), meaning that there possibly exists more influential features (that lead to choose a class rather than another). In regression, the plotted object is called 'Dependence on most important predictors'.<br></p>
+<p>5 - 'Importance( )' function allows a deeper analysis, depending on options and functions like <code>partialDependenceBetweenPredictors</code>, <code>partialImportance</code> or <code>clusterAnalysis</code>.<br></p>
+<p>6 - To neutralize bias induced by correlated variables, it is strongly recommended :<br>
+a - to use <code>randomUniformForest</code> with 'mtry = 1', e.g. as a purely random forest (nodes are built and chosen completely at random)<br>
+b - then, to compute importance and use the resulted object as a benchmark of Variable Importance. If features have influence in the purely random case, then they also will have one in the weaker random case... The reciprocal is not valid.<br></p>
+<p>Summarized, importance object tells (or leads to, using others functions) "which, how, when and where" features affect the response and interact each other. Note that importance strongly depends of hyper-parameters of the model (mtry, depth, nodesize, ...) and one has to take care. Categorical features are treated like numeric ones (default option) except if 'categorical' option is specified in <code>randomUniformForest</code>. 'categorical' option leads to a better assessment but might hurt accuracy. One possible reason is that the cross-entropy function (optimization criterion) would be more efficient for variables with high variability.
+</p>
+
+
+<h3>Value</h3>
+
+<p>an object of class importance.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Please note that 'plot' method of importance object will produce many plots (5) and a prompt
+entering a loop which will wait user input to plot one by one partial dependencies for most
+important features. One has to first tile windows in R, to get the big picture.
+There is currently not a generic way (at least, I did not find it) to automatically tile windows in R 
+in all platforms.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Saip  CISS <a href="mailto:saip.ciss@wanadoo.fr">saip.ciss@wanadoo.fr</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>Ciss, S., 2015b. Variable Importance in Random Uniform Forests. hal-1104751
+https://hal.archives-ouvertes.fr/hal-01104751
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>partialDependenceOverResponses</code>, <code>partialDependenceBetweenPredictors</code>,
+<code>partialImportance</code>,  <code>clusterAnalysis</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## not run 
+## 1 - Synthetic data:
+## generate data
+
+# set.seed(2014)
+# n = 1000; p = 100 
+# X = simulationData(n, p)
+# X = fillVariablesNames(X)
+# epsilon1 = runif(n,-1,1); epsilon2 = runif(n,-1,1)
+# rule = 2*(X[,1]*X[,2] + X[,3]*X[,4]) + epsilon1*X[,5] + epsilon2*X[,6]
+# Y = as.factor(ifelse(rule &gt; mean(rule), "+","-"))
+
+## X1, X2, X3, X4 are the most important ones since they generate the labels
+## Other ones are noise.
+
+## run model
+# synth.model.ruf = randomUniformForest(X, as.factor(Y))
+
+## a - summary of the model provides (by default) global variable importance 
+## (most predictive and most discriminant ones (in the case of classification)
+# summary(synth.model.ruf)
+
+## b - get details of importance : local variable importance and partial dependencies
+## we choose 'maxInteractions' between covariates to be equal to 2
+# synth.importance.ruf = importance(synth.model.ruf, Xtest = X, maxInteractions = 2)
+
+## show interactions, variable importance based on interactions and variable importance
+## conditionally to each label
+# synth.importance.ruf
+
+## c - plot details : 
+## - adds partial dependence, showing for which values of a variable, the class is changing,
+## - displays interactions, showing how influential variables are covering all the possible
+## interactions
+## - displays variable importance based on interactions, showing their relative influence 
+## - displays variable importance over labels, showing how each variable is influencing a class
+## and how it is discriminant in the separation between two or more classes.
+
+# plot(synth.importance.ruf, Xtest = X, nLocalFeatures = 6)
+
+## d - complete analysis with other tools, for example clusterAnalysis() :
+## synth.Analysis.ruf = clusterAnalysis(synth.importance.ruf, X, components = 3, 
+## clusteredObject = synth.model.ruf, OOB = TRUE)
+
+## or clusteringObservations() : table and plot
+# synth.Analysis2.ruf = clusteringObservations(synth.model.ruf, X, OOB = TRUE,  
+# importanceObject = synth.importance.ruf) 
+
+## 2 - Importance for Classification and Regression (with formula)
+####  Classification
+
+# data(iris)
+# iris.ruf &lt;- randomUniformForest(Species ~ ., data = iris, threads = 1)
+
+## global importance : 
+# summary(iris.ruf)
+
+# iris.ruf.importance &lt;- importance(iris.ruf, Xtest = iris, threads = 1)
+
+## get importance summary
+# iris.ruf.importance
+
+## visualizing all in one
+# plot(iris.ruf.importance, Xtest = iris)
+
+#### Regression
+
+# data(airquality)
+# airquality.data = airquality
+
+## impute NA
+# airquality.NAimputed &lt;- fillNA2.randomUniformForest(airquality.data)
+
+## compute model
+# ozone.ruf &lt;- randomUniformForest(Ozone ~ ., data = airquality.NAimputed, threads = 1)
+
+# ozone.ruf
+# summary(ozone.ruf)
+# ozone.ruf.importance &lt;- importance(ozone.ruf, Xtest = airquality.NAimputed, threads = 1)
+
+## visualization: in case of formula, 'formulaInput' is needed for the 'plot' method
+# plot(ozone.ruf.importance, Xtest = airquality.NAimputed, formulaInput = ozone.ruf$formula)
+
+## 3 - Importance for Classification and Regression without formula (more usual and recommended) 
+
+#### Classification: "car evaluation" data 
+## (http://archive.ics.uci.edu/ml/datasets/Car+Evaluation)
+
+# data(carEvaluation)
+# car.data &lt;- carEvaluation
+# n &lt;- nrow(car.data)
+# p &lt;- ncol(car.data)
+
+# trainTestIdx &lt;- cut(sample(1:n, n), 2, labels= FALSE)
+
+## training examples
+# car.data.train &lt;- car.data[trainTestIdx == 1, -p]
+# car.class.train &lt;- as.factor(car.data[trainTestIdx == 1, p])
+
+## test data
+# car.data.test &lt;- car.data[trainTestIdx == 2, -p]
+# car.class.test &lt;- as.factor(car.data[trainTestIdx == 2, p])
+
+## compute model : train then test in the same function
+## option 'categorical' may be used for categorical variables and should be consistent
+## with Variable Importance but may lead to less accuracy.
+
+# car.ruf &lt;- randomUniformForest(car.data.train, car.class.train,
+# xtest = car.data.test, ytest = car.class.test, categorical = "all")
+# car.ruf
+
+## global importance: note that 'safety' does not appear to be an important feature 
+## in the barplot but in the table, it is the most important of unacceptable (unacc) cars.
+# summary(car.ruf)
+
+## interactions and local importance tell most of the story...
+# car.ruf.importance &lt;- importance(car.ruf, Xtest = car.data.train, threads = 1)
+
+## ...that can be used to explain train data
+# plot(car.ruf.importance, Xtest = car.data.train)
+
+## or explain test data
+# car.ruf.importance.test &lt;- importance(car.ruf, Xtest = car.data.test, threads = 1)
+# plot(car.ruf.importance.test, Xtest = car.data.test)
+
+#### Regression : "Concrete Compressive Strength" data
+## (http://archive.ics.uci.edu/ml/datasets/Concrete+Compressive+Strength)
+
+# data(ConcreteCompressiveStrength)
+# ConcreteCompressiveStrength.data = ConcreteCompressiveStrength
+
+# n &lt;- nrow(ConcreteCompressiveStrength.data)
+# p &lt;- ncol(ConcreteCompressiveStrength.data)
+
+# trainTestIdx &lt;- cut(sample(1:n, n), 2, labels= FALSE)
+
+## train examples
+# Concrete.data.train &lt;- ConcreteCompressiveStrength.data[trainTestIdx == 1, -p]
+# Concrete.responses.train &lt;- ConcreteCompressiveStrength.data[trainTestIdx == 1, p]
+
+## test data
+# Concrete.data.test &lt;- ConcreteCompressiveStrength.data[trainTestIdx == 2, -p]
+# Concrete.responses.test &lt;- ConcreteCompressiveStrength.data[trainTestIdx == 2, p]
+
+## model
+# Concrete.ruf &lt;- randomUniformForest(Concrete.data.train, Concrete.responses.train,
+# featureselectionrule = "L1", threads = 1)
+# Concrete.ruf
+
+## predictions : option ' type = "all" ' is needed to manually assess importance of a test set 
+# Concrete.ruf.pred &lt;- predict(Concrete.ruf, Concrete.data.test, type = "all")
+
+## more interactions
+# Concrete.ruf.importance &lt;- importance(Concrete.ruf, Xtest = Concrete.data.test,
+# maxInteractions = 6, predObject = Concrete.ruf.pred, threads = 1)
+
+## or more features to plot
+# plot(Concrete.ruf.importance, nLocalFeatures = 7, Xtest = Concrete.data.test)
+</code></pre>
+
+
+</div>

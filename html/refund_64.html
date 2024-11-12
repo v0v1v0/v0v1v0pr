@@ -1,0 +1,301 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>peer_old</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Functional Models with Structured Penalties</h2>
+
+<h3>Description</h3>
+
+<p>Implements functional model with structured penalties (Randolph et al.,
+2012) with scalar outcome and single functional predictor through mixed
+model equivalence.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">peer_old(
+  Y,
+  funcs,
+  argvals = NULL,
+  pentype = "Ridge",
+  L.user = NULL,
+  Q = NULL,
+  phia = 10^3,
+  se = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>vector of all outcomes</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>funcs</code></td>
+<td>
+<p>matrix containing observed functional predictors as rows. Rows
+with <code>NA</code> and <code>Inf</code> values will be deleted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>argvals</code></td>
+<td>
+<p>matrix (or vector) of indices of evaluations of <code class="reqn">X_i(t)</code>; i.e. a matrix with
+<em>i</em>th row <code class="reqn">(t_{i1},.,t_{iJ})</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pentype</code></td>
+<td>
+<p>type of penalty. It can be either decomposition based
+penalty (<code>DECOMP</code>) or ridge (<code>RIDGE</code>) or second-order difference
+penalty (<code>D2</code>) or any user defined penalty (<code>USER</code>). For
+decomposition based penalty user need to specify Q matrix in Q argument
+(see details). For user defined penalty user need to specify L matrix in L
+argument (see details). For Ridge and second-order difference penalty,
+specification for arguments L and Q will be ignored. Default is
+<code>RIDGE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>L.user</code></td>
+<td>
+<p>penalty matrix. Need to be specified with
+<code>pentype='USER'</code>. Number of columns need to be equal with number of
+columns of matrix specified to <code>funcs</code>. Each row represents a
+constraint on functional predictor. This argument will be ignored when
+value of <code>pentype</code> is other than <code>USER</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Q</code></td>
+<td>
+<p>Q matrix to derive decomposition based penalty. Need to be
+specified with <code>pentype='DECOMP'</code>. Number of columns need to be equal
+with number of columns of matrix specified to <code>funcs</code>. Each row
+represents a basis function where functional predictor is expected lie
+according to prior belief. This argument will be ignored when value of
+<code>pentype</code> is other than <code>DECOMP</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phia</code></td>
+<td>
+<p>Scalar value of a in decomposition based penalty. Need to be
+specified with <code>pentype='DECOMP'</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>se</code></td>
+<td>
+<p>logical; calculate standard error when <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments passed to the <code>{lme}</code> function.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>If there are any missing or infinite values in <code>Y</code>, and <code>funcs</code>,
+the corresponding row (or observation) will be dropped. Neither <code>Q</code>
+nor <code>L</code> may contain missing or infinite values.
+</p>
+<p><code>peer_old()</code> fits the following model:
+</p>
+<p><code class="reqn">y_i=\int {W_i(s)\gamma(s) ds} + \epsilon_i</code>
+</p>
+<p>where <code class="reqn">\epsilon_i ~ N(0,\sigma^2)</code>.  For all the observations,
+predictor function <code class="reqn">W_i(s)</code> is evaluated at K sampling points. Here,
+<code class="reqn">\gamma (s)</code> denotes the regression function.
+</p>
+<p>Values of <code class="reqn">y_i</code> and <code class="reqn">W_i(s)</code>are passed through argument Y and
+funcs, respectively. Number of elements or rows in <code>Y</code> and
+<code>funcs</code> need to be equal.
+</p>
+<p>The estimate of regression functions <code class="reqn">\gamma(s)</code> is obtained as
+penalized estimated. Following 3 types of penalties can be used:
+</p>
+<p>i.  Ridge: <code class="reqn">I_K</code>
+</p>
+<p>ii.  Second-order difference: [<code class="reqn">d_{i,j}</code>] with <code class="reqn">d_{i,i} = d_{i,i+2}
+= 1, d_{i,i+1} = -2</code>, otherwise <code class="reqn">d_{i,i} =0</code>
+</p>
+<p>iii. Decomposition based penalty: <code class="reqn">bP_Q+a(I-P_Q)</code> where <code class="reqn">P_Q=
+Q^T(QQ^T)^{-1}Q</code>
+</p>
+<p>For Decomposition based penalty user need to specify
+<code>pentype='DECOMP'</code> and associated Q matrix need to be passed through
+<code>Q</code> argument.
+</p>
+<p>Alternatively, user can pass directly penalty matrix through argument L.
+For this user need to specify <code>pentype='USER'</code> and associated L matrix
+need to be passed through <code>L</code> argument.
+</p>
+<p>Default penalty is Ridge penalty and user needs to specify <code>RIDGE</code>.
+For second-order difference penalty, user needs to specify <code>D2</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a list containing: </p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>result of the call to <code>lme</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fitted.vals </code></td>
+<td>
+<p>predicted outcomes</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Gamma</code></td>
+<td>
+<p>estimates with
+standard error for regression function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>GammaHat</code></td>
+<td>
+<p>estimates of
+regression function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>se.Gamma</code></td>
+<td>
+<p>standard error associated with
+<code>GammaHat</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>AIC </code></td>
+<td>
+<p>AIC value of fit (smaller is better)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>BIC </code></td>
+<td>
+<p>BIC value of fit (smaller is better)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>logLik</code></td>
+<td>
+<p>(restricted) log-likelihood at convergence</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>estimates of smoothing parameter</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>N</code></td>
+<td>
+<p>number of
+subjects</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K</code></td>
+<td>
+<p>number of Sampling points in functional predictor</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma</code></td>
+<td>
+<p>estimated within-group error standard deviation.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Madan Gopal Kundu <a href="mailto:mgkundu@iupui.edu">mgkundu@iupui.edu</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>Kundu, M. G., Harezlak, J., and Randolph, T. W. (2012).
+Longitudinal functional models with structured penalties (arXiv:1211.4763
+[stat.AP]).
+</p>
+<p>Randolph, T. W., Harezlak, J, and Feng, Z. (2012). Structured penalties for
+functional linear models - partially empirical eigenvectors for regression.
+<em>Electronic Journal of Statistics</em>, 6, 323–353.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>lpeer</code>, <code>plot.peer</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Not run: 
+#------------------------------------------------------------------------
+# Example 1: Estimation with D2 penalty
+#------------------------------------------------------------------------
+
+## Load Data
+data(DTI)
+
+## Extract values for arguments for peer() from given data
+cca = DTI$cca[which(DTI$case == 1),]
+DTI = DTI[which(DTI$case == 1),]
+
+##1.1 Fit the model
+fit.cca.peer1 = peer(Y=DTI$pasat, funcs = cca, pentype='D2', se=TRUE)
+plot(fit.cca.peer1)
+
+#------------------------------------------------------------------------
+# Example 2: Estimation with structured penalty (need structural
+#            information about regression function or predictor function)
+#------------------------------------------------------------------------
+
+## Load Data
+data(PEER.Sim)
+
+## Extract values for arguments for peer() from given data
+PEER.Sim1&lt;- subset(PEER.Sim, t==0)
+W&lt;- PEER.Sim1$W
+Y&lt;- PEER.Sim1$Y
+
+##Load Q matrix containing structural information
+data(Q)
+
+##2.1 Fit the model
+Fit1&lt;- peer(Y=Y, funcs=W, pentype='Decomp', Q=Q, se=TRUE)
+plot(Fit1)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

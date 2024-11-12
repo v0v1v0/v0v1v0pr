@@ -1,0 +1,99 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>inputs-deprecated</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Deprecated Input Definition</h2>
+
+<h3>Description</h3>
+
+<p>As of version <code>0.5</code>, <code>rapport</code> relies on YAML syntax to define inputs. The following sections describe deprecated input definition syntax.
+</p>
+
+
+<h3>Details</h3>
+
+<p><strong>Input Specifications</strong>
+</p>
+<p>Apart from <em>template metadata</em>, header also requires specification for template <em>inputs</em>. In most cases, <em>inputs</em> refer to variable names in provided dataset, but some inputs have special meaning inside <code>rapport</code>, and some of them don't have anything to do with provided dataset whatsoever. Most inputs can contain limit specification, and some inputs can also have a default value. At first we'll explain input specifications on the fly, and in following sections we'll discuss each part in thorough details. Let's start with a single dummy input specification:
+</p>
+<p><code>*foo.bar | numeric[1,6] | Numeric variable | A set of up to 6 numeric variables</code>
+</p>
+<p><strong>Required Inputs</strong>
+</p>
+<p>Asterisk sign (<code>*</code>) in front of an input name indicates a mandatory input. So it is possible to omit input (unless it's required, of course), but you may want to use this feature carefully, as you may end up with ugly output. If an input isn't mandatory,<code>NULL</code>is assigned to provided input name, and the object is stored in transient evaluation environment.
+</p>
+<p><strong>Input Name</strong>
+</p>
+<p><em>rapport</em> has its own naming conventions which are compatible, but different from traditional <strong>R</strong> naming conventions. Input name ("foo.bar" in previous example) must start with an alphabet letter, followed either by other alphabet letters or numbers, separated with <code>_</code> or <code>.</code>. For example, valid names are: <code>foo.bar</code>, <code>f00_bar</code>, or <code>Fo0_bar.input</code>. Input name length is limited on 30 characters by default. At any time you can check your desired input name with <code>check.name</code> function. Note that input names are case-sensitive, just like <code>symbol</code>s in <strong>R</strong>.
+</p>
+<p><strong>Input Type</strong>
+</p>
+<p><em>Input type</em> is specified in the second input block. It is the most (read: "only") complex field in an input specification. It consists of <em>type specification</em>, <em>limit specification</em> and sometimes a <em>default value specification</em>. Most input types are compatible with eponymous <strong>R</strong> modes: <em>character</em>, <em>complex</em>, <em>logical</em>, <em>numeric</em>, or <strong>R</strong> classes like <em>factor</em>. Some are used as "wildcards", like <em>variable</em>, and some do not refer to dataset variables at all: <em>boolean</em>, <em>number</em>, <em>string</em> and <em>option</em>. Here we'll discuss each input type thoroughly. We will use term <em>variable</em> to denote a vector taken from a dataset (for more details see documentation for <code>is.variable</code>). All inputs can be divided into two groups, depending on whether they require a dataset or not:
+</p>
+
+<ul>
+<li> <p><strong>dataset inputs</strong>: </p>
+
+<ul>
+<li> <p><em>character</em> - matches a character variable
+</p>
+</li>
+<li> <p><em>complex</em> - matches a character variable
+</p>
+</li>
+<li> <p><em>numeric</em> - matches a numeric variable
+</p>
+</li>
+<li> <p><em>factor</em> - matches a factor variable (i.e. R object of <code>factor</code> class)
+</p>
+</li>
+<li> <p><em>variable</em> - matches any variable of previously defined types
+</p>
+</li>
+</ul>
+</li>
+<li> <p><strong>standalone inputs</strong>: </p>
+
+<ul>
+<li> <p><em>string</em> - accepts an atomic character vector
+</p>
+</li>
+<li> <p><em>number</em> - accepts an atomic numeric vector
+</p>
+</li>
+<li> <p><em>boolean</em> - accepts a logical value
+</p>
+</li>
+<li> <p><em>option</em> - accepts a comma-separated list of values, that are to be matched with <code>match.arg</code>. The first value in a list is the default one.
+</p>
+</li>
+</ul>
+</li>
+</ul>
+<p>Now we'll make a little digression and talk about <strong>input limits</strong>. You may have noticed some additional stuff in type specification, e.g. <code>numeric[1,6]</code>. All dataset inputs, as well as *string* and *numeric standalone inputs* can contain <em>limit specifications</em>. If you want to bundle several variables from dataset or provide a vector with several string/numeric values, you can apply some rules within square brackets in <code>[a,b]</code> format, where <code>[a,b]</code> stands for "from <code>a</code> to <code>b</code> inputs", e.g. <code>[1,6]</code> means "from 1 to 6 inputs". Limit specifications can be left out, but even in that case implicit limit rules are applied - for variables, as well as boolean and option inputs it's <code>[1,1]</code>, for strings <code>[1,256]</code> and for number inputs <code>[-Inf,Inf]</code>.
+</p>
+<p><strong>Dataset inputs</strong> will match one or more variables from a dataset, and check its mode and/or class. <code>variable</code> type is a bit different, since it matches any kind of variable (not to confuse with <code>Any</code> type), but it still refers to variable(s) from a provided dataset. Dataset inputs cannot have default value, but can be optional (just leave out <code>*</code> sign in front of input name). Note that if you provide more than one variable name in <code>rapport</code> function call, that input will be stored as a <code>data.frame</code>, otherwise, it will be stored as a <em>variable</em> (atomic vector).
+</p>
+<p><strong>Standalone inputs</strong> are a bit different since they do not refer to any variables from a dataset. However, they are more complex than *dataset inputs*, especially because they can contain default values.
+</p>
+
+<ul>
+<li> <p><strong>number</strong> and <strong>string</strong> inputs are defined with <code>number</code> and <code>string</code> respectively. They can also contain limit specifications, but the limits are treated in a slightly different manner. <code>number[-2.58,3]</code> will match any number within an interval from -2.58 to 3. If the limit specification is ommited, an implicit ones are assigned (<code>[-Inf,Inf]</code>. Limit specifications for string inputs define the range of characters that provided string can have, e.g. <code>string[1,6]</code> matches the string with at least 1 and at most 6 characters. If ommited, limit specifications for strings are implicitly set to <code>[1,256]</code>. <em>number</em> and <em>string</em> inputs can have <em>default value</em>, which can be defined by placing <code>=</code> after type/limit specification followed by default value. For instance, <code>number[1,6]=3.14</code> sets value <code>3.14</code> as default. Note that for number inputs an additional check will be applied to ensure that provided default number belongs to an interval defined in the limit specification (<code>[1,6]=7</code> will throw an error). For string inputs, the default value <code>string=foo</code> sets "foo" as default string value (note that you don't have to specify quotes unless they are the part of the default string). Default value will be checked to ensure that its length falls within the interval provided in the limit specification.
+</p>
+</li>
+<li> <p><strong>boolean</strong> inputs can contain either <code>TRUE</code> or <code>FALSE</code> values. The specified value is the default one. They cannot contain limit specification, but implicitly the limits are set to <code>[1,1]</code>.
+</p>
+</li>
+<li> <p><strong>option</strong> inputs are nothing more than a comma-separated list of strings. Even if you specify numbers in a list, they will be coerced to strings once the list is parsed. Values in <em>option</em> list will be placed in a character vector, and matched with <code>match.arg</code> function. That means that you could only choose one value from a list. Partial matches are allowed, and the first value in <em>option</em> list is the default one. Just like in <code>boolean</code> inputs, limits are implicitly set to <code>[1,1]</code>.
+</p>
+</li>
+</ul>
+<p><strong>Input Label and Description</strong>
+</p>
+<p>Third block in input definition is an input label. While <em>variable</em> can have its own label (see <code>label</code>), you may want to use the one defined in input specifications. At last, fourth block contains input description, which should be a lengthy description of current input. Note that all the fields in input specification are mandatory. You can cheat, though, by providing a non-space character (e.g. a dot) as an input label and/or description, but please don't do that unless you're testing the template. Labels and descriptions are meant to be informative.
+</p>
+
+
+</div>

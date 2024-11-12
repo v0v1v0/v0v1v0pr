@@ -1,0 +1,236 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>calc_MO2</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate metabolic rate</h2>
+
+<h3>Description</h3>
+
+<p>Calculates metabolic rate (MO2) given O2 measurements over time. Oxygen measurements are split into bins and MO2s are calculated from each bin (unless <code>bin_width</code> is set to <code>0</code>). The <code>bin_width</code> parameter defines the width of the bins in timed intervals (e.g. 15 minutes). Linear regressions are fit through each bin and the calculated MO2 is returned as the slope of the change in O2 over time.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">calc_MO2(
+  duration,
+  o2,
+  o2_unit = "percent_a.s.",
+  bin_width,
+  vol,
+  temp = 25,
+  sal = 35,
+  atm_pres = 1013.25,
+  time,
+  pH,
+  good_data = TRUE
+)
+
+calc_mo2(
+  duration,
+  o2,
+  o2_unit = "percent_a.s.",
+  bin_width,
+  vol,
+  temp = 25,
+  sal = 35,
+  atm_pres = 1013.25,
+  time,
+  pH,
+  good_data = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>duration</code></td>
+<td>
+<p>numeric vector of the timepoint for each observation (minutes).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>o2</code></td>
+<td>
+<p>numeric vector of O2 observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>o2_unit</code></td>
+<td>
+<p>a string describing the unit used to measure <code>o2</code>. Default is "percent_a.s." Options are from <code>conv_o2</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bin_width</code></td>
+<td>
+<p>numeric or data frame. </p>
+
+<dl>
+<dt>OPTION 1: </dt>
+<dd>
+<p>A single number defining how long of a period should be binned for each MO2 determination (minutes). If MO2 is to be calculated from one observation to the next (rather than binned observations), set <code>bin_width</code> to 0. To calculate a single MO2 value from all observations, set <code>bin_width</code> to <code>Inf</code>.</p>
+</dd>
+<dt>OPTION 2: </dt>
+<dd>
+<p>A data frame with two numeric columns: "o2" and "width". Useful for Pcrit calculations or another application where bins of different widths are desired at different PO2s. The data frame can be generated automatically by <code>make_bins</code> or manually by the user. For each row, set the "width" value to the bin duration (minutes) desired for observations &gt;= the value in the "o2" column but &lt; the next greater O2 value in another row.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vol</code></td>
+<td>
+<p>volume of the respirometer (liter).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>temp</code></td>
+<td>
+<p>temperature (°C). Default is 25 °C.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sal</code></td>
+<td>
+<p>salinity (psu). Default is 35 psu.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>atm_pres</code></td>
+<td>
+<p>atmospheric pressure (mbar). Default is 1013.25 mbar.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time</code></td>
+<td>
+<p>(optional). Numeric vector of timestamp observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pH</code></td>
+<td>
+<p>(optional). Numeric vector of pH observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>good_data</code></td>
+<td>
+<p>logical vector of whether O2 observations are "good" measurements and should be included in analysis. Linear regressions will not be fit over bins that include "bad" data. Bins will be split at bad data points. Default is that all observations are <code>TRUE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A data frame is returned:
+</p>
+
+<dl>
+<dt>DUR_MEAN</dt>
+<dd>
+<p>Mean duration of the bin (minutes).</p>
+</dd>
+<dt>DUR_RANGE</dt>
+<dd>
+<p>Range of duration timepoints in the bin.</p>
+</dd>
+<dt>TIME_MEAN</dt>
+<dd>
+<p>Exists only if the parameter <code>time</code> has values. Mean timestamp of the bin.</p>
+</dd>
+<dt>TIME_RANGE</dt>
+<dd>
+<p>Exists only if the parameter <code>time</code> has values. Range of timestamps in the bin.</p>
+</dd>
+<dt>TEMP_MEAN</dt>
+<dd>
+<p>Mean temperature of the bin.</p>
+</dd>
+<dt>PH_MEAN</dt>
+<dd>
+<p>Exists only if the parameter <code>pH</code> has values. Mean pH of the bin. Averaged using <code>mean_pH()</code>.</p>
+</dd>
+<dt>O2_MEAN</dt>
+<dd>
+<p>Mean O2 value of the bin in the unit chosen by <code>o2_unit</code>).</p>
+</dd>
+<dt>O2_RANGE</dt>
+<dd>
+<p>Range of O2 values in the bin.</p>
+</dd>
+<dt>MO2</dt>
+<dd>
+<p>Metabolic rate (umol O2 / hour).</p>
+</dd>
+<dt>R2</dt>
+<dd>
+<p>Coefficient of determination for the linear regression fit to calculate MO2.</p>
+</dd>
+<dt>N</dt>
+<dd>
+<p>Number of observations in the bin.</p>
+</dd>
+</dl>
+<h3>Note</h3>
+
+<p>Whole-animal MO2 is returned. If mass-specific MO2 is desired, the output from <code>calc_MO2</code> can be divided by the animal's mass.
+No matter what unit of oxygen partial pressure or concentration measurement you put into the function as <code>o2_unit</code>, the output in the MO2 column is always expressed in umol O2 / hour. This is because there is a vast variety of units for which people prefer to report dissolved oxygen levels, but most physiologists are at least unified in reporting metabolic rate as umol O2 per hour. If you prefer to report MO2 as mg O2 per hour, for example, you can always do something like:
+<code>conv_resp_unit(df$MO2, from = 'umol_O2 / hr', 'mg_O2 / hr')</code>
+If only beginning and ending O2 observations are known, consider using <code>closed</code>. Both functions will work fine, but <code>closed</code> is simpler.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Matthew A. Birk, <a href="mailto:matthewabirk@gmail.com">matthewabirk@gmail.com</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>make_bins</code>, <code>calc_b</code>, <code>closed</code>, <code>scale_MO2</code>, <code>conv_resp_unit</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># get O2 data
+file &lt;- system.file('extdata', 'witrox_file.txt', package = 'respirometry')
+o2_data &lt;- na.omit(import_witrox(file, split_channels = TRUE)$CH_4)
+
+# calculate MO2
+(mo2_5_min &lt;- calc_MO2(duration = o2_data$DURATION, o2 = o2_data$O2,
+bin_width = 5, vol = 10, temp = o2_data$TEMP, sal = o2_data$SAL))
+
+# what if measurements from the 10 to 12 minute marks can't be trusted?
+bad_data = o2_data$DURATION &gt;= 10 &amp; o2_data$DURATION &lt;= 12
+(mo2_5_min &lt;- calc_MO2(duration = o2_data$DURATION, o2 = o2_data$O2,
+bin_width = 5, vol = 10, temp = o2_data$TEMP, sal = o2_data$SAL, good_data = !bad_data))
+
+# easily make a Pcrit plot
+plot(mo2_5_min$O2_MEAN, mo2_5_min$MO2)
+
+# I want to express MO2 in mg per min instead.
+(mo2_5_min$MO2 &lt;- conv_resp_unit(value = mo2_5_min$MO2, from = 'umol_O2 / hr', to = 'mg_O2 / min'))
+
+# just endpoint measurement:
+calc_MO2(duration = o2_data$DURATION, o2 = o2_data$O2,
+bin_width = Inf, vol = 10, temp = o2_data$TEMP, sal = o2_data$SAL)
+
+# In my trial, observations above 77% air saturation were really noisy, but much less noisy at
+# lower O2 values. I want to adjust my bin width based on the PO2 to obtain the best balance of
+# resolution and precision throughout the whole trial. Below 77% a.s., use 4 minute bins. Above
+# 77% a.s. use 10 minute bins.
+bins = data.frame(o2 = c(77, 100), width = c(4, 10))
+calc_MO2(duration = o2_data$DURATION, o2 = o2_data$O2,
+bin_width = bins, vol = 10, temp = o2_data$TEMP, sal = o2_data$SAL)
+
+</code></pre>
+
+
+</div>

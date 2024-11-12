@@ -1,0 +1,289 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>parestimate</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate periods from (set of) eigenvectors</h2>
+
+<h3>Description</h3>
+
+<p>Function to estimate the parameters (frequencies and rates) given a set of SSA eigenvectors.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class '1d.ssa'
+parestimate(x, groups, method = c("esprit", "pairs"),
+            subspace = c("column", "row"),
+            normalize.roots = NULL,
+            dimensions = NULL,
+            solve.method = c("ls", "tls"),
+            ...,
+            drop = TRUE)
+## S3 method for class 'toeplitz.ssa'
+parestimate(x, groups, method = c("esprit", "pairs"),
+            subspace = c("column", "row"),
+            normalize.roots = NULL,
+            dimensions = NULL,
+            solve.method = c("ls", "tls"),
+            ...,
+            drop = TRUE)
+## S3 method for class 'mssa'
+parestimate(x, groups, method = c("esprit", "pairs"),
+            subspace = c("column", "row"),
+            normalize.roots = NULL,
+            dimensions = NULL,
+            solve.method = c("ls", "tls"),
+            ...,
+            drop = TRUE)
+## S3 method for class 'cssa'
+parestimate(x, groups, method = c("esprit", "pairs"),
+            subspace = c("column", "row"),
+            normalize.roots = NULL,
+            dimensions = NULL,
+            solve.method = c("ls", "tls"),
+            ...,
+            drop = TRUE)
+## S3 method for class 'nd.ssa'
+parestimate(x, groups,
+            method = c("esprit"),
+            subspace = c("column", "row"),
+            normalize.roots = NULL,
+            dimensions = NULL,
+            solve.method = c("ls", "tls"),
+            pairing.method = c("diag", "memp"),
+            beta = 8,
+            ...,
+            drop = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>SSA object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>groups</code></td>
+<td>
+<p>list of indices of eigenvectors to estimate from</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments passed to 'decompose' routine, if
+necessary</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drop</code></td>
+<td>
+<p>logical, if 'TRUE' then the result is coerced to lowest
+dimension, when possible (length of <code>groups</code> is one)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dimensions</code></td>
+<td>
+<p>a vector of dimension indices to perform ESPRIT along. 'NULL' means all dimensions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>For 1D-SSA, Toeplitz SSA, and MSSA:
+parameter estimation method,
+'esprit' for 1D-ESPRIT (Algorithm 3.3 in Golyandina et al (2018)),
+'pairs' for rough estimation based on pair of eigenvectors (Algorithm 3.4 in Golyandina et al (2018)).
+For nD-SSA: parameter estimation method. 
+For now only 'esprit' is supported (Algorithm 5.6 in Golyandina et al (2018)).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>solve.method</code></td>
+<td>
+<p>approximate matrix equation solving method, 'ls' for least-squares, 'tls' for total-least-squares.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pairing.method</code></td>
+<td>
+<p>method for esprit roots pairing, 'diag' for ‘2D-ESPRIT diagonalization’, 'memp' for “MEMP with an
+improved pairing step'</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subspace</code></td>
+<td>
+<p>which subspace will be used for parameter estimation</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>normalize.roots</code></td>
+<td>
+<p>logical vector or 'NULL', force signal roots to lie on unit circle.
+'NULL' means automatic selection: normalize iff circular topology OR Toeplitz SSA used</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+<p>In nD-ESPRIT, coefficient(s) in convex linear combination of
+shifted matrices. The length of <code>beta</code> should be <code>ndim - 1</code>, where <code>ndim</code> is the number of independent dimensions.
+If only one value is passed, it is expanded to a geometric progression.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>See Sections 3.1 and 5.3 in Golyandina et al (2018) for full details.
+</p>
+<p>Briefly, the time series is assumed to satisfy the model
+</p>
+<p style="text-align: center;"><code class="reqn">
+    x_n = \sum_k{C_k\mu_k^n}
+  </code>
+</p>
+
+<p>for complex <code class="reqn">\mu_k</code> or, alternatively,
+</p>
+<p style="text-align: center;"><code class="reqn">
+    x_n = \sum_k{A_k \rho_k^n \sin(2\pi\omega_k n + \phi_k)}.
+  </code>
+</p>
+
+<p>The return value are the estimated moduli and arguments of complex
+<code class="reqn">\mu_k</code>, more precisely, <code class="reqn">\rho_k</code> ('moduli') and <code class="reqn">T_k =
+  1/\omega_k</code> ('periods').
+</p>
+<p>For images, the model
+</p>
+<p style="text-align: center;"><code class="reqn">
+    x_{ij}=\sum_k C_k \lambda_k^i \mu_k^j
+  </code>
+</p>
+
+<p>is considered.
+</p>
+<p>Also ‘print’ and ‘plot’ methods are implemented for classes
+‘fdimpars.1d’ and ‘fdimpars.nd’.
+</p>
+
+
+<h3>Value</h3>
+
+<p>For 1D-SSA (and Toeplitz), a list of objects of S3-class ‘fdimpars.1d’. Each object is a list with 5 components:
+</p>
+
+<dl>
+<dt>roots</dt>
+<dd>
+<p>complex roots of minimal LRR characteristic polynomial</p>
+</dd>
+<dt>periods</dt>
+<dd>
+<p>periods of dumped sinusoids</p>
+</dd>
+<dt>frequencies</dt>
+<dd>
+<p>frequencies of dumped sinusoids</p>
+</dd>
+<dt>moduli</dt>
+<dd>
+<p>moduli of roots</p>
+</dd>
+<dt>rates</dt>
+<dd>
+<p>rates of exponential trend (<code>rates == log(moduli)</code>)</p>
+</dd>
+</dl>
+<p>For 'method' = 'pairs' all moduli are set equal to 1 and all rates equal to 0.
+</p>
+<p>For nD-SSA, a list of objects of S3-class ‘fdimpars.nd’. Each object
+is named list of <code>n</code> ‘fdimpars.1d’ objects, each for corresponding
+spatial coordinate.
+</p>
+<p>In all cases elements of the list have the same names as elements of
+<code>groups</code>. If group is unnamed, corresponding component gets name
+‘Fn’, where ‘n’ is its index in <code>groups</code> list.
+</p>
+<p>If 'drop = TRUE' and length of 'groups' is one, then corresponding
+list of estimated parameters is returned.
+</p>
+
+
+<h3>References</h3>
+
+<p>Golyandina N., Korobeynikov A., Zhigljavsky A. (2018):
+<em>Singular Spectrum Analysis with R.</em>  Use R!.
+Springer, Berlin, Heidelberg.
+</p>
+<p>Roy, R., Kailath, T., (1989): <em>ESPRIT: estimation of signal parameters via
+rotational invariance techniques</em>. IEEE Trans. Acoust. 37, 984–995.
+</p>
+<p>Rouquette, S., Najim, M. (2001): <em>Estimation of frequencies and damping factors by two-
+dimensional esprit type methods</em>. IEEE Transactions on Signal Processing 49(1), 237–245.
+</p>
+<p>Wang, Y., Chan, J-W., Liu, Zh. (2005): <em>Comments on “estimation of frequencies and
+damping factors by two-dimensional esprit type methods”</em>.
+IEEE Transactions on Signal Processing 53(8), 3348–3349.
+</p>
+<p>Shlemov A, Golyandina N (2014) Shaped extensions of Singular Spectrum Analysis. In: 21st
+international symposium on mathematical theory of networks and systems, July 7–11, 2014.
+Groningen, The Netherlands, pp 1813–1820.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>Rssa</code> for an overview of the package, as well as,
+<code>ssa</code>,
+<code>lrr</code>,
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Decompose 'co2' series with default parameters
+s &lt;- ssa(co2, neig = 20)
+# Estimate the periods from 2nd and 3rd eigenvectors using 'pairs' method
+print(parestimate(s, groups = list(c(2, 3)), method = "pairs"))
+# Estimate the peroids from 2nd, 3rd, 5th and 6th eigenvectors using ESPRIT
+pe &lt;- parestimate(s, groups = list(c(2, 3, 5, 6)), method = "esprit")
+print(pe)
+plot(pe)
+
+
+# Artificial image for 2D SSA
+mx &lt;- outer(1:50, 1:50,
+            function(i, j) sin(2*pi * i/17) * cos(2*pi * j/7) + exp(i/25 - j/20)) +
+      rnorm(50^2, sd = 0.1)
+# Decompose 'mx' with default parameters
+s &lt;- ssa(mx, kind = "2d-ssa")
+# Estimate parameters
+pe &lt;- parestimate(s, groups = list(1:5))
+print(pe)
+plot(pe, col = c("green", "red", "blue"))
+
+# Real example: Mars photo
+data(Mars)
+# Decompose only Mars image (without background)
+s &lt;- ssa(Mars, mask = Mars != 0, wmask = circle(50), kind = "2d-ssa")
+# Reconstruct and plot texture pattern
+plot(reconstruct(s, groups = list(c(13,14, 17, 18))))
+# Estimate pattern parameters
+pe &lt;- parestimate(s, groups = list(c(13,14, 17, 18)))
+print(pe)
+plot(pe, col = c("green", "red", "blue", "black"))
+
+</code></pre>
+
+
+</div>

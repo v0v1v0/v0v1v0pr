@@ -1,0 +1,212 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>validate</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Inspect a dataset to anticipate problems before
+writing to a REDCap project</h2>
+
+<h3>Description</h3>
+
+<p>This set of functions inspect a data frame
+to anticipate problems before writing with REDCap's API.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">validate_for_write( d, convert_logical_to_integer, record_id_name )
+
+validate_data_frame_inherits( d )
+
+validate_no_logical( d, stop_on_error = FALSE )
+
+validate_field_names( d, stop_on_error = FALSE )
+
+validate_record_id_name( d, record_id_name = "record_id", stop_on_error = FALSE )
+
+validate_repeat_instance( d, stop_on_error = FALSE )
+
+validate_uniqueness( d, record_id_name, stop_on_error = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>d</code></td>
+<td>
+<p>The <code>base::data.frame()</code> or <code>tibble::tibble()</code>
+containing the dataset used to update
+the REDCap project.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>record_id_name</code></td>
+<td>
+<p>The name of the field that represents one record.
+The default name in REDCap is "record_id".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stop_on_error</code></td>
+<td>
+<p>If <code>TRUE</code>, an error is thrown for violations.
+Otherwise, a dataset summarizing the problems is returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>convert_logical_to_integer</code></td>
+<td>
+<p>This mimics the <code>convert_logical_to_integer</code> parameter  in
+<code>redcap_write()</code> when checking for potential importing problems.
+Defaults to <code>FALSE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>All functions listed in the Usage section above inspect a specific aspect
+of the dataset.  The <code>validate_for_write()</code> function executes all these
+individual validation checks.  It allows the client to check everything
+with one call.
+</p>
+<p>Currently, the individual checks include:
+</p>
+
+<ol>
+<li> <p><code>validate_data_frame_inherits(d)</code>:
+<code>d</code> inherits from <code>base::data.frame()</code>
+</p>
+</li>
+<li> <p><code>validate_field_names(d)</code>:
+The columns of <code>d</code>
+start with a lowercase letter, and subsequent optional characters are a
+sequence of (a) lowercase letters, (b) digits 0-9, and/or (c) underscores.
+(The exact regex is <code style="white-space: pre;">⁠^[a-z][0-9a-z_]*$⁠</code>.)
+</p>
+</li>
+<li> <p><code>validate_record_id_name(d)</code>:
+<code>d</code> contains a field called "record_id",
+or whatever value was passed to <code>record_id_name</code>.
+</p>
+</li>
+<li> <p><code>validate_no_logical(d)</code> (unless <code>convert_logical_to_integer</code> is TRUE):
+<code>d</code> does not contain
+<a href="https://stat.ethz.ch/R-manual/R-devel/library/base/html/logical.html">logical</a>
+values (because REDCap typically wants <code>0</code>/<code>1</code> values instead of
+<code>FALSE</code>/<code>TRUE</code>).
+</p>
+</li>
+<li> <p><code>validate_repeat_instance(d)</code>:
+<code>d</code> has an integer for <code>redcap_repeat_instance</code>, if the column is present.
+</p>
+</li>
+<li> <p><code>validate_uniqueness(d, record_id_name = record_id_name)</code>:
+<code>d</code> does not contain multiple rows with duplicate values of
+<code>record_id</code>,
+<code>redcap_event_name</code>,
+<code>redcap_repeat_instrument</code>, and
+<code>redcap_repeat_instance</code>
+(depending on the longitudinal &amp; repeating structure of the project).
+</p>
+<p>Technically duplicate rows are not errors,
+but we feel that this will almost always be unintentional,
+and lead to an irrecoverable corruption of the data.
+</p>
+</li>
+</ol>
+<p>If you encounter additional types of problems when attempting to write to
+REDCap, please tell us by creating a
+<a href="https://github.com/OuhscBbmc/REDCapR/issues">new issue</a>, and we'll
+incorporate a new validation check into this function.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>tibble::tibble()</code>, where each potential violation is a row.
+The two columns are:
+</p>
+
+<ul>
+<li> <p><code>field_name</code>: The name of the field/column/variable that might cause
+problems during the upload.
+</p>
+</li>
+<li> <p><code>field_index</code>: The position of the field.  (For example, a value of
+'1' indicates the first column, while a '3' indicates the third column.)
+</p>
+</li>
+<li> <p><code>concern</code>: A description of the problem potentially caused by the <code>field</code>.
+</p>
+</li>
+<li> <p><code>suggestion</code>: A <em>potential</em> solution to the concern.
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>Will Beasley
+</p>
+
+
+<h3>References</h3>
+
+<p>The official documentation can be found on the 'API Help Page'
+and 'API Examples' pages on the REDCap wiki (<em>i.e.</em>,
+https://community.projectredcap.org/articles/456/api-documentation.html and
+https://community.projectredcap.org/articles/462/api-examples.html).
+If you do not have an account for the wiki, please ask your campus REDCap
+administrator to send you the static material.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">d1 &lt;- data.frame(
+  record_id      = 1:4,
+  flag_logical   = c(TRUE, TRUE, FALSE, TRUE),
+  flag_Uppercase = c(4, 6, 8, 2)
+)
+REDCapR::validate_for_write(d = d1)
+
+REDCapR::validate_for_write(d = d1, convert_logical_to_integer = TRUE)
+
+# If `d1` is not a data.frame, the remaining validation checks are skipped:
+# REDCapR::validate_for_write(as.matrix(mtcars))
+# REDCapR::validate_for_write(c(mtcars, iris))
+
+d2 &lt;- tibble::tribble(
+  ~record_id, ~redcap_event_name, ~redcap_repeat_instrument, ~redcap_repeat_instance,
+  1L, "e1", "i1", 1L,
+  1L, "e1", "i1", 2L,
+  1L, "e1", "i1", 3L,
+  1L, "e1", "i1", 4L,
+  1L, "e1", "i2", 1L,
+  1L, "e1", "i2", 2L,
+  1L, "e1", "i2", 3L,
+  1L, "e1", "i2", 4L,
+  2L, "e1", "i1", 1L,
+  2L, "e1", "i1", 2L,
+  2L, "e1", "i1", 3L,
+  2L, "e1", "i1", 4L,
+)
+validate_uniqueness(d2)
+validate_for_write(d2)
+
+d3 &lt;- tibble::tribble(
+  ~record_id, ~redcap_event_name, ~redcap_repeat_instrument, ~redcap_repeat_instance,
+  1L, "e1", "i1", 1L,
+  1L, "e1", "i1", 3L,
+  1L, "e1", "i1", 3L, # Notice this duplicates the row above
+)
+# validate_uniqueness(d3)
+# Throws error:
+# validate_uniqueness(d3, stop_on_error = TRUE)
+</code></pre>
+
+
+</div>

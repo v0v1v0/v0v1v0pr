@@ -1,0 +1,179 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>cstep</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>C-step of Matrix Minimum Covariance Determinant (MMCD) Estimator</h2>
+
+<h3>Description</h3>
+
+<p>This function is part of the FastMMCD algorithm (double-blind 2024).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">cstep(
+  X,
+  alpha = 0.5,
+  h_init = -1L,
+  init = TRUE,
+  max_iter = 100L,
+  max_iter_MLE = 100L,
+  lambda = 0,
+  adapt_alpha = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>a 3d array of dimension <code class="reqn">(p,q,n)</code>, containing <code class="reqn">n</code> matrix-variate samples of <code class="reqn">p</code> rows and <code class="reqn">q</code> columns in each slice.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>numeric parameter between 0.5 (default) and 1. Controls the size <code class="reqn">h \approx alpha * n</code> of the h-subset over which the determinant is minimized.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>h_init</code></td>
+<td>
+<p>Integer. Size of initial h-subset. If smaller than 0 (default) size is chosen automatically.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init</code></td>
+<td>
+<p>Logical. If TRUE (default) elemental subsets are used to initialize the procedure.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_iter</code></td>
+<td>
+<p>upper limit of C-step iterations (default is 100)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_iter_MLE</code></td>
+<td>
+<p>upper limit of MLE iterations (default is 100)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>a smooting parameter for the rowwise and columnwise covariance matrices.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adapt_alpha</code></td>
+<td>
+<p>Logical. If TRUE (default) alpha is adapted to take the dimension of the data into account.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list containing the following:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>mu</code></td>
+<td>
+<p>Estimated <code class="reqn">p \times q</code> mean matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cov_row</code></td>
+<td>
+<p>Estimated <code class="reqn">p</code> times <code class="reqn">p</code> rowwise covariance matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cov_col</code></td>
+<td>
+<p>Estimated <code class="reqn">q</code> times <code class="reqn">q</code> columnwise covariance matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cov_row_inv</code></td>
+<td>
+<p>Inverse of <code>cov_row</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cov_col_inv</code></td>
+<td>
+<p>Inverse of <code>cov_col</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>md</code></td>
+<td>
+<p>Squared Mahalanobis distances.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>md_raw</code></td>
+<td>
+<p>Squared Mahalanobis distances based on <em>raw</em> MMCD estimators.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>det</code></td>
+<td>
+<p>Value of objective function (determinant of Kronecker product of rowwise and columnwise covariane).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dets</code></td>
+<td>
+<p>Objective values for the final h-subsets.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>h_subset</code></td>
+<td>
+<p>Final h-subset of <em>raw</em> MMCD estimators.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iterations</code></td>
+<td>
+<p>Number of C-steps.</p>
+</td>
+</tr>
+</table>
+<h3>See Also</h3>
+
+<p><code>mmcd</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">n = 1000; p = 2; q = 3
+mu = matrix(rep(0, p*q), nrow = p, ncol = q)
+cov_row = matrix(c(1,0.5,0.5,1), nrow = p, ncol = p)
+cov_col = matrix(c(3,2,1,2,3,2,1,2,3), nrow = q, ncol = q)
+X &lt;- rmatnorm(n = 1000, mu, cov_row, cov_col)
+ind &lt;- sample(1:n, 0.3*n)
+X[,,ind] &lt;- rmatnorm(n = length(ind), matrix(rep(10, p*q), nrow = p, ncol = q), cov_row, cov_col)
+par_mmle &lt;- mmle(X)
+par_cstep &lt;- cstep(X)
+distances_mmle &lt;- mmd(X, par_mmle$mu, par_mmle$cov_row, par_mmle$cov_col)
+distances_cstep &lt;- mmd(X, par_cstep$mu, par_cstep$cov_row, par_cstep$cov_col)
+plot(distances_mmle, distances_cstep)
+abline(h = qchisq(0.99, p*q), lty = 2, col = "red")
+abline(v = qchisq(0.99, p*q), lty = 2, col = "red")
+</code></pre>
+
+
+</div>

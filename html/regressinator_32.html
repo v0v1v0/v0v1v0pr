@@ -1,0 +1,150 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>sampling_distribution</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Simulate the sampling distribution of estimates from a population</h2>
+
+<h3>Description</h3>
+
+<p>Repeatedly refits the model to new samples from the population, calculates
+estimates for each fit, and compiles a data frame of the results.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">sampling_distribution(fit, data, fn = tidy, nsim = 100, fixed_x = TRUE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>A model fit to data, such as by <code>lm()</code> or <code>glm()</code>, to refit to
+each sample from the population.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>Data drawn from a <code>population()</code>, using <code>sample_x()</code> and possibly
+<code>sample_y()</code>. The <code>population()</code> specification is used to draw the samples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fn</code></td>
+<td>
+<p>Function to call on each new model fit to produce a data frame of
+estimates. Defaults to <code>broom::tidy()</code>, which produces a tidy data frame of
+coefficients, estimates, standard errors, and hypothesis tests.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nsim</code></td>
+<td>
+<p>Number of simulations to run.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fixed_x</code></td>
+<td>
+<p>If <code>TRUE</code>, the default, the predictor variables are held fixed
+and only the response variables are redrawn from the population. If
+<code>FALSE</code>, the predictor and response variables are drawn jointly.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments passed to <code>fn</code> each time it is called.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>To generate sampling distributions of different quantities, the user can
+provide a custom <code>fn</code>. The <code>fn</code> should take a model fit as its argument and
+return a data frame. For instance, the data frame might contain one row per
+estimated coefficient and include the coefficient and its standard error; or
+it might contain only one row of model summary statistics.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Data frame (tibble) of <code>nsim + 1</code> simulation results, formed by
+concatenating together the data frames returned by <code>fn</code>. The <code>.sample</code>
+column identifies which simulated sample each row came from. Rows with
+<code>.sample == 0</code> come from the original <code>fit</code>.
+</p>
+
+
+<h3>Model limitations</h3>
+
+<p>Because this function uses S3 generic methods such as <code>model.frame()</code>,
+<code>simulate()</code>, and <code>update()</code>, it can be used with any model fit for which
+methods are provided. In base R, this includes <code>lm()</code> and <code>glm()</code>.
+</p>
+<p>The model provided as <code>fit</code> must be fit using the <code>data</code> argument to provide
+a data frame. For example:
+</p>
+<div class="sourceCode"><pre>fit &lt;- lm(dist ~ speed, data = cars)
+</pre></div>
+<p>When simulating new data, this function provides the simulated data as the
+<code>data</code> argument and re-fits the model. If you instead refer directly to local
+variables in the model formula, this will not work. For example, if you fit a
+model this way:
+</p>
+<div class="sourceCode"><pre># will not work
+fit &lt;- lm(cars$dist ~ cars$speed)
+</pre></div>
+<p>It will not be possible to refit the model using simulated datasets, as that
+would require modifying your environment to edit <code>cars</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>parametric_boot_distribution()</code> to simulate draws from a fitted
+model, rather than from the population
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">pop &lt;- population(
+  x1 = predictor(rnorm, mean = 4, sd = 10),
+  x2 = predictor(runif, min = 0, max = 10),
+  y = response(0.7 + 2.2 * x1 - 0.2 * x2, error_scale = 4.0)
+)
+
+d &lt;- sample_x(pop, n = 20) |&gt;
+  sample_y()
+
+fit &lt;- lm(y ~ x1 + x2, data = d)
+# using the default fn = broom::tidy(). conf.int argument is passed to
+# broom::tidy()
+samples &lt;- sampling_distribution(fit, d, conf.int = TRUE)
+samples
+
+suppressMessages(library(dplyr))
+# the model is correctly specified, so the estimates are unbiased:
+samples |&gt;
+  group_by(term) |&gt;
+  summarize(mean = mean(estimate),
+            sd = sd(estimate))
+
+# instead of coefficients, get the sampling distribution of R^2
+rsquared &lt;- function(fit) {
+  data.frame(r2 = summary(fit)$r.squared)
+}
+sampling_distribution(fit, d, rsquared, nsim = 10)
+</code></pre>
+
+
+</div>

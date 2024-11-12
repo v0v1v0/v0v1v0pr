@@ -1,0 +1,178 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>jsonpath</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>JSONpath, JMESpath, or JSONpointer query of JSON / NDJSON
+documents; use <code>j_query()</code> instead</h2>
+
+<h3>Description</h3>
+
+<p><code>jsonpath()</code> executes a query against a JSON string or
+vector NDJSON entries using the 'JSONpath' specification.
+</p>
+<p><code>jmespath()</code> executes a query against a JSON string
+using the 'JMESpath' specification.
+</p>
+<p><code>jsonpointer()</code> extracts an element from a JSON string
+using the 'JSON pointer' specification.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">jsonpath(data, path, object_names = "asis", as = "string", ...)
+
+jmespath(data, path, object_names = "asis", as = "string", ...)
+
+jsonpointer(data, path, object_names = "asis", as = "string", ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a character() JSON string or NDJSON records, or the
+name of a file or URL containing JSON or NDJSON, or an <em>R</em>
+object parsed to a JSON string using <code>jsonlite::toJSON()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>path</code></td>
+<td>
+<p>character(1) JSONpointer, JSONpath or JMESpath query
+string.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>object_names</code></td>
+<td>
+<p>character(1) order <code>data</code> object elements
+<code>"asis"</code> (default) or <code>"sort"</code> before filtering on <code>path</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>as</code></td>
+<td>
+<p>character(1) return type. <code>"string"</code> returns a single
+JSON string; <code>"R"</code> returns an <em>R</em> object following the rules
+outlined for <code>as_r()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>arguments for parsing NDJSON, or passed to <code>jsonlite::toJSON</code> when
+<code>data</code> is not character-valued. For NDJSON,
+</p>
+
+<ul>
+<li>
+<p> Use <code>n_records = 2</code> to parse just the first two records of the
+NDJSON document.
+</p>
+</li>
+<li>
+<p> Use <code>verbose = TRUE</code> to obtain a progress bar when reading from a
+connection (file or URL). Requires the cli package.
+</p>
+</li>
+</ul>
+<p>As an example for use with <code>jsonlite::toJSON()</code>
+</p>
+
+<ul><li>
+<p> use <code>auto_unbox = TRUE</code> to automatically 'unbox' vectors of
+length 1 to JSON scalar values.
+</p>
+</li></ul>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p><code>jsonpath()</code>, <code>jmespath()</code> and <code>jsonpointer()</code> return a
+character(1) JSON string (<code>as = "string"</code>, default) or <em>R</em>
+object (<code>as = "R"</code>) representing the result of the query.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">json &lt;- '{
+  "locations": [
+    {"name": "Seattle", "state": "WA"},
+    {"name": "New York", "state": "NY"},
+    {"name": "Bellevue", "state": "WA"},
+    {"name": "Olympia", "state": "WA"}
+  ]
+ }'
+
+## return a JSON string
+jsonpath(json, "$..name") |&gt;
+    cat("\n")
+
+## return an R object
+jsonpath(json, "$..name", as = "R")
+
+## create a list with state and name as scalar vectors
+lst &lt;- as_r(json)
+
+if (requireNamespace("jsonlite", quietly = TRUE)) {
+## objects other than scalar character vectors are automatically
+## coerced to JSON; use `auto_unbox = TRUE` to represent R scalar
+## vectors in the object as JSON scalar vectors
+jsonpath(lst, "$..name", auto_unbox = TRUE) |&gt;
+    cat("\n")
+
+## use I("Seattle") to coerce to a JSON object ["Seattle"]
+jsonpath(I("Seattle"), "$[0]")      |&gt; cat("\n")
+}
+
+## a scalar character vector like "Seattle" is not valid JSON...
+try(jsonpath("Seattle", "$"))
+## ...but a double-quoted string is
+jsonpath('"Seattle"', "$")
+
+## different ordering of object names -- 'asis' (default) or 'sort'
+json_obj &lt;- '{"b": "1", "a": "2"}'
+jsonpath(json_obj, "$")           |&gt; cat("\n")
+jsonpath(json_obj, "$.*")         |&gt; cat("\n")
+jsonpath(json_obj, "$", "sort")   |&gt; cat("\n")
+jsonpath(json_obj, "$.*", "sort") |&gt; cat("\n")
+
+path &lt;- "locations[?state == 'WA'].name | sort(@)"
+jmespath(json, path) |&gt;
+    cat("\n")
+
+if (requireNamespace("jsonlite", quietly = TRUE)) {
+## original filter always fails, e.g., '["WA"] != 'WA'
+jmespath(lst, path)  # empty result set, '[]'
+
+## filter with unboxed state, and return unboxed name
+jmespath(lst, "locations[?state[0] == 'WA'].name[0] | sort(@)") |&gt;
+    cat("\n")
+
+## automatically unbox scalar values when creating the JSON string
+jmespath(lst, path, auto_unbox = TRUE) |&gt;
+    cat("\n")
+}
+
+## jsonpointer 0-based arrays
+jsonpointer(json, "/locations/0/name")
+
+## document root "", sort selected element keys
+jsonpointer('{"b": 0, "a": 1}', "", "sort", as = "R") |&gt;
+    str()
+
+## 'Key not found' -- path '/' searches for a 0-length key
+try(jsonpointer('{"b": 0, "a": 1}', "/"))
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,143 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>bayes_fosr</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Bayesian Function-on-scalar regression</h2>
+
+<h3>Description</h3>
+
+<p>Wrapper function that implements several approaches to Bayesian function-
+on-scalar regression. Currently handles real-valued response curves; models
+can include subject-level random effects in a multilevel framework. The 
+residual curve error structure can be estimated using Bayesian FPCA or a 
+Wishart prior. Model parameters can be estimated using a Gibbs sampler
+or variational Bayes.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">bayes_fosr(formula, data = NULL, est.method = "VB", cov.method = "FPCA", ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a formula indicating the structure of the proposed model. 
+Random intercepts are designated using <code>re</code>().</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>an optional data frame, list or environment containing the 
+variables in the model. If not found in data, the variables are taken from 
+environment(formula), typically the environment from which the function is 
+called.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>est.method</code></td>
+<td>
+<p>method used to estimate model parameters. Options are "VB",
+"Gibbs", and "GLS" with "VB" as default. Variational Bayes is a fast approximation to
+the full posterior and often provides good point estimates, but may be 
+unreliable for inference. "GLS" doesn't do anything Bayesian – just fits an
+unpenalized GLS estimator for the specified model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cov.method</code></td>
+<td>
+<p>method used to estimate the residual covariance structure.
+Options are "FPCA" and "Wishart", with default "FPCA"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments that are passed to individual fitting functions.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Jeff Goldsmith <a href="mailto:ajg2202@cumc.columbia.edu">ajg2202@cumc.columbia.edu</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>Goldsmith, J., Kitago, T. (2016).
+Assessing Systematic Effects of Stroke on Motor Control using Hierarchical 
+Function-on-Scalar Regression. <em>Journal of the Royal Statistical Society:
+Series C</em>, 65 215-236.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Not run: 
+
+library(reshape2)
+library(dplyr)
+library(ggplot2)
+
+##### Cross-sectional real-data examples #####
+
+## organize data
+data(DTI)
+DTI = subset(DTI, select = c(cca, case, pasat))
+DTI = DTI[complete.cases(DTI),]
+DTI$gender = factor(sample(c("male","female"), dim(DTI)[1], replace = TRUE))
+DTI$status = factor(sample(c("RRMS", "SPMS", "PPMS"), dim(DTI)[1], replace = TRUE))
+
+## fit models
+default = bayes_fosr(cca ~ pasat, data = DTI)
+VB = bayes_fosr(cca ~ pasat, data = DTI, Kp = 4, Kt = 10)
+Gibbs = bayes_fosr(cca ~ pasat, data = DTI, Kt = 10, est.method = "Gibbs", cov.method = "Wishart",
+                   N.iter = 500, N.burn = 200)
+OLS = bayes_fosr(cca ~ pasat, data = DTI, Kt = 10, est.method = "OLS")
+GLS = bayes_fosr(cca ~ pasat, data = DTI, Kt = 10, est.method = "GLS")
+
+## plot results
+models = c("default", "VB", "Gibbs", "OLS", "GLS")
+intercepts = sapply(models, function(u) get(u)$beta.hat[1,])
+slopes = sapply(models, function(u) get(u)$beta.hat[2,])
+
+plot.dat = melt(intercepts); colnames(plot.dat) = c("grid", "method", "value")
+ggplot(plot.dat, aes(x = grid, y = value, group = method, color = method)) + 
+   geom_path() + theme_bw()
+
+plot.dat = melt(slopes); colnames(plot.dat) = c("grid", "method", "value")
+ggplot(plot.dat, aes(x = grid, y = value, group = method, color = method)) + 
+   geom_path() + theme_bw()
+
+## fit a model with an interaction
+fosr.dti.interaction = bayes_fosr(cca ~ pasat*gender, data = DTI, Kp = 4, Kt = 10)
+
+
+##### Longitudinal real-data examples #####
+
+data(DTI2)
+class(DTI2$cca) = class(DTI2$cca)[-1]
+DTI2 = subset(DTI2, select = c(cca, id, pasat))
+DTI2 = DTI2[complete.cases(DTI2),]
+
+default = bayes_fosr(cca ~ pasat + re(id), data = DTI2)
+VB = bayes_fosr(cca ~ pasat + re(id), data = DTI2, Kt = 10, cov.method = "Wishart")
+
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

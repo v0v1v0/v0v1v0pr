@@ -1,0 +1,389 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>RouteStack</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Combine multiple routes for sequential routing</h2>
+
+<h3>Description</h3>
+
+<p>The <code>RouteStack</code> class encapsulate multiple Routes and lets a request be
+passed through each sequentially. If a route is returning <code>FALSE</code> upon
+dispatch further dispatching is cancelled.
+</p>
+
+
+<h3>Initialization</h3>
+
+<p>A new 'RouteStack'-object is initialized using the <code>new()</code> method on the
+generator:
+</p>
+<p><strong>Usage</strong>
+</p>
+
+<table><tr>
+<td style="text-align: left;">
+<code>route &lt;- RouteStack$new(..., path_extractor = function(msg, bin) '/')</code>
+</td>
+</tr></table>
+<p><strong>Arguments</strong>
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+<code>...</code> </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;"> Routes to add up front. Must be in the form of named
+arguments containing <code>Route</code> objects. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>path_extractor</code> </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;"> A function that returns a path to dispatch
+on from a WebSocket message. Will only be used if
+<code>attach_to == 'message'</code>. Defaults to a function returning <code>'/'</code>
+</td>
+</tr>
+</table>
+<h3>Field</h3>
+
+<p>The following fields are accessible in a <code>RouteStack</code> object:
+</p>
+
+<dl>
+<dt><code>attach_to</code></dt>
+<dd>
+<p>Either <code>"request"</code> (default), <code>"header"</code>, or <code>"message"</code>
+that defines which event the router should be attached to when used as a
+<code>fiery</code> plugin.</p>
+</dd>
+<dt><code>name</code></dt>
+<dd>
+<p>The plugin name (used by <code>fiery</code>). Will return <code>'&lt;attach_to&gt;_routr'</code> (e.g. <code>'request_routr'</code> if <code>attach_to == 'request'</code>)</p>
+</dd>
+</dl>
+<h3>Methods</h3>
+
+<p>The following methods are accessible in a <code>RouteStack</code> object:
+</p>
+
+<dl>
+<dt><code>add_route(route, name, after = NULL)</code></dt>
+<dd>
+<p>Adds a new route to the stack.
+<code>route</code> must be a <code>Route</code> object, <code>name</code> must be a string. If <code>after</code> is
+given the route will be inserted after the given index, if not (or <code>NULL</code>)
+it will be inserted in the end of the stack.</p>
+</dd>
+<dt><code>has_route(name)</code></dt>
+<dd>
+<p>Test if the routestack contains a route with the
+given name.</p>
+</dd>
+<dt><code>remove(name)</code></dt>
+<dd>
+<p>Removes the route with the given name from the stack.</p>
+</dd>
+<dt><code>dispatch(request, ...)</code></dt>
+<dd>
+<p>Passes a reqres::Request through the stack
+of routes in sequence until one of the routes return <code>FALSE</code> or every route
+have been passed through. <code>...</code> will be passed on to the dispatch of each
+<code>Route</code> on the stack.</p>
+</dd>
+<dt><code>on_error(fun)</code></dt>
+<dd>
+<p>Set the error handling function. This must be a
+function that accepts an <code>error</code>, <code>request</code>, and <code>reponse</code> argument. The
+error handler will be called if any of the route handlers throws an error
+and can be used to modify the <code>500</code> response before it is send back. By
+default, the error will be signaled using <code>message</code></p>
+</dd>
+<dt><code>on_attach(app, on_error = NULL, ...)</code></dt>
+<dd>
+<p>Method for use by <code>fiery</code> when
+attached as a plugin. Should not be called directly.</p>
+</dd>
+</dl>
+<h3>Fiery plugin</h3>
+
+<p>A <code>RouteStack</code> object is a valid <code>fiery</code> plugin and can thus be passed in to
+the <code>attach()</code> method of a <code>Fire</code> object. When used as a fiery plugin it is
+important to be concious for what event it is attached to. By default it will
+be attached to the <code>request</code> event and thus be used to handle HTTP request
+messaging. An alternative is to attach it to the <code>header</code> event that is fired
+when all headers have been recieved but before the body is. This allows you
+to short-circuit request handling and e.g. reject requests above a certain
+size. When the router is attached to the <code>header</code> event any handler returning
+<code>FALSE</code> will signal that further handling of the request should be stopped
+and the response in its current form should be returned without fetching the
+request body.
+</p>
+<p>One last possibility is to attach it to the <code>message</code> event and thus use it
+to handle WebSocket messages. This use case is a bit different from that of
+<code>request</code> and <code>header</code>. As <code>routr</code> uses <code>Request</code> objects as a vessel between
+routes and WebSocket messages are not HTTP requests, some modification is
+needed. The way <code>routr</code> achieves this is be modifying the HTTP request that
+established the WebSocket connection and send this through the routes. Using
+the <code>path_extractor</code> function provided in the <code>RouteStack</code> constructor it
+will extract a path to dispatch on and assign it to the request. Furthermore
+it assigns the message to the body of the request and sets the <code>Content-Type</code>
+header based on whether the message is binary <code>application/octet-stream</code> or
+not <code>text/plain</code>. As WebSocket communication is asynchronous the response is
+ignored when attached to the <code>message</code> event. If communication should be send
+back, use <code>server$send()</code> inside the handler(s).
+</p>
+<p>How a <code>RouteStack</code> is attached is defined by the <code>attach_to</code> field which must
+be either <code>'request'</code>, <code>'header'</code>, or <code>'message'</code>.
+</p>
+<p>When attaching the <code>RouteStack</code> it is possible to modify how errors are
+handled, using the <code>on_error</code> argument, which will change the error handler
+set on the <code>RouteStack</code>. By default the error handler will be changed to
+using the <code>fiery</code> logging system if the <code>Fire</code> object supports it.
+</p>
+
+
+<h3>Methods</h3>
+
+
+
+<h4>Public methods</h4>
+
+
+<ul>
+<li> <p><a href="#method-RouteStack-new"><code>RouteStack$new()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-RouteStack-print"><code>RouteStack$print()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-RouteStack-add_route"><code>RouteStack$add_route()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-RouteStack-get_route"><code>RouteStack$get_route()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-RouteStack-has_route"><code>RouteStack$has_route()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-RouteStack-remove_route"><code>RouteStack$remove_route()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-RouteStack-dispatch"><code>RouteStack$dispatch()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-RouteStack-on_attach"><code>RouteStack$on_attach()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-RouteStack-on_error"><code>RouteStack$on_error()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-RouteStack-clone"><code>RouteStack$clone()</code></a>
+</p>
+</li>
+</ul>
+<hr>
+<a id="method-RouteStack-new"></a>
+
+
+
+<h4>Method <code>new()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>RouteStack$new(..., path_extractor = function(msg, bin) "/")</pre></div>
+
+
+<hr>
+<a id="method-RouteStack-print"></a>
+
+
+
+<h4>Method <code>print()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>RouteStack$print(...)</pre></div>
+
+
+<hr>
+<a id="method-RouteStack-add_route"></a>
+
+
+
+<h4>Method <code>add_route()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>RouteStack$add_route(route, name, after = NULL)</pre></div>
+
+
+<hr>
+<a id="method-RouteStack-get_route"></a>
+
+
+
+<h4>Method <code>get_route()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>RouteStack$get_route(name)</pre></div>
+
+
+<hr>
+<a id="method-RouteStack-has_route"></a>
+
+
+
+<h4>Method <code>has_route()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>RouteStack$has_route(name)</pre></div>
+
+
+<hr>
+<a id="method-RouteStack-remove_route"></a>
+
+
+
+<h4>Method <code>remove_route()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>RouteStack$remove_route(name)</pre></div>
+
+
+<hr>
+<a id="method-RouteStack-dispatch"></a>
+
+
+
+<h4>Method <code>dispatch()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>RouteStack$dispatch(request, ...)</pre></div>
+
+
+<hr>
+<a id="method-RouteStack-on_attach"></a>
+
+
+
+<h4>Method <code>on_attach()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>RouteStack$on_attach(app, on_error = NULL, ...)</pre></div>
+
+
+<hr>
+<a id="method-RouteStack-on_error"></a>
+
+
+
+<h4>Method <code>on_error()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>RouteStack$on_error(fun)</pre></div>
+
+
+<hr>
+<a id="method-RouteStack-clone"></a>
+
+
+
+<h4>Method <code>clone()</code>
+</h4>
+
+<p>The objects of this class are cloneable with this method.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>RouteStack$clone(deep = FALSE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>deep</code></dt>
+<dd>
+<p>Whether to make a deep clone.</p>
+</dd>
+</dl>
+</div>
+
+
+
+
+<h3>See Also</h3>
+
+<p>Route for defining single routes
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Create a new stack
+routes &lt;- RouteStack$new()
+
+# Populate it wih routes
+first &lt;- Route$new()
+first$add_handler('all', '*', function(request, response, keys, ...) {
+  message('This will always get called first')
+  TRUE
+})
+second &lt;- Route$new()
+second$add_handler('get', '/demo/', function(request, response, keys, ...) {
+  message('This will get called next if the request asks for /demo/')
+  TRUE
+})
+routes$add_route(first, 'first')
+routes$add_route(second, 'second')
+
+# Send a request through
+rook &lt;- fiery::fake_request('http://example.com/demo/', method = 'get')
+req &lt;- reqres::Request$new(rook)
+routes$dispatch(req)
+
+</code></pre>
+
+
+</div>

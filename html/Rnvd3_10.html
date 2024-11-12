@@ -1,0 +1,139 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rnvd3-shiny</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Shiny bindings for rnvd3</h2>
+
+<h3>Description</h3>
+
+<p>Output and render functions for using <code>rnvd3</code> widgets
+within Shiny applications and interactive Rmd documents.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rnvd3Output(outputId, width = "100%", height = "400px")
+
+renderRnvd3(expr, env = parent.frame(), quoted = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>outputId</code></td>
+<td>
+<p>output variable to read from</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>width, height</code></td>
+<td>
+<p>must be a valid CSS unit (like <code>'100%'</code>,
+<code>'400px'</code>, <code>'auto'</code>) or a number, which will be coerced to a
+string and have <code>'px'</code> appended</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>expr</code></td>
+<td>
+<p>an expression that generates a <code>rnvd3</code> widget</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>env</code></td>
+<td>
+<p>the environment in which to evaluate <code>expr</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quoted</code></td>
+<td>
+<p>is <code>expr</code> a quoted expression (with <code>quote()</code>)</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p><code>rnvd3Output</code> returns an output element that can be included
+in a Shiny UI definition, and <code>renderRnvd3</code> returns a
+<code>shiny.render.function</code> object that can be included in a Shiny server
+definition.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(Rnvd3)
+library(shiny)
+
+dat &lt;- reshape2::melt(
+  apply(HairEyeColor, c(1, 2), sum), value.name = "Count"
+)
+
+CSS &lt;- HTML(
+  "body {
+    overflow: overlay;
+  }
+  /* style axis titles */
+  .nvd3 .nv-axis.nv-x text.nv-axislabel,
+   .nvd3 .nv-axis.nv-y text.nv-axislabel {
+     font-size: 3rem;
+     fill: red;
+  }
+  /* style the tooltip */
+  .nvtooltip .value {
+    color: red;
+  }
+  .nvtooltip .x-value {
+    color: green;
+  }
+  .nvtooltip .key {
+    color: blue;
+    font-style: italic;
+  }
+  "
+)
+
+ui &lt;- fluidPage(
+  tags$head(tags$style(CSS)),
+  br(),
+  fluidRow(
+    column(
+      9,
+      rnvd3Output("mychart", width = "100%", height = "500px")
+    ),
+    column(
+      3,
+      tags$h3("Chart state:"),
+      verbatimTextOutput("state")
+    )
+  )
+)
+
+server &lt;- function(input, output, session){
+
+  output[["mychart"]] &lt;- renderRnvd3({
+    multiBarChart(
+      dat, Count ~ Eye, "Hair", palette = "viridis",
+      xLabelsFontSize = "2rem", yLabelsFontSize = "2rem"
+    )
+  })
+
+  output[["state"]] &lt;- renderPrint({
+    input[["mychart_state"]]
+  })
+
+}
+
+if(interactive()){
+  shinyApp(ui, server)
+}
+</code></pre>
+
+
+</div>

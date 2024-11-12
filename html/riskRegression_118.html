@@ -1,0 +1,277 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>predictCox</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fast computation of survival probabilities, hazards and cumulative hazards from Cox regression models</h2>
+
+<h3>Description</h3>
+
+<p>Fast routine to get baseline hazards and subject specific hazards
+as well as survival probabilities from a <code>survival::coxph</code> or <code>rms::cph</code> object
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">predictCox(
+  object,
+  times,
+  newdata = NULL,
+  centered = TRUE,
+  type = c("cumhazard", "survival"),
+  keep.strata = TRUE,
+  keep.times = TRUE,
+  keep.newdata = FALSE,
+  keep.infoVar = FALSE,
+  se = FALSE,
+  band = FALSE,
+  iid = FALSE,
+  confint = (se + band) &gt; 0,
+  diag = FALSE,
+  average.iid = FALSE,
+  store.iid = "full"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>The fitted Cox regression model object either
+obtained with <code>coxph</code> (survival package) or <code>cph</code>
+(rms package).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>times</code></td>
+<td>
+<p>[numeric vector] Time points at which to return
+the estimated hazard/cumulative hazard/survival.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newdata</code></td>
+<td>
+<p>[data.frame or data.table]  Contain the values of the predictor variables
+defining subject specific predictions.
+Should have the same structure as the data set used to fit the <code>object</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>centered</code></td>
+<td>
+<p>[logical] If <code>TRUE</code> return prediction at the
+mean values of the covariates <code>fit$mean</code>, if <code>FALSE</code>
+return a prediction for all covariates equal to zero.  in the
+linear predictor. Will be ignored if argument <code>newdata</code> is
+used. For internal use.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>[character vector] the type of predicted value. Choices are </p>
+
+<ul>
+<li> <p><code>"hazard"</code> the baseline hazard function when
+argument <code>newdata</code> is not used and the hazard function
+when argument <code>newdata</code> is used.  </p>
+</li>
+<li> <p><code>"cumhazard"</code>
+the cumulative baseline hazard function when argument
+<code>newdata</code> is not used and the cumulative hazard function
+when argument <code>newdata</code> is used.  </p>
+</li>
+<li> <p><code>"survival"</code>
+the survival baseline hazard function when argument
+<code>newdata</code> is not used and the cumulative hazard function
+when argument <code>newdata</code> is used.  </p>
+</li>
+</ul>
+<p> Several choices can be
+combined in a vector of strings that match (no matter the case)
+strings <code>"hazard"</code>,<code>"cumhazard"</code>, <code>"survival"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep.strata</code></td>
+<td>
+<p>[logical] If <code>TRUE</code> add the (newdata) strata
+to the output. Only if there any.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep.times</code></td>
+<td>
+<p>[logical] If <code>TRUE</code> add the evaluation times
+to the output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep.newdata</code></td>
+<td>
+<p>[logical] If <code>TRUE</code> add the value of the
+covariates used to make the prediction in the output list.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep.infoVar</code></td>
+<td>
+<p>[logical] For internal use.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>se</code></td>
+<td>
+<p>[logical] If <code>TRUE</code> compute and add the standard errors to the output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>band</code></td>
+<td>
+<p>[logical] If <code>TRUE</code> compute and add the quantiles for the confidence bands to the output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iid</code></td>
+<td>
+<p>[logical] If <code>TRUE</code> compute and add the influence function to the output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>confint</code></td>
+<td>
+<p>[logical] If <code>TRUE</code> compute and add the confidence intervals/bands to the output.
+They are computed applying the <code>confint</code> function to the output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>diag</code></td>
+<td>
+<p>[logical] when <code>FALSE</code> the hazard/cumlative hazard/survival for all observations at all times is computed,
+otherwise it is only computed for the i-th observation at the i-th time.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>average.iid</code></td>
+<td>
+<p>[logical] If <code>TRUE</code> add the average of the influence function over <code>newdata</code> to the output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>store.iid</code></td>
+<td>
+<p>[character] Implementation used to estimate the influence function and the standard error.
+Can be <code>"full"</code> or <code>"minimal"</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>When the argument <code>newdata</code> is not specified, the function computes the baseline hazard estimate.
+See (Ozenne et al., 2017) section "Handling of tied event times".
+</p>
+<p>Otherwise the function computes survival probabilities with confidence intervals/bands.
+See (Ozenne et al., 2017) section "Confidence intervals and confidence bands for survival probabilities".
+The survival is computed using the exponential approximation (equation 3).
+</p>
+<p>A detailed explanation about the meaning of the argument <code>store.iid</code> can be found
+in (Ozenne et al., 2017) Appendix B "Saving the influence functions".
+</p>
+<p>The function is not compatible with time varying predictor variables.
+</p>
+<p>The centered argument enables us to reproduce the results obtained with the <code>basehaz</code>
+function from the survival package but should not be modified by the user.
+</p>
+<p>The iid decomposition is output using an array containing the value of the influence
+of each subject used to fit the object (dim 1),
+for each subject in newdata (dim 3),
+and each time (dim 2).
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Brice Ozenne broz@sund.ku.dk, Thomas A. Gerds tag@biostat.ku.dk
+</p>
+
+
+<h3>References</h3>
+
+<p>Brice Ozenne, Anne Lyngholm Sorensen, Thomas Scheike, Christian Torp-Pedersen and Thomas Alexander Gerds.
+riskRegression: Predicting the Risk of an Event using Cox Regression Models.
+The R Journal (2017) 9:2, pages 440-460.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>confint.predictCox</code> to compute confidence intervals/bands.
+<code>autoplot.predictCox</code> to display the predictions.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(survival)
+library(data.table)
+
+#### generate data ####
+set.seed(10)
+d &lt;- sampleData(40,outcome="survival") ## training dataset
+nd &lt;- sampleData(4,outcome="survival") ## validation dataset
+d$time &lt;- round(d$time,1) ## create tied events
+# table(duplicated(d$time))
+
+#### stratified Cox model ####
+fit &lt;- coxph(Surv(time,event)~X1 + strata(X2) + X6,
+             data=d, ties="breslow", x = TRUE, y = TRUE)
+
+## compute the baseline cumulative hazard
+fit.haz &lt;- predictCox(fit)
+cbind(survival::basehaz(fit), fit.haz$cumhazard)
+
+## compute individual specific cumulative hazard and survival probabilities 
+fit.pred &lt;- predictCox(fit, newdata=nd, times=c(3,8), se = TRUE, band = TRUE)
+fit.pred
+
+####  other examples ####
+# one strata variable
+fitS &lt;- coxph(Surv(time,event)~strata(X1)+X2,
+              data=d, ties="breslow", x = TRUE, y = TRUE)
+
+predictCox(fitS)
+predictCox(fitS, newdata=nd, times = 1)
+
+# two strata variables
+set.seed(1)
+d$U=sample(letters[1:5],replace=TRUE,size=NROW(d))
+d$V=sample(letters[4:10],replace=TRUE,size=NROW(d))
+nd$U=sample(letters[1:5],replace=TRUE,size=NROW(nd))
+nd$V=sample(letters[4:10],replace=TRUE,size=NROW(nd))
+fit2S &lt;- coxph(Surv(time,event)~X1+strata(U)+strata(V)+X2,
+              data=d, ties="breslow", x = TRUE, y = TRUE)
+
+cbind(survival::basehaz(fit2S),predictCox(fit2S,type="cumhazard")$cumhazard)
+predictCox(fit2S)
+predictCox(fitS, newdata=nd, times = 3)
+
+# left truncation
+test2 &lt;- list(start=c(1,2,5,2,1,7,3,4,8,8), 
+              stop=c(2,3,6,7,8,9,9,9,14,17), 
+              event=c(1,1,1,1,1,1,1,0,0,0), 
+              x=c(1,0,0,1,0,1,1,1,0,0)) 
+m.cph &lt;- coxph(Surv(start, stop, event) ~ 1, test2, x = TRUE)
+as.data.table(predictCox(m.cph))
+
+basehaz(m.cph)
+</code></pre>
+
+
+</div>

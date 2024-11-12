@@ -1,0 +1,122 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>editMSfileRTs</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Edit mzML/mzXML file retention times</h2>
+
+<h3>Description</h3>
+
+<p>This function uses the basic XML parsing of RaMS to modify the retention
+times of MS scans within the mzML/mzXML files. This method can be useful for
+performing RT correction using one platform and then peakpicking and
+correspondence on another. The basic method is simply replacing the scan's
+recorded retention time value with an arbitrary one of your choosing. This
+function is vectorized to handle multiple files, while the internal
+'editMzmlRTs()' and 'editMzxmlRTs()' do most of the heavy lifting. Note that
+the seconds vs minutes must be closely monitored here - the unit should be
+the same as the one in the file originally.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">editMSfileRTs(
+  files,
+  new_rt_list,
+  new_filenames = NULL,
+  interp_method = "linear",
+  overwrite = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>files</code></td>
+<td>
+<p>Vector of filenames (including the relative/absolute path)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>new_rt_list</code></td>
+<td>
+<p>Nested of new retention times. One entry in the list for
+each file (in the same order as the files), each containing a vector of new
+retention times. RT vectors can be equal to either every scan or just every
+MS1 scan. If only the MS1 scans are provided in a file with additional MS
+levels, MSn scan RTs will be interpolated according to interp_method (below)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>new_filenames</code></td>
+<td>
+<p>Vector of filenames (including relative/absolute paths)
+describing where the edited files should be written out. Can be the same
+as files but will throw a warning and append _rtcor to each file unless
+'overwrite = TRUE' (below)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interp_method</code></td>
+<td>
+<p>Either "linear" or "constant". Describes the way that
+MSn retention times should be handled when only the MS1 values are provided.
+"linear" (the default) means that the spacing will be preserved, while
+"constant" will use the associated MS1 scan RT for all MSn scans, allowing
+an easy method of linking the MSn to the MS1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite</code></td>
+<td>
+<p>Boolean. Controls whether files are overwritten in place
+if 'new_filenames' is not provided.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Invisibly, the names of the edited files.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# Setup (allows running on CRAN computers)
+example_dir &lt;- tempdir()
+rams_dir &lt;- system.file("extdata", package = "RaMS")
+file.copy(list.files(rams_dir, pattern = "LB.*mzML", full.names = TRUE), example_dir)
+mzMLs &lt;- list.files(example_dir, pattern = "LB.*mzML", full.names = TRUE)
+
+library(xcms)
+library(RaMS)
+
+register(SerialParam())
+xcms_obj &lt;- readMSData(mzMLs, msLevel. = 1, mode = "onDisk")
+cwp &lt;- CentWaveParam(ppm = 5, peakwidth = c(20, 80))
+xcms_peakpicked &lt;- findChromPeaks(xcms_obj, param = cwp)
+xcms_rtcor &lt;- adjustRtime(xcms_peakpicked, param = ObiwarpParam())
+
+# Extract the adjusted RTs from the XCMS object
+new_rts &lt;- split(rtime(xcms_rtcor)/60, fromFile(xcms_rtcor))
+# Apply the retention time correction to the new files
+mzMLs_rtcor &lt;- editMSfileRTs(mzMLs, new_rt_list = new_rts)
+
+# Contrast the two chromatograms to see the peaks aligned
+qplotMS1data(grabMSdata(mzMLs)$MS1[mz%between%pmppm(104.1073, 10)])
+qplotMS1data(grabMSdata(mzMLs_rtcor)$MS1[mz%between%pmppm(104.1073, 10)])
+
+# Cleanup
+file.remove(mzMLs)
+file.remove(mzMLs_rtcor)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

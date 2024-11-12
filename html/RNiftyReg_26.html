@@ -1,0 +1,240 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>niftyreg.linear</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Two and three dimensional linear image registration</h2>
+
+<h3>Description</h3>
+
+<p>The <code>niftyreg.linear</code> function performs linear registration for two and
+three dimensional images. 4D images may also be registered volumewise to a
+3D image, or 3D images slicewise to a 2D image. Rigid-body (6 degrees of
+freedom) and affine (12 degrees of freedom) registration can currently be
+performed.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">niftyreg.linear(source, target, scope = c("affine", "rigid"), init = NULL,
+  sourceMask = NULL, targetMask = NULL, symmetric = TRUE, nLevels = 3L,
+  maxIterations = 5L, useBlockPercentage = 50L, interpolation = 3L,
+  verbose = FALSE, estimateOnly = FALSE, sequentialInit = FALSE,
+  internal = NA, precision = c("double", "single"),
+  threads = getOption("RNiftyReg.threads"))
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>source</code></td>
+<td>
+<p>The source image, an object of class <code>"nifti"</code> or
+<code>"internalImage"</code>, or a plain array, or a NIfTI-1 filename. Must have
+2, 3 or 4 dimensions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target</code></td>
+<td>
+<p>The target image, an object of class <code>"nifti"</code> or
+<code>"internalImage"</code>, or a plain array, or a NIfTI-1 filename. Must have
+2 or 3 dimensions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scope</code></td>
+<td>
+<p>A string describing the scope, or number of degrees of freedom
+(DOF), of the registration. The currently supported values are
+<code>"affine"</code> (12 DOF), <code>"rigid"</code> (6 DOF) or <code>"nonlinear"</code>
+(high DOF, with the exact number depending on the image sizes).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init</code></td>
+<td>
+<p>Transformation(s) to be used for initialisation, which may be
+<code>NULL</code>, for no initialisation, or an affine matrix or control point
+image (nonlinear only). For multiple registration, where the source image
+has one more dimension than the target, this may also be a list whose
+components are likewise <code>NULL</code> or a suitable initial transform.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sourceMask</code></td>
+<td>
+<p>An optional mask image in source space, whose nonzero
+region will be taken as the region of interest for the registration.
+Ignored when <code>symmetric</code> is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>targetMask</code></td>
+<td>
+<p>An optional mask image in target space, whose nonzero
+region will be taken as the region of interest for the registration.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>symmetric</code></td>
+<td>
+<p>Logical value. Should forward and reverse transformations
+be estimated simultaneously?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nLevels</code></td>
+<td>
+<p>A single integer specifying the number of levels of the
+algorithm that should be applied. If zero, no optimisation will be
+performed, and the final affine matrix will be the same as its
+initialisation value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxIterations</code></td>
+<td>
+<p>A single integer specifying the maximum number of
+iterations to be used within each level. Fewer iterations may be used if a
+convergence test deems the process to have completed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>useBlockPercentage</code></td>
+<td>
+<p>A single integer giving the percentage of blocks
+to use for calculating correspondence at each step of the algorithm. The
+blocks with the highest intensity variance will be chosen.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interpolation</code></td>
+<td>
+<p>A single integer specifying the type of interpolation
+to be applied to the final resampled image. May be 0 (nearest neighbour),
+1 (trilinear) or 3 (cubic spline). No other values are valid.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>A single logical value: if <code>TRUE</code>, the code will give
+some feedback on its progress; otherwise, nothing will be output while the
+algorithm runs. Run time can be seconds or more, depending on the size and
+dimensionality of the images.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estimateOnly</code></td>
+<td>
+<p>Logical value: if <code>TRUE</code>, transformations will be
+estimated, but images will not be resampled.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sequentialInit</code></td>
+<td>
+<p>If <code>TRUE</code> and <code>source</code> has higher
+dimensionality than <code>target</code>, transformations which are not
+explicitly initialised will begin from the result of the previous
+registration.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>internal</code></td>
+<td>
+<p>If <code>NA</code>, the default, the final resampled image will be
+returned as a standard R array, but control point maps will be objects of
+class <code>"internalImage"</code>, containing only basic metadata and a C-level
+pointer to the full image. (See also <code>readNifti</code>.) If
+<code>TRUE</code>, all image-type objects in the result will be internal images;
+if <code>FALSE</code>, they will all be R arrays. The default is fine for most
+purposes, but using <code>TRUE</code> may save memory, while using <code>FALSE</code>
+can be necessary if there is a chance that external pointers will be
+invalidated, for example when returning from worker threads.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>precision</code></td>
+<td>
+<p>Working precision for the registration. Using single-
+precision may be desirable to save memory when coregistering large images.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threads</code></td>
+<td>
+<p>For OpenMP-capable builds of the package, the maximum number
+of threads to use.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function performs the dual operations of finding a transformation to
+optimise image alignment, and resampling the source image into the space of
+the target image.
+</p>
+<p>The algorithm is based on a block-matching approach and Least Trimmed
+Squares (LTS) fitting. Firstly, the block matching provides a set of
+corresponding points between a target and a source image. Secondly, using
+this set of corresponding points, the best rigid or affine transformation is
+evaluated. This two-step loop is repeated until convergence to the best
+transformation is achieved.
+</p>
+<p>In the NiftyReg implementation, normalised cross-correlation between the
+target and source blocks is used to evaluate correspondence. The block width
+is constant and has been set to 4 voxels. A coarse-to-fine approach is used,
+where the registration is first performed on down-sampled images (using a
+Gaussian filter to resample images), and finally performed on full
+resolution images.
+</p>
+<p>The source image may have 2, 3 or 4 dimensions, and the target 2 or 3. The
+dimensionality of the target image determines whether 2D or 3D registration
+is applied, and source images with one more dimension than the target (i.e.
+4D to 3D, or 3D to 2D) will be registered volumewise or slicewise, as
+appropriate. In the latter case the last dimension of the resulting image is
+taken from the source image, while all other dimensions come from the
+target. One affine matrix is returned for each registration performed.
+</p>
+
+
+<h3>Value</h3>
+
+<p>See <code>niftyreg</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Jon Clayden &lt;code@clayden.org&gt;
+</p>
+
+
+<h3>References</h3>
+
+<p>The algorithm used by this function is described in the
+following publication.
+</p>
+<p>M. Modat, D.M. Cash, P. Daga, G.P. Winston, J.S. Duncan &amp; S. Ourselin
+(2014). Global image registration using a symmetric block-matching approach.
+Journal of Medical Imaging 1(2):024003.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>niftyreg</code>, which can be used as an interface to this
+function, and <code>niftyreg.nonlinear</code> for nonlinear registration.
+Also, <code>forward</code> and <code>reverse</code> to extract
+transformations, and <code>applyTransform</code> to apply them to new
+images or points.
+</p>
+
+
+</div>

@@ -1,0 +1,273 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>gridscore</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Tuning of predictive models on a validation dataset</h2>
+
+<h3>Description</h3>
+
+<p>Functions for tuning predictive models on a validation set.
+</p>
+<p>The functions return "scores" (average error rates) of predictions for a given model and a grid of parameter values, calculated on a validation dataset. 
+</p>
+<p>- <code>gridscore</code>: Can be used for any model.
+</p>
+<p>- <code>gridscorelv</code>: Specific to models using regularization by latent variables (LVs) (e.g. PLSR). Much faster than <code>gridscore</code>.
+</p>
+<p>- <code>gridscorelb</code>: Specific to models using ridge regularization (e.g. RR). Much faster than <code>gridscore</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">
+gridscore(Xtrain, Ytrain, X, Y, score, fun, pars, verb = FALSE)
+
+gridscorelv(Xtrain, Ytrain, X, Y, score, fun, nlv, pars = NULL, verb = FALSE)
+
+gridscorelb(Xtrain, Ytrain, X, Y, score, fun, lb, pars = NULL, verb = FALSE)
+
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Xtrain</code></td>
+<td>
+<p>Training X-data (<code class="reqn">n, p</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Ytrain</code></td>
+<td>
+<p>Training Y-data (<code class="reqn">n, q</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>Validation X-data (<code class="reqn">n, p</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>Validation Y-data (<code class="reqn">n, q</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>score</code></td>
+<td>
+<p>A function calculating a prediction score (e.g. <code>msep</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fun</code></td>
+<td>
+<p>A function corresponding to the predictive model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nlv</code></td>
+<td>
+<p>For <code>gridscorelv</code>. A vector of numbers of LVs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lb</code></td>
+<td>
+<p>For <code>gridscorelb</code>. A vector of ridge regulariation parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pars</code></td>
+<td>
+<p>A list of named vectors.  Each vector must correspond to an argument of the model function and gives the parameter values to consider for this argument. (see details)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verb</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, fitting information are printed.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Argument <code>pars</code> (the grid) must be a list of named vectors, each vector corresponding to an argument of the model function and giving the parameter values to consider for this argument. This list can eventually be built with function <code>mpars</code>, which returns all the combinations of the input parameters, see the examples. 
+</p>
+<p>For <code>gridscorelv</code>, <code>pars</code> must not contain <code>nlv</code> (nb. LVs), and for <code>gridscorelb</code>, <code>lb</code> (regularization parameter <code class="reqn">lambda</code>).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A dataframe with the prediction scores for the grid.</p>
+
+
+<h3>Note</h3>
+
+<p>Examples are given:
+- with PLSR, using gridscore and gridscorelv (much faster)
+- with PLSLDA, using gridscore and gridscorelv (much faster)
+- with RR, using gridscore and gridscorelb (much faster)
+- with KRR, using gridscore and gridscorelb (much faster) 
+- with LWPLSR, using gridscorelv 
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## EXAMPLE WITH PLSR
+
+n &lt;- 50 ; p &lt;- 8
+Xtrain &lt;- matrix(rnorm(n * p), ncol = p, byrow = TRUE)
+ytrain &lt;- rnorm(n)
+Ytrain &lt;- cbind(ytrain, 10 * rnorm(n))
+m &lt;- 3
+Xtest &lt;- Xtrain[1:m, ] 
+Ytest &lt;- Ytrain[1:m, ] ; ytest &lt;- Ytest[, 1]
+
+nlv &lt;- 5
+pars &lt;- mpars(nlv = 1:nlv)
+pars
+gridscore(
+    Xtrain, Ytrain, Xtest, Ytest, 
+    score = msep, 
+    fun = plskern, 
+    pars = pars, verb = TRUE
+    )
+
+gridscorelv(
+    Xtrain, Ytrain, Xtest, Ytest, 
+    score = msep, 
+    fun = plskern, 
+    nlv = 0:nlv, verb = TRUE
+    )
+
+fm &lt;- plskern(Xtrain, Ytrain, nlv = nlv)
+pred &lt;- predict(fm, Xtest)$pred
+msep(pred, Ytest)
+
+## EXAMPLE WITH PLSLDA
+
+n &lt;- 50 ; p &lt;- 8
+X &lt;- matrix(rnorm(n * p), ncol = p, byrow = TRUE)
+y &lt;- sample(c(1, 4, 10), size = n, replace = TRUE)
+Xtrain &lt;- X ; ytrain &lt;- y
+m &lt;- 5
+Xtest &lt;- X[1:m, ] ; ytest &lt;- y[1:m]
+
+nlv &lt;- 5
+pars &lt;- mpars(nlv = 1:nlv, prior = c("unif", "prop"))
+pars
+gridscore(
+    Xtrain, ytrain, Xtest, ytest, 
+    score = err, 
+    fun = plslda,
+    pars = pars, verb = TRUE
+    )
+
+fm &lt;- plslda(Xtrain, ytrain, nlv = nlv)
+pred &lt;- predict(fm, Xtest)$pred
+err(pred, ytest)
+
+pars &lt;- mpars(prior = c("unif", "prop"))
+pars
+gridscorelv(
+    Xtrain, ytrain, Xtest, ytest, 
+    score = err, 
+    fun = plslda,
+    nlv = 1:nlv, pars = pars, verb = TRUE
+    )
+    
+## EXAMPLE WITH RR
+
+n &lt;- 50 ; p &lt;- 8
+Xtrain &lt;- matrix(rnorm(n * p), ncol = p, byrow = TRUE)
+ytrain &lt;- rnorm(n)
+Ytrain &lt;- cbind(ytrain, 10 * rnorm(n))
+m &lt;- 3
+Xtest &lt;- Xtrain[1:m, ] 
+Ytest &lt;- Ytrain[1:m, ] ; ytest &lt;- Ytest[, 1]
+
+lb &lt;- c(.1, 1)
+pars &lt;- mpars(lb = lb)
+pars
+gridscore(
+    Xtrain, Ytrain, Xtest, Ytest, 
+    score = msep, 
+    fun = rr, 
+    pars = pars, verb = TRUE
+    )
+
+gridscorelb(
+    Xtrain, Ytrain, Xtest, Ytest, 
+    score = msep, 
+    fun = rr, 
+    lb = lb, verb = TRUE
+    )
+
+## EXAMPLE WITH KRR
+
+n &lt;- 50 ; p &lt;- 8
+Xtrain &lt;- matrix(rnorm(n * p), ncol = p, byrow = TRUE)
+ytrain &lt;- rnorm(n)
+Ytrain &lt;- cbind(ytrain, 10 * rnorm(n))
+m &lt;- 3
+Xtest &lt;- Xtrain[1:m, ] 
+Ytest &lt;- Ytrain[1:m, ] ; ytest &lt;- Ytest[, 1]
+
+lb &lt;- c(.1, 1)
+gamma &lt;- 10^(-1:1)
+pars &lt;- mpars(lb = lb, gamma = gamma)
+pars
+gridscore(
+    Xtrain, Ytrain, Xtest, Ytest, 
+    score = msep, 
+    fun = krr, 
+    pars = pars, verb = TRUE
+    )
+
+pars &lt;- mpars(gamma = gamma)
+gridscorelb(
+    Xtrain, Ytrain, Xtest, Ytest, 
+    score = msep, 
+    fun = krr, 
+    lb = lb, pars = pars, verb = TRUE
+    )
+    
+## EXAMPLE WITH LWPLSR
+
+n &lt;- 50 ; p &lt;- 8
+Xtrain &lt;- matrix(rnorm(n * p), ncol = p, byrow = TRUE)
+ytrain &lt;- rnorm(n)
+Ytrain &lt;- cbind(ytrain, 10 * rnorm(n))
+m &lt;- 3
+Xtest &lt;- Xtrain[1:m, ] 
+Ytest &lt;- Ytrain[1:m, ] ; ytest &lt;- Ytest[, 1]
+
+nlvdis &lt;- 5
+h &lt;- c(1, Inf)
+k &lt;- c(10, 20)
+nlv &lt;- 5
+pars &lt;- mpars(nlvdis = nlvdis, diss = "mahal",
+    h = h, k = k)
+pars
+res &lt;- gridscorelv(
+    Xtrain, Ytrain, Xtest, Ytest, 
+    score = msep, 
+    fun = lwplsr, 
+    nlv = 0:nlv, pars = pars, verb = TRUE
+    )
+res
+
+</code></pre>
+
+
+</div>

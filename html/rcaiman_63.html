@@ -1,0 +1,315 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>thr_mblt</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate thresholds with the model-based method</h2>
+
+<h3>Description</h3>
+
+<p>Transform background digital number into threshold values
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">thr_mblt(dn, intercept, slope)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>dn</code></td>
+<td>
+<p>Numeric vector or SpatRaster. Digital number of the
+background. These values should be normalized and, if they are extracted
+from a JPEG image, gamma back corrected.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intercept, slope</code></td>
+<td>
+<p>Numeric vector of length one. These are linear
+function coefficients.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function transforms background digital numbers into threshold values by
+means of the Equation 1 from Díaz and Lencinas (2018), which is
+a linear function with the slope modified by a weighting parameter. This
+simple function was found by studying canopy models, also known as targets,
+which are perforated surfaces made of a rigid and dark material . These
+models were backlighted with homogeneous lighting, photographed with a Nikon
+Coolpix 5700 set to acquire in JPEG format, and those images were gamma back
+corrected with a default gamma value equal to 2.2 (see <code>gbc()</code>). Results
+shown that the optimal threshold value was linearly related with the
+background digital number (see Figure 1 and Figure 7 from
+Díaz and Lencinas (2018)). This shifted the aim from finding
+the optimal threshold, following Song et al. (2014)
+method, to obtaining the background DN as if the canopy was not there, as
+Lang et al. (2010) proposed.
+</p>
+
+
+<h4>Working principle</h4>
+
+<p>Díaz and Lencinas (2018) observed the following linear
+relationship between the background value, usually the sky digital number
+(SDN), and the optimal threshold value (OTV):</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+   <code class="reqn">IV = a + b \cdot SDN</code> </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: right;"> (Equation 1a) </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<table>
+<tr>
+<td style="text-align: left;">
+   <code class="reqn">OTV = a + b \cdot w \cdot SDN</code> </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: right;"> (Equation 1b) </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<p>were IV is the initial value (Wagner 2001), which is the
+boundary between SDN and the mixed pixels, i.e, the pixels that are neither
+<em>Gap</em> or <em>Non-gap</em> (Macfarlane 2011), <code class="reqn">a</code> and <code class="reqn">b</code>
+are the intercept and slope coefficients, respectively, and <code class="reqn">w</code> is a
+weighting parameter that takes into account that OTV is always lower than IV.
+If SDN is calculated at the pixel level, a local thresholding method can be
+applied by evaluating, pixel by pixel, if the below canopy digital number
+(CDN) is greater than the OTV. Formally, If <code class="reqn">CDN&gt;OTV</code>, then assign <em>Gap</em>
+class, else assign <em>Non-gap</em> class.
+</p>
+<p>This conclusion drawn from an image processing point of view matches with
+previous findings drawn from a radiometric measurement paradigm, which are
+introduced next.
+</p>
+<p>Cescatti (2007) posed that cameras can be used as
+a radiation measurement device if they are properly calibrated. This method,
+denominated by the author as LinearRatio, seeks to obtain the transmittance
+(T) as the ratio of below to above canopy radiation:</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+   <code class="reqn">T = CDN/SDN</code> </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: right;"> (Equation 2) </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<p>were CDN is below canopy digital number (DN), i.e., the DN extracted from a
+canopy hemispherical photograph.
+</p>
+<p>The LinearRatio method uses T as a proxy for gap fraction. It
+requires twin cameras, one below and the other above the canopy. In contrast,
+Lang et al. (2010) proposed to obtain SDN by manually
+selecting pure sky pixels from canopy hemispherical photographs and
+reconstructing the whole sky by subsequent modeling and interpolating—this
+method is often referred to as LinearRatio single camera or LinearRatioSC.
+</p>
+<p>Equation 2 can be seen as a standardization of the distance between CDN and
+SDN. With that in mind, it is useful to rewrite Equation 1b as an inequality
+that can be evaluated to return a logical statement that is directly
+translated into the desired binary classification:</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+   <code class="reqn">CDN &gt; a + b \cdot w \cdot SDN</code> </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: right;"> (Equation 3) </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<p>Then, combining Equation 2 and 3, we find that
+Díaz and Lencinas (2018) parameters can be applied to T:</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+   <code class="reqn">CDN/SDN &gt; a + b \cdot w \cdot SDN/SDN</code> </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: right;"> (Equation 4a) </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<table>
+<tr>
+<td style="text-align: left;">
+   <code class="reqn">T &gt; a + b \cdot w</code> </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: right;"> (Equation 4b) </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<p>From Equation 2 it is evident that any bias introduced by the camera optical
+and electronic system will be canceled during the calculation of T as long as
+only one camera is involved. Therefore, After examining Equation 4b, we can
+conclude that intercept 0 and slope 1 are theoretically correct.In addition,
+the w parameter can be used to filter out mixed pixels. The greater w, the
+greater the possibility of selecting pure sky pixels.
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>An object of the same class and dimensions than <code>dn</code>.
+</p>
+
+
+<h3>Note</h3>
+
+<p>It is worth noting that Equation 1 was developed with 8-bit images, so
+calibration of new coefficient should be done in the 0 to 255 domain since
+that is what <code>thr_mblt()</code> expect, although the <code>dn</code> argument should be
+normalized. The latter, in spite of sounding counter intuitive, was a design
+decision aiming to harmonize the whole package.
+</p>
+<p>Nevertheless, new empirical calibration on JPEG files may be unnecessary
+since the values -7.8 <code>intercept</code> and 0.95 <code>slope</code> that had been observed
+with back-gamma corrected JPEG files produced with the Nikon Coolpix 5700
+camera are sufficiently close to the theoretical values that it sounds
+reasonable to interpret them as a confirmation of the theory.
+</p>
+<p>Users are encouraged to adopt raw file acquisition (<code>read_caim_raw()</code>).
+</p>
+<p>To apply the weighting parameter (w) from Equation 1, just provide the
+argument <code>slope</code> as <code class="reqn">slope \times w</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Cescatti A (2007).
+“Indirect estimates of canopy gap fraction based on the linear conversion of hemispherical photographs.”
+<em>Agricultural and Forest Meteorology</em>, <b>143</b>(1-2), 1–12.
+<a href="https://doi.org/10.1016/j.agrformet.2006.04.009">doi:10.1016/j.agrformet.2006.04.009</a>.<br><br> Díaz GM, Lencinas JD (2018).
+“Model-based local thresholding for canopy hemispherical photography.”
+<em>Canadian Journal of Forest Research</em>, <b>48</b>(10), 1204–1216.
+<a href="https://doi.org/10.1139/cjfr-2018-0006">doi:10.1139/cjfr-2018-0006</a>.<br><br> Lang M, Kuusk A, M~ottus M, Rautiainen M, Nilson T (2010).
+“Canopy gap fraction estimation from digital hemispherical images using sky radiance models and a linear conversion method.”
+<em>Agricultural and Forest Meteorology</em>, <b>150</b>(1), 20–29.
+<a href="https://doi.org/10.1016/j.agrformet.2009.08.001">doi:10.1016/j.agrformet.2009.08.001</a>.<br><br> Macfarlane C (2011).
+“Classification method of mixed pixels does not affect canopy metrics from digital images of forest overstorey.”
+<em>Agricultural and Forest Meteorology</em>, <b>151</b>(7), 833–840.
+<a href="https://doi.org/10.1016/j.agrformet.2011.01.019">doi:10.1016/j.agrformet.2011.01.019</a>.<br><br> Song GM, Doley D, Yates D, Chao K, Hsieh C (2014).
+“Improving accuracy of canopy hemispherical photography by a constant threshold value derived from an unobscured overcast sky.”
+<em>Canadian Journal of Forest Research</em>, <b>44</b>(1), 17–27.
+<a href="https://doi.org/10.1139/cjfr-2013-0082">doi:10.1139/cjfr-2013-0082</a>.<br><br> Wagner S (2001).
+“Relative radiance measurements and zenith angle dependent segmentation in hemispherical photography.”
+<em>Agricultural and Forest Meteorology</em>, <b>107</b>(2), 103–115.
+<a href="https://doi.org/10.1016/s0168-1923%2800%2900232-x">doi:10.1016/s0168-1923(00)00232-x</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>normalize()</code>, <code>gbc()</code>, <code>apply_thr()</code> and <code>regional_thresholding()</code>.
+</p>
+<p>Other Binarization Functions: 
+<code>apply_thr()</code>,
+<code>obia()</code>,
+<code>ootb_mblt()</code>,
+<code>ootb_obia()</code>,
+<code>regional_thresholding()</code>,
+<code>thr_isodata()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">thr_mblt(gbc(125), -7.8, 0.95 * 0.5)
+</code></pre>
+
+
+</div>

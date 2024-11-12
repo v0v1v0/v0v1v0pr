@@ -1,0 +1,452 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fieldValidationAndCasting</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Helper functions for <code>exportRecordsTyped</code> Validation and Casting</h2>
+
+<h3>Description</h3>
+
+<p>This set of functions assists in validating that the content of
+fields coming from REDCap match the MetaData, allowing for a
+validation report to provided. The cast helpers allow for transforming
+the REDCap data into R data types and allowing the user to customize
+the end product.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">isNAorBlank(x, ...)
+
+valRx(rx)
+
+valChoice(x, field_name, coding)
+
+valPhone(x, field_name, coding)
+
+valSkip(x, field_name, coding)
+
+na_values(FUN)
+
+castLabel(x, field_name, coding)
+
+castLabelCharacter(x, field_name, coding)
+
+castCode(x, field_name, coding)
+
+castCodeCharacter(x, field_name, coding)
+
+castRaw(x, field_name, coding)
+
+castChecked(x, field_name, coding)
+
+castCheckedCharacter(x, field_name, coding)
+
+castCheckLabel(x, field_name, coding)
+
+castCheckLabelCharacter(x, field_name, coding)
+
+castCheckCode(x, field_name, coding)
+
+castCheckCodeCharacter(x, field_name, coding)
+
+castCheckForImport(checked = c("Checked", "1"))
+
+castDpNumeric(dec_symbol = ",")
+
+castDpCharacter(n_dec, dec_symbol = ",")
+
+castTimeHHMM(x, field_name, coding)
+
+castTimeMMSS(x, field_name, coding)
+
+castLogical(x, field_name, coding)
+
+raw_cast
+
+default_cast_no_factor
+
+default_cast_character
+
+skip_validation
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><code>character</code>. A vector to check.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Consumes anything else passed to function. I.e., field_name and
+coding.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rx</code></td>
+<td>
+<p><code>character</code>. The regular expression pattern to check.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>field_name</code></td>
+<td>
+<p><code>character(1)</code>. Name of the field(s)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coding</code></td>
+<td>
+<p>named <code>character</code> vector. The defined coding from the meta data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>FUN</code></td>
+<td>
+<p><code>function</code>. A function that takes a character vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>checked</code></td>
+<td>
+<p><code>character</code>. Values to recognize as checked in a
+checkbox field.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dec_symbol</code></td>
+<td>
+<p><code>character(1)</code>. The symbol in the field used to
+denote a decimal.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_dec</code></td>
+<td>
+<p><code>integerish(1)</code>. The number of decimal places permitted
+by the field validation.</p>
+</td>
+</tr>
+</table>
+<h3>Format</h3>
+
+<p>An object of class <code>list</code> of length 21.
+</p>
+<p>An object of class <code>list</code> of length 25.
+</p>
+<p>An object of class <code>list</code> of length 25.
+</p>
+<p>An object of class <code>list</code> of length 21.
+</p>
+
+
+<h3>Details</h3>
+
+<p>Functions passed to the <code>na</code>, <code>validation</code>, and
+<code>cast</code> parameter of <code>exportRecordsTyped()</code> all take the form
+of <code style="white-space: pre;">⁠function(x, coding, field_name)⁠</code>. <code>na</code> and <code>validation</code>
+functions are expected to return a logical vector of the same length as the
+column processed. Helper routines
+are provided here for common cases to construct these functions.
+</p>
+
+
+<h4>Missing Data Detection</h4>
+
+<p><code>na_values</code> is a helper function to create a list of functions
+to test for NA based on field type. Useful for bulk override of
+NA detection for a project. The output can be directly passed to the <code>na</code>
+parameter of <code>exportRecordsTyped()</code>.
+</p>
+<p>Missing data detection is performed ahead of validation. Data that are found
+to be missing are excluded from validation reports.
+</p>
+<p>REDCap users may define project-level missing value codes. If such codes
+are defined, they can be seen in Project Setup &gt; Additional Customizations &gt;
+Missing Data Codes. They will also be displayed in the project's Codebook.
+Project-level missing data codes cannot be accessed via the API, meaning
+<code>redcapAPI</code> is unable to assist in determining if a project has any. The
+most likely symptom of project-level codes is a high frequency of
+values failing validation (See <code>vignette("redcapAPI-missing-data-detection")</code>).
+</p>
+
+
+
+<h4>Validation Functions</h4>
+
+<p><code>isNAorBlank</code> returns TRUE/FALSE if field is NA or blank. Helper
+function for constructing <code>na</code> overrides in <code>exportRecordsTyped()</code>.
+</p>
+<p><code>valRx</code> constructs a validation function from a regular expression pattern.
+The function returns a TRUE/FALSE if the value matches the pattern.
+</p>
+<p><code>valChoice</code> constructs a validation function from a set of choices
+defined in the MetaData. The functions returns a TRUE/FALSE if the value
+matches one of the choices.
+</p>
+<p><code>valPhone</code> constructs a validation function for (North American)
+phone numbers. It removes punctuation and spaces prior to validating
+with the regular expression.
+</p>
+<p><code>valSkip</code> is a function that supports skipping the validation for
+a field type. It returns a <code>TRUE</code> value for each record, regardless
+of its value. Validation skipping has occasional utility when importing
+certain field types (such as <code>bioportal</code> or <code>sql</code>) where not all of the
+eventual choices are available in the project yet.
+</p>
+<p><code>skip_validation</code> is a list of functions that just returns TRUE for
+all data passed in.
+</p>
+
+
+
+<h4>Casting Functions</h4>
+
+<p><code>castLabel</code> constructs a casting function for multiple choice variables.
+The field will be cast to return the choice label (generally more human readable).
+<code>castLabelCharacter</code> is an equivalent casting function that returns
+a <code>character</code> vector instead of a <code>factor</code>.
+</p>
+<p><code>castCode</code> constructs a casting function for multiple choice variables.
+Similar to <code>castLabel</code>, but the choice value is returned instead. The
+values are typically more compact and their meaning may not be obvious.
+<code>castCodeCharacter</code> is an equivalent casting function that retuns
+a <code>character</code> vector instead of a <code>factor</code>.
+</p>
+<p><code>castRaw</code> constructs a casting function that returns the content
+from REDCap as it was received. It is functionally equivalent to <code>identity</code>.
+For multiple choice variables, the result will be coerced to numeric, if possible;
+otherwise, the result is character vector.
+</p>
+<p><code>castChecked</code> constructs a casting function for checkbox fields. It
+returns values in the form of Unchecked/Checked. <code>castCheckedCharacter</code>
+is an equivalent casting function that returns a <code>character</code> vector
+instead of a <code>factor</code>.
+</p>
+<p><code>castCheckLabel</code> and <code>castCheckCode</code> also construct casting functions
+for checkbox fields. For both, unchecked variables are cast to an empty
+string (""). Checked variables are cast to the option label and option code,
+respectively. <code>castCheckLabelCharacter</code> and <code>castCheckCodeCharacter</code>
+are equivalent casting functions that returns a <code>character</code> vector
+instead of a <code>factor</code>.
+</p>
+<p><code>castCheckForImport</code> is a special case function to allow the user to
+specify exactly which values are to be considered "Checked". Values that
+match are returned as <code>1</code> and all other values are returned as <code>0</code>. This is
+motivated by the special case where the coding on a checkbox includes
+"0, Option". In the resulting field <code>checkbox___0</code>, a coded value
+of <code>0</code> actually implies the choice was selected. In order to perform an
+import on such data, it is necessary to cast it using
+<code>castCheckForImport(c("0"))</code>.
+</p>
+<p><code>castDpNumeric</code> is a casting function for fields that use the
+<code>number_ndp_comma</code> field type (where <code>n</code> is the number of
+decimal places). This function will convert the values to numeric
+values for use in analysis. This is a function that returns the
+appropriate casting function, thus the appropriate usage when using
+the defaults is <code>cast = list(number_1dp_comma = castDpNumeric())</code>
+(using the parentheses).
+</p>
+<p><code>castDpCharacter</code> is a casting function to return fields that use
+<code>number_ndp_comma</code> field types to character strings for import. This
+is a function that returns the appropriate casting function, thus the
+appropriate usage when casting for one decimal place is
+<code>cast = list(number_1dp_comma = castDpCharacter(1))</code>.
+</p>
+<p><code>castTimeHHMM</code> and <code>castTimeMMSS</code> are casting functions to
+facilitate importing data. They convert time data into a character format
+that will pass the API requirements.
+</p>
+<p><code>castLogical</code> is a casting function that returns a logical vector for
+common, binary-type responses. It is well suited to changing true/false,
+yes/no, and checkbox fields into logical vectors, as it returns <code>TRUE</code> if
+the value is one of <code>c("1", "true", "yes")</code> and returns <code>FALSE</code> otherwise.
+</p>
+
+
+
+<h4>Casting Lists</h4>
+
+<p><code>raw_cast</code> overrides all casting if passed as the <code>cast</code>
+parameter. It is important the the validation specified matches
+the chosen cast. For fully raw it should be <code>skip_validation</code>.
+</p>
+<p><code>default_cast_no_factor</code> is a list of casting functions that matches
+all of the default casts but with the exception that any fields that would
+have been cast to factors will instead be cast to characters. It is
+provided for the user that prefers to work absent factors. The list
+<code>default_cast_character</code> is equivalent and is provided for those that
+prefer to describe their casting in terms of what the result is (and not
+what it is not).
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>Validation and casting functions return the objects indicated in the
+following table:</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+   Function Name </td>
+<td style="text-align: left;"> Object Type Returned </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>isNAOrBlank</code> </td>
+<td style="text-align: left;"> <code>logical</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>valRx</code> </td>
+<td style="text-align: left;"> <code>logical</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>valChoice</code> </td>
+<td style="text-align: left;"> <code>logical</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>valPhone</code> </td>
+<td style="text-align: left;"> <code>logical</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>valSkip</code> </td>
+<td style="text-align: left;"> <code>logical</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>castLabel</code> </td>
+<td style="text-align: left;"> <code>factor</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>castLabelCharacter</code> </td>
+<td style="text-align: left;"> <code>character</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>castCode</code> </td>
+<td style="text-align: left;"> <code>factor</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>castCodeCharacter</code> </td>
+<td style="text-align: left;"> <code>character</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>castRaw</code> </td>
+<td style="text-align: left;"> <code>character</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>castChecked</code> </td>
+<td style="text-align: left;"> <code>factor</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>castCheckedCharacter</code> </td>
+<td style="text-align: left;"> <code>character</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>castCheckLabel</code> </td>
+<td style="text-align: left;"> <code>factor</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>castCheckLabelCharacter</code> </td>
+<td style="text-align: left;"> <code>character</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>castCheckCode</code> </td>
+<td style="text-align: left;"> <code>factor</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>castCheckCodeCharacter</code> </td>
+<td style="text-align: left;"> <code>character</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>castCheckForImport</code> </td>
+<td style="text-align: left;"> <code>numeric</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>castDpNumeric</code> </td>
+<td style="text-align: left;"> <code>numeric</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>castDpCharacter</code> </td>
+<td style="text-align: left;"> <code>character</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>castTimeHHMM</code> </td>
+<td style="text-align: left;"> <code>character</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>castTimeMMSS</code> </td>
+<td style="text-align: left;"> <code>character</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>castLogical</code> </td>
+<td style="text-align: left;"> <code>logical</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<h3>See Also</h3>
+
+<p><code>fieldCastingFunctions()</code>, <br><code>exportRecordsTyped()</code>, <br><code>exportReportsTyped()</code>
+</p>
+
+
+<h4>Vignettes</h4>
+
+<p><code>vignette("redcapAPI-casting-data")</code><br><code>vignette("redcapAPI-missing-data-detection")</code><br><code style="white-space: pre;">⁠vignette("redcapAPI-data-validation)⁠</code><br><code style="white-space: pre;">⁠vignette("redcapAPI-faq)⁠</code>
+</p>
+
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# Make a custom function to give special treatment to a field.
+# In this function, the field "field_name_to_skip" will 
+# be cast using `castRaw`. All other fields will be cast 
+# using `castCode`
+customCastCode &lt;- function(x, field_name, coding){
+  if (field_name == "field_name_to_skip"){
+    castRaw(x, field_name, coding)
+  } else {
+    castCode(x, field_name, coding)
+  }
+}
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

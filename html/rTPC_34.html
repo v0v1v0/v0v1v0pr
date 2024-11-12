@@ -1,0 +1,140 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pawar_2018</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Pawar model for fitting thermal performance curves</h2>
+
+<h3>Description</h3>
+
+<p>Pawar model for fitting thermal performance curves
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pawar_2018(temp, r_tref, e, eh, topt, tref)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>temp</code></td>
+<td>
+<p>temperature in degrees centigrade</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>r_tref</code></td>
+<td>
+<p>rate at the standardised temperature, tref</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>e</code></td>
+<td>
+<p>activation energy (eV)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eh</code></td>
+<td>
+<p>high temperature de-activation energy (eV)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>topt</code></td>
+<td>
+<p>optimum temperature (ºC)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tref</code></td>
+<td>
+<p>standardisation temperature in degrees centigrade. Temperature at which rates are not inactivated by high temperatures</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This model is a modified version of <code>sharpeschoolhigh_1981</code> that explicitly models the optimum temperature.
+Equation:
+</p>
+<p style="text-align: center;"><code class="reqn">rate= \frac{r_{tref} \cdot exp^{\frac{-e}{k} (\frac{1}{temp + 273.15}-\frac{1}{t_{ref} + 273.15})}}{1 + (\frac{e}{eh - e}) \cdot exp^{\frac{e_h}{k}(\frac{1}{t_opt + 273.15}-\frac{1}{temp + 273.15})}}</code>
+</p>
+
+<p>where <code>k</code> is Boltzmann's constant with a value of 8.62e-05.
+</p>
+<p>Start values in <code>get_start_vals</code> are derived from the data.
+</p>
+<p>Limits in <code>get_lower_lims</code> and <code>get_upper_lims</code> are derived from the data or based  extreme values that are unlikely to occur in ecological settings.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a numeric vector of rate values based on the temperatures and parameter values provided to the function
+</p>
+
+
+<h3>Note</h3>
+
+<p>Generally we found this model easy to fit.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Daniel Padfield
+</p>
+
+
+<h3>References</h3>
+
+<p>Kontopoulos, Dimitrios - Georgios, Bernardo García-Carreras, Sofía Sal, Thomas P. Smith, and Samraat Pawar. Use and Misuse of Temperature Normalisation in Meta-Analyses of Thermal Responses of Biological Traits. PeerJ. 6 (2018),
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># load in ggplot
+library(ggplot2)
+library(nls.multstart)
+
+# subset for the first TPC curve
+data('chlorella_tpc')
+d &lt;- subset(chlorella_tpc, curve_id == 1)
+
+# get start values and fit model
+start_vals &lt;- get_start_vals(d$temp, d$rate, model_name = 'pawar_2018')
+# fit model
+mod &lt;- nls_multstart(rate~pawar_2018(temp = temp, r_tref, e, eh, topt, tref = 20),
+data = d,
+iter = c(3,3,3,3),
+start_lower = start_vals - 10,
+start_upper = start_vals + 10,
+lower = get_lower_lims(d$temp, d$rate, model_name = 'pawar_2018'),
+upper = get_upper_lims(d$temp, d$rate, model_name = 'pawar_2018'),
+supp_errors = 'Y',
+convergence_count = FALSE)
+
+# look at model fit
+summary(mod)
+
+# get predictions
+preds &lt;- data.frame(temp = seq(min(d$temp), max(d$temp), length.out = 100))
+preds &lt;- broom::augment(mod, newdata = preds)
+
+# plot
+ggplot(preds) +
+geom_point(aes(temp, rate), d) +
+geom_line(aes(temp, .fitted), col = 'blue') +
+theme_bw()
+
+</code></pre>
+
+
+</div>

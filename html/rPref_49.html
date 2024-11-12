@@ -1,0 +1,175 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>base_pref</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Base Preferences</h2>
+
+<h3>Description</h3>
+
+<p>Base preferences are used to describe the different goals (dimensions, in case of a Skyline query)
+of a preference query.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">low(expr, df = NULL)
+
+low_(expr, df = NULL)
+
+high(expr, df = NULL)
+
+high_(expr, df = NULL)
+
+true(expr, df = NULL)
+
+true_(expr, df = NULL)
+
+is.base_pref(x)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>expr</code></td>
+<td>
+<p>A numerical/logical expression which is the term to evaluate for the current preference. 
+The objective is to search for minimal/maximal values of this expression (for <code>low</code>/<code>high</code>) or for 
+logical <code>TRUE</code> values (for <code>true</code>).
+For <code>low_</code>, <code>high_</code> and <code>true_</code>, the argument must be an expression, a call or a string.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>df</code></td>
+<td>
+<p>(optional) A data frame, having the same structure (i.e., columns)
+like that data frame, where this preference is evaluated later on. 
+Causes a partial evaluation of the preference and the preference is associated with this data frame.
+See below for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>An object to be tested if it is a base preference.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Mathematically, all base preferences are strict weak orders (irreflexive, transitive and negative transitive).
+</p>
+<p>The three fundamental base preferences are:
+</p>
+
+<dl>
+<dt><code>low(a), high(a)</code></dt>
+<dd>
+<p>Search for minimal/maximal values of <code>a</code>, 
+i.e., the induced order is the "smaller than" or "greater than" order on the values of <code>a</code>.
+The values of <code>a</code> must be numeric values.</p>
+</dd>
+<dt><code>true(a)</code></dt>
+<dd>
+<p>Search for true values in logical expressions, i.e., <code>TRUE</code> is considered to be better than <code>FALSE</code>.
+The values of <code>a</code> must be logical values.
+For a tuplewise evaluation of a complex logical expression one has to use the <code>&amp;</code> and <code>|</code> operators for logical AND/OR
+(and not the <code>&amp;&amp;</code> and <code>||</code> operators).</p>
+</dd>
+</dl>
+<p>The term <code>expr</code> may be just a single attribute or may contain an arbitrary expression,
+depending on more than one attribute, e.g., <code>low(a+2*b+f(c))</code>.
+There <code>a</code>, <code>b</code> and <code>c</code> are columns of the addressed data set and <code>f</code> has to be a previously defined function.
+</p>
+<p>Functions contained in <code>expr</code> are evaluated over the entire data set, i.e., 
+it is possible to use aggregate functions (<code>min</code>, <code>mean</code>, etc.). 
+Note that all functions (and also variables which are not columns of the data set, where <code>expr</code> will be evaluated on)
+must be defined in the same environment (e.g., environment of a function or global environment) as the base preference is defined.
+</p>
+<p>The function <code>is.base_pref</code> returns <code>TRUE</code> if <code>x</code> is a preference object and <code>FALSE</code> otherwise.
+</p>
+
+
+<h3>Using Expressions in Preferences</h3>
+
+<p>The <code>low_</code>, <code>high_</code> and <code>true_</code> preferences have the same functionality
+as <code>low</code>, <code>high</code> and <code>true</code> 
+but expect an expression, a call or a string as argument.
+For example, <code>low(a)</code> is equivalent to <code>low_(expression(a))</code> or <code>low_("a")</code>. 
+Lazy expressions (see the lazyeval package) are also possible.
+</p>
+<p>This is helpful for developing your own base preferences. Assume you want to define a base Preference <code>false</code>
+as the dual of <code>true</code>. A definition like <code>false &lt;- function(x) -true(x)</code> is the wrong approach, as 
+<code>psel(data.frame(a = c(1,2)), false(a == 1))</code> will result in the error "object 'a' not found".
+This is because <code>a</code> is considered as a variable and not as an (abstract) symbol to be evaluated later.
+By defining
+</p>
+<p><code>false &lt;- function(x, ...) -true_(substitute(x), ...)</code>
+</p>
+<p>one gets a preference which behaves like a "built-in" preference.  
+Additional optional parameters (like <code>df</code>) are bypassed.
+The object <code>false(a == 1)</code> will output 
+<code>[Preference] -true(a == 1)</code> on the console and 
+<code>psel(data.frame(a = c(1,2)), false(a==1))</code> returns correctly the second tuple with <code>a==2</code>.
+</p>
+<p>There is a special symbol <code>df__</code> which can be used in preference expression to access the given 
+data set <code>df</code>, when <code>psel</code> is called on this data set. 
+For example, on a data set where the first column has the name <code>A</code>
+the preference <code>low(df__[[1]])</code> is equivalent to <code>low(A)</code>.
+</p>
+
+
+<h3>Partial Evaluation and Associated Data Frames</h3>
+
+<p>If the optional parameter <code>df</code> is given, 
+then the expression is evaluated at the time of definition as far as possible.
+All variables occurring as columns in <code>df</code> remain untouched. For example, consider
+</p>
+<p><code>f &lt;- function(x) 2*x</code> <br><code>p &lt;- true(cyl == f(1), mtcars)</code>
+</p>
+<p>Then <code>p</code> is equivalent to the preference <code>true(cyl == 2)</code> as the variable <code>cyl</code> is a column in <code>mtcars</code>.
+Additionally the data set <code>mtcars</code> is associated with the preference <code>p</code>, 
+implying that the preference selection can be done with <code>peval</code>. 
+See <code>assoc.df</code> for details on associated data sets.
+</p>
+<p>The preference selection, i.e., <code>psel(mtcars, p)</code> can be invoked without the partial evaluation.
+But this results in an error, if the function <code>f</code> has meanwhile removed from the current environment.
+Hence it is safer to do an early partial evaluation of all preferences, as far as they contain user defined functions.
+</p>
+<p>The partial evaluation can be done manually by <code>partial.eval.pref</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>See <code>complex_pref</code> how to compose complex preferences to retrieve e.g., the Skyline.
+See <code>general_pref</code> for functions applying to all kind of preferences.
+See <code>base_pref_macros</code> for more base preferences.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Defines a preference with a score value combining mpg and hp.
+p1 &lt;- high(4 * mpg + hp)
+# Perform the preference selection:
+psel(mtcars, p1)
+
+# Defines a preference with a given function.
+f &lt;- function(x, y) (abs(x - mean(x))/max(x) + abs(y - mean(y))/max(y))
+p2 &lt;- low(f(mpg, hp))
+psel(mtcars, p2)
+
+# Use partial evaluation for weighted scoring.
+p3 &lt;- high(mpg/sum(mtcars$mpg) + hp/sum(mtcars$hp), df = mtcars)
+p3
+# Select Pareto optima.
+peval(p3)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,246 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pgInsertizeGeom</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Format R data objects for insert into a PostgreSQL table.</h2>
+
+<h3>Description</h3>
+
+<p>These are internal rpostgis functions that take an R <code>sp</code> or <code>sf</code> object (Spatial*,
+Spatial*DataFrame or sf; for <code>pgInsertizeGeom</code>), or data frame (for
+<code>pgInsertize</code>) and return a <code>pgi</code> list object, which can
+be used in the function <code>pgInsert</code> to insert rows of the
+object into the database table. (Note that these functions do not
+do any modification of the database, it only prepares the data for
+insert.) The function <code>pgInsert</code> is a wrapper around these
+functions, so <code>pgInsertize*</code> should only be used in
+situations where data preparation and insert need to be separated.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pgInsertizeGeom(
+  data.obj,
+  geom = "geometry",
+  create.table = NULL,
+  force.match = NULL,
+  conn = NULL,
+  new.id = NULL,
+  row.names = FALSE,
+  alter.names = FALSE,
+  partial.match = FALSE,
+  df.mode = FALSE,
+  geog = FALSE
+)
+
+pgInsertize(
+  data.obj,
+  create.table = NULL,
+  force.match = NULL,
+  conn = NULL,
+  new.id = NULL,
+  row.names = FALSE,
+  alter.names = FALSE,
+  partial.match = FALSE,
+  df.mode = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data.obj</code></td>
+<td>
+<p>A Spatial* or Spatial*DataFrame, or data frame for
+<code>pgInsertize</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>geom</code></td>
+<td>
+<p>character string, the name of geometry column in the
+database table. (existing or to be created; defaults to
+'geom').</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>create.table</code></td>
+<td>
+<p>character, schema and table of the PostgreSQL
+table to create (actual table creation will be done in later
+in pgWriteGeom().) Column names will be converted to
+PostgreSQL-compliant names. Default is <code>NULL</code> (no new
+table created).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>force.match</code></td>
+<td>
+<p>character, schema and table of the PostgreSQL
+table to compare columns of data frame with.  If specified with
+<code>partial.match = TRUE</code>
+only columns in the data frame that exactly match the database
+table will be kept, and reordered to match the database
+table. If <code>NULL</code>, all columns will be kept in the same
+order given in the data frame.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>conn</code></td>
+<td>
+<p>A database connection (if a table is given in for
+"force.match" parameter)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>new.id</code></td>
+<td>
+<p>character, name of a new sequential integer ID
+column to be added to the table.  (for spatial objects without
+data frames, this column is created even if left <code>NULL</code>
+and defaults to the name <code>"gid"</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>row.names</code></td>
+<td>
+<p>Whether to add the data frame row names to the 
+database table. Column name will be '.R_rownames'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alter.names</code></td>
+<td>
+<p>Logical, whether to make database column names
+DB-compliant (remove special characters). Default is
+<code>TRUE</code>.  (This should to be set to <code>FALSE</code> to match
+to non-standard names in an existing database table using the
+<code>force.match</code> setting.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>partial.match</code></td>
+<td>
+<p>Logical; if force.match is set and  true, 
+columns in R data frame will be compared with an the 
+existing database table <code>name</code>. Only columns in the 
+data frame that exactly match the database
+table will be inserted into the database table.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>df.mode</code></td>
+<td>
+<p>Logical; Whether to write data in data frame mode 
+(preserving data frame column attributes and row.names).
+A new table must be created with this mode (or overwrite set to TRUE),
+and the row.names, alter.names, and new.id arguments will
+be ignored (see <code>dbWriteDataFrame</code> for more information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>geog</code></td>
+<td>
+<p>Logical; Whether to write the spatial data as a PostGIS 
+'GEOGRAPHY' type.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The entire data frame is prepared by default, unless
+<code>force.match</code> specifies a database table (along with a
+database connection <code>conn</code>), in which case the R column names
+are compared to the <code>force.match</code> column names, and only
+exact matches are formatted to be inserted.
+</p>
+<p>A new database table can also be prepared to be created using the
+<code>create.table</code> argument.  If <code>new.id</code> is specified, a
+new sequential integer field is added to the data frame.  For
+<code>Spatial*</code>-only objects (no data frame), a new.id is created
+by default with name <code>gid</code>.  For <code>pgInsertizeGeom</code>, if
+the R package <code>wkb</code> is installed, this function uses
+<code>writeWKB</code> to translate the geometries for some spatial types
+(faster with large datasets), otherwise the <code>rgeos</code> function
+<code>writeWKT</code> is used.
+</p>
+
+
+<h3>Value</h3>
+
+<p>pgi A list containing four character strings: (1)
+in.table, the table name which will be created or inserted
+into, if specified by either create.table or force.match (else
+NULL) (2) db.new.table, the SQL statement to create the new
+table, if specified in create.table (else NULL), (3)
+db.cols.insert, a character string of the database column
+names to insert into, and (4) insert.data, a character string
+of the data to insert. See examples for usage within the
+<code>pgInsert</code> function.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>David Bucklin <a href="mailto:david.bucklin@gmail.com">david.bucklin@gmail.com</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+library(sp)
+data(meuse)
+coords &lt;- SpatialPoints(meuse[, c("x", "y")])
+spdf &lt;- SpatialPointsDataFrame(coords, meuse)
+
+## Format data for insert
+pgi.new &lt;- pgInsertizeGeom(spdf, geom = "point_geom", create.table = c("schema",
+    "table"), new.id = "pt_gid")
+print(pgi.new)
+
+## Insert data in database table (note that an error will be given if
+## all insert columns do not have exactly matching database table
+## columns)
+pgWriteGeom(conn = conn, data.obj = pgi.new)
+
+## Inserting into existing table
+pgi.existing &lt;- pgInsertizeGeom(spdf, geom = "point_geom", force.match = c("schema",
+    "table"), conn = conn)
+## A warning message is given, since the "dist.m" column is not found
+## in the database table (it was changed to "dist_m" in pgi.new to
+## make name DB-compliant). All other columns are prepared for insert.
+print(pgi.existing)
+
+pgWriteGeom(conn = conn, data.obj = pgi.existing)
+
+## End(Not run)
+## Not run: 
+## Format regular (non-spatial) data frame for insert using
+## pgInsertize connect to database
+data &lt;- data.frame(a = c(1, 2, 3), b = c(4, NA, 6), c = c(7,
+    "text", 9))
+
+## Format non-spatial data frame for insert
+values &lt;- pgInsertize(data.obj = data)
+
+## Insert data in database table (note that an error will be given if
+## all insert columns do not match exactly to database table columns)
+pgWriteGeom(conn, data.obj = values, name = c("schema", "table"))
+
+## Run with forced matching of database table column names
+values &lt;- pgInsertize(data.obj = data, force.match = c("schema",
+    "table"), conn = conn)
+
+pgWriteGeom(conn, data.obj = values)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

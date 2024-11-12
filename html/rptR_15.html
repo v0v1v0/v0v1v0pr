@@ -1,0 +1,342 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rptPoisson</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>GLMM-based Repeatability Estimation for Poisson-distributed Data</h2>
+
+<h3>Description</h3>
+
+<p>Estimates repeatability from a generalized linear mixed-effects models fitted by restricted maximum likelihood (REML).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rptPoisson(formula, grname, data, link = c("log", "sqrt"), CI = 0.95,
+  nboot = 1000, npermut = 0, parallel = FALSE, ncores = NULL,
+  ratio = TRUE, adjusted = TRUE, expect = "meanobs", rptObj = NULL,
+  update = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>Formula as used e.g. by lmer. The grouping factor(s) of
+interest needs to be included as a random effect, e.g. '(1|groups)'.
+Covariates and additional random effects can be included to estimate adjusted 
+repeatabilities.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grname</code></td>
+<td>
+<p>A character string or vector of character strings giving the
+name(s) of the grouping factor(s), for which the repeatability should
+be estimated. Spelling needs to match the random effect names as given in <code>formula</code> 
+and terms have to be set in quotation marks. The reseved terms "Residual", 
+"Overdispersion" and "Fixed" allow the estimation of overdispersion variance, residual 
+variance and variance explained by fixed effects, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A dataframe that contains the variables included in the <code>formula</code>
+and <code>grname</code> arguments.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>link</code></td>
+<td>
+<p>Link function. <code>logit</code> and <code>probit</code> are allowed, defaults to <code>logit</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>CI</code></td>
+<td>
+<p>Width of the required confidence interval between 0 and 1 (defaults to 
+0.95).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nboot</code></td>
+<td>
+<p>Number of parametric bootstraps for interval estimation 
+(defaults to 1000). Larger numbers of bootstraps give a better
+asymtotic CI, but may be time-consuming. Bootstrapping can be switch off by setting 
+<code>nboot = 0</code>. See also <strong>Details</strong> below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>npermut</code></td>
+<td>
+<p>Number of permutations used when calculating asymptotic p-values 
+(defaults to 0). Larger numbers of permutations give a better
+asymtotic p-values, but may be time-consuming (in particular when multiple grouping factors
+are specified). Permutaton tests can be switch off by setting <code>npermut = 0</code>. 
+See also <strong>Details</strong> below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel</code></td>
+<td>
+<p>Boolean to express if parallel computing should be applied (defaults to FALSE). 
+If TRUE, bootstraps and permutations will be distributed across multiple cores.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncores</code></td>
+<td>
+<p>Specifying the number of cores to use for parallelization. On default,
+all but one of the available cores are used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ratio</code></td>
+<td>
+<p>Boolean to express if variances or ratios of variance should be estimated. 
+If FALSE, the variance(s) are returned without forming ratios. If TRUE (the default) ratios 
+of variances (i.e. repeatabilities) are estimated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adjusted</code></td>
+<td>
+<p>Boolean to express if adjusted or unadjusted repeatabilities should be estimated. 
+If TRUE (the default), the variances explained by fixed effects (if any) will not
+be part of the denominator, i.e. repeatabilities are calculated after controlling for 
+variation due to covariates. If FALSE, the varianced explained by fixed effects (if any) will
+be added to the denominator.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>expect</code></td>
+<td>
+<p>A character string specifying the method for estimating the expectation in Poisson models
+with log link and in Binomial models with logit link (in all other cases the agrument is ignored). 
+The only valid terms are 'meanobs' and 'latent' (and 'liability for binary and proportion data). 
+With the default 'meanobs', the expectation is 
+estimated as the mean of the observations in the sample. With 'latent', the expectation is
+estimated from estiamtes of the intercept and variances on the link scale. While this is a 
+preferred solution, it is susceptible to the distribution of fixed effect covariates and gives 
+appropriate results typically only when all covariances are centered to zero. With 'liability' 
+estimates follow formulae as presented in Nakagawa &amp; Schielzeth (2010). Liability estimates tend 
+to be slightly higher.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rptObj</code></td>
+<td>
+<p>The output of a rptR function. Can be specified in combination with update = TRUE
+to update bootstraps and permutations</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>update</code></td>
+<td>
+<p>If TRUE, the rpt object to be updated has to be inputted with the rptObj argument.
+The function just updates the permutations and bootstraps, so make sure to specify all other
+arguments excactly like for the rpt object specified in rptObj.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>see details section of <code>rpt</code> for details on parametric bootstrapping,
+permutation and likelihood-ratio tests.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns an object of class <code>rpt</code> that is a a list with the following elements: 
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>Function call</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>datatype</code></td>
+<td>
+<p>Response distribution (here: 'Poisson').</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>CI</code></td>
+<td>
+<p>Coverage of the confidence interval as specified by the <code>CI</code> argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R</code></td>
+<td>
+<p><code>data.frame</code> with point estimates for repeatabilities. Columns
+represent grouping factors of interest. Rows show original and link scale repeatabilites 
+(in this order).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>se</code></td>
+<td>
+<p><code>data.frame</code> with approximate standard errors (<em>se</em>) for repeatabilities. Columns
+are groups of interest. Rows are original and link scale (in this order).
+Note that the distribution might not be symmetrical, in which case the <em>se</em> is less informative.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>CI_emp</code></td>
+<td>
+<p><code>list</code> of two elements containing the confidence intervals for repeatabilities 
+on the link and original scale, respectively. Within each list element, lower and upper CI
+are columns and each row for each grouping factor of interest.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>P</code></td>
+<td>
+<p><code>data.frame</code> with p-values from a significance test based on likelihood-ratios
+in the first column and significance test based on permutation of residuals for 
+both the original and link scale in the second and third column. Each row represents a grouping
+factor of interest.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R_boot_link</code></td>
+<td>
+<p>Parametric bootstrap samples for <em>R</em> on the link scale. Each <code>list</code>
+element is a grouping factor.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R_boot_org</code></td>
+<td>
+<p>Parametric bootstrap samples for <em>R</em> on the original scale. Each <code>list</code>
+element is a grouping factor.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R_permut_link</code></td>
+<td>
+<p>Permutation samples for <em>R</em> on the link scale. Each <code>list</code>
+element is a grouping factor.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R_permut_org</code></td>
+<td>
+<p>Permutation samples for <em>R</em> on the original scale. Each <code>list</code>
+element is a grouping factor.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>LRT</code></td>
+<td>
+<p>List of two elements. <em>LRT_mod</em> is the likelihood for the full model and (2) <em>LRT_table</em> is a data.frame 
+for the reduced model(s) including columns for the likelihood <em>logl_red</em>, the likelihood ratio(s) <em>LR_D</em>, 
+p-value(s)<em>LR_P</em> and degrees of freedom for the likelihood-ratio test(s) <em>LR_df</em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ngroups</code></td>
+<td>
+<p>Number of groups for each grouping level.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nobs</code></td>
+<td>
+<p>Number of observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mod</code></td>
+<td>
+<p>Fitted model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ratio</code></td>
+<td>
+<p>Boolean. TRUE, if ratios have been estimated, FALSE, if variances have been estimated</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adjusted</code></td>
+<td>
+<p>Boolean. TRUE, if estimates are adjusted</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>all_warnings</code></td>
+<td>
+<p><code>list</code> with two elements. 'warnings_boot' and 'warnings_permut' contain
+warnings from the lme4 model fitting of bootstrap and permutation samples, respectively.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Holger Schielzeth  (holger.schielzeth@uni-jena.de),
+Shinichi Nakagawa (s.nakagawa@unsw.edu.au) &amp;
+Martin Stoffel (martin.adam.stoffel@gmail.com)
+</p>
+
+
+<h3>References</h3>
+
+<p>Carrasco, J. L. &amp; Jover, L.  (2003) <em>Estimating the generalized 
+concordance correlation coefficient through variance components</em>. Biometrics 59: 849-858.
+</p>
+<p>Faraway, J. J. (2006) <em>Extending the linear model with R</em>. Boca Raton, FL, Chapman &amp; Hall/CRC.
+</p>
+<p>Nakagawa, S. &amp; Schielzeth, H. (2010) <em>Repeatability for Gaussian and 
+non-Gaussian data: a practical guide for biologists</em>. Biological Reviews 85: 935-956
+</p>
+
+
+<h3>See Also</h3>
+
+<p>rpt
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># load data
+data(BeetlesFemale)
+
+# Note: nboot and npermut are set to 0 for speed reasons. 
+
+# estimating adjusted repeatabilities for two random effects
+rptPoisson(Egg ~ Treatment + (1|Container) + (1|Population), 
+                   grname=c("Container", "Population"), 
+                   data = BeetlesFemale, nboot=0, npermut=0)
+
+# unadjusted repeatabilities with  fixed effects and 
+# estimation of the fixed effect variance
+rptPoisson(Egg ~ Treatment + (1|Container) + (1|Population), 
+                   grname=c("Container", "Population", "Fixed"), 
+                   data=BeetlesFemale, nboot=0, npermut=0, adjusted=FALSE)
+                
+               
+# variance estimation of random effects, residual and overdispersion 
+rptPoisson(formula = Egg ~ Treatment + (1|Container) + (1|Population) , 
+                   grname=c("Container","Population","Residual", "Overdispersion"), 
+                   data = BeetlesFemale, nboot=0, npermut=0, ratio = FALSE)
+                   
+                   
+
+
+</code></pre>
+
+
+</div>

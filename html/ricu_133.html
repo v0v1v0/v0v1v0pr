@@ -1,0 +1,310 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>id_tbl</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Tabular ICU data classes</h2>
+
+<h3>Description</h3>
+
+<p>In order to simplify handling or tabular ICU data, <code>ricu</code> provides
+S3 classes, <code>id_tbl</code>, <code>ts_tbl</code>, and <code>win_tbl</code>. These classes essentially
+consist of a <code>data.table</code> object, alongside some meta data and S3 dispatch
+is used to enable more natural behavior for some data manipulation tasks.
+For example, when merging two tables, a default for the <code>by</code> argument can
+be chosen more sensibly if columns representing patient ID and timestamp
+information can be identified.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">id_tbl(..., id_vars = 1L)
+
+is_id_tbl(x)
+
+as_id_tbl(x, id_vars = NULL, by_ref = FALSE)
+
+ts_tbl(..., id_vars = 1L, index_var = NULL, interval = NULL)
+
+is_ts_tbl(x)
+
+as_ts_tbl(x, id_vars = NULL, index_var = NULL, interval = NULL, by_ref = FALSE)
+
+win_tbl(..., id_vars = NULL, index_var = NULL, interval = NULL, dur_var = NULL)
+
+is_win_tbl(x)
+
+as_win_tbl(
+  x,
+  id_vars = NULL,
+  index_var = NULL,
+  interval = NULL,
+  dur_var = NULL,
+  by_ref = FALSE
+)
+
+## S3 method for class 'id_tbl'
+as.data.table(x, keep.rownames = FALSE, by_ref = FALSE, ...)
+
+## S3 method for class 'id_tbl'
+as.data.frame(x, row.names = NULL, optional = FALSE, ...)
+
+validate_tbl(x)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>forwarded to <code>data.table::data.table()</code> or generic consistency</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id_vars</code></td>
+<td>
+<p>Column name(s) to be used as <code>id</code> column(s)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Object to query/operate on</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>by_ref</code></td>
+<td>
+<p>Logical flag indicating whether to perform the operation by
+reference</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>index_var</code></td>
+<td>
+<p>Column name of the index column</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interval</code></td>
+<td>
+<p>Time series interval length specified as scalar-valued
+<code>difftime</code> object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dur_var</code></td>
+<td>
+<p>Column name of the duration column</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep.rownames</code></td>
+<td>
+<p>Default is <code>FALSE</code>. If <code>TRUE</code>, adds the input object's names as a separate column named <code>"rn"</code>. <code>keep.rownames = "id"</code> names the column <code>"id"</code> instead.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>row.names</code></td>
+<td>
+<p><code>NULL</code> or a character vector giving the row
+names for the data frame.  Missing values are not allowed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optional</code></td>
+<td>
+<p>logical. If <code>TRUE</code>, setting row names and
+converting column names (to syntactic names: see
+<code>make.names</code>) is optional.  Note that all of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>'s
+<span class="pkg">base</span> package <code>as.data.frame()</code> methods use
+<code>optional</code> only for column names treatment, basically with the
+meaning of <code>data.frame(*, check.names = !optional)</code>.
+See also the <code>make.names</code> argument of the <code>matrix</code> method.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The introduced classes are designed for several often encountered data
+scenarios:
+</p>
+
+<ul>
+<li> <p><code>id_tbl</code> objects can be used to represent static (with respect to
+relevant time scales) patient data such as patient age and such an object
+is simply a <code>data.table</code> combined with a non-zero length character vector
+valued attribute marking the columns tracking patient ID information
+(<code>id_vars</code>). All further columns are considered as
+data_vars.
+</p>
+</li>
+<li> <p><code>ts_tbl</code> objects are used for grouped time series data. A <code>data.table</code>
+object again is augmented by attributes, including a non-zero length
+character vector identifying patient ID columns (id_vars),
+a string, tracking the column holding time-stamps
+(index_var) and a scalar <code>difftime</code> object determining
+the time-series step size interval. Again, all further
+columns are treated as data_vars.
+</p>
+</li>
+<li> <p><code>win_tbl</code>: In addition to representing grouped time-series data as does
+a <code>ts_tbl</code>, <code>win_tbl</code> objects also encode a validity interval for each
+time-stamped measurement (as dur_var). This can for example
+be useful when a drug is administered at a certain infusion rate for a
+given time period.
+</p>
+</li>
+</ul>
+<p>Owing to the nested structure of required meta data, <code>ts_tbl</code> inherits from
+<code>id_tbl</code> and <code>win_tbl</code> from <code>ts_tbl</code>. Furthermore, both classes inherit from
+<code>data.table</code>. As such, <code>data.table</code> reference semantics
+are available for some operations, indicated by presence of a <code>by_ref</code>
+argument. At default, value, <code>by_ref</code> is set to <code>FALSE</code> as this is in line
+with base R behavior at the cost of potentially incurring unnecessary data
+copies. Some care has to be taken when passing <code>by_ref = TRUE</code> and enabling
+by reference operations as this can have side effects (see examples).
+</p>
+<p>For instantiating <code>ts_tbl</code> objects, both <code>index_var</code> and <code>interval</code> can be
+automatically determined if not specified. For the index column, the only
+requirement is that a single <code>difftime</code> column is
+present, while for the time step, the minimal difference between two
+consecutive observations is chosen (and all differences are therefore
+required to be multiples of the minimum difference). Similarly, for a
+<code>win_tbl</code>, exactly two <code>difftime</code> columns are required
+where the first is assumed to be corresponding to the <code>index_var</code> and the
+second to the <code>dur_var</code>.
+</p>
+<p>Upon instantiation, the data might be rearranged: columns are reordered
+such that ID columns are moved to the front, followed by the index column
+and a <code>data.table::key()</code> is set on meta columns, causing rows to be sorted
+accordingly. Moving meta columns to the front is done for reasons of
+convenience for printing, while setting a key on meta columns is done to
+improve efficiency of subsequent transformations such as merging or grouped
+operations. Furthermore, <code>NA</code> values in either ID or index columns are not
+allowed and therefore corresponding rows are silently removed.
+</p>
+<p>Coercion between <code>id_tbl</code> and <code>ts_tbl</code> (and <code>win_tbl</code>) by default keeps
+intersecting attributes fixed and new attributes are by default inferred as
+for class instantiation. Each class comes with a class-specific
+implementation of the S3 generic function <code>validate_tbl()</code> which returns
+<code>TRUE</code> if the object is considered valid or a string outlining the type of
+validation failure that was encountered. Validity requires
+</p>
+
+<ol>
+<li>
+<p> inheriting from <code>data.table</code> and unique column names
+</p>
+</li>
+<li>
+<p> for <code>id_tbl</code> that all columns specified by the non-zero length character
+vector holding onto the <code>id_vars</code> specification are available
+</p>
+</li>
+<li>
+<p> for <code>ts_tbl</code> that the string-valued <code>index_var</code> column is available and
+does not intersect with <code>id_vars</code> and that the index column obeys the
+specified interval.
+</p>
+</li>
+<li>
+<p> for <code>win_tbl</code> that the string-valued <code>dur_var</code> corresponds to a
+<code>difftime</code> vector and is not among the columns marked as index or ID
+variables
+</p>
+</li>
+</ol>
+<p>Finally, inheritance can be checked by calling <code>is_id_tbl()</code> and
+<code>is_ts_tbl()</code>. Note that due to <code>ts_tbl</code> inheriting from <code>id_tbl</code>,
+<code>is_id_tbl()</code> returns <code>TRUE</code> for both <code>id_tbl</code> and <code>ts_tbl</code> objects (and
+similarly for <code>win_tbl</code>), while <code>is_ts_tbl()</code> only returns <code>TRUE</code> for
+<code>ts_tbl</code> objects.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Constructors <code>id_tbl()</code>/<code>ts_tbl()</code>/<code>win_tbl()</code>, as well as coercion
+functions <code>as_id_tbl()</code>/<code>as_ts_tbl()</code>/<code>as_win_tbl()</code> return
+<code>id_tbl</code>/<code>ts_tbl</code>/<code>win_tbl</code> objects respectively,
+while inheritance testers <code>is_id_tbl()</code>/<code>is_ts_tbl()</code>/<code>is_win_tbl()</code> return
+logical flags and <code>validate_tbl()</code> returns either <code>TRUE</code> or a string
+describing the validation failure.
+</p>
+
+
+<h3>Relationship to <code>data.table</code>
+</h3>
+
+<p>Both <code>id_tbl</code> and <code>ts_tbl</code> inherit from <code>data.table</code> and as such, functions
+intended for use with <code>data.table</code> objects can be applied to <code>id_tbl</code> and
+<code>ts_tbl</code> as well. But there are some caveats: Many functions introduced by
+<code>data.table</code> are not S3 generic and therefore they would have to be masked
+in order to retain control over how they operate on objects inheriting form
+<code>data.table</code>. Take for example the function <code>data.table::setnames()</code>, which
+changes column names by reference. Using this function, the name of an
+index column of an <code>id_tbl</code> object can me changed without updating the
+attribute marking the column as such and thusly leaving the object in an
+inconsistent state. Instead of masking the function <code>setnames()</code>, an
+alternative is provided as <code>rename_cols()</code>. In places where it is possible
+to seamlessly insert the appropriate function (such as
+<code>base::names&lt;-()</code> or <code>base::colnames&lt;-()</code>) and the responsibility for not
+using <code>data.table::setnames()</code> in a way that breaks the <code>id_tbl</code> object is
+left to the user.
+</p>
+<p>Owing to <code>data.table</code> heritage, one of the functions that is often called
+on <code>id_tbl</code> and <code>ts_tbl</code> objects is base S3 generic [base::<code>[</code>()]. As this
+function is capable of modifying the object in a way that makes it
+incompatible with attached meta data, an attempt is made at preserving as
+much as possible and if all fails, a <code>data.table</code> object is returned
+instead of an object inheriting form <code>id_tbl</code>. If for example the index
+column is removed (or modified in a way that makes it incompatible with the
+interval specification) from a <code>ts_tbl</code>, an <code>id_tbl</code> is returned. If
+however the ID column is removed the only sensible thing to return is a
+<code>data.table</code> (see examples).
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">tbl &lt;- id_tbl(a = 1:10, b = rnorm(10))
+is_id_tbl(tbl)
+is_ts_tbl(tbl)
+
+dat &lt;- data.frame(a = 1:10, b = hours(1:10), c = rnorm(10))
+tbl &lt;- as_ts_tbl(dat, "a")
+is_id_tbl(tbl)
+is_ts_tbl(tbl)
+
+tmp &lt;- as_id_tbl(tbl)
+is_ts_tbl(tbl)
+is_ts_tbl(tmp)
+
+tmp &lt;- as_id_tbl(tbl, by_ref = TRUE)
+is_ts_tbl(tbl)
+is_ts_tbl(tmp)
+
+tbl &lt;- id_tbl(a = 1:10, b = rnorm(10))
+names(tbl) &lt;- c("c", "b")
+tbl
+
+tbl &lt;- id_tbl(a = 1:10, b = rnorm(10))
+validate_tbl(data.table::setnames(tbl, c("c", "b")))
+
+tbl &lt;- id_tbl(a = 1:10, b = rnorm(10))
+validate_tbl(rename_cols(tbl, c("c", "b")))
+
+tbl &lt;- ts_tbl(a = rep(1:2, each = 5), b = hours(rep(1:5, 2)), c = rnorm(10))
+tbl[, c("a", "c"), with = FALSE]
+tbl[, c("b", "c"), with = FALSE]
+tbl[, list(a, b = as.double(b), c)]
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,96 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>graph_join_plan</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Build a draw-able specification of the join diagram</h2>
+
+<h3>Description</h3>
+
+<p>Please see <code>vignette('DependencySorting', package = 'rquery')</code> and <code>vignette('joinController', package= 'rquery')</code> for more details.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">graph_join_plan(columnJoinPlan, ..., groupByKeys = TRUE, graphOpts = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>columnJoinPlan</code></td>
+<td>
+<p>join plan</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>force later arguments to bind by name</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>groupByKeys</code></td>
+<td>
+<p>logical if true build key-equivalent sub-graphs</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>graphOpts</code></td>
+<td>
+<p>options for graphViz</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>grViz diagram spec
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>describe_tables</code>, <code>build_join_plan</code>, <code>actualize_join_plan</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+if (requireNamespace("DBI", quietly = TRUE) &amp;&amp; requireNamespace("RSQLite", quietly = TRUE)) {
+  # note: employeeanddate is likely built as a cross-product
+  #       join of an employee table and set of dates of interest
+  #       before getting to the join controller step.  We call
+  #       such a table "row control" or "experimental design."
+  my_db &lt;- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+  RSQLite::initExtension(my_db)
+  tDesc &lt;- example_employee_date(my_db)
+  # fix order by hand, please see rquery::topo_sort_tables for
+  # how to automate this.
+  ord &lt;- match(c('employeeanddate', 'orgtable', 'activity', 'revenue'),
+               tDesc$tableName)
+  tDesc &lt;- tDesc[ord, , drop=FALSE]
+  columnJoinPlan &lt;- build_join_plan(tDesc, check= FALSE)
+  # unify keys
+  columnJoinPlan$resultColumn[columnJoinPlan$resultColumn=='id'] &lt;- 'eid'
+  # look at plan defects
+  print(paste('problems:',
+              inspect_join_plan(tDesc, columnJoinPlan)))
+  diagramSpec &lt;- graph_join_plan(columnJoinPlan)
+  # # to render as JavaScript:
+  # if(requireNamespace("DiagrammeR", quietly = TRUE)) {
+  #   print(DiagrammeR::grViz(diagramSpec))
+  # }
+  DBI::dbDisconnect(my_db)
+  my_db &lt;- NULL
+}
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,177 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>j_query</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Query and pivot JSON and NDJSON documents</h2>
+
+<h3>Description</h3>
+
+<p><code>j_query()</code> executes a query against a JSON or NDJSON
+document, automatically inferring the type of <code>data</code> and
+<code>path</code>.
+</p>
+<p><code>j_pivot()</code> transforms a JSON array-of-objects to an
+object-of-arrays; this can be useful when forming a
+column-based tibble from row-oriented JSON / NDJSON.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">j_query(
+  data,
+  path = "",
+  object_names = "asis",
+  as = "string",
+  ...,
+  n_records = Inf,
+  verbose = FALSE,
+  data_type = j_data_type(data),
+  path_type = j_path_type(path)
+)
+
+j_pivot(
+  data,
+  path = "",
+  object_names = "asis",
+  as = "string",
+  ...,
+  n_records = Inf,
+  verbose = FALSE,
+  data_type = j_data_type(data),
+  path_type = j_path_type(path)
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a character() JSON string or NDJSON records, or the
+name of a file or URL containing JSON or NDJSON, or an <em>R</em>
+object parsed to a JSON string using <code>jsonlite::toJSON()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>path</code></td>
+<td>
+<p>character(1) JSONpointer, JSONpath or JMESpath query
+string.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>object_names</code></td>
+<td>
+<p>character(1) order <code>data</code> object elements
+<code>"asis"</code> (default) or <code>"sort"</code> before filtering on <code>path</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>as</code></td>
+<td>
+<p>character(1) return type. For <code>j_query()</code>, <code>"string"</code>
+returns JSON / NDJSON strings; <code>"R"</code> parses JSON / NDJSON to R
+using rules in <code>as_r()</code>. For <code>j_pivot()</code> (JSON only), use <code>as = "data.frame"</code> or <code>as = "tibble"</code> to coerce the result to a
+data.frame or tibble.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>passed to <code>jsonlite::toJSON</code> when <code>data</code> is an <em>R</em> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_records</code></td>
+<td>
+<p>numeric(1) maximum number of NDJSON records parsed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical(1) report progress when parsing large NDJSON
+files.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data_type</code></td>
+<td>
+<p>character(1) type of <code>data</code>; one of <code>"json"</code>,
+<code>"ndjson"</code>, or a value returned by <code>j_data_type()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>path_type</code></td>
+<td>
+<p>character(1) type of <code>path</code>; one of
+<code>"JSONpointer"</code>, <code>"JSONpath"</code>, <code>"JMESpath"</code>. Inferred from
+<code>path</code> using <code>j_path_type()</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>j_pivot()</code> transforms an 'array-of-objects' (typical when the JSON
+is a row-oriented representation of a table) to an
+'object-of-arrays'. A simple example transforms an array of two
+objects each with three fields <code>'[{"a": 1, "b": 2, "c": 3}, {"a": 4, "b": 5, "c": 6}]'</code> to an object with three fields, each a vector
+of length 2 <code>'{"a": [1, 4], "b": [2, 5], "c": [3, 6]}'</code>. The
+object-of-arrays representation corresponds closely to an <em>R</em>
+data.frame or tibble, as illustrated in the examples.
+</p>
+<p><code>j_pivot()</code> with JMESpath paths are especially useful for
+transforming NDJSON to a <code>data.frame</code> or <code>tibble</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">json &lt;- '{
+  "locations": [
+    {"name": "Seattle", "state": "WA"},
+    {"name": "New York", "state": "NY"},
+    {"name": "Bellevue", "state": "WA"},
+    {"name": "Olympia", "state": "WA"}
+  ]
+}'
+
+j_query(json, "/locations/0/name")             # JSONpointer
+j_query(json, "$.locations[*].name", as = "R") # JSONpath
+j_query(json, "locations[].state", as = "R")   # JMESpath
+
+## a few NDJSON records from &lt;https://www.gharchive.org/&gt;
+ndjson_file &lt;-
+    system.file(package = "rjsoncons", "extdata", "2023-02-08-0.json")
+j_query(ndjson_file, "{id: id, type: type}")
+
+j_pivot(json, "$.locations[?@.state=='WA']", as = "string")
+j_pivot(json, "locations[?@.state=='WA']", as = "R")
+j_pivot(json, "locations[?@.state=='WA']", as = "data.frame")
+j_pivot(json, "locations[?@.state=='WA']", as = "tibble")
+
+## use 'path' to pivot ndjson one record at at time
+j_pivot(ndjson_file, "{id: id, type: type}", as = "data.frame")
+
+## 'org' is a nested element; extract it
+j_pivot(ndjson_file, "org", as = "data.frame")
+
+## use j_pivot() to filter 'PushEvent' for organizations
+path &lt;- "[{id: id, type: type, org: org}]
+             [?@.type == 'PushEvent' &amp;&amp; @.org != null] |
+                 [0]"
+j_pivot(ndjson_file, path, as = "data.frame")
+
+## try also
+##
+##     j_pivot(ndjson_file, path, as = "tibble") |&gt;
+##         tidyr::unnest_wider("org", names_sep = ".")
+</code></pre>
+
+
+</div>

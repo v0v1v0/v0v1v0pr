@@ -1,0 +1,295 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pruneKnn</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Function inferring a pruned knn matrix</h2>
+
+<h3>Description</h3>
+
+<p>This function determines k nearest neighbours for each cell in gene expression space, and tests if the links are supported by a negative binomial joint distribution of gene expression. A probability is assigned to each link which is given by the minimum joint probability across all genes.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pruneKnn(
+  expData,
+  distM = NULL,
+  large = TRUE,
+  regNB = TRUE,
+  bmethod = NULL,
+  batch = NULL,
+  regVar = NULL,
+  offsetModel = TRUE,
+  thetaML = FALSE,
+  theta = 10,
+  ngenes = 2000,
+  span = 0.75,
+  pcaComp = NULL,
+  tol = 1e-05,
+  algorithm = "kd_tree",
+  metric = "pearson",
+  genes = NULL,
+  knn = 25,
+  do.prune = TRUE,
+  alpha = 1,
+  nb = 3,
+  no_cores = NULL,
+  FSelect = FALSE,
+  pca.scale = FALSE,
+  ps = 1,
+  seed = 12345,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>expData</code></td>
+<td>
+<p>Matrix of gene expression values with genes as rows and cells as columns. These values have to correspond to unique molecular identifier counts. Alternatively, a Seurat object could be used as input, after normalization, PCA-dimensional reduction, and shared-nearest neighbour inference.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>distM</code></td>
+<td>
+<p>Optional distance matrix used for determining k nearest neighbours. Default is <code>NULL</code> and the distance matrix is computed using a metric given by the parameter <code>metric</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>large</code></td>
+<td>
+<p>logical. If <code>TRUE</code> then no distance matrix is required and nearest neighbours are inferred by the <span class="pkg">FNN</span> package based on a reduced
+feature matrix computed by a principle component analysis. Only the first <code>pcaComp</code> principle components are considered. Prior to principal component
+analysis a negative binomial regression is performed to eliminate the dependence on the total number of transcripts per cell. The pearson residuals of
+this regression serve as input for the principal component analysis after smoothing the parameter dependence on the mean by a <code>loess</code> regression.
+Deafult is <code>TRUE</code>. Recommended mode for very large datasets, where storing a distance matrix requires too much memory. <code>distM</code>
+will be ignored if <code>large</code> is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>regNB</code></td>
+<td>
+<p>logical. If <code>TRUE</code> then gene a negative binomial regression is performed to prior to the principle component analysis if <code>large = TRUE</code>. See <code>large</code>. Otherwise, transcript counts in each cell are normalized to one, multipled by the minimal total transcript count across all cells, followed by adding a pseudocount of 0.1 and taking the logarithm.  Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bmethod</code></td>
+<td>
+<p>Character string indicating the batch correction method. If "harmony", then batch correction is performed by the <span class="pkg">harmony</span> package. Default is <code>NULL</code> and batch correction will be done by negative binomial regression.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>batch</code></td>
+<td>
+<p>vector of batch variables. Component names need to correspond to valid cell IDs, i.e. column names of <code>expData</code>. If <code>regNB</code> is <code>TRUE</code>, than the batch variable will be regressed out simultaneously with the log UMI count per cell. An interaction term is included for the log UMI count with the batch variable. Default value is <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>regVar</code></td>
+<td>
+<p>data.frame with additional variables to be regressed out simultaneously with the log UMI count and the batch variable (if <code>batch</code> is <code>TRUE</code>). Column names indicate variable names (name <code>beta</code> is reserved for the coefficient of the log UMI count), and rownames need to correspond to valid cell IDs, i.e. column names of <code>expData</code>. Interaction terms are included for each variable in <code>regVar</code> with the batch variable (if <code>batch</code> is <code>TRUE</code>). Default value is <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>offsetModel</code></td>
+<td>
+<p>Logical parameter. Only considered if <code>regNB</code> is <code>TRUE</code>. If <code>TRUE</code> then the <code>beta</code> (log UMI count) coefficient is set to 1 and the intercept is computed analytically as the log ration of UMI counts for a gene and the total UMI count across all cells. Batch variables and additional variables in <code>regVar</code> are regressed out with an offset term given by the sum of the intercept and the log UMI count. Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thetaML</code></td>
+<td>
+<p>Logical parameter. Only considered if <code>offsetModel</code> equals <code>TRUE</code>. If <code>TRUE</code> then the dispersion parameter is estimated by a maximum likelihood fit. Otherwise, it is set to <code>theta</code>. Default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>theta</code></td>
+<td>
+<p>Positive real number. Fixed value of the dispersion parameter. Only considered if <code>theaML</code> equals <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ngenes</code></td>
+<td>
+<p>Positive integer number. Randomly sampled number of genes (from rownames of <code>expData</code>) used for predicting regression coefficients (if <code>regNB=TRUE</code>). Smoothed coefficients are derived for all genes. Default is 2000.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>span</code></td>
+<td>
+<p>Positive real number. Parameter for loess-regression (see <code>large</code>) controlling the degree of smoothing. Default is 0.75.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pcaComp</code></td>
+<td>
+<p>Positive integer number. Number of princple components to be included if <code>large</code> is <code>TRUE</code>. Default is <code>NULL</code> and the number of principal components used for dimensionality reduction of the feature matrix is derived by an elbow criterion. However, the minimum number of components will be set to 15 if the elbow criterion results in a smaller number. The derived number can be be plotted using the <code>plotPC</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>Numerical value greater than zero. Tolerance for numerical PCA using <span class="pkg">irlba</span>. Default value is 1e-6.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>algorithm</code></td>
+<td>
+<p>Algorithm for fast k nearest neighbour inference, using the <code>get.knn</code> function from the <span class="pkg">FNN</span> package.
+See <code>help(get.knn)</code>. Deafult is "kd_tree".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>metric</code></td>
+<td>
+<p>Distances are computed from the  expression matrix <code>x</code> after optionally including only genes given as argument <code>genes</code> or after optional feature selection (see <code>FSelect</code>).
+Possible values for <code>metric</code> are <code>"pearson", "spearman", "logpearson",  "euclidean"</code>.  Default is <code>"pearson"</code>. In case of the correlation based methods,
+the distance is computed as 1 – correlation. This parameter is only used if <code>large</code> is FALSE and <code>distM</code> is NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>genes</code></td>
+<td>
+<p>Vector of gene names corresponding to a subset of rownames of <code>x</code>. Only these genes are used for the computation of a distance matrix and for the computation of joint probabilities of nearest neighbours. Default is <code>NULL</code> and all genes are used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>knn</code></td>
+<td>
+<p>Positive integer number. Number of nearest neighbours considered for each cell. Default is 25.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>do.prune</code></td>
+<td>
+<p>Logical parameter. If <code>TRUE</code>, then pruning of k-nearest neighbourhoods is performed. If <code>FALSE</code>, then no pruning is done. Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>Positive real number. Relative weight of a cell versus its k nearest neigbour applied for the derivation of joint probabilities. A cell receives a weight of <code>alpha</code> while the weights of its k nearest neighbours as determined by quadratic programming sum up to one. The sum across all weights and alpha is normalized to one, and the weighted mean expression is used for computing the link porbabilities for each of the k nearest neighbours. Larger values give more weight to the gene expression observed in a cell versus its neighbourhood. Typical values should be in the range of 0 to 10. Default is value is 1. If <code>alpha</code> is set to NULL it is inferred by an optimization, i.e., <code>alpha</code> is minimized under the constraint that the gene expression in a cell does not deviate more then one standard deviation from the predicted weigthed mean, where the standard deviation is calculated from the predicted mean using the background model (the average dependence of the variance on the mean expression). This procedure is coputationally more intense and inceases the run time of the function significantly.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nb</code></td>
+<td>
+<p>Positive integer number. Number of genes with the lowest outlier probability included for calculating the link probabilities for the knn pruning. The link probability is computed as the geometric mean across these genes. Default is 3.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>no_cores</code></td>
+<td>
+<p>Positive integer number. Number of cores for multithreading. If set to <code>NULL</code> then the number of available cores minus two is used. Default is <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>FSelect</code></td>
+<td>
+<p>Logical parameter. If <code>TRUE</code>, then feature selection is performed prior to distance matrix calculation and VarID analysis. Default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pca.scale</code></td>
+<td>
+<p>Logical parameter. If <code>TRUE</code>, then input features are scaled prior to PCA transformation. Default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ps</code></td>
+<td>
+<p>Real number greater or equal to zero. Pseudocount to be added to counts within local neighbourhoods for outlier identification and pruning. Default is 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>Integer number. Random number to initialize stochastic routines. Default is 12345.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional parameters for <code>HarmonyMatrix</code> function of the <span class="pkg">harmony</span> package, if <code>batch</code> is not <code>NULL</code> and <code>bmethod="harmony"</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>List object of six components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>distM</code></td>
+<td>
+<p>Distance matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dimRed</code></td>
+<td>
+<p>PCA transformation of <code>expData</code> including the first <code>pcaComp</code> principle components, computed on including <code>genes</code> or variable genes only if <code>Fselect</code> equals <code>TRUE</code>. Is is set to <code>NULL</code> if <code>large</code> equals <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pvM</code></td>
+<td>
+<p>Matrix of link probabilities between a cell and each of its k nearest neighbours (Bonferroni-corrected p-values). Column <code>i</code> shows the k nearest neighbour link probabilities for cell <code>i</code> in matrix <code>x</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pvM.raw</code></td>
+<td>
+<p>Matrix of uncorrected link probabilities between a cell and each of its k nearest neighbours (without multiple-testing correction). Column <code>i</code> shows the k nearest neighbour link probabilities for cell <code>i</code> in matrix <code>x</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>NN</code></td>
+<td>
+<p>Matrix of column indices of k nearest neighbours for each cell according to input matrix <code>x</code>. First entry corresponds to index of the cell itself. Columns contain the k nearest neighbour indices for cell <code>i</code> in matrix <code>x</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B</code></td>
+<td>
+<p>List object with background model of gene expression as obtained by <code>fitBackVar</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>regData</code></td>
+<td>
+<p>If <code>regNB=TRUE</code> this argument contains a list of four components: component <code>pearsonRes</code> contains a matrix of the Pearson Residual computed from the negative binomial regression, component <code>nbRegr</code> contains a matrix with the regression coefficients, component <code>nbRegrSmooth</code> contains a matrix with the smoothed regression coefficients, and <code>log_umi</code> is a vector with the total log UMI count for each cell. The regression coefficients comprise the dispersion parameter theta, the intercept, the regression coefficient beta for the log UMI count, and the regression coefficients of the batches (if <code>batch</code> is not <code>NULL</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>Vector of inferred values for the <code>alpha</code> parameter for each neighbourhood (if input parameter <code>alpha</code> is NULL; otherwise all values are equal to the input parameter).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pars</code></td>
+<td>
+<p>List object storing the run parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pca</code></td>
+<td>
+<p>Principal component analysis of the of the input data, if <code>large</code> is TRUE. Output or the function <code>irlba</code> from the <span class="pkg">irlba</span> package with <code>pcaComp</code> principal components, or 100 principal components if <code>pcaComp</code> is NULL.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">res &lt;- pruneKnn(intestinalDataSmall,knn=10,alpha=1,no_cores=1,FSelect=FALSE)
+</code></pre>
+
+
+</div>

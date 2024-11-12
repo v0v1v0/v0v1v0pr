@@ -1,0 +1,116 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ex_data_table_step.relop_sql</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Direct sql node.</h2>
+
+<h3>Description</h3>
+
+<p>Execute one step using the rquery.rquery_db_executor SQL supplier.  Note: it is not
+a good practice to use SQL nodes in data.table intended pipelines (loss of class information and
+cost of data transfer).  This implementation is only here for completeness.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'relop_sql'
+ex_data_table_step(
+  optree,
+  ...,
+  tables = list(),
+  source_usage = NULL,
+  source_limit = NULL,
+  env = parent.frame()
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>optree</code></td>
+<td>
+<p>relop operations tree.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>not used, force later arguments to bind by name.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tables</code></td>
+<td>
+<p>named list map from table names used in nodes to data.tables and data.frames.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>source_usage</code></td>
+<td>
+<p>list mapping source table names to vectors of columns used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>source_limit</code></td>
+<td>
+<p>if not null limit all table sources to no more than this many rows (used for debugging).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>env</code></td>
+<td>
+<p>environment to work in.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# WARNING: example tries to change rquery.rquery_db_executor option to RSQLite and back.
+if (requireNamespace("DBI", quietly = TRUE) &amp;&amp;
+    requireNamespace("RSQLite", quietly = TRUE)) {
+  # example database connection
+  my_db &lt;- DBI::dbConnect(RSQLite::SQLite(),
+                          ":memory:")
+  old_o &lt;- options(list("rquery.rquery_db_executor" = list(db = my_db)))
+
+  # example data
+  d &lt;- data.frame(v1 = c(1, 2, NA, 3),
+                  v2 = c(NA, "b", NA, "c"),
+                  v3 = c(NA, NA, 7, 8),
+                  stringsAsFactors = FALSE)
+
+  # example xform
+  vars &lt;- column_names(d)
+  # build a NA/NULLs per-row counting expression.
+  # names are "quoted" by wrapping them with as.name().
+  # constants can be quoted by an additional list wrapping.
+  expr &lt;- lapply(vars,
+                 function(vi) {
+                   list("+ (CASE WHEN (",
+                        as.name(vi),
+                        "IS NULL ) THEN 1.0 ELSE 0.0 END)")
+                 })
+  expr &lt;- unlist(expr, recursive = FALSE)
+  expr &lt;- c(list(0.0), expr)
+
+  # instantiate the operator node
+  op_tree &lt;- local_td(d) %.&gt;%
+    sql_node(., "num_missing" %:=% list(expr))
+  cat(format(op_tree))
+
+  d %.&gt;% op_tree
+
+  options(old_o)
+  DBI::dbDisconnect(my_db)
+}
+
+</code></pre>
+
+
+</div>

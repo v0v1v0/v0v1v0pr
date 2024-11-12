@@ -1,0 +1,86 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>count_null_cols</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Count NULLs per row for given column set.</h2>
+
+<h3>Description</h3>
+
+<p>Build a query that counts the number of nulls in each row.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">count_null_cols(source, cols, count)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>source</code></td>
+<td>
+<p>incoming rel_op tree or data.frame.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cols</code></td>
+<td>
+<p>character, columns to track</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>count</code></td>
+<td>
+<p>character, column to write count in.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>rel_op node or data.frame (depending on input).
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>null_replace</code>, <code>mark_null_cols</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# WARNING: example tries to change rquery.rquery_db_executor option to RSQLite and back.
+if (requireNamespace("DBI", quietly = TRUE) &amp;&amp; requireNamespace("RSQLite", quietly = TRUE)) {
+  my_db &lt;- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+  RSQLite::initExtension(my_db)
+  old_o &lt;- options(list("rquery.rquery_db_executor" = list(db = my_db)))
+
+  d &lt;- rq_copy_to(my_db, 'd',
+                   data.frame(AUC = c(0.6, 0.5, NA),
+                              R2 = c(1.0, 0.9, NA)))
+  op_tree &lt;- d %.&gt;% count_null_cols(., c("AUC", "R2"), "nnull")
+  cat(format(op_tree))
+  sql &lt;- to_sql(op_tree, my_db)
+  cat(sql)
+  print(DBI::dbGetQuery(my_db, sql))
+
+  # ad-hoc mode
+  data.frame(AUC=c(1,NA,0.5), R2=c(NA,1,0)) %.&gt;%
+     op_tree %.&gt;%
+     print(.)
+
+  # cleanup
+  options(old_o)
+  DBI::dbDisconnect(my_db)
+}
+
+</code></pre>
+
+
+</div>

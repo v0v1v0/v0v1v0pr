@@ -1,0 +1,134 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>IntegrateAUC</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Incident/Dynamic (I/D) ROC curve, AUC and integrated AUC (iAUC)
+estimation of censored survival data</h2>
+
+<h3>Description</h3>
+
+<p>This function integrates AUC using weights
+<code class="reqn">w(t) = 2*f(t)*S(t)</code>
+as discussed in Heagerty and Zheng, 2005.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">IntegrateAUC(AUC, utimes, St, tmax, weight="rescale")
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>AUC</code></td>
+<td>
+<p>Area under ROC curve at utimes</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>utimes</code></td>
+<td>
+<p>Unique event times for subjects</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>St</code></td>
+<td>
+<p>Estimated survival probability at utimes</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tmax</code></td>
+<td>
+<p>Maximum time length to be considered</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weight</code></td>
+<td>
+<p>Either of "rescale" or "conditional"</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function estimates time-dependent concordance
+measure </p>
+<p style="text-align: center;"><code class="reqn">P(M_i&gt;M_j|T_i&lt;t, T_i&lt;tmax, T_j&gt;t)</code>
+</p>
+<p> as discussed in the
+paper from AUC and weights derived from 
+the survival time distribution. The concordance measure is estimated
+under the assumption that smaller of the two event times happened
+before time <em>tmax</em>. The resulting measure is an weighted sum of
+estimated AUC at each unique failure time where weights are
+proportional to <code class="reqn">2*f(t)*S(t)</code>, and T is failure time of interest. 
+If weight="rescale", then the weights are rescaled so that the sum of
+the weights is one. If weight="conditional", it is assumed that both
+the events happened before <em>tmax</em>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns the following item:
+</p>
+<table><tr style="vertical-align: top;">
+<td><code>iAUC</code></td>
+<td>
+<p>Integrated AUC using w(t) as above as weights</p>
+</td>
+</tr></table>
+<h3>Author(s)</h3>
+
+<p>Patrick J. Heagerty </p>
+
+
+<h3>References</h3>
+
+<p>Heagerty, P.J., Zheng Y. (2005)
+Survival Model Predictive Accuracy and ROC curves
+<em>Biometrics</em>, <b>61</b>, 92 – 105</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(MASS)
+data(VA)
+survival.time &lt;- VA$stime
+survival.status &lt;- VA$status
+score &lt;- VA$Karn
+cell.type &lt;- factor(VA$cell )
+tx &lt;- as.integer( VA$treat==1 )
+age &lt;- VA$age
+survival.status[VA$stime &gt; 500 ] &lt;- 0
+survival.time[VA$stime &gt; 500 ] &lt;- 500
+library(survival)
+## first find the estimated survival probabilities at unique failure times
+surv.prob &lt;- unique(survfit(Surv(survival.time,survival.status)~1)$surv)
+fit0 &lt;- coxph( Surv(survival.time,survival.status)
+        ~ score + cell.type + tx + age, na.action=na.omit )
+eta &lt;- fit0$linear.predictor
+model.score &lt;- eta
+
+utimes &lt;- unique( survival.time[ survival.status == 1 ] )
+utimes &lt;- utimes[ order(utimes) ]
+
+## find AUC at unique failure times
+AUC &lt;- rep( NA, length(utimes) )
+for( j in 1:length(utimes) )
+{
+out &lt;- CoxWeights( eta, survival.time, survival.status,utimes[j])
+AUC[j] &lt;- out$AUC
+}
+## integrated AUC to get concordance measure
+iAUC &lt;- IntegrateAUC( AUC, utimes, surv.prob, tmax=365 )
+</code></pre>
+
+
+</div>

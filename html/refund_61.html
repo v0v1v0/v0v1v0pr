@@ -1,0 +1,133 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pcre</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>pffr-constructor for functional principal component-based functional random intercepts.</h2>
+
+<h3>Description</h3>
+
+<p>pffr-constructor for functional principal component-based functional random intercepts.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pcre(id, efunctions, evalues, yind, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>id</code></td>
+<td>
+<p>grouping variable a factor</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>efunctions</code></td>
+<td>
+<p>matrix of eigenfunction evaluations on gridpoints <code>yind</code> (&lt;length of <code>yind</code>&gt; x &lt;no. of used eigenfunctions&gt;)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>evalues</code></td>
+<td>
+<p>eigenvalues associated with <code>efunctions</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yind</code></td>
+<td>
+<p>vector of gridpoints on which <code>efunctions</code> are evaluated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>not used</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>a list used internally for constructing an appropriate call to <code>mgcv::gam</code>
+</p>
+
+
+<h3>Details</h3>
+
+<p>Fits functional random intercepts <code class="reqn">B_i(t)</code> for a grouping variable <code>id</code>
+using as a basis the functions <code class="reqn">\phi_m(t)</code> in <code>efunctions</code> with variances <code class="reqn">\lambda_m</code> in <code>evalues</code>:
+<code class="reqn">B_i(t) \approx \sum_m^M \phi_m(t)\delta_{im}</code> with
+independent <code class="reqn">\delta_{im} \sim N(0, \sigma^2\lambda_m)</code>, where <code class="reqn">\sigma^2</code>
+is (usually) estimated and controls the overall contribution of the <code class="reqn">B_i(t)</code> while the relative importance
+of the <code class="reqn">M</code> basisfunctions is controlled by the supplied variances <code>lambda_m</code>.
+Can be used to model smooth residuals if <code>id</code> is simply an index of observations.
+Differing from scalar random effects in <code>mgcv</code>, these effects are estimated under a "sum-to-zero-for-each-t"-constraint –
+specifically <code class="reqn">\sum_i \hat b_i(t) = 0</code> (not <code class="reqn">\sum_i n_i \hat b_i(t) = 0</code>) where $n_i$ is the number of observed curves for
+subject i, so the intercept curve for models with unbalanced group sizes no longer corresponds to the global mean function.
+</p>
+<p><code>efunctions</code> and <code>evalues</code> are typically eigenfunctions and eigenvalues of an estimated
+covariance operator for the functional process to be modeled, i.e., they are
+a functional principal components basis.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Fabian Scheipl
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+residualfunction &lt;- function(t){
+#generate quintic polynomial error functions
+    drop(poly(t, 5)%*%rnorm(5, sd=sqrt(2:6)))
+}
+# generate data Y(t) = mu(t) + E(t) + white noise
+set.seed(1122)
+n &lt;- 50
+T &lt;- 30
+t &lt;- seq(0,1, l=T)
+# E(t): smooth residual functions
+E &lt;- t(replicate(n, residualfunction(t)))
+int &lt;- matrix(scale(3*dnorm(t, m=.5, sd=.5) - dbeta(t, 5, 2)), byrow=T, n, T)
+Y &lt;- int + E + matrix(.2*rnorm(n*T), n, T)
+data &lt;- data.frame(Y=I(Y))
+# fit model under independence assumption:
+summary(m0 &lt;- pffr(Y ~ 1, yind=t, data=data))
+# get first 5 eigenfunctions of residual covariance
+# (i.e. first 5 functional PCs of empirical residual process)
+Ehat &lt;- resid(m0)
+fpcE &lt;- fpca.sc(Ehat, npc=5)
+efunctions &lt;- fpcE$efunctions
+evalues &lt;- fpcE$evalues
+data$id &lt;- factor(1:nrow(data))
+# refit model with fpc-based residuals
+m1 &lt;- pffr(Y ~ 1 + pcre(id=id, efunctions=efunctions, evalues=evalues, yind=t), yind=t, data=data)
+t1 &lt;- predict(m1, type="terms")
+summary(m1)
+#compare squared errors
+mean((int-fitted(m0))^2)
+mean((int-t1[[1]])^2)
+mean((E-t1[[2]])^2)
+# compare fitted &amp; true smooth residuals and fitted intercept functions:
+layout(t(matrix(1:4,2,2)))
+matplot(t(E), lty=1, type="l", ylim=range(E, t1[[2]]))
+matplot(t(t1[[2]]), lty=1, type="l", ylim=range(E, t1[[2]]))
+plot(m1, select=1, main="m1", ylim=range(Y))
+lines(t, int[1,], col=rgb(1,0,0,.5))
+plot(m0, select=1, main="m0", ylim=range(Y))
+lines(t, int[1,], col=rgb(1,0,0,.5))
+
+## End(Not run)
+</code></pre>
+
+
+</div>

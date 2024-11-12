@@ -1,0 +1,196 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>optPenalty.kCVauto</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Automatic search for optimal penalty parameter</h2>
+
+<h3>Description</h3>
+
+<p>Function that performs an 'automatic' search for the optimal penalty
+parameter for the <code>ridgeP</code> call by employing Brent's method to
+the calculation of a cross-validated negative log-likelihood score.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">optPenalty.kCVauto(
+  Y,
+  lambdaMin,
+  lambdaMax,
+  lambdaInit = (lambdaMin + lambdaMax)/2,
+  fold = nrow(Y),
+  cor = FALSE,
+  target = default.target(covML(Y)),
+  type = "Alt"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>Data <code>matrix</code>. Variables assumed to be represented by columns.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambdaMin</code></td>
+<td>
+<p>A <code>numeric</code> giving the minimum value for the penalty
+parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambdaMax</code></td>
+<td>
+<p>A <code>numeric</code> giving the maximum value for the penalty
+parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambdaInit</code></td>
+<td>
+<p>A <code>numeric</code> giving the initial (starting) value for
+the penalty parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fold</code></td>
+<td>
+<p>A <code>numeric</code> or <code>integer</code> specifying the number of
+folds to apply in the cross-validation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cor</code></td>
+<td>
+<p>A <code>logical</code> indicating if the evaluation of the LOOCV score
+should be performed on the correlation scale.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target</code></td>
+<td>
+<p>A target <code>matrix</code> (in precision terms) for Type I ridge
+estimators.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>A <code>character</code> indicating the type of ridge estimator to be
+used. Must be one of: "Alt", "ArchI", "ArchII".</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The function determines the optimal value of the penalty parameter by
+application of the Brent algorithm (1971) to the <code class="reqn">K</code>-fold
+cross-validated negative log-likelihood score (using a regularized ridge
+estimator for the precision matrix). The search for the optimal value is
+automatic in the sense that in order to invoke the root-finding abilities of
+the Brent method, only a minimum value and a maximum value for the penalty
+parameter need to be specified as well as a starting penalty value. The
+value at which the <code class="reqn">K</code>-fold cross-validated negative log-likelihood
+score is minimized is deemed optimal. The function employs the Brent
+algorithm as implemented in the
+<a href="https://stat.ethz.ch/R-manual/R-devel/library/stats/html/optim.html">optim</a>
+function.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>list</code>: </p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>optLambda</code></td>
+<td>
+<p>A <code>numeric</code>
+giving the optimal value for the penalty parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optPrec</code></td>
+<td>
+<p>A
+<code>matrix</code> representing the precision matrix of the chosen type (see
+<code>ridgeP</code>) under the optimal value of the penalty parameter.</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>When <code>cor = TRUE</code> correlation matrices are used in the
+computation of the (cross-validated) negative log-likelihood score, i.e.,
+the <code class="reqn">K</code>-fold sample covariance matrix is a matrix on the correlation
+scale. When performing evaluation on the correlation scale the data are
+assumed to be standardized. If <code>cor = TRUE</code> and one wishes to used the
+default target specification one may consider using <code>target =
+default.target(covML(Y, cor = TRUE))</code>. This gives a default target under the
+assumption of standardized data.
+</p>
+<p>Under the default setting of the fold-argument, <code>fold = nrow(Y)</code>, one
+performes leave-one-out cross-validation.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Wessel N. van Wieringen, Carel F.W. Peeters &lt;carel.peeters@wur.nl&gt;
+</p>
+
+
+<h3>References</h3>
+
+<p>Brent, R.P. (1971). An Algorithm with Guaranteed Convergence for
+Finding a Zero of a Function. Computer Journal 14: 422-425.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>GGMblockNullPenalty</code>, <code>GGMblockTest</code>,
+<code>ridgeP</code>, <code>optPenalty.aLOOCV</code>,
+<code>optPenalty.kCV</code>, <br><code>default.target</code>,
+<code>covML</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Obtain some (high-dimensional) data
+p = 25
+n = 10
+set.seed(333)
+X = matrix(rnorm(n*p), nrow = n, ncol = p)
+colnames(X)[1:25] = letters[1:25]
+
+## Obtain regularized precision under optimal penalty using K = n
+OPT &lt;- optPenalty.kCVauto(X, lambdaMin = .001, lambdaMax = 30); OPT
+OPT$optLambda # Optimal penalty
+OPT$optPrec   # Regularized precision under optimal penalty
+
+## Another example with standardized data
+X &lt;- scale(X, center = TRUE, scale = TRUE)
+OPT &lt;- optPenalty.kCVauto(X, lambdaMin = .001, lambdaMax = 30, cor = TRUE,
+                          target = default.target(covML(X, cor = TRUE))); OPT
+OPT$optLambda # Optimal penalty
+OPT$optPrec   # Regularized precision under optimal penalty
+
+## Another example using K = 5
+OPT &lt;- optPenalty.kCVauto(X, lambdaMin = .001, lambdaMax = 30, fold = 5); OPT
+OPT$optLambda # Optimal penalty
+OPT$optPrec   # Regularized precision under optimal penalty
+
+</code></pre>
+
+
+</div>

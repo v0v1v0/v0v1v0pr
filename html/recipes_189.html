@@ -1,0 +1,181 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>step_impute_median</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Impute numeric data using the median</h2>
+
+<h3>Description</h3>
+
+<p><code>step_impute_median()</code> creates a <em>specification</em> of a recipe step that will
+substitute missing values of numeric variables by the training set median of
+those variables.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">step_impute_median(
+  recipe,
+  ...,
+  role = NA,
+  trained = FALSE,
+  medians = NULL,
+  skip = FALSE,
+  id = rand_id("impute_median")
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>recipe</code></td>
+<td>
+<p>A recipe object. The step will be added to the
+sequence of operations for this recipe.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>One or more selector functions to choose variables
+for this step. See <code>selections()</code> for more details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>role</code></td>
+<td>
+<p>Not used by this step since no new variables are
+created.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trained</code></td>
+<td>
+<p>A logical to indicate if the quantities for
+preprocessing have been estimated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>medians</code></td>
+<td>
+<p>A named numeric vector of medians. This is <code>NULL</code> until
+computed by <code>prep()</code>. Note that, if the original data are integers,
+the median will be converted to an integer to maintain the same data type.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>skip</code></td>
+<td>
+<p>A logical. Should the step be skipped when the
+recipe is baked by <code>bake()</code>? While all operations are baked
+when <code>prep()</code> is run, some operations may not be able to be
+conducted on new data (e.g. processing the outcome variable(s)).
+Care should be taken when using <code>skip = TRUE</code> as it may affect
+the computations for subsequent operations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id</code></td>
+<td>
+<p>A character string that is unique to this step to identify it.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>step_impute_median</code> estimates the variable medians from the data
+used in the <code>training</code> argument of <code>prep.recipe</code>. <code>bake.recipe</code> then applies
+the new values to new data sets using these medians.
+</p>
+<p>As of <code>recipes</code> 0.1.16, this function name changed from
+<code>step_medianimpute()</code> to <code>step_impute_median()</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An updated version of <code>recipe</code> with the new step added to the
+sequence of any existing operations.
+</p>
+
+
+<h3>Tidying</h3>
+
+<p>When you <code>tidy()</code> this step, a tibble is returned with
+columns <code>terms</code>, <code>value</code> , and <code>id</code>:
+</p>
+
+<dl>
+<dt>terms</dt>
+<dd>
+<p>character, the selectors or variables selected</p>
+</dd>
+<dt>value</dt>
+<dd>
+<p>numeric, the median value</p>
+</dd>
+<dt>id</dt>
+<dd>
+<p>character, id of this step</p>
+</dd>
+</dl>
+<h3>Case weights</h3>
+
+<p>This step performs an unsupervised operation that can utilize case weights.
+As a result, case weights are only used with frequency weights. For more
+information, see the documentation in case_weights and the examples on
+<code>tidymodels.org</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other imputation steps: 
+<code>step_impute_bag()</code>,
+<code>step_impute_knn()</code>,
+<code>step_impute_linear()</code>,
+<code>step_impute_lower()</code>,
+<code>step_impute_mean()</code>,
+<code>step_impute_mode()</code>,
+<code>step_impute_roll()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+data("credit_data", package = "modeldata")
+
+## missing data per column
+vapply(credit_data, function(x) mean(is.na(x)), c(num = 0))
+
+set.seed(342)
+in_training &lt;- sample(1:nrow(credit_data), 2000)
+
+credit_tr &lt;- credit_data[in_training, ]
+credit_te &lt;- credit_data[-in_training, ]
+missing_examples &lt;- c(14, 394, 565)
+
+rec &lt;- recipe(Price ~ ., data = credit_tr)
+
+impute_rec &lt;- rec %&gt;%
+  step_impute_median(Income, Assets, Debt)
+
+imp_models &lt;- prep(impute_rec, training = credit_tr)
+
+imputed_te &lt;- bake(imp_models, new_data = credit_te)
+
+credit_te[missing_examples, ]
+imputed_te[missing_examples, names(credit_te)]
+
+tidy(impute_rec, number = 1)
+tidy(imp_models, number = 1)
+
+</code></pre>
+
+
+</div>

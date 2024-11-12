@@ -1,0 +1,170 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>partial</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Knit a child document and output as is (render markup)</h2>
+
+<h3>Description</h3>
+
+<p>This modifies and extends the <code>knitr::knit_child()</code> function. Defaults change as follows:
+</p>
+
+<ul>
+<li>
+<p> the environment defaults to the calling environment, or if passed, to arguments passed via ...
+</p>
+</li>
+<li>
+<p> the output receives the class <code>knit_asis</code>, so that the output will be rendered "as is" by knitr when calling inside a chunk (no need to set <code>results='asis'</code> as a chunk option).
+</p>
+</li>
+<li>
+<p> defaults to <code>quiet = TRUE</code>
+</p>
+</li>
+<li>
+<p> the package additionally renders <code>knit_asis</code> objects in the viewer when printed to make previewing partials easier. This is achieved using <code>rmarkdown::render()</code> and done in a temporary directory (only when used interactively/not in child mode).
+</p>
+</li>
+<li>
+<p> the package takes care of some troubles behind the scenes that you might find yourself in if you nest partials (by trying to resolve path ambiguities, using text instead of files for sources, and some functionality to prevent iteratively overwriting generated figures and other files)
+</p>
+</li>
+</ul>
+<h3>Usage</h3>
+
+<pre><code class="language-R">partial(
+  input = NULL,
+  ...,
+  text = NULL,
+  output = NULL,
+  quiet = TRUE,
+  options = NULL,
+  envir = parent.frame(),
+  name = NULL,
+  show_code = FALSE,
+  use_strings = TRUE,
+  render_preview = needs_preview(),
+  preview_output_format = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>input</code></td>
+<td>
+<p>if you specify a file path here, it will be read in before being passed to knitr (to avoid a working directory mess)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>ignored, but you can use it to clarify which variables will be used in the rmd partial</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>text</code></td>
+<td>
+<p>passed to <code>knitr::knit_child()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>output</code></td>
+<td>
+<p>if you specify a file path here, where to put the file</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quiet</code></td>
+<td>
+<p>passed to <code>knitr::knit_child()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>options</code></td>
+<td>
+<p>defaults to NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>envir</code></td>
+<td>
+<p>passed to <code>knitr::knit_child()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p>a name to use for cacheing and figure paths. Randomly generated if left unspecified.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>show_code</code></td>
+<td>
+<p>whether to print the R code for the partial or just the results (sets the chunk option echo = FALSE while the chunk is being rendered)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use_strings</code></td>
+<td>
+<p>whether to read in the child file as a character string (solves working directory problems but harder to debug)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>render_preview</code></td>
+<td>
+<p>true if interactive mode is auto-detected, false when actually knitting the partial as a child</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>preview_output_format</code></td>
+<td>
+<p>defaults to <code>rmarkdown::html_document()</code> with self_contained set to true</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Why default to the calling environment? Typically this function defaults to the global environment. This makes sense if you want to use knit children in the same context as the rest of the document.
+However, you may also want to use knit children to respect conventional scoping rules inside functions to e.g. summarise a regression using a set of commands (e.g. plot some diagnostic graphs and a summary for a regression nicely formatted).
+</p>
+<p>Some caveats:
+</p>
+
+<ul>
+<li>
+<p> the function has to return to the top-level. There's no way to <code>cat()</code> this from loops or an if-condition without without setting <code>results='asis'</code>. You can however concatenate these objects with <code>paste.knit_asis()</code>
+</p>
+</li>
+<li>
+<p> currently not yet producing expected results in RStudio notebooks in interactive use
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>Returns rendered markdown with the class "knit_asis". When used interactively, the knit_meta attributes will additionally contain the path of a rendered preview in a temporary directory.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># super simple partial example
+partial(text = "Test")
+
+# an example of a wrapper function that calls partial with an argument
+# ensures distinct paths for cache and figures, so that these calls can be looped in parallel
+regression_diagnostics &lt;- function(regression, ...) {
+   partial(system.file("_regression_diagnostics.Rmd",
+           package = "rmdpartials", mustWork = TRUE),
+           regression = regression, ...)
+}
+</code></pre>
+
+
+</div>

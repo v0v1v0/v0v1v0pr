@@ -1,0 +1,217 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fitCLS_map</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Map-level CLS for time series</h2>
+
+<h3>Description</h3>
+
+<p><code>fitCLS_map</code> is used to fit conditional least squares
+regression to each spatial location (pixel) within spatiotemporal data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fitCLS_map(
+  Y,
+  coords,
+  formula = "y ~ t",
+  X.list = list(t = 1:ncol(Y)),
+  lag.y = 1,
+  lag.x = 0,
+  resids.only = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>a spatiotemporal response variable: a numeric matrix or data frame
+where columns correspond to time points and rows correspond to pixels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coords</code></td>
+<td>
+<p>a numeric coordinate matrix or data frame, with two columns and
+rows corresponding to each pixel</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a model formula, passed to <code>fitCLS()</code>: the left side
+of the formula should always be "y" and the right hand side should refer to
+variables in <code>X.list</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X.list</code></td>
+<td>
+<p>a named list of temporal or spatiotemporal predictor variables:
+elements must be either numeric vectors with one element for each time point
+or a matrix/data frame with rows corresponding to pixels and columns
+corresponding to time point. These elements must be named and referred to
+in <code>formula</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lag.y</code></td>
+<td>
+<p>the lag between y and y.0, passed to <code>fitCLS()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lag.x</code></td>
+<td>
+<p>the lag between y and predictor variables, passed to
+<code>fitCLS()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>resids.only</code></td>
+<td>
+<p>logical: should output beyond coordinates and residuals be
+withheld? Useful when passing output to <code>fitCor()</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>fitCLS_map</code> is a wrapper function that applies
+<code>fitCLS()</code> to many pixels.
+</p>
+<p>The function loops through the rows of <code>Y</code>, matched with rows of
+spatiotemporal predictor matrices. Purely temporal predictors, given by
+vectors, are used for all pixels. These predictor variables, given by the
+right side of <code>formula</code> are sourced from named elements in <code>X.list</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>fitCLS_map</code> returns a list object of class "mapTS".
+</p>
+<p>The output will always contain at least these elements:
+</p>
+
+<dl>
+<dt>call</dt>
+<dd>
+<p>the function call</p>
+</dd>
+<dt>coords</dt>
+<dd>
+<p>the coordinate matrix or dataframe</p>
+</dd>
+<dt>residuals</dt>
+<dd>
+<p>time series residuals: rows correspond to pixels (<code>coords</code>)</p>
+</dd>
+</dl>
+<p>When <code>resids.only = FALSE</code>, the output will also contain the following
+components. Matrices have rows that correspond to pixels and columns that
+correspond to time points and vector elements correspond to pixels.
+</p>
+
+<dl>
+<dt>coefficients</dt>
+<dd>
+<p>a numeric matrix of coefficeints</p>
+</dd>
+<dt>SEs</dt>
+<dd>
+<p>a numeric matrix of coefficient standard errors</p>
+</dd>
+<dt>tstats</dt>
+<dd>
+<p>a numeric matrix of t-statistics for coefficients</p>
+</dd>
+<dt>pvals</dt>
+<dd>
+<p>a numeric matrix of p-values for coefficients t-tests</p>
+</dd>
+<dt>MSEs</dt>
+<dd>
+<p>a numeric vector of MSEs</p>
+</dd>
+<dt>logLiks</dt>
+<dd>
+<p>a numeric vector of log-likelihoods</p>
+</dd>
+<dt>fitted.values</dt>
+<dd>
+<p>a numeric matrix of fitted values</p>
+</dd>
+</dl>
+<p>An attribute called "resids.only" is also set to match the value of
+<code>resids.only</code>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>fitCLS</code> for fitting CLS on individual time series and
+<code>fitAR</code> and <code>fitAR_map</code> for AR REML time series analysis.
+</p>
+<p>Other remoteTS: 
+<code>fitAR_map()</code>,
+<code>fitAR()</code>,
+<code>fitCLS()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# simulate dummy data
+time.points = 9 # time series length
+map.width = 5 # square map width
+coords = expand.grid(x = 1:map.width, y = 1:map.width) # coordinate matrix
+## create empty spatiotemporal variables:
+X &lt;- matrix(NA, nrow = nrow(coords), ncol = time.points) # response
+Z &lt;- matrix(NA, nrow = nrow(coords), ncol = time.points) # predictor
+# setup first time point:
+Z[, 1] &lt;- .05*coords[,"x"] + .2*coords[,"y"]
+X[, 1] &lt;- .5*Z[, 1] + rnorm(nrow(coords), 0, .05) #x at time t
+## project through time:
+for(t in 2:time.points){
+  Z[, t] &lt;- Z[, t-1] + rnorm(map.width^2)
+  X[, t] &lt;- .2*X[, t-1] + .1*Z[, t] + .05*t + rnorm(nrow(coords), 0 , .25)
+}
+
+# # visualize dummy data (NOT RUN)
+# library(ggplot2);library(dplyr)
+# data.frame(coords, X) %&gt;%
+#   reshape2::melt(id.vars = c("x", "y")) %&gt;%
+#   ggplot(aes(x = x, y = y, fill = value)) +
+#   geom_tile() +
+#   facet_wrap(~variable)
+
+# fit CLS, showing all output
+fitCLS_map(X, coords, formula = y ~ t, resids.only = TRUE)
+
+# fit CLS with temporal and spatiotemporal predictors
+(CLS.map &lt;- fitCLS_map(X, coords, formula = y ~ t + Z,
+                       X.list = list(t = 1:ncol(X), Z = Z),
+                       resids.only = FALSE))
+## extract some values
+CLS.map$coefficients # coefficients
+CLS.map$logLik # log-likelihoods
+
+## Methods
+summary(CLS.map)
+residuals(CLS.map)
+coefficients(CLS.map)
+
+</code></pre>
+
+
+</div>

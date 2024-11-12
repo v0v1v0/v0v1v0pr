@@ -1,0 +1,239 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>RFGLS_estimate_timeseries</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Function for estimation in time-series data with RF-GLS</h2>
+
+<h3>Description</h3>
+
+<p>The function <code>RFGLS_estimate_spatial</code> fits univariate non-linear regression models for
+time-series data using a RF-GLS in Saha et al. 2020. <code>RFGLS_estimate_spatial</code> uses the sparse Cholesky representation
+corresponsinding to <code>AR(q)</code> process. The fitted Random Forest (RF) model is used later for
+prediction via the <code>RFGLS-predict</code>.
+</p>
+<p>Some code blocks are borrowed from the R packages: spNNGP:
+Spatial Regression Models for Large Datasets using Nearest Neighbor
+Gaussian Processes <br> https://CRAN.R-project.org/package=spNNGP and
+randomForest: Breiman and Cutler's Random Forests for Classification
+and Regression <br> https://CRAN.R-project.org/package=randomForest .
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">RFGLS_estimate_timeseries(y, X, Xtest = NULL, nrnodes = NULL,
+                          nthsize = 20, mtry = 1,
+                          pinv_choice = 1, n_omp = 1,
+                          ntree = 50, h = 1, lag_params = 0.5,
+                          variance = 1,
+                          param_estimate = FALSE,
+                          verbose = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>an <code class="reqn">n</code> length vector of response at the observed time points. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>an <code class="reqn">n \times p</code> matrix of the covariates in the observation time points. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Xtest</code></td>
+<td>
+<p>an <code class="reqn">ntest \times p</code> matrix of covariates for prediction. Its Structure should be
+identical (including intercept) with that of covariates provided for estimation purpose in <code>X</code>.
+If <code>NULL</code>, will use <code>X</code> as <code>Xtest</code>. Default value is <code>NULL</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nrnodes</code></td>
+<td>
+<p>the maximum number of nodes a tree can have. Default choice leads to the deepest tree contigent on <code>nthsize</code>. For significantly large <code class="reqn">n</code>,
+one needs to bound it for growing shallow trees which trades off efficiency for computation time. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nthsize</code></td>
+<td>
+<p>minimum size of leaf nodes. We recommend not setting this value too small, as that will lead to very deep trees
+that takes a lot of time to be built and can produce unstable estimaes. Default value is 20. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mtry</code></td>
+<td>
+<p>number of variables randomly sampled at each partition as a candidate split direction. We recommend using
+the value p/3 where p is the number of variables in <code>X</code>. Default value is 1. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pinv_choice</code></td>
+<td>
+<p>dictates the choice of method for obtaining the pseudoinverse involved in the cost function and node
+representative evaluation. if pinv_choice = 0, SVD is used (slower but more stable), if pinv_choice = 1,
+orthogonal decomposition (faster, may produce unstable results if <code>nthsize</code> is too low) is used.
+Default value is 1. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_omp</code></td>
+<td>
+<p>number of threads to be used, value can be more than 1 if source code is compiled with OpenMP support.
+Default is 1. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ntree</code></td>
+<td>
+<p>number of trees to be grown. This value should not be too small. Default value is 50. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>h</code></td>
+<td>
+<p>number of core to be used in parallel computing setup for bootstrap samples. If h = 1, there is no parallelization.
+Default value is 1. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lag_params</code></td>
+<td>
+<p><code class="reqn">q</code> length vector of AR coefficients. If the parameters need to be estimated from AR(q) process, should be
+any numeric vector of length q. For notations please see <code>arima</code>. Default value is 0.5. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>variance</code></td>
+<td>
+<p>variance of the white noise in temporal error. The function estimate is not affected by this. Default value is 1. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>param_estimate</code></td>
+<td>
+<p>if <code>TRUE</code>, using the residuals obtained from fitting a classical RF default options and <code>nodesize = nthsize</code>,
+will estimate the coefficeints corresponding to <code class="reqn">AR(q)</code> from <code>arima</code> with the option, <code>include.mean = FALSE</code>.
+Default value is <code>FALSE</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>if <code>TRUE</code>, model specifications along with information regarding OpenMP support and progress of the algorithm
+is printed to the screen. Otherwise, nothing is printed to the screen. Default value is <code>FALSE</code>. </p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list comprising:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>P_matrix</code></td>
+<td>
+<p>an <code class="reqn">n \times ntree</code> matrix of zero indexed resamples. t-th column denote the
+<code class="reqn">n</code> resamples used in the t-th tree. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predicted_matrix</code></td>
+<td>
+<p>an <code class="reqn">ntest \times ntree</code> matrix of predictions. t-th column denote the
+predictions at <code class="reqn">ntest</code> datapoints obtained from the t-th tree. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predicted</code></td>
+<td>
+<p>preducted values at the <code class="reqn">ntest</code> prediction points. Average (<code>rowMeans</code>) of the treewise predctions
+in <code>predicted_matrix</code>, </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>the matrix <code>X</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>the vector <code>y</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>RFGLS_Object</code></td>
+<td>
+<p>object required for prediction. </p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Arkajyoti Saha <a href="mailto:arkajyotisaha93@gmail.com">arkajyotisaha93@gmail.com</a>, <br>
+Sumanta Basu <a href="mailto:sumbose@cornell.edu">sumbose@cornell.edu</a>, <br>
+Abhirup Datta <a href="mailto:abhidatta@jhu.edu">abhidatta@jhu.edu</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>Saha, A., Basu, S., &amp; Datta, A. (2020). Random Forests for dependent data. arXiv preprint arXiv:2007.15421.
+</p>
+<p>Saha, A., &amp; Datta, A. (2018). BRISC: bootstrap for rapid inference on spatial
+covariances. Stat, e184, DOI: 10.1002/sta4.184.
+</p>
+<p>Andy Liaw, and Matthew Wiener (2015). randomForest: Breiman and Cutler's Random
+Forests for Classification and Regression. R package version 4.6-14. <br>
+https://CRAN.R-project.org/package=randomForest
+</p>
+<p>Andrew Finley, Abhirup Datta and Sudipto Banerjee (2017). spNNGP: Spatial Regression Models for Large
+Datasets using Nearest Neighbor Gaussian Processes. R package version 0.1.1.
+https://CRAN.R-project.org/package=spNNGP
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+rmvn &lt;- function(n, mu = 0, V = matrix(1)){
+  p &lt;- length(mu)
+  if(any(is.na(match(dim(V),p))))
+    stop("Dimension not right!")
+  D &lt;- chol(V)
+  t(matrix(rnorm(n*p), ncol=p)%*%D + rep(mu,rep(n,p)))
+}
+
+set.seed(2)
+n &lt;- 200
+x &lt;- as.matrix(rnorm(n),n,1)
+
+sigma.sq &lt;- 1
+rho &lt;- 0.5
+
+set.seed(3)
+b &lt;- rho
+s &lt;- sqrt(sigma.sq)
+eps = arima.sim(list(order = c(1,0,0), ar = b),
+                n = n, rand.gen = rnorm, sd = s)
+
+y &lt;- eps + 10*sin(pi * x)
+
+estimation_result &lt;- RFGLS_estimate_timeseries(y, x, ntree = 10)
+
+</code></pre>
+
+
+</div>

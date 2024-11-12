@@ -1,0 +1,414 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>regspec</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Non-parametric Multirate Spectral Density Estimation via Linear Bayes.
+</h2>
+
+<h3>Description</h3>
+
+<p>This function computes a linear Bayes estimate and approximate credible
+interval for the spectral density function
+of a realization from a (second-order stationary) time series.
+The function also has the
+ability to update an existing spectral estimate
+using time series data at a (potentially)
+different sampling rate, and this can be repeated multiple times. In this way,
+the routine can be used to estimate the spectrum, and credible
+intervals, from time series data
+taken at multiple sampling rates.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">regspec(D, deltat=1, nb=100, varmult=2, smthpar=0.8, ebeta=NULL,
+	vbeta=NULL, filter=NULL, freq.out=seq(0,0.5,length=200),
+	plot.spec=TRUE, plot.log=FALSE, plot.pgram=FALSE,
+	plot.intervals=TRUE, ylim=NULL, SARIMA=list(sigma2=1),
+	centred=FALSE,intname=NULL,...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>D</code></td>
+<td>
+<p>Vector. A time series of observations. If no prior information
+is specified (ie "starting case") then length of series has to
+be &gt;= 2</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deltat</code></td>
+<td>
+<p>Integer. The number of unit time intervals between observations in the data set <code>D</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nb</code></td>
+<td>
+<p>Integer. The number of basis functions used to describe the spectral density.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>varmult</code></td>
+<td>
+<p>Scalar. A scaling factor for the variance of the basis coefficients for the log-spectrum.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>smthpar</code></td>
+<td>
+<p>Scalar. A roughness parameter between 0 and 1, controlling the exponential decay of the basis coefficient variances. Smaller values correspond to greater preference for smoothness.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ebeta</code></td>
+<td>
+<p>Vector. Prior expectations for the basis coefficients of the log spectrum. Specifying prior moments for the coefficients overrides prior information encoded in <code>forvarest</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vbeta</code></td>
+<td>
+<p>Matrix. Prior covariances for the basis coefficients of the log spectrum.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>filter</code></td>
+<td>
+<p>Vector. A known vector of filter coefficients arising from
+the observation process prior to any subsampling.
+The default is <code>NULL</code>, which corresponds to direct observation
+and a filter vector of <code>(1,0,0,...)</code>.
+If the data are produced by taking a linear combination of the
+current and previous process values with weights <code>w_t</code>,
+for example, one would set this vector to be <code>(w_{t},w_{t-1})</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>freq.out</code></td>
+<td>
+<p>Vector. The frequencies at which to evaluate the estimated spectral density.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot.spec</code></td>
+<td>
+<p>Logical. If <code>TRUE</code> some kind of spectral plot is
+produced. If <code>FALSE</code> then no plot is produced.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot.log</code></td>
+<td>
+<p>Logical. Should the estimate of the log-spectrum be plotted? Plots the un-logged spectrum if <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot.pgram</code></td>
+<td>
+<p>Logical. Should the periodogram values be plotted on top of the spectrum estimate?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot.intervals</code></td>
+<td>
+<p>Logical. Should the pointwise credible intervals be plotted?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ylim</code></td>
+<td>
+<p>The usual limits that specify the range of values on the y-axis</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SARIMA</code></td>
+<td>
+<p>List. A list encoding the SARIMA model that acts as the intercept, or base line, for the non-parametric estimate of the log-spectrum. The default is white noise with variance one. The log-spectrum basis coefficients parameterize a deviation away from the SARIMA model's log-spectrum. The contents of the SARIMA list are formatted in line with the format used by the package <code>TSA</code> (see the <code>Examples</code> section for examples).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>centred</code></td>
+<td>
+<p>Logical. Has the data been centred? If the data
+<code>D</code> has exactly zero mean, then the log-periodogram will
+return infinite values. By setting this option to TRUE,
+the infinite log-periodogram value is ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intname</code></td>
+<td>
+<p>Character. A name for the units the time intervals are measured in. This is just used to label the axes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Other arguments for call to plot</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Full technical details of the calculations preformed by
+<code>regspec</code> are documented in Nason, Powell, Elliott and Smith (2016)
+listed in the references.
+</p>
+<p>This function can be used to produce an estimate of the spectrum
+of a stationary time series realization using linear Bayes
+methods. The simplest call just requires the user to specify
+<code>D</code> the vector of time series observations.
+</p>
+<p>More specialised uses of this function are as follows.
+1. One can additionally specify the value of the argument
+<code>deltat</code> to be the sampling interval of the time series.
+E.g. <code>deltat=2</code> means that the time series observations
+were sampled every two units of time. With this argument specified
+the spectrum is calculated/(depicted if plotted) <em>still</em>
+on the frequency scale zero to one half, which is the scale
+normally associated with unit interval sampling. However, what changes
+is that the spectral estimate is neutrally extended from the
+<em>subsampled</em> frequency range to the unit interval range.
+For example, if <code>deltat=2</code> then the usual frequency range
+assocated with data at this sampling interval would be zero to
+one quarter. However, the premise of <code>regspec</code> is that
+ultimately the series you obtained came from a unit sampled
+series and so the <em>real spectrum</em> you would like to estimate
+is one zero to one half. Since we have no information on the higher
+frequencies zero to one quarter the code essentially unfolds the
+spectrum equally about the line of symmetry at one quarter.
+</p>
+<p>If <code>deltat=3</code> or other higher values, similar unfoldings occur.
+For example, if <code>deltat=4</code> then two unfoldings about
+one quarter and then one-eighth and three-eighths are affected.
+</p>
+<p>Then, subsequent calls to <code>regspec</code> at different sampling
+rates can alter the spectrum depending on the information they contain.
+</p>
+<p>Another key parameter is the <code>smthpar</code> which is set at
+0.8 by default which usually gives a nice balance between fidelity
+and smoothness. Increasing this parameter results in a less smooth
+estimate.
+</p>
+<p>By default aliasing is assumed to be induced by subsampling.
+For example, when <code>deltat=2</code> then it is assumed that the
+series you have contains the evenly-indexed observations of some
+putative underlying integer sampled series. However, aliasing can
+arise in other ways, such as when your unit sampled underlying series
+has been filtered. For example, if one observes quarterly totals,
+where each total is the result of summing over consecutive three
+month periods then the filter is <code>c(1,1,1)</code>.
+</p>
+<p>A plot of the estimated spectrum is produced automatically unless the argument <code>plot.spec</code> is set to <code>FALSE</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The function's output is a list with the following elements:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>freq.out</code></td>
+<td>
+<p>Vector. The frequencies at which the estimated spectral density is computed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>spec</code></td>
+<td>
+<p>Vector. Point estimates of the spectrum values. Each of these is computed by exponentiating the sum of the expectation for the log spectrum and half its variance. This is the expectation consistent with the log-spectrum being normally distributed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>logspec</code></td>
+<td>
+<p>Vector. Point estimates for the log-spectrum values. These are the adjusted expectations of the log-spectrum.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interval</code></td>
+<td>
+<p>Matrix. Bounds for the 90 percent credible interval for the the spectral density.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ebeta</code></td>
+<td>
+<p>Vector. The adjusted expectation for the basis coefficients of the logged spectral density. They contain information on the current estimate
+of the spectrum and can be supplied to a further call of <code>regspec</code>
+for adjustment by new data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vbeta</code></td>
+<td>
+<p>Matrix. The adjusted variance matrix for the basis coefficients of the logged spectral density. Like <code>ebeta</code> this matrix can be resupplied
+to a further call to <code>regspec</code> for adjustment.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pgram</code></td>
+<td>
+<p>List. The periodogram ordinates used in the adjustment.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Ben Powell code. Ben Powell and Guy Nason on help.
+</p>
+
+
+<h3>References</h3>
+
+<p>Nason, G.P., Powell, B., Elliott, D. and Smith, P. (2016)
+Should We Sample a Time Series More Frequently? Decision Support
+via Multirate Spectrum Estimation.
+Journal of the Royal Statistical Society, Series A., 179,
+(to appear).
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## The examples here use datasets Dfexample, Dpexample2, Dpexample3 and
+## spec.true, which should be loaded automatically with the package.
+
+
+# FIRST EXAMPLE
+# Estimates a spectrum from a time series observed at integer time points.
+#
+# Plot a 'point' estimate and intervals around it.
+# Also plot the true spectrum afterwards with a dashed line
+#
+adjustment &lt;- regspec(D=Dfexample[1:24], deltat=1, smthpar=0.8,
+		ylim=c(0,60), plot.pgram=TRUE)
+
+lines(spec.true, col=1, lwd=3, lty=2)
+
+#
+#
+# SECOND EXAMPLE
+# Does he same except the observations are sampled at every two time units.
+#
+# Plot a 'point' estimate and intervals around it.
+
+adjustment &lt;- regspec(D=Dpexample2, deltat=2, smthpar=0.8, ylim=c(0,60))
+
+lines(spec.true, col=1, lwd=3, lty=2)
+
+#
+# THIRD EXAMPLE
+# Now estimate a spectrum from unit sampled data and put answer in the
+# object called adjustment1. Then use the estimated quantities in this
+# object (notably the ebeta and vbeta components) to update the spectral
+# estimate by a second call to regspec using new, data sampled at even time
+# points and put the result into the adjustment2 object
+#
+
+adjustment1 &lt;- regspec(D=Dfexample[1:24], deltat=1, smthpar=0.8,
+	ylim=c(0,60))
+
+lines(spec.true, col=1, lwd=3, lty=2)
+
+adjustment2 &lt;- regspec(D=Dpexample2, deltat=2, ebeta=adjustment1$ebeta,
+	vbeta=adjustment1$vbeta, ylim=c(0,60))
+
+lines(spec.true, col=1, lwd=3, lty=2)
+
+
+# FOURTH EXAMPLE
+# Estimate spectrum from series observed at each third integer.
+# Plot a 'point' estimate and intervals around it.
+
+adjustment &lt;- regspec(D=Dpexample3, deltat=3, smthpar=0.8, ylim=c(0,60))
+
+lines(spec.true, col=1, lwd=3, lty=2)
+
+# FIFTH EXAMPLE
+# Estimate a spectrum from one time series of observations at every
+# time point and then update with another at every third time point.
+#
+# Note how information from the first spectral estimate gets passed to
+# the second call of regspec via the ebeta and vbeta components/arguments.
+#
+
+adjustment1 &lt;- regspec(D=Dfexample[1:24], deltat=1, smthpar=0.8, ylim=c(0,60))
+
+lines(spec.true, col=1, lwd=3, lty=2)
+
+adjustment2 &lt;- regspec(D=Dpexample3, deltat=3, ebeta=adjustment1$ebeta,
+	vbeta=adjustment1$vbeta, ylim=c(0,60))
+
+lines(spec.true, col=1, lwd=3, lty=2)
+
+# SIXTH EXAMPLE
+#
+# Estimating a spectrum from a time series of filtered observations.
+
+# Filter the example data.
+
+# Create empty vector
+Dfexample.filtered &lt;- c()
+
+# Create filter
+filter.vect &lt;- 4*runif(5)
+
+# Now produce filtered data
+m &lt;- length(filter.vect)-1
+
+for(i in 1:(length(Dfexample)-m)){
+	Dfexample.filtered[i] &lt;- crossprod(Dfexample[i+m-0:m],filter.vect)
+	}
+
+# Now use filterered data to try and estimate spectrum of original data
+
+adjustment1 &lt;- regspec(D=Dfexample.filtered, smthpar=0.8, filter=filter.vect,
+	ylim=c(0,80), plot.pgram=TRUE)
+
+lines(spec.true, col=1, lwd=3, lty=2)
+
+# Note here how the periodogram values do not correspond to the estimated
+# spectrum because the periodogram of the  filtered data is computed and
+# plotted, but then is used to estimate the spectrum of the un-filtered
+# process.
+
+
+# SEVENTH EXAMPLE
+# Estimate spectrum according to its deviation from a known SARIMA model.
+
+# Define a SARIMA model like this one
+
+SARIMA0 &lt;- list(ar=0.3,sigma2=1,seasonal=list(sar=0.5,sma=0,period=12))
+
+# or like this one
+
+SARIMA0 &lt;- list(ar=c(-0.5, 0.4, 0.8), ma=0.2, sigma2=1)
+
+# Then perform adjustments as before
+
+adjustment &lt;- regspec(D=Dfexample[1:16], deltat=1, smthpar=0.8, ylim=c(0,60),
+	SARIMA=SARIMA0, plot.pgram=TRUE)
+
+adjustment &lt;- regspec(D=Dpexample2, deltat=2, smthpar=0.8, ylim=c(0,60),
+	SARIMA=SARIMA0, plot.pgram=TRUE)
+
+lines(spec.true, col=1, lwd=3, lty=2)
+
+# This is useful for introducing prior beliefs for the structural form of the
+# spectrum. Specifically, it is useful for specifying a prior belief in
+# seasonality.
+</code></pre>
+
+
+</div>

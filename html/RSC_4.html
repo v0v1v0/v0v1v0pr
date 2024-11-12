@@ -1,0 +1,298 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rsc_cv</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Optimal threshold selection for the RSC estimator</h2>
+
+<h3>Description</h3>
+
+<p>Perform cross-validation to select an adaptive optimal threshold for
+the RSC estimator proposed in Serra et al. (2018).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">  rsc_cv(x, cv.type = "kfold", R = 10, K = 10, threshold = seq(0.05, 0.95, by = 0.025),
+         even.correction = FALSE, na.rm = FALSE, ncores = NULL, monitor = TRUE) 
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+
+<p>A matrix or a data.frame. Rows of <code>x</code> correspond to sample units
+and columns correspond to variables. Categorical variables are not
+allowed.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cv.type</code></td>
+<td>
+
+<p>A character string indicating the cross-validation algorithm. Possible
+values are <code>"kfold"</code> for repeated K-fold cross-validation, and
+<code>"random"</code> for random cross-validation (see <em>Details</em>).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R</code></td>
+<td>
+
+<p>An integer corresponding to the number of repeated foldings  when
+<code>cv.type = "kfold"</code>. When <code>cv.type = "random"</code> <code>R</code>
+defines the number of random splits (see <em>Details</em>).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K</code></td>
+<td>
+
+<p>An integer corresponding to the number of <em>folds</em> in K-fold
+cross-validation. Therefore this argument is not relevant when
+<code>cv.type = "random"</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threshold</code></td>
+<td>
+
+<p>A sequence of reals taken onto the interval (0,1) defining the
+threshold values at which the loss is estimated. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>even.correction</code></td>
+<td>
+
+<p>A logical value. It sets the parameter  <code>even.correction</code> in
+each of the underlying RMAD computations (see <em>Details</em> in
+<code>rmad</code>). 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na.rm</code></td>
+<td>
+
+<p>A logical value, it defines the treatment of missing values in 
+each of the underlying RMAD computations (see <em>Details</em>).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncores</code></td>
+<td>
+
+<p>An integer value defining the number of cores used for parallel
+computing. When <code>ncores=NULL</code> (default), the number <code>r</code> of
+available cores is detected, and <code>(r-1)</code> of them are used
+(see <em>Details</em>).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>monitor</code></td>
+<td>
+
+<p>A logical value. If <code>TRUE</code> progress  messages are
+printed on screen.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The <code>rsc_cv</code> function performs cross-validation to estimate the
+expected Frobenius loss proposed in Bickel and Levina (2008). The
+original contribution of Bickel and Levina (2008), and its extension
+in Serra et al. (2018), is based on a random
+cross-validation  algorithm where the training/test size depends on
+the sample size <em>n</em>. The latter is implemented selecting
+<code>cv.type = "ramdom"</code>, and fixing an appropriate number <code>R</code> of random
+train/test splits. <code>R</code> should be as large as possible, but
+in practice this impacts the computing time strongly for
+high-dimensional data sets.  
+</p>
+<p>Although Serra et al. (2018) showed that the random cross-validation
+of Bickel and Levina (2008) works well for the RSC estimator,
+subsequent experiments suggested that repeated K-fold cross-validation
+on average produces better results. Repeated K-fold cross-validation
+is implemented with the default <code>cv.type = "kfold"</code>. In this case
+<code>K</code> defines the number of <em>folds</em>, while <code>R</code> defines
+the number of times that the K-fold cross-validation is repeated with
+<code>R</code> independent shuffles of the original data. Selecting
+<code>R=1</code> and <code>K=10</code> one performs the standard 10-fold
+cross-validation. Ten replicates (<code>R=10</code>) of the K-fold
+cross-validation are generally sufficient to obtain reasonable
+estimates of the underlying loss, but for extremely high-dimensional
+data <code>R</code> may be varied to speed up calculations. 
+</p>
+<p>On multi-core hardware the cross-validation is executed in parallel
+setting <code>ncores</code>. The parallelism is implemented on the
+total number of data splits, that is <code>R</code> for the random
+cross-validation, and <code>R*K</code> for the repeated K-fold
+cross-validation. The software is optimized so that generally the
+total computing time scales almost linearly with the number of
+available computer cores (<code>ncores</code>). 
+</p>
+<p>For both the random and the K-fold cross-validation it is computed the
+normalized version of the expected squared Frobenius loss proposed in
+Bickel and Levina (2008). The normalization is such
+that the squared Frobenius norm of the identity matrix equals to 1
+whatever is its dimension.
+</p>
+<p>Two optimal threshold selection types are reported with flags (see
+<em>Value</em> section below): <code>"minimum"</code> and
+<code>"minimum1se"</code>. The flag <code>"minimum"</code> denotes the threshold
+value that minimizes the average loss. The flag <code>"minimum1se"</code>
+implements the so called
+<em>1-SE rule</em>: this is the maximum threshold value such that the
+corresponding average loss is within <em>1-standard-error</em> with
+respect to the threshold that minimizes the average loss
+(that is the one corresponding to the <code>"minimum"</code> flag). 
+</p>
+<p>Since unbiased standard errors for the K-fold cross-validation are
+impossible to compute (see Bengio and Grandvalet, 2004), when
+<code>cv.type="kfold"</code> the reported standard errors have to be
+considered as a downward biased approximation.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An S3 object of class <code>'cv_rsc'</code> with the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>rmadvec</code></td>
+<td>
+
+<p>A vector containing the lower triangle of the underlying RMAD
+matrix.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>varnames</code></td>
+<td>
+
+<p>A character vector if variable names are available for the input
+data set <code>x</code>. Otherwise this is <code>NULL</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loss</code></td>
+<td>
+
+<p>A data.frame reporting cross-validation estimates. Columns of
+<code>loss</code> are as follows:   <code>loss$Threshold</code> is the threshold value;
+<code>loss$Average</code> is averaged loss;   <code>loss$SE</code> is the standard error
+for the average loss; <code>loss$Flag="minimum"</code> denotes the  threshold
+achieving the minimum average loss; <code>loss$Flag = "*"</code> denotes threshold
+values such that the average loss is within <em>1-standard-error</em>
+with respect to the <code>"minimum"</code> solution.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minimum</code></td>
+<td>
+
+<p>A numeric value. This is the minimum of the average loss. This
+corresponds to the flag <code>"minimum"</code> in the  loss component
+above (see <em>Details</em>).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minimum1se</code></td>
+<td>
+
+<p>A numeric value. This is the largest threshold such that the
+corresponding <code>flag = "*"</code>. In practice this selects the
+optimal threshold based on the <em>1-SE rule</em> discussed in the
+<em>Details</em> Section above.
+</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Bengio, Y., and Grandvalet, Y. (2004). No unbiased estimator of the
+variance of k-fold cross-validation. <em>Journal of Machine Learning
+Research</em>, 5(Sep), 1089-1105.
+</p>
+<p>Bickel, P. J., and Levina, E. (2008). Covariance regularization by
+thresholding. The <em>Annals of Statistics</em>, 36(6), 2577-2604.
+doi:10.1214/08-AOS600
+</p>
+<p>Serra, A., Coretto, P., Fratello, M., and Tagliaferri, R. (2018).
+Robust and sparsecorrelation matrix estimation for the analysis of
+high-dimensional genomics data. <em>Bioinformatics</em>, 34(4),
+625-634.  doi:10.1093/bioinformatics/btx642
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>rsc</code>, <code>plot.rsc_cv</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## simulate a random sample from a multivariate Cauchy distribution
+## note: example in high-dimension are obtained increasing p
+set.seed(1)
+n   &lt;- 100  # sample size
+p   &lt;- 10   # dimension
+dat &lt;- matrix(rt(n*p, df = 1), nrow = n, ncol = p)
+colnames(dat) &lt;- paste0("Var", 1:p)
+
+   
+## perform 10-fold cross-validation repeated R=10 times
+## note: for multi-core machines experiment with 'ncores'
+set.seed(2)
+a &lt;- rsc_cv(x = dat, R = 10, K = 10, ncores = 1)
+a
+
+   
+## threshold selection: note that here, knowing the sampling designs,
+## we would like to threshold any correlation larger than zero in
+## absolute value
+## 
+a$minimum        ## "minimum"    flagged solution 
+a$minimum1se     ## "minimum1se" flagged solution
+
+## plot the cross-validation estimates
+plot(a)
+
+## to obtain the RSC matrix we pass 'a' to the rsc() function
+b &lt;- rsc(cv = a, threshold = "minimum")
+b
+
+d &lt;- rsc(cv = a, threshold = "minimum1se")
+d
+
+## since the object 'a' stores the RMAD underlying estimator, we can
+## apply thresholding at any level without re-estimating the RMAD 
+## matrix
+e &lt;- rsc(cv = a, threshold = 0.5)
+e
+</code></pre>
+
+
+</div>

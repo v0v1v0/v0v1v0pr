@@ -1,0 +1,340 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>projectRoads</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Project road network</h2>
+
+<h3>Description</h3>
+
+<p>Project a road network that links target landings to existing roads. For all
+methods except <code>"snap"</code>, a <code>weightRaster</code> and <code>weightFunction</code> together
+determine the cost to build a road between two adjacent raster cells.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">projectRoads(
+  landings = NULL,
+  weightRaster = NULL,
+  roads = NULL,
+  roadMethod = "ilcp",
+  plotRoads = FALSE,
+  mainTitle = "",
+  neighbourhood = "octagon",
+  weightFunction = simpleCostFn,
+  sim = NULL,
+  roadsOut = NULL,
+  roadsInWeight = TRUE,
+  ordering = "closest",
+  roadsConnected = FALSE,
+  ...
+)
+
+## S4 method for signature 'ANY,ANY,ANY,ANY,ANY,ANY,ANY,ANY,missing'
+projectRoads(
+  landings = NULL,
+  weightRaster = NULL,
+  roads = NULL,
+  roadMethod = "ilcp",
+  plotRoads = FALSE,
+  mainTitle = "",
+  neighbourhood = "octagon",
+  weightFunction = simpleCostFn,
+  sim = NULL,
+  roadsOut = NULL,
+  roadsInWeight = TRUE,
+  ordering = "closest",
+  roadsConnected = FALSE,
+  ...
+)
+
+## S4 method for signature 'ANY,ANY,ANY,ANY,ANY,ANY,ANY,ANY,list'
+projectRoads(
+  landings = NULL,
+  weightRaster = NULL,
+  roads = NULL,
+  roadMethod = "ilcp",
+  plotRoads = FALSE,
+  mainTitle = "",
+  neighbourhood = "octagon",
+  weightFunction = simpleCostFn,
+  sim = NULL,
+  roadsOut = NULL,
+  roadsInWeight = TRUE,
+  ordering = "closest",
+  roadsConnected = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>landings</code></td>
+<td>
+<p>sf polygons or points, <code>RasterLayer</code>, <code style="white-space: pre;">⁠SpatialPolygons*⁠</code>,
+<code style="white-space: pre;">⁠SpatialPoints*⁠</code>, or matrix. Contains features to be connected
+to the road network. Matrix should contain columns x, y with coordinates,
+all other columns will be ignored. Polygon and raster inputs will be
+processed by <code>getLandingsFromTarget()</code> to get the centroid of harvest blocks.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weightRaster</code></td>
+<td>
+<p><code>SpatRaster</code> or <code>RasterLayer</code>. A <code>weightRaster</code> and
+<code>weightFunction</code> together determine the cost to build a road between two
+adjacent raster cells. For the default <code>weightFunction = simpleCostFn</code>, the
+<code>weightRaster</code> should specify the cost of construction across each raster
+cell. The value of cells that contain existing roads should be set to 0; if
+not set <code>roadsInWeight = FALSE</code> to adjust the cost of existing roads. To
+use the alternative grade penalty method, set <code>weightFunction = gradePenaltyFn</code>,
+and provide a <code>weightRaster</code> in which:
+</p>
+
+<ul>
+<li>
+<p> NA indicates a road cannot be built
+</p>
+</li>
+<li>
+<p> Negative values are costs for crossing streams or other barriers that are
+crossable but expensive.
+</p>
+</li>
+<li>
+<p> Zero values are existing roads.
+</p>
+</li>
+<li>
+<p> All other values are interpreted as elevation in the units of the raster
+map (so that a difference between two cells equal to the map resolution can be
+interpreted as 100% grade).
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>roads</code></td>
+<td>
+<p>sf lines, <code style="white-space: pre;">⁠SpatialLines*⁠</code>, <code>RasterLayer</code>, <code>SpatRaster</code>. The existing road network.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>roadMethod</code></td>
+<td>
+<p>Character. Options are <code>"ilcp"</code>, <code>"mst"</code>, <code>"lcp"</code>, and <code>"snap"</code>.
+See Details below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plotRoads</code></td>
+<td>
+<p>Boolean. Should the resulting road network be plotted.
+Default <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mainTitle</code></td>
+<td>
+<p>Character. A title for the plot.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>neighbourhood</code></td>
+<td>
+<p>Character. <code>"rook"</code>, <code>"queen"</code>, or <code>"octagon"</code>.
+Determines which cells are considered adjacent. The default <code>"octagon"</code>
+option is a modified version of the queen's 8 cell neighbourhood in which
+diagonal weights are multiplied by 2^0.5.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weightFunction</code></td>
+<td>
+<p>function. Method for calculating the weight of an edge
+between two nodes from the value of the <code>weightRaster</code> at each of those
+nodes (<code>x1</code> and <code>x2</code>). The default <code>simpleCostFn</code> is the mean. The
+alternative, <code>gradePenaltyFn</code>, sets edge weights as a function of the
+difference between adjacent <code>weightRaster</code> cells to penalize steep grades.
+Users supplying their own <code>weightFunction</code> should note that it must be
+symmetric, meaning that the value returned should not depend on the
+ordering of <code>x1</code> and <code>x2</code>. The <code>weightFunction</code> must include arguments
+<code>x1</code>, <code>x2</code> and <code>...</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sim</code></td>
+<td>
+<p>list. Returned from a previous iteration of <code>projectRoads</code>.
+<code>weightRaster</code>, <code>roads</code>, and <code>roadMethod</code> are ignored if a <code>sim</code> list is provided.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>roadsOut</code></td>
+<td>
+<p>Character. Either <code>"raster"</code>, <code>"sf"</code> or <code>NULL</code>. If <code>"raster"</code> roads
+are returned as a <code>SpatRaster</code> in the <code>sim</code> list. If <code>"sf"</code> the roads are returned as
+an sf object which will contain lines if the roads input was sf lines but a
+geometry collection of lines and points if the roads input was a raster.
+The points in the geometry collection represent the existing roads while
+new roads are created as lines. If <code>NULL</code> (default) then the returned roads
+are <code>sf</code> if the input is <code>sf</code> or <code style="white-space: pre;">⁠Spatial*⁠</code> and <code>SpatRaster</code> if the input was a raster.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>roadsInWeight</code></td>
+<td>
+<p>Logical. If <code>TRUE</code> (default) the value of existing roads in the
+<code>weightRaster</code> is assumed to be 0. If <code>FALSE</code> cells in the <code>weightRaster</code> that
+contain existing roads will be set to 0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ordering</code></td>
+<td>
+<p>character. The order in which landings are processed when
+<code>roadMethod = "ilcp"</code>. Options are <code>"closest"</code> (default) where landings
+closest to existing roads are accessed first, or <code>"none"</code> where
+landings are accessed in the order they are provided in.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>roadsConnected</code></td>
+<td>
+<p>Logical. Are all roads fully connected? If <code>TRUE</code> and
+<code>roadMethod = "mst"</code> the MST graph can be simplified and the projection
+should be faster. Default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Optional additional arguments to <code>weightFunction</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Four road network projection methods are:
+</p>
+
+<ul>
+<li> <p><code>"lcp"</code>: The Least Cost Path method connects each landing to the closest
+road with a least cost path, without reference to other landings.
+</p>
+</li>
+<li> <p><code>"ilcp"</code>: The Iterative Least Cost Path method iteratively connects each
+landing to the closest road with a least cost path, so that the path to
+each successive landing can include roads constructed to access previous
+landings. The sequence of landings is determined by <code>ordering</code> and is
+"closest" by default. The alternative "none" option processes landings in
+the order supplied by the user.
+</p>
+</li>
+<li> <p><code>"mst"</code>: The Minimum Spanning Tree method connects landings to the existing road
+with a minimum spanning tree that does not require users to specify the
+order in which landings are processed.
+</p>
+</li>
+<li> <p><code>"snap"</code>: Connects each landing to the closest (by Euclidean distance) road without,
+reference to the weights or other landings.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>a list with components:
+</p>
+
+<ul>
+<li>
+<p> roads: the projected road network, including new and input roads.
+</p>
+</li>
+<li>
+<p> weightRaster: the updated <code>weightRaster</code> in which new and old roads have value 0.
+</p>
+</li>
+<li>
+<p> roadMethod: the road simulation method used.
+</p>
+</li>
+<li>
+<p> landings: the landings used in the simulation.
+</p>
+</li>
+<li>
+<p> g: the graph that describes the cost of paths between each cell in the updated
+<code>weightRaster</code>. Edges between vertices connected by new roads have weight 0.
+<code>g</code> can be used to avoid the cost of rebuilding the graph in a simulation
+with multiple time steps.
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">CLUSexample &lt;- prepExData(CLUSexample)
+doPlots &lt;- interactive()
+
+projectRoads(CLUSexample$landings, CLUSexample$cost, CLUSexample$roads,
+             "lcp", plotRoads = doPlots, mainTitle = "CLUSexample")
+
+
+# More realistic examples that take longer to run
+
+
+demoScen &lt;- prepExData(demoScen)
+
+### using:  scenario 1 / sf landings / iterative least-cost path ("ilcp")
+# demo scenario 1
+scen &lt;- demoScen[[1]]
+
+# landing set 1 of scenario 1:
+land.pnts &lt;- scen$landings.points[scen$landings.points$set==1,]
+
+prRes &lt;- projectRoads(land.pnts, scen$cost.rast, scen$road.line, "ilcp",
+                         plotRoads = doPlots, mainTitle = "Scen 1: SPDF-LCP")
+
+### using: scenario 1 / `SpatRaster` landings / minimum spanning tree ("mst")
+# demo scenario 1
+scen &lt;- demoScen[[1]]
+
+# the RasterLayer version of landing set 1 of scenario 1:
+land.rLyr &lt;- scen$landings.stack[[1]]
+
+prRes &lt;- projectRoads(land.rLyr, scen$cost.rast, scen$road.line, "mst",
+                         plotRoads = doPlots, mainTitle = "Scen 1: Raster-MST")
+
+
+### using: scenario 2 / matrix landings raster roads / snapping ("snap")
+# demo scenario 2
+scen &lt;- demoScen[[2]]
+
+# landing set 5 of scenario 2, as matrix:
+land.mat  &lt;- scen$landings.points[scen$landings.points$set==5,] |&gt;
+  sf::st_coordinates()
+
+prRes &lt;- projectRoads(land.mat, scen$cost.rast, scen$road.rast, "snap",
+                      plotRoads = doPlots, mainTitle = "Scen 2: Matrix-Snap")
+
+## using scenario 7 / Polygon landings raster / minimum spanning tree
+# demo scenario 7
+scen &lt;- demoScen[[7]]
+# rasterize polygonal landings of demo scenario 7:
+land.polyR &lt;- terra::rasterize(scen$landings.poly, scen$cost.rast)
+
+prRes &lt;- projectRoads(land.polyR, scen$cost.rast, scen$road.rast, "mst",
+                         plotRoads = doPlots, mainTitle = "Scen 7: PolyRast-MST")
+
+
+</code></pre>
+
+
+</div>

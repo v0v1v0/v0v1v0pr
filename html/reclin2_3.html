@@ -1,0 +1,107 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>cluster_call</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Call a function on each of the worker nodes and pass it the pairs</h2>
+
+<h3>Description</h3>
+
+<p>Call a function on each of the worker nodes and pass it the pairs
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">cluster_call(pairs, fun, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>pairs</code></td>
+<td>
+<p>an object or type <code>cluster_pairs</code> as created for example by
+<code>cluster_pair</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fun</code></td>
+<td>
+<p>a function to call on each of the worker nodes. See details on the
+arguments of this function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments are passed on to <code>fun</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The function will have to accept the following arguments as its first three
+arguments:
+</p>
+
+<dl>
+<dt>pairs</dt>
+<dd>
+<p>the <code>data.table</code> with the pairs of the worker node.</p>
+</dd>
+<dt>x</dt>
+<dd>
+<p>a <code>data.table</code> with the portion of <code>x</code> present on the 
+worker node.</p>
+</dd>
+<dt>y</dt>
+<dd>
+<p>a <code>data.table</code> with <code>y</code>.</p>
+</dd>
+</dl>
+<h3>Value</h3>
+
+<p>The function will return a list with for each worker the result of the
+function call. When the functions return <code>NULL</code> the result is returned
+invisibly. Because the result is returned to main node, make sure you don't
+accidentally return all pairs. If you don't want to return anything end your
+function with <code>NULL</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Generate some pairs
+library(parallel)
+data("linkexample1", "linkexample2")
+cl &lt;- makeCluster(2)
+
+pairs &lt;- cluster_pair(cl, linkexample1, linkexample2)
+compare_pairs(pairs, c("lastname", "firstname", "address", "sex"))
+
+# Add a new column to pairs
+cluster_call(pairs, function(pairs, ...) {
+  pairs[, name := firstname &amp; lastname]
+  # we don't want to return the pairs; so make sure to return something
+  # else
+  NULL
+})
+
+# Get the number of pairs on each node
+lenghts &lt;- cluster_call(pairs, function(pairs, ...) {
+  nrow(pairs)
+})
+lengths &lt;- unlist(lenghts)
+lenghts
+
+# Cleanup
+stopCluster(cl)
+
+</code></pre>
+
+
+</div>

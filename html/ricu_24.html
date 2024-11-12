@@ -1,0 +1,165 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>attach_src</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Data attach utilities</h2>
+
+<h3>Description</h3>
+
+<p>Making a dataset available to <code>ricu</code> consists of 3 steps: downloading
+(<code>download_src()</code>), importing (<code>import_src()</code>) and attaching
+(<code>attach_src()</code>). While downloading and importing are one-time procedures,
+attaching of the dataset is repeated every time the package is loaded.
+Briefly, downloading loads the raw dataset from the internet (most likely
+in <code>.csv</code> format), importing consists of some preprocessing to make the
+data available more efficiently and attaching sets up the data for use by
+the package.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">attach_src(x, ...)
+
+## S3 method for class 'src_cfg'
+attach_src(x, assign_env = NULL, data_dir = src_data_dir(x), ...)
+
+## S3 method for class 'character'
+attach_src(x, assign_env = NULL, data_dir = src_data_dir(x), ...)
+
+detach_src(x)
+
+setup_src_env(x, ...)
+
+## S3 method for class 'src_cfg'
+setup_src_env(x, data_dir = src_data_dir(x), link_env = NULL, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Data source to attach</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Forwarded to further calls to <code>attach_src()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>assign_env, link_env</code></td>
+<td>
+<p>Environment in which the data source will become
+available</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data_dir</code></td>
+<td>
+<p>Directory used to look for <code>fst::fst()</code> files; <code>NULL</code> calls
+<code>data_dir()</code> using the source name as <code>subdir</code> argument</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Attaching a dataset sets up two types of S3 classes: a single <code>src_env</code>
+object, containing as many <code>src_tbl</code> objects as tables are associated with
+the dataset. A <code>src_env</code> is an environment with an <code>id_cfg</code> attribute, as
+well as sub-classes as specified by the data source <code>class_prefix</code>
+configuration setting (see <code>load_src_cfg()</code>). All <code>src_env</code> objects created
+by calling <code>attach_src()</code> represent environments that are direct
+descendants of the <code>data</code> environment and are bound to the respective
+dataset name within that environment. For more information on <code>src_env</code> and
+<code>src_tbl</code> objects, refer to <code>new_src_tbl()</code>.
+</p>
+<p>If set up correctly, it is not necessary for the user to directly call
+<code>attach_src()</code>. When the package is loaded, the default data sources (see
+<code>auto_attach_srcs()</code>) are attached automatically. This default can be
+controlled by setting as environment variable <code>RICU_SRC_LOAD</code> a comma
+separated list of data source names before loading the library. Setting
+this environment variable as
+</p>
+<div class="sourceCode"><pre>Sys.setenv(RICU_SRC_LOAD = "mimic_demo,eicu_demo")
+</pre></div>
+<p>will change the default of loading both MIMIC-III and eICU, alongside the
+respective demo datasets, as well as HiRID and AUMC, to just the two demo
+datasets. For setting an environment variable upon startup of the R
+session, refer to <code>base::.First.sys()</code>.
+</p>
+<p>Attaching a dataset during package namespace loading will both instantiate
+a corresponding <code>src_env</code> in the <code>data</code> environment and for convenience
+also assign this object into the package namespace, such that for example
+the MIMIC-III demo dataset not only is available as
+<code style="white-space: pre;">⁠ricu::data::mimic_demo⁠</code>, but also as <code>ricu::mimic_demo</code> (or if the package
+namespace is attached, simply as <code>mimic_demo</code>). Dataset attaching using
+<code>attach_src()</code> does not need to happen during namespace loading, but can be
+triggered by the user at any time. If such a convenience link as described
+above is desired by the user, an environment such as <code>.GlobalEnv</code> has to be
+passed as <code>assign_env</code> to <code>attach_src()</code>.
+</p>
+<p>Data sets are set up as <code>src_env</code> objects irrespective of whether all (or
+any) of the required data is available. If some (or all) data is missing,
+the user is asked for permission to download in interactive sessions and an
+error is thrown in non-interactive sessions. Downloading demo datasets
+requires no further information but access to full-scale datasets (even
+though they are publicly available) is guarded by access credentials (see
+<code>download_src()</code>).
+</p>
+<p>While <code>attach_src()</code> provides the main entry point, <code>src_env</code> objects are
+instantiated by the S3 generic function <code>setup_src_env()</code> and the wrapping
+function serves to catch errors that might be caused by config file parsing
+issues as to not break attaching of the package namespace. Apart form this,
+<code>attach_src()</code> also provides the convenience linking into the package
+namespace (or a user-specified environment) described above.
+</p>
+<p>A <code>src_env</code> object created by <code>setup_src_env()</code> does not directly contain
+<code>src_tbl</code> objects bound to names, but rather an active binding (see
+<code>base::makeActiveBinding()</code>) per table. These active bindings check for
+availability of required files and evaluate to corresponding <code>src_tbl</code>
+objects if these checks are passed and ask for user input otherwise. As
+<code>src_tbl</code> objects are intended to be read-only, assignment is not possible
+except for the value <code>NULL</code> which resets the internally cached <code>src_tbl</code>
+that is created on first successful access.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Both <code>attach_src()</code> and <code>setup_src_env()</code> are called for side
+effects and therefore return invisibly. While <code>attach_src()</code> returns <code>NULL</code>,
+<code>setup_src_env()</code> returns the newly created <code>src_env</code> object.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+
+Sys.setenv(RICU_SRC_LOAD = "")
+library(ricu)
+
+ls(envir = data)
+exists("mimic_demo")
+
+attach_src("mimic_demo", assign_env = .GlobalEnv)
+
+ls(envir = data)
+exists("mimic_demo")
+
+mimic_demo
+
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

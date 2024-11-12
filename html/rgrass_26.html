@@ -1,0 +1,171 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>initGRASS</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Initiate GRASS session</h2>
+
+<h3>Description</h3>
+
+<p>Run GRASS interface in an R session not started within GRASS. In general, most users will use <code>initGRASS</code> in throwaway locations, to use GRASS modules  on R objects without the need to define and populate a location. The function initializes environment variables used by GRASS, the .gisrc used by GRASS for further environment variables, and a temporary location.
+</p>
+<p>On Windows, if OSGeo4W GRASS is being used, the R session must be started in the OSGeo4W shell. If not, the non-standard placing of files and of environment variables confuses the function. If <code>toupper(gisBase)</code> contains “OSGEO4W64/APPS/GRASS” or “OSGEO4W/APPS/GRASS” (and after converting “\” to “/”), but the environment variable <code>OSGEO4W_ROOT</code> is not defined, <code>initGRASS()</code> will exit with an error before confusion leads to further errors. For further details, see <a href="https://github.com/rsbivand/rgrass/issues/16">https://github.com/rsbivand/rgrass/issues/16</a> and <a href="https://lists.osgeo.org/pipermail/grass-stats/2018-November/001800.html">https://lists.osgeo.org/pipermail/grass-stats/2018-November/001800.html</a>.
+</p>
+<p>The same restriction applies to use of GRASS with QGIS Windows standalone installations, which may be used with <code>initGRASS</code> only if the R session is started from the OSGeo4W shell shipped as part of the standalone installer (see <a href="https://github.com/rsbivand/rgrass/issues/87">https://github.com/rsbivand/rgrass/issues/87</a>). The function will exit with an error if R was not started from the QGIS OSGeo4W shell before confusion leads to further errors.
+</p>
+<p>The locking functions are used internally, but are exposed for experienced R/GRASS scripters needing to use the GRASS module “g.mapset” through <code>initGRASS</code> in an existing GRASS location. In particular, “g.mapset” may leave a <code>.gislock</code> file in the current MAPSET, so it may be important to call <code>unlink_.gislock</code> to clean up before quitting the R session. <code>remove_GISRC</code> may be used to try to remove the file given in the “GISRC” environment variable if created by <code>initGRASS</code> with argument <code>remove_GISRC=</code> TRUE.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">initGRASS(gisBase=NULL, home, SG, gisDbase, addon_base, location, mapset,
+  override = FALSE, use_g.dirseps.exe = TRUE, pid, remove_GISRC=FALSE,
+  ignore.stderr=get.ignore.stderrOption())
+get.GIS_LOCK()
+set.GIS_LOCK(pid)
+unset.GIS_LOCK()
+unlink_.gislock()
+remove_GISRC()
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>gisBase</code></td>
+<td>
+<p>The directory path to GRASS binaries and libraries, containing bin and lib subdirectories among others; if NULL, set from environment variable GRASS_INSTALLATION if found, if not found, <code>system("grass --config path")</code> is tried</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>home</code></td>
+<td>
+<p>The directory in which to create the .gisrc file; defaults to <code>$HOME</code> on Unix systems and to <code>USERPROFILE</code> on Windows systems; can usually be set to <code>tempdir()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SG</code></td>
+<td>
+<p>An optional <code>SpatRaster</code> or <code>SpatialGrid</code> object to define the <code>DEFAULT_WIND</code> of the temporary location.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gisDbase</code></td>
+<td>
+<p>if missing, <code>tempdir()</code> will be used; GRASS GISDBASE directory for the working session</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>addon_base</code></td>
+<td>
+<p>if missing, assumed to be “$HOME/.grass7/addons” on Unix-like platforms, on MS Windows “%APPDATA%\GRASS7\addons”, and checked for existence</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>location</code></td>
+<td>
+<p>if missing, <code>basename(tempfile())</code> will be used; GRASS location directory for the working session</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mapset</code></td>
+<td>
+<p>if missing, <code>basename(tempfile())</code> will be used; GRASS mapset directory for the working session</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>override</code></td>
+<td>
+<p>default FALSE, set to TRUE if accidental trashing of GRASS .gisrc files and locations is not a problem</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use_g.dirseps.exe</code></td>
+<td>
+<p>default TRUE; when TRUE appears to work for WinGRASS Native binaries, when FALSE for QGIS GRASS binaries; ignored on other platforms.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pid</code></td>
+<td>
+<p>default <code>as.integer(round(runif(1, 1, 1000)))</code>, integer used to identify GIS_LOCK; the value here is arbitrary, but probably should be set correctly</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>remove_GISRC</code></td>
+<td>
+<p>default FALSE; if TRUE, attempt to unlink the temporary file named in the “GISRC” environment variable when the R session terminates or when this package is unloaded</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ignore.stderr</code></td>
+<td>
+<p>default taking the value set by <code>set.ignore.stderrOption</code>; can be set to TRUE to silence <code>system()</code> output to standard error; does not apply on Windows platforms</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The function establishes an out-of-GRASS working environment providing GRASS commands with the environment variable support required, and may also provide a temporary location for use until the end of the running R session if the <code>home</code> argument is set to <code>tempdir()</code>, and the <code>gisDbase</code> argument is not given. Running <code>gmeta</code> shows where the location is, should it be desired to archive it before leaving R.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The function runs <code>gmeta6</code> before returning the current values of the running GRASS session that it provides.
+</p>
+
+
+<h3>Note</h3>
+
+<p>If any package command fails with a UTF-8 error from the XML package, try using <code>setXMLencoding</code> to work around the problem that GRASS modules declare –interface-description output as UTF-8 without ensuring that it is.</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Roger S. Bivand, e-mail: <a href="mailto:Roger.Bivand@nhh.no">Roger.Bivand@nhh.no</a></p>
+
+
+<h3>See Also</h3>
+
+<p><code>gmeta</code></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">GRASS_INSTALLATION &lt;- Sys.getenv("GRASS_INSTALLATION")
+run &lt;- FALSE
+if (nzchar(GRASS_INSTALLATION)) run &lt;- file.info(GRASS_INSTALLATION)$isdir
+run &lt;- run &amp;&amp; require(terra, quietly=TRUE)
+if (run) {
+f &lt;- system.file("ex/elev.tif", package="terra")
+r &lt;- rast(f)
+plot(r, col=grDevices::terrain.colors(50))
+}
+if (run) {
+(loc &lt;- initGRASS(GRASS_INSTALLATION, home=tempdir(), SG=r, override=TRUE))
+}
+if (run) {
+write_RAST(r, "elev", flags="overwrite")
+execGRASS("r.info", map="elev")
+}
+if (run) {
+s &lt;- rast(r)
+values(s) &lt;- values(r)
+write_RAST(s, "elev1", flags="overwrite")
+execGRASS("r.info", map="elev1")
+}
+if (run) {
+execGRASS("r.slope.aspect", flags="overwrite", elevation="elev", slope="slope", aspect="aspect")
+}
+if (run) {
+u1 &lt;- read_RAST(c("elev", "slope", "aspect"), return_format="terra")
+plot(u1[["elev"]], col=grDevices::terrain.colors(50))
+}
+</code></pre>
+
+
+</div>

@@ -1,0 +1,196 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>downloadFile</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>A wrapper around a set of downloading functions</h2>
+
+<h3>Description</h3>
+
+<p>Currently, this only deals with <code>googledrive::drive_download</code>,
+and <code>utils::download.file()</code>. In general, this is not intended for use by a
+user.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">downloadFile(
+  archive,
+  targetFile,
+  neededFiles,
+  destinationPath = getOption("reproducible.destinationPath", "."),
+  quick,
+  checksumFile,
+  dlFun = NULL,
+  checkSums,
+  url,
+  needChecksums,
+  preDigest,
+  overwrite = getOption("reproducible.overwrite", TRUE),
+  verbose = getOption("reproducible.verbose", 1),
+  purge = FALSE,
+  .tempPath,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>archive</code></td>
+<td>
+<p>Optional character string giving the path of an archive
+containing <code>targetFile</code>, or a vector giving a set of nested archives
+(e.g., <code>c("xxx.tar", "inner.zip", "inner.rar")</code>). If there is/are (an) inner
+archive(s), but they are unknown, the function will try all until it finds
+the <code>targetFile</code>. See table in <code>preProcess()</code>. If it is <code>NA</code>,
+then it will <em>not</em> attempt to see it as an archive, even if it has archive-like
+file extension (e.g., <code>.zip</code>). This may be useful when an R function
+is expecting an archive directly.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>targetFile</code></td>
+<td>
+<p>Character string giving the filename (without relative or
+absolute path) to the eventual file
+(raster, shapefile, csv, etc.) after downloading and extracting from a zip
+or tar archive. This is the file <em>before</em> it is passed to
+<code>postProcess</code>. The internal checksumming does not checksum
+the file after it is <code>postProcess</code>ed (e.g., cropped/reprojected/masked).
+Using <code>Cache</code> around <code>prepInputs</code> will do a sufficient job in these cases.
+See table in <code>preProcess()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>neededFiles</code></td>
+<td>
+<p>Character string giving the name of the file(s) to be extracted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>destinationPath</code></td>
+<td>
+<p>Character string of a directory in which to download
+and save the file that comes from <code>url</code> and is also where the function
+will look for <code>archive</code> or <code>targetFile</code>. NOTE (still experimental):
+To prevent repeated downloads in different locations, the user can also set
+<code>options("reproducible.inputPaths")</code> to one or more local file paths to
+search for the file before attempting to download. Default for that option is
+<code>NULL</code> meaning do not search locally.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quick</code></td>
+<td>
+<p>Logical. This is passed internally to <code>Checksums()</code>
+(the quickCheck argument), and to
+<code>Cache()</code> (the quick argument). This results in faster, though
+less robust checking of inputs. See the respective functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>checksumFile</code></td>
+<td>
+<p>A character string indicating the absolute path to the <code>CHECKSUMS.txt</code>
+file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dlFun</code></td>
+<td>
+<p>Optional "download function" name, such as <code>"raster::getData"</code>, which does
+custom downloading, in addition to loading into R. Still experimental.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>checkSums</code></td>
+<td>
+<p>A checksums file, e.g., created by Checksums(..., write = TRUE)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>url</code></td>
+<td>
+<p>Optional character string indicating the URL to download from.
+If not specified, then no download will be attempted. If not entry
+exists in the <code>CHECKSUMS.txt</code> (in <code>destinationPath</code>), an entry
+will be created or appended to. This <code>CHECKSUMS.txt</code> entry will be used
+in subsequent calls to
+<code>prepInputs</code> or <code>preProcess</code>, comparing the file on hand with the ad hoc
+<code>CHECKSUMS.txt</code>. See table in <code>preProcess()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>needChecksums</code></td>
+<td>
+<p>A numeric, with <code>0</code> indicating do not write a new checksums,
+<code>1</code> write a new one,
+<code>2</code> append new information to existing one.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>preDigest</code></td>
+<td>
+<p>The list of <code>preDigest</code> that comes from <code>CacheDigest</code> of an object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite</code></td>
+<td>
+<p>Logical. Should downloading and all the other actions occur
+even if they pass the checksums or the files are all there.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Numeric, -1 silent (where possible), 0 being very quiet,
+1 showing more messaging, 2 being more messaging, etc.
+Default is 1. Above 3 will output much more information about the internals of
+Caching, which may help diagnose Caching challenges. Can set globally with an
+option, e.g., <code style="white-space: pre;">⁠options('reproducible.verbose' = 0) to reduce to minimal⁠</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>purge</code></td>
+<td>
+<p>Logical or Integer. <code>0/FALSE</code> (default) keeps existing
+<code>CHECKSUMS.txt</code> file and
+<code>prepInputs</code> will write or append to it. <code>1/TRUE</code> will deleted the entire
+<code>CHECKSUMS.txt</code> file. Other options, see details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.tempPath</code></td>
+<td>
+<p>Optional temporary path for internal file intermediate steps.
+Will be cleared on.exit from this function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Passed to <code>dlFun</code>. Still experimental. Can be e.g., <code>type</code> for google docs.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>This function is called for its side effects, which will be a downloaded file
+(<code>targetFile</code>), placed in <code>destinationPath</code>. This file will be checksummed, and
+that checksum will be appended to the <code>checksumFile</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Eliot McIntire
+</p>
+
+
+</div>

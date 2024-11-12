@@ -1,0 +1,151 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fasterizeDT</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Polygon Rasterization Using Numeric, Factor, or
+Character Fields</h2>
+
+<h3>Description</h3>
+
+<p>A front end for
+<code>fasterize::fasterize()</code>, fixing
+several of its infelicities.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fasterizeDT(
+  x,
+  raster,
+  field = NULL,
+  fun = "last",
+  background = NA_real_,
+  by = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Either an <code>sf::sf()</code> object with a geometry column
+of <code>POLYGON</code> and/or <code>MULTIPOLYGON</code> objects or a
+<code>sp::SpatialPolygonsDataFrame</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>raster</code></td>
+<td>
+<p>A <code>RasterLayer</code> object to be used as a template
+for the raster output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>field</code></td>
+<td>
+<p>Character. The name of a column in <code>x</code>,
+providing a value for each of the polygons rasterized. If
+<code>NULL</code> (the default), all polygons will be given a value
+of <code>1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fun</code></td>
+<td>
+<p>Character. The name of a function by which to combine
+overlapping polygons. Currently takes <code>"sum"</code>,
+<code>"first"</code>, <code>"last"</code>, <code>"min"</code>, <code>"max"</code>,
+<code>"count"</code>, or <code>"any"</code>. For more details, see
+<code>?fasterize::fasterize</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>background</code></td>
+<td>
+<p>Value to put in the cells that are not covered
+by any of the features of <code>x</code>. Default is <code>NA</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>by</code></td>
+<td>
+<p>Character string giving the name of a column in <code>x</code>
+by which to aggregate layers. If set, <code>fasterizeDT</code> will
+return a <code>RasterBrick</code> with as many layers as unique
+values of the <code>by</code> column.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Unlike other functions in this package, <code>fasterizeDT()</code> does
+not use <code>data.table</code> to speed up its computations. Instead,
+it is a wrapper for <code>fasterize::fasterize()</code>, intended to
+address several of that function's limitations.
+</p>
+<p>Most importantly, <code>fasterizeDT()</code> takes care to properly
+handle rasterization operations in which either the template
+<code>RasterLayer</code> or the selected polygon feature field is a
+factor. Specifically, it always returns a raster whose type
+(numeric or factor) and levels (if a factor) match that of the
+spatial polygon attribute indicated by its <code>field</code> argument.
+Second, when <code>field</code> specifies an attribute of class
+<code>"character"</code>, <code>fasterizeDT()</code> automatically converts it
+to a factor and returns a factor raster. In this, it is unlike
+both <code>fasterize::fasterize()</code> and
+<code>raster::rasterize()</code>. Finally, unlike
+<code>fasterize::fasterize()</code>, <code>fasterizeDT()</code> accepts as
+inputs either <code>sf::sf()</code> objects or
+<code>sp::SpatialPolygonsDataFrame</code> objects.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A raster of the same size, extent, resolution and
+projection as the supplied raster template. Unlike
+<code>fasterize::fasterize()</code>,
+<code>fasterizeDT</code> returns a raster of the same type as the
+data in the column of <code>x</code> selected by the <code>field</code>
+argument.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Joshua O'Brien
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Load example polygons and prepare a template raster
+if (require(raster)) {
+SPDF &lt;- shapefile(system.file("external/lux.shp", package = "raster"))
+llratio &lt;- 1/cos(pi * mean(coordinates(SPDF)[, 2])/180)
+rr &lt;- raster(extent(SPDF),
+             resolution = c(llratio * 0.01, 0.01),
+             crs = proj4string(SPDF))
+
+## An integer-valued field produces a numeric raster
+rInt &lt;- fasterizeDT(SPDF, rr, field = "ID_2")
+plot(rInt, col = colorRampPalette(blues9)(12))
+
+## A character-valued field returns a factor raster
+rFac &lt;- fasterizeDT(SPDF, rr, field = "NAME_2")
+if (require(rasterVis)) {
+    levelplot(rFac)
+}
+}
+
+</code></pre>
+
+
+</div>

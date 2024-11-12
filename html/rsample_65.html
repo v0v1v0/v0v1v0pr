@@ -1,0 +1,97 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>nested_cv</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Nested or Double Resampling</h2>
+
+<h3>Description</h3>
+
+<p><code>nested_cv</code> can be used to take the results of one resampling procedure
+and conduct further resamples within each split. Any type of resampling
+used in <code>rsample</code> can be used.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">nested_cv(data, outside, inside)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outside</code></td>
+<td>
+<p>The initial resampling specification. This can be an already
+created object or an expression of a new object (see the examples below).
+If the latter is used, the <code>data</code> argument does not need to be
+specified and, if it is given, will be ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inside</code></td>
+<td>
+<p>An expression for the type of resampling to be conducted
+within the initial procedure.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>It is a bad idea to use bootstrapping as the outer resampling procedure (see
+the example below)
+</p>
+
+
+<h3>Value</h3>
+
+<p>An tibble with <code>nested_cv</code> class and any other classes that
+outer resampling process normally contains. The results include a
+column for the outer data split objects, one or more <code>id</code> columns,
+and a column of nested tibbles called <code>inner_resamples</code> with the
+additional resamples.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Using expressions for the resampling procedures:
+nested_cv(mtcars, outside = vfold_cv(v = 3), inside = bootstraps(times = 5))
+
+## Using an existing object:
+folds &lt;- vfold_cv(mtcars)
+nested_cv(mtcars, folds, inside = bootstraps(times = 5))
+
+## The dangers of outer bootstraps:
+set.seed(2222)
+bad_idea &lt;- nested_cv(mtcars,
+  outside = bootstraps(times = 5),
+  inside = vfold_cv(v = 3)
+)
+
+first_outer_split &lt;- bad_idea$splits[[1]]
+outer_analysis &lt;- as.data.frame(first_outer_split)
+sum(grepl("Volvo 142E", rownames(outer_analysis)))
+
+## For the 3-fold CV used inside of each bootstrap, how are the replicated
+## `Volvo 142E` data partitioned?
+first_inner_split &lt;- bad_idea$inner_resamples[[1]]$splits[[1]]
+inner_analysis &lt;- as.data.frame(first_inner_split)
+inner_assess &lt;- as.data.frame(first_inner_split, data = "assessment")
+
+sum(grepl("Volvo 142E", rownames(inner_analysis)))
+sum(grepl("Volvo 142E", rownames(inner_assess)))
+</code></pre>
+
+
+</div>

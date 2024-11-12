@@ -1,0 +1,293 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>R2_resid</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate R2_resid</h2>
+
+<h3>Description</h3>
+
+<p>Calculate partial and total R2s for LMM, GLMM, PGLS, and PGLMM using R2_resid, an extension of ordinary least-squares (OLS) R2s. For LMMs and GLMMs, R2_resid is related to the method proposed by Nakagawa and Schielzeth (2013).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">R2_resid(
+  mod = NULL,
+  mod.r = NULL,
+  sigma2_d = c("s2w", "NS", "rNS"),
+  phy = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>mod</code></td>
+<td>
+<p>A regression model with one of the following classes: 'lm', 'glm', 'lmerMod', 'glmerMod', 'phylolm', 'gls', 'pglmm_compare' or 'binaryPGLMM'. For 'glmerMod', only family = c('binomial', 'poisson') are supported.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mod.r</code></td>
+<td>
+<p>A reduced model; if not provided, the total R2 will be given by setting 'mod.r' to the model corresponding to 'mod' with the intercept as the only predictor.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma2_d</code></td>
+<td>
+<p>Distribution-specific variance <code class="reqn">\sigma^2_d</code> (see Details). For binomial GLMs, GLMMs and PGLMMs with logit link functions, options are c('s2w', 'NS', 'rNS'). For binomial GLMs, GLMMs and PGLMMs with probit link functions, options are c('s2w', 'NS'). Other families use 's2w'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phy</code></td>
+<td>
+<p>The phylogeny for phylogenetic models (as a 'phylo' object), which must be specified for models of class 'phylolm'.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>R2_resid works with classes 'lm', 'glm', 'lmerMod', 'glmerMod', 'phylolm', 'pglmm_compare', and 'binaryPGLMM'.
+</p>
+<p><strong>LMM (lmerMod):</strong>
+</p>
+<p style="text-align: center;"><code class="reqn">partial R^2 = 1 - \sigma^2_{e.f}/\sigma^2_{e.r}</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">total R^2 = 1 - \sigma^2_{e.f}/var(y)</code>
+</p>
+
+<p>where <code class="reqn">\sigma^2_{e.f}</code> and <code class="reqn">\sigma^2_{e.r}</code> are the estimated residual variances from the full and reduced LMM, and var(y) is the total variance of the response (dependent) variable.
+</p>
+<p><strong>GLMM (glmerMod):</strong> 
+</p>
+<p style="text-align: center;"><code class="reqn">total R^2 = 1 - \sigma^2_d/(\sigma^2_x + \sigma^2_b + \sigma^2_d)</code>
+</p>
+
+<p>where <code class="reqn">\sigma^2_x</code> and <code class="reqn">\sigma^2_b</code> are the estimated variances associated with the fixed and random effects. <code class="reqn">\sigma^2_d</code> is a term that scales the implied 'residual variance' of the GLMM (see Ives 2018, Appendix 1). The default used for <code class="reqn">\sigma^2_d</code> is <code class="reqn">\sigma^2_w</code> which is computed from the iterative weights of the GLMM. Specifically,
+</p>
+<p style="text-align: center;"><code class="reqn">\sigma_{w}^{2}=var(g'(\mu)*(y-\mu))</code>
+</p>
+
+<p>where g'() is the derivative of the link function, and <code class="reqn">(y-\mu)</code> is the difference between the data y and their predicted values <code class="reqn">\mu</code>. This is the default option specified by sigma2_d = 's2w'. For binomial models with a logit link function, sigma2_d = 'NS' gives the scaling <code class="reqn">\sigma^2_d =  \pi^2/3</code> from Nakagawa and Schielzeth (2013), and sigma2_d = 'rNS' gives <code class="reqn">\sigma^2_d = 0.8768809 * \pi^2/3</code> which is a "corrected" version of 'NS' (see Ives 2018, Appendix 1). For binomial models with a probit link function, sigma2_d = 'NS' gives the scaling <code class="reqn">\sigma^2_d = 1</code>. In general, option sigma2_d = 's2w' will give values lower than sigma2_d = 'NS' and 'rNS', but the values will be closer to <code>R2_lik()</code> and <code>R2_pred()</code>. For other forms of sigma2_d from Nakagawa and Schielzeth (2013) and Nakagawa et al. (2017), see the MuMIn package.
+</p>
+<p>Partial R2s are given by the standard formula
+</p>
+<p style="text-align: center;"><code class="reqn">partial R^2 = 1 - (1 - R^2_{.f})/(1 - R^2_{.r})</code>
+</p>
+
+<p>where R2.f and R2.r are the total R2s for full and reduced models, respectively.
+</p>
+<p><strong>PGLS (phylolm, pglmm_compare):</strong> 
+</p>
+<p style="text-align: center;"><code class="reqn">partial R^2 = 1 - c.f * \sigma^2_{.f}/(c.r * \sigma^2_{.r})</code>
+</p>
+
+<p>where <code class="reqn">\sigma^2_{.f}</code> and <code class="reqn">\sigma^2_{.r}</code> are the variances estimated for the PGLS full and reduced models, and c.f and c.r are the scaling values for full and reduce models that equal the total sum of phylogenetic branch length estimates. Note that the phylogeny needs to be specified in R2_resid.
+</p>
+<p><code>phylolm()</code> can have difficulties in finding solutions when there is no phylogenetic signal;
+when the estimate indicates no phylogenetic signal, you should refit the model with the corresponding LM.
+</p>
+<p><strong>PGLMM (pglmm_compare, binaryPGLMM):</strong> 
+</p>
+<p>The R2_resid for PGLMMs is computed in the same way as the GLMM (glmer), with options sigma_d = c('s2w', 'NS', 'rNS'). The estimated variance of the random effect associated with the phylogeny, <code class="reqn">\sigma^2_b</code>, is multiplied by the diagonal elements of the phylogenetic covariance matrix. For binary models, this covariance matrix should be standardized so that all diagonal elements are the same (a contemporaneous or ultrametric phylogenetic tree) (Ives and Garland 2014). In case this is not done, however, the code takes the geometric average of the diagonal elements.
+</p>
+<p>Note that the version of <code>binaryPGLMM()</code> in the package ape is replaced by a version contained within rr2 that outputs all of the required information for the calculation of <code>R2_resid()</code>
+</p>
+<p><strong>LM (lm) and GLM (glm):</strong> 
+</p>
+<p>For compatibility and generating reduced models, rr2 will compute <code>R2_resid()</code> for LM and GLM that correspond to LMM/PGLS and GLMM/PGLMM.
+</p>
+
+
+<h3>Value</h3>
+
+<p>R2_resid value.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Anthony R. Ives
+</p>
+
+
+<h3>References</h3>
+
+<p>Ives A.R. and Li D. 2018. rr2: An R package to calculate R2s for regression models. Journal of Open Source Software. DOI:10.21105/joss.01028
+</p>
+<p>Ives A.R. 2018. R2s for Correlated Data: Phylogenetic Models, LMMs, and GLMMs. Systematic Biology, Volume 68, Issue 2, March 2019, Pages 234-251. DOI:10.1093/sysbio/syy060
+</p>
+<p>Ives A. R., Garland T., Jr. 2014. Phylogenetic regression for binary dependent variables. In: Garamszegi LZ editor. Modern Phylogenetic Comparative Methods and Their Application in Evolutionary Biology. Berlin Heidelberg, Springer-Verlag, p. 231-261.
+</p>
+<p>Nakagawa S., Schielzeth H. 2013. A general and simple method for obtaining R2 from generalized linear mixed-effects models. Methods in Ecology and Evolution, 4:133-142.
+</p>
+<p>Nakagawa S., Johnson P. C. D., Schielzeth H. 2017. The coefficient of determination R2 and intra-class correlation coefficient from generalized linear mixed-effects models revisited and expanded. Journal of the Royal Society Interface, 14.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>MuMIn, lme4, ape, phylolm, pez
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(ape)
+library(phylolm)
+library(lme4)
+library(nlme)
+library(phyr)
+
+set.seed(12345)
+p1 &lt;- 10
+nsample &lt;- 10
+n &lt;- p1 * nsample
+
+d &lt;- data.frame(x1 = 0, x2 = 0, u1 = rep(1:p1, each = nsample),
+                u2 = rep(1:p1, times = nsample))
+d$u1 &lt;- as.factor(d$u1)
+d$u2 &lt;- as.factor(d$u2)
+
+b1 &lt;- 1
+b2 &lt;- -1
+sd1 &lt;- 1.5
+
+d$x1 &lt;- rnorm(n = n)
+d$x2 &lt;- rnorm(n = n)
+d$y.lmm &lt;- b1 * d$x1 + b2 * d$x2 + 
+  rep(rnorm(n = p1, sd = sd1), each = nsample) +
+  rep(rnorm(n = p1, sd = sd1), times = nsample) + 
+  rnorm(n = n)
+
+prob &lt;- inv.logit(b1 * d$x1 + rep(rnorm(n = p1, sd = sd1), each = nsample))
+d$y.glmm &lt;- rbinom(n = n, size = 1, prob = prob)
+
+# LMM with two fixed and two random effects ----
+z.f &lt;- lmer(y.lmm ~ x1 + x2 + (1 | u1) + (1 | u2), data = d, REML = FALSE)
+z.x &lt;- lmer(y.lmm ~ x1 + (1 | u1) + (1 | u2), data = d, REML = FALSE)
+z.v &lt;- lmer(y.lmm ~ 1 + (1 | u2), data = d, REML = FALSE)
+z.0 &lt;- lm(y.lmm ~ 1, data = d)
+
+R2_resid(z.f, z.x)
+R2_resid(z.f, z.v)
+R2_resid(z.f)
+
+# GLMM with one fixed and one random effect ----
+z.f &lt;- glmer(y.glmm ~ x1 + (1 | u1), data = d, family = 'binomial')
+z.x &lt;- glmer(y.glmm ~ 1 + (1 | u1), data = d, family = 'binomial')
+z.v &lt;- glm(y.glmm ~ x1, data = d, family = 'binomial')
+
+R2_resid(z.f, z.x)
+R2_resid(z.f, z.v)
+R2_resid(z.f)
+
+# PGLS with a single fixed effect ----
+n &lt;- 100
+d &lt;- data.frame(x = array(0, dim = n), y = 0)
+
+b1 &lt;- 1.5
+signal &lt;- 0.7
+
+phy &lt;- compute.brlen(rtree(n = n), method = 'Grafen', power = 1)
+phy.x &lt;- compute.brlen(phy, method = 'Grafen', power = .0001)
+
+# Generate random data
+x &lt;- rTraitCont(phy.x, model = 'BM', sigma = 1)
+e &lt;- signal ^ 0.5 * rTraitCont(phy, model = 'BM', sigma = 1) +
+  (1 - signal) ^ 0.5 * rnorm(n = n)
+d$x &lt;- x[match(names(e), names(x))]
+d$y &lt;- b1 * x + e
+rownames(d) &lt;- phy$tip.label
+d$sp &lt;- phy$tip.label
+
+z.x &lt;- pglmm_compare(y ~ 1, phy = phy, data = d, REML=FALSE)
+z.f &lt;- pglmm_compare(y ~ x, phy = phy, data = d, REML=FALSE)
+z.v &lt;- lm(y ~ x, data = d)
+
+R2_resid(z.f, z.x)
+R2_resid(z.f, z.v)
+R2_resid(z.f)
+
+z.x &lt;- phylolm(y ~ 1, phy = phy, data = d, model = 'lambda')
+z.f &lt;- phylolm(y ~ x, phy = phy, data = d, model = 'lambda')
+z.v &lt;- lm(y ~ x, data = d)
+
+R2_resid(z.f, z.x, phy = phy)
+R2_resid(z.f, z.v, phy = phy)
+R2_resid(z.f, phy = phy)
+
+# This also works for models fit with gls() in {nlme}
+z.f &lt;- gls(y ~ x, data = d, correlation = corPagel(1, phy, form = ~sp), method = "ML")
+z.x &lt;- gls(y ~ 1, data = d, correlation = corPagel(1, phy, form = ~sp), method = "ML")
+z.v &lt;- lm(y ~ x, data = d)
+
+R2_resid(z.f, z.x)
+R2_resid(z.f, z.v)
+R2_resid(z.f)
+
+# But note that you need to define weights for gls() with non-ultrametric trees;
+# if not, you will get a error "Matrix is not block-diagonal"
+
+phy.nu &lt;- rtree(n = n)
+
+# Generate random data
+e &lt;- signal ^ 0.5 * rTraitCont(phy.nu, model = 'BM', sigma = 1) +
+  (1 - signal) ^ 0.5 * rnorm(n = n)
+d$x &lt;- x[match(names(e), names(x))]
+d$y &lt;- b1 * x + e
+rownames(d) &lt;- phy.nu$tip.label
+d$sp &lt;- phy.nu$tip.label
+
+weights &lt;- diag(vcv.phylo(phy.nu))
+z.x &lt;- gls(y ~ 1,data = d,
+         correlation = corPagel(1, phy.nu, form = ~sp),
+         weights=varFixed(~weights), method = "ML")
+z.f &lt;- gls(y ~ x,data = d,
+         correlation = corPagel(1, phy.nu, form = ~sp),
+         weights=varFixed(~weights), method = "ML")
+z.v &lt;- lm(y ~ x, weights = 1/weights, data = d)
+
+R2_resid(z.f, z.x)
+R2_resid(z.f, z.v)
+R2_resid(z.f)
+
+# PGLMM with one fixed effect ----
+
+n &lt;- 100
+b1 &lt;- 1.5
+signal &lt;- 2
+
+phy &lt;- compute.brlen(rtree(n = n), method = 'Grafen', power = 1)
+phy.x &lt;- compute.brlen(phy, method = 'Grafen', power = .0001)
+
+# Generate random data
+x &lt;- rnorm(n)
+d &lt;- data.frame(x = x, y = 0)
+
+e &lt;- signal * rTraitCont(phy, model = 'BM', sigma = 1)
+e &lt;- e[match(phy$tip.label, names(e))]
+
+d$y &lt;- rbinom(n = n, size = 1, prob = inv.logit(b1 * d$x + e))
+rownames(d) &lt;- phy$tip.label
+
+# Use the function pglmm_compare in {phyr}.
+z.f &lt;- pglmm_compare(y ~ x, data = d, family = "binomial", phy = phy)
+z.x &lt;- pglmm_compare(y ~ 1, data = d, family = "binomial", phy = phy)
+z.v &lt;- glm(y ~ x, data = d, family = 'binomial')
+
+R2_resid(z.f, z.x)
+R2_resid(z.f, z.v)
+R2_resid(z.f)
+
+</code></pre>
+
+
+</div>

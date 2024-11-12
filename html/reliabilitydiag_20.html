@@ -1,0 +1,385 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>reliabilitydiag</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Reliability diagram object</h2>
+
+<h3>Description</h3>
+
+<p>Documentation of the <code>'reliabilitydiag'</code> object, and its constructors.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">reliabilitydiag(
+  ...,
+  y = NULL,
+  r = NULL,
+  tol = sqrt(.Machine$double.eps),
+  xtype = NULL,
+  xvalues = NULL,
+  region.level = 0.9,
+  region.method = NULL,
+  region.position = "diagonal",
+  n.boot = 100
+)
+
+reliabilitydiag0(y)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>objects to be coerced to <code>'reliabilitydiag'</code> and concatenated</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>a numeric vector of binary response values in {0, 1} to be
+predicted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>r</code></td>
+<td>
+<p>an object inheriting from the class <code>'reliabilitydiag'</code>;
+alternative to <code>y</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>accuracy when comparing <code>y</code> in <code>'reliabilitydiag'</code>
+objects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xtype</code></td>
+<td>
+<p>a string specifying whether the prediction values should be
+treated as <code>"continuous"</code> or <code>"discrete"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xvalues</code></td>
+<td>
+<p>a numeric vector of possible prediction values;
+values in <code>x</code> are rounded to the nearest value in <code>xvalues</code> and
+<code>xtype</code> is set to <code>"discrete"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>region.level</code></td>
+<td>
+<p>a value in (0, 1) specifying the level at which
+consistency or confidence regions are calculated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>region.method</code></td>
+<td>
+<p>a string specifying whether <code>"resampling"</code>,
+<code>"continuous_asymptotics"</code>, or <code>"discrete_asymptotics"</code> are used
+to calculate consistency/confidence regions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>region.position</code></td>
+<td>
+<p>a string specifying whether consistency regions
+around the <code>"diagonal"</code> or confidence regions around the
+<code>"estimate"</code> are calculated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.boot</code></td>
+<td>
+<p>the number of bootstrap samples when
+<code>region.method == "resampling"</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>reliabilitydiag</code> constructs and returns an object inheriting from the
+class <code>'reliabilitydiag'</code>.
+Each object passed via <code>...</code> is
+coerced by the methods described in <code>as.reliabilitydiag</code>,
+and then concatenated by <code>c.reliabilitydiag</code>.
+</p>
+<p><code>reliabilitydiag0</code> constructs an empty <code>'reliabilitydiag'</code> object
+from the response values.
+</p>
+<p>If any of the arguments <code>region.level</code>, <code>region.method</code>,
+or <code>region.position</code> is <code>NA</code>, then the uncertainty quantification
+in terms of consistency/confidence regions is skipped.
+</p>
+<p>Consistency regions are determined under the assumption of calibration of
+the original predictions, that is, perfectly reliable forecasts such that
+<code class="reqn">P(Y = 1|X) = X</code>.
+Consistency regions are therefore positioned around values on the diagonal
+(set <code>region.position</code> to <code>"diagonal"</code>).
+</p>
+<p>For confidence regions, calibration is enforced by using the PAV-recalibrated
+predictions for uncertainty quantification, that is, it is assumed that
+<code class="reqn">P(Y = 1|X) = PAV(X)</code>.
+Confidence regions are therefore positioned around the estimated
+conditional exceedence probability (CEP) line
+(set <code>region.position</code> to <code>"estimate"</code>).
+</p>
+<p>When <code>region.method</code> is <code>"resampling"</code>, then the original
+forecast-observations pairs are bootstrapped <code>n.boot</code> times.
+For each bootstrap sample, new observations are drawn under the respective
+assumption (consistency or confidence).
+Then PAV-recalibration with those new observations is performed on each
+bootstrap sample, and pointwise
+lower and upper bounds are calculated across the resulting CEP lines.
+</p>
+<p>When <code>region.method</code> is <code>"discrete_asymptotics"</code> and
+<code>region.position</code> is <code>"diagonal"</code>,
+a Gaussian
+approximation is used assuming <code class="reqn">\sqrt{n} * (EST(x) - x)</code> has variance
+<code class="reqn">x(1-x)</code>, where
+<code class="reqn">x</code> is an original prediction value,
+<code class="reqn">n</code> is the observed number of predictions with value <code class="reqn">x</code>,
+and <code class="reqn">EST(x)</code> is the estimated CEP value at <code class="reqn">x</code>.
+</p>
+<p>When <code>region.method</code> is <code>"continuous_asymptotics"</code> and
+<code>region.position</code> is <code>"diagonal"</code>,
+a Chernoff approximation is used for
+<code class="reqn">(n * f(x) / (4 * x * (1- x)))^{(1/3)} * (EST(x) - x)</code>,
+where <code class="reqn">x</code> is an original prediction value,
+<code class="reqn">n</code> is the total number of observations,
+<code class="reqn">EST(x)</code> is the estimated CEP value at <code class="reqn">x</code>,
+and <code class="reqn">f(x)</code> is the estimated value of the density of the
+original prediction values.
+This density is estimated using the <code>bde</code> package: We use Chen's
+beta kernel density estimator (see <code>bde</code>).
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>reliabilitydiag</code> returns a <code>'reliabilitydiag'</code> object,
+which is a named list-type vector class with the attribute
+<code>y</code> containing the values supplied to the input argument <code>y</code>,
+that is, the numeric vector of response values to be predicted.
+The length is given by the number of prediction methods detected from the
+supplied objects.
+</p>
+<p><code>reliabilitydiag0</code> returns an empty <code>'reliabilitydiag'</code> object
+with attribute <code>y</code>.
+</p>
+<p>Each entry of a <code>'reliabilitydiag'</code> object
+(corresponding to a single prediction method)
+is itself a list with the following entries
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+   <code>cases</code> </td>
+<td style="text-align: left;"> a tibble of all predictions and observations.</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>bins</code> </td>
+<td style="text-align: left;"> a tibble of the characteristics of the PAV induced bins.
+     </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>regions</code> </td>
+<td style="text-align: left;"> a tibble with lower and upper bounds of the pointwise
+     consistency/confidence regions.</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>xinfo</code> </td>
+<td style="text-align: left;"> a list of characteristics of <code>x</code>.
+ </td>
+</tr>
+</table>
+<p>Each <code>cases</code> tibble comprises the forecast-observation pairs of the
+given prediction method. It is arranged in increasing order of
+<code>x</code> and has columns
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+   <code>case_id</code> </td>
+<td style="text-align: left;"> an ID based on the original order of the predictions
+     and observations.</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>x</code> </td>
+<td style="text-align: left;"> an original prediction (increasing order).</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>y</code> </td>
+<td style="text-align: left;"> an observation, corresponding to <code>x</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>bin_id</code> </td>
+<td style="text-align: left;"> an ID for the PAV-recalibration induced bins.</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>CEP_pav</code> </td>
+<td style="text-align: left;"> the unique PAV-recalibrated prediction
+     corresponding to <code>bin_id</code>.
+ </td>
+</tr>
+</table>
+<p>Each <code>bins</code> tibble contains PAV-recalibration information, and has
+columns
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+   <code>bin_id</code> </td>
+<td style="text-align: left;"> as in <code>cases</code>, with any ID only appearing
+     once.</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>n</code> </td>
+<td style="text-align: left;"> the number of predictions with a given <code>bin_id</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>x_min</code> </td>
+<td style="text-align: left;"> the smallest value of the predictions with the given
+     <code>bin_id</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>x_max</code> </td>
+<td style="text-align: left;"> the largest value of the predictions with the given
+     <code>bin_id</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>CEP_pav</code> </td>
+<td style="text-align: left;"> the unique PAV-recalibrated prediction
+     corresponding to <code>bin_id</code>.
+ </td>
+</tr>
+</table>
+<p>Each <code>regions</code> tibble contains the uncertainty quantification
+information, and has columns
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+   <code>x</code> </td>
+<td style="text-align: left;"> an original prediction, with any value only appearing
+     once.</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>lower</code> </td>
+<td style="text-align: left;"> the lower bound of the consistency/confidence
+     region at <code>x</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>upper</code> </td>
+<td style="text-align: left;"> the upper bound of the consistency/confidence
+     region <code>x</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>n</code> </td>
+<td style="text-align: left;"> the number of predictions with a value of <code>x</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>level</code> </td>
+<td style="text-align: left;"> the level of the consistency/confidence regions. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>method</code> </td>
+<td style="text-align: left;"> the method used to calculate the
+     consistency/confidence region.</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>position</code> </td>
+<td style="text-align: left;"> <code>"diagonal"</code> for a consistency region, and
+     <code>"estimate"</code> for a confidence region.
+ </td>
+</tr>
+</table>
+<p>Each <code>xinfo</code> list has entries
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+   <code>type</code> </td>
+<td style="text-align: left;"> the type of predictions, either <code>"discrete"</code>
+       or <code>"continuous"</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>values</code> </td>
+<td style="text-align: left;"> the values supplied to <code>xvalues</code>.
+ </td>
+</tr>
+</table>
+<h3>See Also</h3>
+
+<p><code>c.reliabilitydiag</code>,
+<code>[.reliabilitydiag</code>,
+<code>plot.reliabilitydiag</code>.
+</p>
+<p>See <code>summary.reliabilitydiag</code> for a decomposition of
+predictive performance into miscalibration,
+discrimination, and uncertainty.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data("precip_Niamey_2016", package = "reliabilitydiag")
+
+# standard use with a data.frame
+r &lt;- reliabilitydiag(precip_Niamey_2016["EMOS"], y = precip_Niamey_2016$obs)
+r
+
+# no consistency/confidence regions
+X &lt;- precip_Niamey_2016$EMOS
+Y &lt;- precip_Niamey_2016$obs
+r1 &lt;- reliabilitydiag(X = X, y = Y, region.level = NA)
+r1
+
+# specify predictions via existing reliabilitydiag
+r0 &lt;- reliabilitydiag0(Y)
+identical(r1, reliabilitydiag(X = X, r = r0, region.level = NA))
+
+# only observation information is used from existing reliabilitydiag
+X2 &lt;- precip_Niamey_2016$ENS
+r2 &lt;- reliabilitydiag(X2 = X2, r = r, region.level = NA)
+r3 &lt;- reliabilitydiag(X2 = X2, r = r0, region.level = NA)
+identical(r2, r3)
+
+</code></pre>
+
+
+</div>

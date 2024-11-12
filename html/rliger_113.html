@@ -1,0 +1,136 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>imputeKNN</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Impute the peak counts from gene expression data referring to an ATAC dataset
+after integration</h2>
+
+<h3>Description</h3>
+
+<p>This function is designed for creating peak data for a dataset with only gene
+expression. This function uses quantile normalized cell factor loading to
+find nearest neighbors between cells from the queried dataset (without peak)
+and cells from reference dataset (with peak). And then impute the peak for
+the former basing on the weight. Therefore, the reference dataset selected
+must be of "atac" modality setting.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">imputeKNN(
+  object,
+  reference,
+  queries = NULL,
+  nNeighbors = 20,
+  weight = TRUE,
+  norm = TRUE,
+  scale = FALSE,
+  verbose = getOption("ligerVerbose", TRUE),
+  ...,
+  knn_k = nNeighbors
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>liger object with aligned factor loading computed
+in advance.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reference</code></td>
+<td>
+<p>Name of a dataset containing peak data to impute into query
+dataset(s).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>queries</code></td>
+<td>
+<p>Names of datasets to be augmented by imputation. Should not
+include <code>reference</code>. Default <code>NULL</code> uses all datasets except the
+reference.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nNeighbors</code></td>
+<td>
+<p>The maximum number of nearest neighbors to search. Default
+<code>20</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weight</code></td>
+<td>
+<p>Logical. Whether to use KNN distances as weight matrix. Default
+<code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>norm</code></td>
+<td>
+<p>Logical. Whether to normalize the imputed data. Default
+<code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>Logical. Whether to scale but not center the imputed data.
+Default <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Logical. Whether to show information of the progress. Default
+<code>getOption("ligerVerbose")</code> or <code>TRUE</code> if users have not set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Optional arguments to be passed to <code>normalize</code> when
+<code>norm = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>knn_k</code></td>
+<td>
+<p><b>Deprecated</b>. See Usage section for replacement.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The input <code>object</code> where queried ligerDataset
+objects in <code>datasets</code> slot are replaced. These datasets will all be
+converted to ligerATACDataset class with an additional slot
+<code>rawPeak</code> to store the imputed peak counts, and <code>normPeak</code> for
+normalized imputed peak counts if <code>norm = TRUE</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">bmmc &lt;- normalize(bmmc)
+bmmc &lt;- selectGenes(bmmc, datasets.use = "rna")
+bmmc &lt;- scaleNotCenter(bmmc)
+if (requireNamespace("RcppPlanc", quietly = TRUE)) {
+    bmmc &lt;- runINMF(bmmc, k = 20)
+    bmmc &lt;- quantileNorm(bmmc)
+    bmmc &lt;- normalizePeak(bmmc)
+    bmmc &lt;- imputeKNN(bmmc, reference = "atac", queries = "rna")
+}
+</code></pre>
+
+
+</div>

@@ -1,0 +1,349 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>DEoptim</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Differential Evolution Optimization</h2>
+
+<h3>Description</h3>
+
+<p>Performs evolutionary global optimization via the Differential Evolution algorithm.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">DEoptim(fn, lower, upper, control = DEoptim.control(), ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>fn</code></td>
+<td>
+<p>the function to be optimized (minimized). The function should have as its first 
+argument the vector of real-valued parameters to optimize, and return a scalar real result. <code>NA</code> 
+and <code>NaN</code> values are not allowed. Note that <code>fn</code> can also
+be an external pointer object encapsulating a C/C++-level function pointer
+to a compiled functions which may offer considerable speed improvements.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lower, upper</code></td>
+<td>
+<p>two vectors specifying scalar real lower and upper bounds on each parameter to be optimized, so that the i-th element 
+of <code>lower</code> and <code>upper</code> applied to the i-th parameter. The implementation searches
+between <code>lower</code> and <code>upper</code> for the global optimum (minimum) of <code>fn</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>a list of control parameters; see <code>DEoptim.control</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments to be passed to <code>fn</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>DEoptim</code> performs optimization (minimization) of <code>fn</code>. 
+</p>
+<p>The <code>control</code> argument is a list; see the help file for
+<code>DEoptim.control</code> for details.
+</p>
+<p>The <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> implementation of Differential Evolution (DE), <span class="pkg">DEoptim</span>, was first published on the Comprehensive <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> Archive
+Network (CRAN) in 2005 by David Ardia. Early versions were written in 
+pure <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>. Since version 2.0-0 (published to CRAN in 2009) the package has relied on an
+interface to a C implementation of DE, which is significantly 
+faster on most problems as compared to the implementation in 
+pure <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>. The C interface is in many respects similar to the MS
+Visual C++ v5.0 implementation of the Differential Evolution algorithm
+distributed with the book <em>Differential Evolution – A Practical
+Approach to Global Optimization</em> by Price, K.V., Storn, R.M., Lampinen
+J.A, Springer-Verlag, 2006. Since version 2.0-3 the C 
+implementation dynamically allocates the memory required to store the population, removing limitations on the 
+number of members in the population and length of the parameter vectors that may be optimized. 
+Since becoming publicly available, the package <span class="pkg">DEoptim</span> has been used by several authors to solve optimization 
+problems arising in diverse domains; see Mullen et al. (2009) for a review.
+</p>
+<p>To perform a maximization (instead of minimization) of a given
+function, simply define a new function which is the opposite of the
+function to maximize and apply <code>DEoptim</code> to it.
+</p>
+<p>To integrate additional constraints (than box constraints) on the parameters <code>x</code> of
+<code>fn(x)</code>, for instance <code>x[1] + x[2]^2 &lt; 2</code>, integrate the
+constraint within the function to optimize, for instance: 
+</p>
+<pre>
+    fn &lt;- function(x){
+      if (x[1] + x[2]^2 &lt; 2){
+        r &lt;- Inf
+      else{
+        ...
+      }
+      return(r)
+    }
+  </pre>
+<p>This simplistic strategy usually does not work all that well for gradient-based or Newton-type 
+methods. It is likely to be alright when the solution is in the interior of the feasible region, but when 
+the solution is on the boundary, optimization algorithm would have a difficult time converging. Furthermore, when
+the solution is on the boundary, this strategy would make the algorithm converge to an inferior solution in the interior. 
+However, for methods such as DE which are not gradient based, this strategy might not be that bad.
+</p>
+<p>Note that <code>DEoptim</code> stops if any <code>NA</code> or <code>NaN</code> value is
+obtained. You have to redefine your function to handle these values
+(for instance, set <code>NA</code> to <code>Inf</code> in your objective function).
+</p>
+<p>It is important to emphasize that the result of <code>DEoptim</code> is a random variable, 
+i.e., different results will obtain when the algorithm is run repeatedly with the same 
+settings. Hence, the user should set the random seed if they want to reproduce the results, e.g., by 
+setting <code>set.seed(1234)</code> before the call of <code>DEoptim</code>.
+</p>
+<p><code>DEoptim</code> relies on repeated evaluation of the objective function
+in order to move the population toward a global minimum. Users
+interested in making <code>DEoptim</code> run as fast as possible should
+ensure that evaluation of the objective function is as efficient as
+possible. Using pure <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> code, this may often be accomplished
+using vectorization. Writing parts of the objective function in a
+lower-level language like C or Fortran may also increase speed.
+</p>
+<p>Further details and examples of the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> package <span class="pkg">DEoptim</span> can be found
+in Mullen et al. (2009) and Ardia et al. (2010).
+</p>
+<p>Please cite the package in publications. 
+</p>
+
+
+<h3>Value</h3>
+
+<p>The output of the function <code>DEoptim</code> is a member of the <code>S3</code> class <code>DEoptim</code>. More precisely,
+this is a list (of length 2) containing the following elements:<br></p>
+<p><code>optim</code>, a list containing the following elements:
+</p>
+
+<ul>
+<li> <p><code>bestmem</code>: the best set of parameters found.
+</p>
+</li>
+<li> <p><code>bestval</code>: the value of <code>fn</code> corresponding to <code>bestmem</code>.
+</p>
+</li>
+<li> <p><code>nfeval</code>: number of function evaluations.
+</p>
+</li>
+<li> <p><code>iter</code>: number of procedure iterations.
+</p>
+</li>
+</ul>
+<p><code>member</code>, a list containing the following elements:
+</p>
+
+<ul>
+<li> <p><code>lower</code>: the lower boundary.
+</p>
+</li>
+<li> <p><code>upper</code>: the upper boundary.
+</p>
+</li>
+<li> <p><code>bestvalit</code>: the best value of <code>fn</code> at each iteration.
+</p>
+</li>
+<li> <p><code>bestmemit</code>: the best member at each iteration.
+</p>
+</li>
+<li> <p><code>pop</code>: the population generated at the last iteration.
+</p>
+</li>
+<li> <p><code>storepop</code>: a list containing the intermediate populations.
+</p>
+</li>
+</ul>
+<p>Members of the class <code>DEoptim</code> have a <code>plot</code> method that
+accepts the argument <code>plot.type</code>. <code>plot.type = "bestmemit"</code> results
+in a plot of the parameter values that represent the lowest value of the objective function
+each generation. <code>plot.type = "bestvalit"</code> plots the best value of
+the objective function each generation. Finally, <code>plot.type = "storepop"</code> results in a plot of
+stored populations (which are only available if these have been saved by
+setting the <code>control</code> argument of <code>DEoptim</code> appropriately). Storing intermediate populations 
+allows us to examine the progress of the optimization in detail.   
+A summary method also exists and returns the best parameter vector, the best value of the objective function,
+the number of generations optimization ran, and the number of times the 
+objective function was evaluated. 
+</p>
+
+
+<h3>Note</h3>
+
+<p><em>Differential Evolution</em> (DE) is a search heuristic introduced by Storn and Price (1997). 
+Its remarkable performance as a global optimization algorithm on continuous numerical minimization 
+problems has been extensively explored; see Price et al. (2006). DE belongs to the class of genetic 
+algorithms which use biology-inspired operations of 
+crossover, mutation, and selection on a population in order to minimize an objective 
+function over the course of successive generations (see Mitchell, 1998). As with other evolutionary algorithms, 
+DE solves optimization problems by evolving a population of candidate solutions using alteration and selection
+operators. DE uses floating-point instead of bit-string encoding of population members, and 
+arithmetic operations instead of logical operations in mutation. DE is particularly well-suited to find the global optimum of a 
+real-valued function of real-valued parameters, and does not require that the function be
+either continuous or differentiable.
+</p>
+<p>Let <code class="reqn">\mathit{NP}</code> denote the number of parameter vectors (members) <code class="reqn">x \in R^d</code> in the population. 
+In order to create the initial generation, <code class="reqn">\mathit{NP}</code> guesses for the optimal value
+of the parameter vector are made, either using random values between lower and upper 
+bounds (defined by the user) or using values given by
+the user. Each generation involves creation of a new population from
+the current population members <code class="reqn">\{ x_i \,|\, i = 1, \ldots, \mathit{NP}\}</code>, 
+where <code class="reqn">i</code> indexes the vectors that make up the population.
+This is accomplished using <em>differential mutation</em> of the
+population members. An initial mutant parameter vector <code class="reqn">v_i</code> is
+created by choosing three members of the population, <code class="reqn">x_{r_0}</code>,
+<code class="reqn">x_{r_1}</code> and <code class="reqn">x_{r_2}</code>, at random. Then <code class="reqn">v_i</code> is
+generated as
+</p>
+<p style="text-align: center;"><code class="reqn">v_i \doteq x_{r_0} + \mathit{F} \cdot (x_{r_1} - x_{r_2})</code>
+</p>
+  
+<p>where <code class="reqn">\mathit{F}</code> is a positive scale factor, effective values for which are
+typically less than one. After the first mutation operation, mutation is
+continued until <code class="reqn">d</code> mutations have been made, with a crossover probability 
+<code class="reqn">\mathit{CR} \in [0,1]</code>.
+The crossover probability <code class="reqn">\mathit{CR}</code> controls the fraction of the parameter
+values that are copied from the mutant. If an element of the trial parameter vector is found to violate the
+bounds after mutation and crossover, it is reset in such a way that the bounds are respected (with the
+specific protocol depending on the implementation).
+Then, the objective function values associated with the children are determined. If a trial
+vector has equal or lower objective function value than the previous
+vector it replaces the previous vector in the population;
+otherwise the previous vector remains. Variations of this scheme have also
+been proposed; see Price et al. (2006) and <code>DEoptim.control</code>.
+</p>
+<p>Intuitively, the effect of the scheme is that the shape of the distribution of the population in the
+search space is converging with respect to size and direction towards areas with high
+fitness. The closer the population gets to the global optimum, the more the distribution
+will shrink and therefore reinforce the generation of smaller difference vectors.  
+</p>
+<p>As a general advice regarding the choice of <code class="reqn">\mathit{NP}</code>, <code class="reqn">\mathit{F}</code> and <code class="reqn">\mathit{CR}</code>, 
+Storn et al. (2006) state the following: Set the number
+of parents <code class="reqn">\mathit{NP}</code> to 10 times the number of parameters, select weighting factor 
+<code class="reqn">\mathit{F} = 0.8</code> and crossover constant <code class="reqn">\mathit{CR} = 0.9</code>. Make sure that you initialize your parameter vectors
+by exploiting their full numerical range, i.e., if a parameter is allowed to exhibit
+values in the range [-100, 100] it is a good idea to pick the initial values from this
+range instead of unnecessarily restricting diversity. If you experience misconvergence in 
+the optimization process you usually have to increase the value for <code class="reqn">\mathit{NP}</code>, but often you only have to adjust
+<code class="reqn">\mathit{F}</code> to be a little lower or higher than 0.8. If you increase
+<code class="reqn">\mathit{NP}</code> and simultaneously lower <code class="reqn">\mathit{F}</code> a little, convergence is more
+likely to occur but generally takes longer, i.e., DE is getting
+more robust (there is always a convergence speed/robustness trade-off).
+</p>
+<p>DE is much more sensitive to the choice of <code class="reqn">\mathit{F}</code> than it is to
+the choice of <code class="reqn">\mathit{CR}</code>. <code class="reqn">\mathit{CR}</code> is more like a fine tuning element. High
+values of <code class="reqn">\mathit{CR}</code> like <code class="reqn">\mathit{CR} = 1</code> give faster convergence if convergence
+occurs. Sometimes, however, you have to go down as much as <code class="reqn">\mathit{CR} = 0</code> to
+make DE robust enough for a particular problem. For more details on the DE strategy, we refer 
+the reader to Storn and Price (1997) and Price et al. (2006).
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>For <span class="pkg">RcppDE</span>: Dirk Eddelbuettel.
+</p>
+<p>For <span class="pkg">DEoptim</span>: 
+David Ardia, Katharine Mullen <a href="mailto:katharine.mullen@nist.gov">katharine.mullen@nist.gov</a>, 
+Brian Peterson and Joshua Ulrich.
+</p>
+
+
+<h3>References</h3>
+
+<p>Storn, R. and Price, K. (1997) 
+Differential Evolution – A Simple and Efficient Heuristic for Global Optimization over Continuous Spaces,
+<em>Journal of Global Optimization</em>, 11:4, 341–359.  
+</p>
+<p>Price, K.V., Storn, R.M., Lampinen J.A. (2006)
+<em>Differential Evolution - A Practical Approach to Global Optimization</em>.
+Berlin Heidelberg: Springer-Verlag. ISBN 3540209506.
+</p>
+<p>Mitchell, M. (1998) 
+<em>An Introduction to Genetic Algorithms</em>.
+The MIT Press. ISBN 0262631857.
+</p>
+<p>Mullen, K.M., Ardia, D., Gil, D.L, Windover, D., Cline, J. (2009)
+<span class="pkg">DEoptim</span>: An <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> Package for Global Optimization by Differential Evolution.
+URL <a href="https://www.ssrn.com/abstract=1526466">https://www.ssrn.com/abstract=1526466</a>
+</p>
+<p>Ardia, D., Boudt, K., Carl, P., Mullen, K.M., Peterson, B.G. (2010)
+Differential Evolution (<span class="pkg">DEoptim</span>) for Non-Convex Portfolio Optimization.
+URL <a href="https://www.ssrn.com/abstract=1584905">https://www.ssrn.com/abstract=1584905</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>DEoptim.control</code> for control arguments,
+<code>DEoptim-methods</code> for methods on <code>DEoptim</code> objects,
+including some examples in plotting the results;
+<code>optim</code> or <code>constrOptim</code>
+for alternative optimization algorithms.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">  ## Rosenbrock Banana function
+  ## The function has a global minimum f(x) = 0 at the point (0,0).  
+  ## Note that the vector of parameters to be optimized must be the first 
+  ## argument of the objective function passed to DEoptim.
+  Rosenbrock &lt;- function(x){
+    x1 &lt;- x[1]
+    x2 &lt;- x[2]
+    100 * (x2 - x1 * x1)^2 + (1 - x1)^2
+  }
+
+  ## DEoptim searches for minima of the objective function between
+  ## lower and upper bounds on each parameter to be optimized. Therefore
+  ## in the call to DEoptim we specify vectors that comprise the
+  ## lower and upper bounds; these vectors are the same length as the
+  ## parameter vector.
+  lower &lt;- c(-10,-10)
+  upper &lt;- -lower
+ 
+  ## run DEoptim and set a seed first for replicability
+  set.seed(1234)
+  DEoptim(Rosenbrock, lower, upper)
+
+  ## increase the population size
+  DEoptim(Rosenbrock, lower, upper, DEoptim.control(NP = 100))
+
+  ## change other settings and store the output
+  outDEoptim &lt;- DEoptim(Rosenbrock, lower, upper, DEoptim.control(NP = 80,
+                        itermax = 400, F = 1.2, CR = 0.7))
+  
+  ## plot the output
+  plot(outDEoptim)
+
+  ## 'Wild' function, global minimum at about -15.81515
+  Wild &lt;- function(x)
+    10 * sin(0.3 * x) * sin(1.3 * x^2) +
+       0.00001 * x^4 + 0.2 * x + 80
+
+  plot(Wild, -50, 50, n = 1000, main = "'Wild function'")
+
+  outDEoptim &lt;- DEoptim(Wild, lower = -50, upper = 50,
+                        control = DEoptim.control(trace = FALSE))
+  
+  plot(outDEoptim)
+
+  DEoptim(Wild, lower = -50, upper = 50,
+          control = DEoptim.control(NP = 50))
+</code></pre>
+
+
+</div>

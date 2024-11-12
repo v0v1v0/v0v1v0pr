@@ -1,0 +1,198 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>kgaps_post</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Random sampling from K-gaps posterior distribution</h2>
+
+<h3>Description</h3>
+
+<p>Uses the <code>rust</code> package to simulate from the posterior
+distribution of the extremal index <code class="reqn">\theta</code> based on the K-gaps model
+for threshold interexceedance times of Suveges and Davison (2010).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">kgaps_post(
+  data,
+  thresh,
+  k = 1,
+  n = 1000,
+  inc_cens = TRUE,
+  alpha = 1,
+  beta = 1,
+  param = c("logit", "theta"),
+  use_rcpp = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A numeric vector or numeric matrix of raw data.  If <code>data</code>
+is a matrix then the log-likelihood is constructed as the sum of
+(independent) contributions from different columns. A common situation is
+where each column relates to a different year.
+</p>
+<p>If <code>data</code> contains missing values then
+<code>split_by_NAs</code> is used to divide the data further into
+sequences of non-missing values, stored in different columns in a matrix.
+Again, the log-likelihood is constructed as a sum of contributions from
+different columns.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thresh</code></td>
+<td>
+<p>A numeric scalar.  Extreme value threshold applied to data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>A numeric scalar.  Run parameter <code class="reqn">K</code>, as defined in Suveges and
+Davison (2010).  Threshold inter-exceedances times that are not larger
+than <code>k</code> units are assigned to the same cluster, resulting in a
+<code class="reqn">K</code>-gap equal to zero.  Specifically, the <code class="reqn">K</code>-gap <code class="reqn">S</code>
+corresponding to an inter-exceedance time of <code class="reqn">T</code> is given by
+<code class="reqn">S = \max(T - K, 0)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>A numeric scalar. The size of posterior sample required.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inc_cens</code></td>
+<td>
+<p>A logical scalar indicating whether or not to include
+contributions from right-censored inter-exceedance times, relating to the
+first and last observations.  It is known that these times are greater
+than or equal to the time observed.
+If <code>data</code> has multiple columns then there will be right-censored
+first and last inter-exceedance times for each column.  See also the
+<strong>Details</strong> section of <code>kgaps</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha, beta</code></td>
+<td>
+<p>Positive numeric scalars.  Parameters of a
+beta(<code class="reqn">\alpha</code>, <code class="reqn">\beta</code>) prior for <code class="reqn">\theta</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>param</code></td>
+<td>
+<p>A character scalar.  If <code>param = "logit"</code> (the default)
+then we simulate from the posterior distribution of
+<code class="reqn">\phi = \log(\theta / (1-\theta))</code>
+and then transform back to the
+<code class="reqn">\theta</code>-scale.  If <code>param = "theta"</code> then we simulate
+directly from the posterior distribution of <code class="reqn">\theta</code>, unless
+the sample K-gaps are all equal to zero or all positive, when we revert
+to <code>param = "logit"</code>.  This is to avoid sampling directly from a
+posterior with mode equal to 0 or 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use_rcpp</code></td>
+<td>
+<p>A logical scalar.  If <code>TRUE</code> (the default) the
+rust function <code>ru_rcpp</code> is used for
+posterior simulation.  If <code>FALSE</code> the (slower) function
+<code>ru</code> is used.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>A beta(<code class="reqn">\alpha</code>, <code class="reqn">\beta</code>) prior distribution is used for
+<code class="reqn">\theta</code> so that the posterior from which values are simulated is
+proportional to
+</p>
+<p style="text-align: center;"><code class="reqn">\theta ^ {2 N_1 + \alpha - 1} (1 - \theta) ^ {N_0 + \beta - 1}
+    \exp\{- \theta q (S_0 + \cdots + S_N)\}.</code>
+</p>
+
+<p>See <code>kgaps_stat</code> for a description of the variables
+involved in the contribution of the likelihood to this expression.
+</p>
+<p>The <code>ru</code> function in the <code>rust</code>
+package simulates from this posterior distribution using the
+generalised ratio-of-uniforms distribution.  To improve the probability
+of acceptance, and to ensure that the simulation will work even in
+extreme cases where the posterior density of <code class="reqn">\theta</code> is unbounded as
+<code class="reqn">\theta</code> approaches 0 or 1, we simulate from the posterior
+distribution of
+<code class="reqn">\phi = \log(\theta / (1-\theta))</code>
+and then transform back to the <code class="reqn">\theta</code>-scale.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object (list) of class <code>"evpost"</code>, which has the same
+structure as an object of class <code>"ru"</code> returned from
+<code>ru</code>.
+In addition this list contains
+</p>
+
+<ul>
+<li> <p><code>call</code>: The call to <code>kgaps()</code>.
+</p>
+</li>
+<li> <p><code>model</code>: The character scalar <code>"kgaps"</code>.
+</p>
+</li>
+<li> <p><code>thresh</code>: The argument <code>thresh</code>.
+</p>
+</li>
+<li> <p><code>ss</code>: The sufficient statistics for the K-gaps likelihood,
+as calculated by <code>kgaps_stat</code>.
+</p>
+</li>
+</ul>
+<h3>References</h3>
+
+<p>Suveges, M. and Davison, A. C. (2010) Model
+misspecification in peaks over threshold analysis, <em>The Annals of
+Applied Statistics</em>, <strong>4</strong>(1), 203-221. <a href="https://doi.org/10.1214/09-AOAS292">doi:10.1214/09-AOAS292</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>ru</code> for the form of the object returned by
+<code>kgaps_post</code>.
+</p>
+<p><code>dgaps_post</code> for Bayesian inference about the
+extremal index <code class="reqn">\theta</code> using the <code class="reqn">D</code>-gaps model.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Newlyn sea surges
+
+thresh &lt;- quantile(newlyn, probs = 0.90)
+k_postsim &lt;- kgaps_post(newlyn, thresh)
+plot(k_postsim)
+
+### Cheeseboro wind gusts
+
+k_postsim &lt;- kgaps_post(exdex::cheeseboro, thresh = 45, k = 3)
+plot(k_postsim)
+</code></pre>
+
+
+</div>

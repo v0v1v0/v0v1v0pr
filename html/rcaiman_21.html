@@ -1,0 +1,166 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>extract_rl</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Extract relative luminance</h2>
+
+<h3>Description</h3>
+
+<p>Extract the luminance relative to the zenith digital number
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">extract_rl(r, z, a, sky_points, no_of_points = 3, z_thr = 5, use_window = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>r</code></td>
+<td>
+<p>SpatRaster. A normalized greyscale image. Typically, the
+blue channel extracted from a canopy photograph. Please see <code>read_caim()</code>
+and <code>normalize()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>z</code></td>
+<td>
+<p>SpatRaster built with <code>zenith_image()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>a</code></td>
+<td>
+<p>SpatRaster built with <code>azimuth_image()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sky_points</code></td>
+<td>
+<p>An object of class <em>data.frame</em>. The result of a call
+to <code>extract_sky_points()</code>. As an alternative, both
+<a href="https://imagej.net/ij/">ImageJ</a> and HSP software
+package (Lang et al. 2013) can be used to manually digitize
+points. See <code>extract_dn()</code> and
+<code>read_manual_input()</code> for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>no_of_points</code></td>
+<td>
+<p>Numeric vector of length one. The number of near-zenith
+points required for the estimation of the zenith DN.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>z_thr</code></td>
+<td>
+<p>Numeric vector on length one. The starting maximum zenith angle
+used to search for near-zenith points.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use_window</code></td>
+<td>
+<p>Logical vector of length one. If <code>TRUE</code>, a <code class="reqn">3
+ \times 3</code> window will be used to extract the digital number from
+<code>r</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The search for near-zenith points starts in the region  ranged between
+<code>0</code> and <code>z_thr</code>. If the number of near-zenith points is less than
+<code>no_of_points</code>, the region increases by steps of <code>2</code> degrees of
+zenith angle till the required number of points is reached.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list of three objects, <em>zenith_dn</em> and <em>max_zenith_angle</em>
+from the class <em>numeric</em>, and <em>sky_points</em> from the class
+<em>data.frame</em>; <em>zenith_dn</em> is the estimated zenith digital number,
+<em>max_zenith_angle</em> is the maximum zenith angle reached in the search
+for near-zenith sky points, and <em>sky_points</em> is the input argument
+<code>sky_points</code> with the additional columns: <em>a</em>, <em>z</em>,
+<em>dn</em>, and <em>rl</em>, which stand for azimuth and zenith angle in
+degrees, digital number, and relative luminance, respectively. If
+<code>NULL</code> is provided as <code>no_of_points</code>, then <em>zenith_dn</em> is
+forced to one and, therefore, <em>dn</em> and <em>rl</em> will be identical.
+</p>
+
+
+<h3>Note</h3>
+
+<p>The <a href="https://imagej.net/ij/docs/guide/146-19.html#sec:Multi-point-Tool">point selection tool of ‘ImageJ’ software</a>
+can be used to manually digitize points and create a CSV file from which to
+read coordinates (see Examples). After digitizing the points on the image,
+use the dropdown menu Analyze&gt;Measure to open the Results window. To obtain
+the CSV file, use File&gt;Save As...
+</p>
+
+
+<h3>References</h3>
+
+<p>Lang M, Kodar A, Arumäe T (2013).
+“Restoration of above canopy reference hemispherical image from below canopy measurements for plant area index estimation in forests.”
+<em>Forestry Studies</em>, <b>59</b>(1), 13–27.
+<a href="https://doi.org/10.2478/fsmu-2013-0008">doi:10.2478/fsmu-2013-0008</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Tool Functions: 
+<code>colorfulness()</code>,
+<code>correct_vignetting()</code>,
+<code>defuzzify()</code>,
+<code>extract_dn()</code>,
+<code>extract_feature()</code>,
+<code>extract_sky_points_simple()</code>,
+<code>extract_sky_points()</code>,
+<code>extract_sun_coord()</code>,
+<code>find_sky_pixels_nonnull()</code>,
+<code>find_sky_pixels()</code>,
+<code>masking()</code>,
+<code>optim_normalize()</code>,
+<code>percentage_of_clipped_highlights()</code>,
+<code>read_bin()</code>,
+<code>read_caim_raw()</code>,
+<code>read_caim()</code>,
+<code>write_bin()</code>,
+<code>write_caim()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+caim &lt;- read_caim() %&gt;% normalize(., 0, 20847)
+z &lt;- zenith_image(ncol(caim), lens())
+a &lt;- azimuth_image(z)
+plotRGB(caim*255)
+
+path &lt;- system.file("external/sky_points.csv",
+                    package = "rcaiman")
+sky_points &lt;- read.csv(path)
+sky_points &lt;- sky_points[c("Y", "X")]
+colnames(sky_points) &lt;- c("row", "col")
+head(sky_points)
+points(sky_points$col, nrow(caim) - sky_points$row, col = 2, pch = 10)
+extract_rl(caim$Blue, z, a, sky_points, 1)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

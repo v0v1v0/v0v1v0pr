@@ -1,0 +1,210 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>TMB-interface</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Interface to TMB</h2>
+
+<h3>Description</h3>
+
+<p>Interface to TMB
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">MakeADFun(
+  func,
+  parameters,
+  random = NULL,
+  profile = NULL,
+  integrate = NULL,
+  intern = FALSE,
+  map = list(),
+  ADreport = FALSE,
+  silent = FALSE,
+  ridge.correct = FALSE,
+  ...
+)
+
+sdreport(obj, ...)
+
+ADREPORT(x)
+
+REPORT(x)
+
+getAll(..., warn = TRUE)
+
+OBS(x)
+
+checkConsistency(obj, fast = TRUE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>func</code></td>
+<td>
+<p>Function taking a parameter list (or parameter vector) as input.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parameters</code></td>
+<td>
+<p>Parameter list (or parameter vector) used by <code>func</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>random</code></td>
+<td>
+<p>As MakeADFun.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>profile</code></td>
+<td>
+<p>As MakeADFun.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>integrate</code></td>
+<td>
+<p>As MakeADFun.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intern</code></td>
+<td>
+<p>As MakeADFun.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>map</code></td>
+<td>
+<p>As MakeADFun.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ADreport</code></td>
+<td>
+<p>As MakeADFun.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>silent</code></td>
+<td>
+<p>As MakeADFun.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ridge.correct</code></td>
+<td>
+<p>Experimental</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Passed to TMB</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>obj</code></td>
+<td>
+<p>TMB model object (output from MakeADFun)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Observation object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>warn</code></td>
+<td>
+<p>Give a warning if overwriting an existing object?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fast</code></td>
+<td>
+<p>Pass <code>observation.name</code> to <code>TMB</code> ?</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>MakeADFun builds a TMB model object mostly compatible with the <span class="pkg">TMB</span> package and with an almost identical interface.
+The main difference in <span class="pkg">RTMB</span> is that the objective function <strong>and</strong> the data is now given via a single argument <code>func</code>. Because <code>func</code> can be a <em>closure</em>, there is no need for an explicit data argument to MakeADFun (see examples).
+</p>
+
+
+<h3>Value</h3>
+
+<p>TMB model object.
+</p>
+
+
+<h3>Functions</h3>
+
+
+<ul>
+<li> <p><code>MakeADFun()</code>: Interface to MakeADFun.
+</p>
+</li>
+<li> <p><code>sdreport()</code>: Interface to sdreport.
+</p>
+</li>
+<li> <p><code>ADREPORT()</code>: Can be used inside the objective function to report quantities for which uncertainties will be calculated by sdreport.
+</p>
+</li>
+<li> <p><code>REPORT()</code>: Can be used inside the objective function to report quantities via the model object using <code>obj$report()</code>.
+</p>
+</li>
+<li> <p><code>getAll()</code>: Can be used to assign all parameter or data objects from a list inside the objective function.
+</p>
+</li>
+<li> <p><code>OBS()</code>: Mark the observation to be used by either <code>oneStepPredict</code> or by <code>obj$simulate</code>.
+If your objective function is using an observation <code>x</code>, you simply need
+to run <code>x &lt;- OBS(x)</code> <em>inside the objective function</em>.
+This will (1) allow <code>oneStepPredict</code> to change the class of <code>x</code> to
+<code>"osa"</code> (OSA-residuals) or (2) allow <code>obj$simulate</code> to change the class of <code>x</code> to
+<code>"simref"</code> (Simulation) on request.
+</p>
+</li>
+<li> <p><code>checkConsistency()</code>: Interface to checkConsistency.
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Objective with data from the user workspace
+data(rivers)
+f &lt;- function(p) { -sum(dnorm(rivers, p$mu, p$sd, log=TRUE)) }
+obj &lt;- MakeADFun(f, list(mu=0, sd=1), silent=TRUE)
+opt &lt;- nlminb(obj$par, obj$fn, obj$gr)
+sdreport(obj)
+## Same objective with an explicit data argument
+f &lt;- function(p, data) { -sum(dnorm(data, p$mu, p$sd, log=TRUE)) }
+cmb &lt;- function(f, d) function(p) f(p, d) ## Helper to make closure
+obj &lt;- MakeADFun(cmb(f, rivers), list(mu=0, sd=1), silent=TRUE)
+## 'REML trick'
+obj2 &lt;- MakeADFun(cmb(f, rivers), list(mu=0, sd=1), random="mu", silent=TRUE)
+opt2 &lt;- nlminb(obj2$par, obj2$fn, obj2$gr)
+sdreport(obj2) ## Compare with sd(rivers)
+## Single argument vector function with numeric 'parameters'
+fr &lt;- function(x) {   ## Rosenbrock Banana function
+    x1 &lt;- x[1]
+    x2 &lt;- x[2]
+    100 * (x2 - x1 * x1)^2 + (1 - x1)^2
+}
+obj &lt;- MakeADFun(fr, numeric(2), silent=TRUE)
+nlminb(c(-1.2, 1), obj$fn, obj$gr, obj$he)
+</code></pre>
+
+
+</div>

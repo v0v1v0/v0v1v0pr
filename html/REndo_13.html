@@ -1,0 +1,152 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>hetErrorsIV</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fitting Linear Models with Endogenous Regressors using Heteroskedastic Covariance Restrictions</h2>
+
+<h3>Description</h3>
+
+<p>This function estimates the model parameters and associated standard errors for a
+linear regression model with one endogenous regressor. Identification is achieved
+through heteroscedastic covariance restrictions within the triangular system as proposed in Lewbel(2012).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">hetErrorsIV(formula, data, verbose = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>A symbolic description of the model to be fitted. See the "Details" section for the exact notation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data.frame containing the data of all parts specified in the formula parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Show details about the running of the function.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+
+
+<h4>Method</h4>
+
+<p>The method proposed in Lewbel(2012) identifies structural parameters in regression models with endogenous
+regressors by means of variables that are uncorrelated with the product of heteroskedastic errors.
+The instruments are constructed as simple functions of the model's data. The method can be applied when
+no external instruments are available or to supplement external instruments to improve the efficiency of the
+IV estimator.
+Consider the model in the equation:
+</p>
+<br><div style="text-align:center">y<sub>t</sub>=β<sub>0</sub>+β<sub>1</sub>P<sub>t</sub>+β<sub>2</sub>X<sub>t</sub>+ε<sub>t</sub>
+</div>
+<p>where <code class="reqn">t=1,..,T</code> indexes either time or cross-sectional units.The endogeneity problem arises from the correlation of
+P<sub>t</sub> and ε<sub>t</sub>.
+As such: P<sub>t</sub> = Z<sub>t</sub>+ν<sub>t</sub>,
+where Z<sub>t</sub> is a subset of variables in X<sub>t</sub>.
+</p>
+<p>The errors, ε and ν, may be correlated with each other.
+Structural parameters are identified by an ordinary two-stage least squares regression of <code class="reqn">Y</code> on <code class="reqn">X</code> and <code class="reqn">P</code>, using <code class="reqn">X</code> and <code class="reqn">[Z-E(Z)]\nu</code> as instruments.
+A vital assumption for identification is that cov(Z,ν<sup>2</sup>)≠0.
+The strength of the instrument is proportional to the covariance of (Z-Z̅)ν with <code class="reqn">\nu</code>, which corresponds to
+the degree of heteroskedasticity of <code class="reqn">\nu</code> with respect to <code class="reqn">Z</code> (Lewbel 2012).
+</p>
+<p>The assumption that the covariance between <code class="reqn">Z</code> and the squared error is different from zero can be empirically tested (this is checked in the background when calling the
+function). If it is zero or close to zero, the instrument is weak, producing imprecise estimates, with large standard errors.
+</p>
+
+
+
+<h4>Formula parameter</h4>
+
+<p>The <code>formula</code> argument follows a four part notation:
+</p>
+<p>A two-sided formula describing the model (e.g. <code>y ~ X1 + X2 + P</code>), a single endogenous regressor
+(e.g. <code>P</code>), and the exogenous variables from which the internal instrumental variables should
+be build (e.g. <code>IIV(X1) + IIV(X2)</code>), each part separated by a single vertical bar (<code>|</code>).
+</p>
+<p>The instrumental variables that should be built are specified as (multiple) functions, one for each
+instrument. This function is <code>IIV</code> and uses the following arguments:
+</p>
+
+<dl>
+<dt><code>...</code></dt>
+<dd>
+<p>The exogenous regressors to build the internal instruments from.
+If more than one is given, separate instruments are built for each.</p>
+</dd>
+</dl>
+<p>Note that no argument to <code>IIV</code> is to be supplied as character but as symbols without quotation marks.
+</p>
+<p>Optionally, additional external instrumental variables to also include in the instrumental variable
+regression can be specified. These external instruments have to be already present in the data
+and are provided as the fourth right-hand side part of the formula, again separated by a vertical bar.
+</p>
+<p>See the example section for illustrations on how to specify the <code>formula</code> parameter.
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>Returns an object of classes <code>rendo.ivreg</code> and <code>ivreg</code>, It extends the object returned from
+function <code>ivreg</code> of package <code>AER</code> and slightly modifies it by adapting the <code>call</code>
+and <code>formula</code> components. The <code>summary</code> function prints additional diagnostic information as
+described in documentation for <code>summary.ivreg</code>.
+</p>
+<p>All generic accessor functions for <code>ivreg</code> such as <code>anova</code>, <code>hatvalues</code>, or <code>vcov</code> are available.
+</p>
+
+
+<h3>References</h3>
+
+<p>Lewbel, A. (2012). Using Heteroskedasticity to Identify and Estimate Mismeasured and Endogenous Regressor Models, Journal of Business &amp; Economic Statistics, 30(1), 67-80.
+</p>
+<p>Angrist, J. and Pischke, J.S. (2009). Mostly Harmless Econometrics: An Empiricists Companion, Princeton University Press.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>ivreg</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data("dataHetIV")
+# P is the endogenous regressor in all examples
+# X1 generates a weak instrument but for the examples
+# this is ignored
+
+# 2 IVs, one from X1, one from X2
+het &lt;- hetErrorsIV(y~X1+X2+P|P|IIV(X1)+IIV(X2), data=dataHetIV)
+# same as above
+het &lt;- hetErrorsIV(y~X1+X2+P|P|IIV(X1,X2), data=dataHetIV)
+
+# use X2 as an external IV
+het &lt;- hetErrorsIV(y~X1+P|P|IIV(X1)|X2, data=dataHetIV)
+
+summary(het)
+
+</code></pre>
+
+
+</div>

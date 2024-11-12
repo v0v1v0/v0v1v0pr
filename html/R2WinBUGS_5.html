@@ -1,0 +1,544 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>bugs</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Run WinBUGS and OpenBUGS from R or S-PLUS</h2>
+
+<h3>Description</h3>
+
+<p>The <code>bugs</code> function takes data and starting values as
+input.  It automatically writes a <span class="pkg">WinBUGS</span> script, calls the model, and
+saves the simulations for easy access in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> or S-PLUS.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">bugs(data, inits, parameters.to.save, model.file="model.bug",
+    n.chains=3, n.iter=2000, n.burnin=floor(n.iter/2),
+    n.thin=max(1, floor(n.chains * (n.iter - n.burnin) / n.sims)),
+    n.sims = 1000, bin=(n.iter - n.burnin) / n.thin,
+    debug=FALSE, DIC=TRUE, digits=5, codaPkg=FALSE,
+    bugs.directory="c:/Program Files/WinBUGS14/",
+    program=c("WinBUGS", "OpenBUGS", "winbugs", "openbugs"),
+    working.directory=NULL, clearWD=FALSE,
+    useWINE=.Platform$OS.type != "windows", WINE=NULL,
+    newWINE=TRUE, WINEPATH=NULL, bugs.seed=NULL, summary.only=FALSE,
+    save.history=!summary.only, over.relax = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>either a named list (names corresponding to variable names
+in the <code>model.file</code>) of the data for the <span class="pkg">WinBUGS</span> model,
+<em>or</em> (which is not recommended and unsafe) a vector or list of the names of the data objects used by
+the model. If <code>data</code> is a one element character vector (such as <code>"data.txt"</code>), 
+it is assumed that data have already been written to the working directory into that file, 
+e.g. by the function <code>bugs.data</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inits</code></td>
+<td>
+<p>a list with <code>n.chains</code> elements; each element of the
+list is itself a list of starting values for the <span class="pkg">WinBUGS</span> model,
+<em>or</em> a function creating (possibly random) initial values.
+Alternatively, if <code>inits=NULL</code>, initial values are generated
+by <span class="pkg">WinBUGS</span>. If <code>inits</code> is a character vector with <code>n.chains</code> elements, 
+it is assumed that inits have already been written to the working directory into those files, 
+e.g. by the function <code>bugs.inits</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parameters.to.save</code></td>
+<td>
+<p>character vector of the names of the
+parameters to save which should be monitored</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model.file</code></td>
+<td>
+<p>file containing the model written in <span class="pkg">WinBUGS</span> code.
+The extension can be either ‘<span class="file">.bug</span>’ or ‘<span class="file">.txt</span>’.
+If the extension is ‘<span class="file">.bug</span>’ and <code>program=="WinBUGS"</code>,
+a copy of the file with extension ‘<span class="file">.txt</span>’ will be created
+in the <code>bugs()</code> call and removed afterwards. Note that
+similarly named ‘<span class="file">.txt</span>’ files will be overwritten.
+Alternatively, <code>model.file</code> can be an R function that contains a BUGS model that is written to a 
+temporary model file (see <code>tempfile</code>) using <code>write.model</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.chains</code></td>
+<td>
+<p>number of Markov chains (default: 3)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.iter</code></td>
+<td>
+<p>number of total iterations per chain (including burn in;
+default: 2000)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.burnin</code></td>
+<td>
+<p>length of burn in, i.e. number of iterations to
+discard at the beginning. Default is <code>n.iter/2</code>, that is,
+discarding the first half of the simulations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.thin</code></td>
+<td>
+<p>thinning rate. Must be a positive integer.  Set
+<code>n.thin</code> &gt; 1 to save memory and computation time if
+<code>n.iter</code> is large.  Default is <code>max(1, floor(n.chains *
+    (n.iter-n.burnin) / 1000))</code> which will only thin if there are at
+least 2000 simulations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.sims</code></td>
+<td>
+<p>The approximate number of simulations to keep after thinning.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bin</code></td>
+<td>
+<p>number of iterations between saving of results
+(i.e. the coda files are saved after each <code>bin</code> iterations);
+default is to save only at the end.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>debug</code></td>
+<td>
+<p>if <code>FALSE</code> (default), <span class="pkg">WinBUGS</span> is closed automatically
+when the script has finished running, otherwise <span class="pkg">WinBUGS</span> remains open
+for further investigation</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>DIC</code></td>
+<td>
+<p>logical; if <code>TRUE</code> (default), compute deviance, pD,
+and DIC. This is done in <span class="pkg">WinBUGS</span> directly using the rule <code>pD =
+    Dbar - Dhat</code>.  If there are less iterations than required for the
+adaptive phase, the rule <code>pD=var(deviance) / 2</code> is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>digits</code></td>
+<td>
+<p>number of significant digits used for <span class="pkg">WinBUGS</span> input, see
+<code>formatC</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>codaPkg</code></td>
+<td>
+<p>logical; if <code>FALSE</code> (default) a <code>bugs</code> object
+is returned, if <code>TRUE</code> file names of <span class="pkg">WinBUGS</span> output are
+returned for easy access by the <span class="pkg">coda</span> package through function
+<code>read.bugs</code> (not used if <code>program="OpenBUGS"</code>).
+A <code>bugs</code> object can be converted to an <code>mcmc.list</code> object as 
+used by the <span class="pkg">coda</span> package with the method <code>as.mcmc.list</code> 
+(for which a method is provided by R2WinBUGS).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bugs.directory</code></td>
+<td>
+<p>directory that contains the <span class="pkg">WinBUGS</span> executable.
+If the global option <code>R2WinBUGS.bugs.directory</code> is not <code>NULL</code>, 
+it will be used as the default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>program</code></td>
+<td>
+<p>the program to use, either
+<code>winbugs</code>/<code>WinBUGS</code> or <code>openbugs</code>/<code>OpenBUGS</code>,
+the latter makes use of function <code>openbugs</code> and requires
+the CRAN package <span class="pkg">BRugs</span>. The <code>openbugs</code>/<code>OpenBUGS</code>
+choice is not available in S-PLUS.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>working.directory</code></td>
+<td>
+<p>sets working directory during execution of
+this function; <span class="pkg">WinBUGS</span>' in- and output will be stored in this
+directory; if <code>NULL</code>, a temporary working directory via
+<code>tempdir</code> is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>clearWD</code></td>
+<td>
+<p>logical; indicating whether the files ‘<span class="file">data.txt</span>’,
+‘<span class="file">inits[1:n.chains].txt</span>’, ‘<span class="file">log.odc</span>’, ‘<span class="file">codaIndex.txt</span>’,
+and ‘<span class="file">coda[1:nchains].txt</span>’ should be removed after <span class="pkg">WinBUGS</span> has
+finished.  If set to <code>TRUE</code>, this argument is only respected if
+<code>codaPkg=FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>useWINE</code></td>
+<td>
+<p>logical; attempt to use the Wine emulator to run
+<span class="pkg">WinBUGS</span>, defaults to <code>FALSE</code> on Windows, and <code>TRUE</code>
+otherwise. Not available in S-PLUS.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>WINE</code></td>
+<td>
+<p>character, path to ‘<span class="file">wine</span>’ binary file, it is
+tried hard (by a guess and the utilities <code>which</code> and <code>locate</code>) 
+to get the information automatically if not given.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newWINE</code></td>
+<td>
+<p>Use new versions of Wine that have ‘<span class="file">winepath</span>’
+utility</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>WINEPATH</code></td>
+<td>
+<p>character, path to ‘<span class="file">winepath</span>’ binary file, it is
+tried hard (by a guess and the utilities <code>which</code> and <code>locate</code>) 
+to get the information automatically if not given.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bugs.seed</code></td>
+<td>
+<p>random seed for <span class="pkg">WinBUGS</span> (default is no seed)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>summary.only</code></td>
+<td>
+<p>If <code>TRUE</code>, only a parameter summary for very quick analyses is given, 
+temporary created files are not removed in that case.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>save.history</code></td>
+<td>
+<p>If <code>TRUE</code> (the default), trace plots are generated at the end.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>over.relax</code></td>
+<td>
+<p>If <code>TRUE</code>, over-relaxed form of MCMC is used if available from WinBUGS.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>To run:
+</p>
+
+<ol>
+<li>
+<p> Write a <span class="pkg">BUGS</span> model in an ASCII file (hint: use
+<code>write.model</code>).
+</p>
+</li>
+<li>
+<p> Go into <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> / S-PLUS.
+</p>
+</li>
+<li>
+<p> Prepare the inputs for the <code>bugs</code> function and run it (see
+Example section).
+</p>
+</li>
+<li>
+<p> A <span class="pkg">WinBUGS</span> window will pop up and <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> / S-PLUS will freeze
+up. The model will now run in <span class="pkg">WinBUGS</span>. It might take awhile. You
+will see things happening in the Log window within <span class="pkg">WinBUGS</span>. When
+<span class="pkg">WinBUGS</span> is done, its window will close and <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> / S-PLUS will work
+again.
+</p>
+</li>
+<li>
+<p> If an error message appears, re-run with <code>debug=TRUE</code>.
+</p>
+</li>
+</ol>
+<p>BUGS version support:
+</p>
+
+<dl>
+<dt>
+<span class="pkg">WinBUGS</span> 1.4.*</dt>
+<dd>
+<p>default</p>
+</dd>
+<dt>
+<span class="pkg">OpenBUGS</span> 2.*</dt>
+<dd>
+<p>via argument <code>program="OpenBUGS"</code></p>
+</dd>
+</dl>
+<p>Operation system support:
+</p>
+
+<dl>
+<dt><span class="pkg">MS Windows</span></dt>
+<dd>
+<p>no problem</p>
+</dd>
+<dt>
+<span class="pkg">Linux</span>, <span class="pkg">Mac OS X</span> and <span class="pkg">Unix</span> in
+general</dt>
+<dd>
+<p>possible with Wine emulation via <code>useWINE=TRUE</code>, but
+only for <span class="pkg">WinBUGS</span> 1.4.*</p>
+</dd>
+</dl>
+<p>If <code>useWINE=TRUE</code> is used, all paths (such as
+<code>working.directory</code> and <code>model.file</code>, must be given in
+native (Unix) style, but <code>bugs.directory</code> can be given in
+Windows path style (e.g. “c:/Program Files/WinBUGS14/”) or
+native (Unix) style
+(e.g. “/path/to/wine/folder/dosdevices/c:/Program
+Files/WinBUGS14”).  This is done to achieve greatest portability with
+default argument value for <code>bugs.directory</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If <code>codaPkg=TRUE</code> the returned values are the names
+of coda output files written by <span class="pkg">WinBUGS</span> containing
+the Markov Chain Monte Carlo output in the CODA format.
+This is useful for direct access with <code>read.bugs</code>.
+</p>
+<p>If <code>codaPkg=FALSE</code>, the following values are returned:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>n.chains</code></td>
+<td>
+<p>see Section ‘Arguments’</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.iter</code></td>
+<td>
+<p>see Section ‘Arguments’</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.burnin</code></td>
+<td>
+<p>see Section ‘Arguments’</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.thin</code></td>
+<td>
+<p>see Section ‘Arguments’</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.keep</code></td>
+<td>
+<p>number of iterations kept per chain (equal to
+<code>(n.iter-n.burnin) / n.thin</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.sims</code></td>
+<td>
+<p>number of posterior simulations (equal to
+<code>n.chains * n.keep</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sims.array</code></td>
+<td>
+<p>3-way array of simulation output, with dimensions
+n.keep, n.chains, and length of combined parameter vector</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sims.list</code></td>
+<td>
+<p>list of simulated parameters:
+for each scalar parameter, a vector of length n.sims
+for each vector parameter, a 2-way array of simulations,
+for each matrix parameter, a 3-way array of simulations, etc.
+(for convenience, the <code>n.keep*n.chains</code> simulations in
+sims.matrix and sims.list (but NOT sims.array) have been randomly
+permuted)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sims.matrix</code></td>
+<td>
+<p>matrix of simulation output, with
+<code>n.chains*n.keep</code> rows and one column for each element of
+each saved parameter (for convenience, the <code>n.keep*n.chains</code>
+simulations in sims.matrix and sims.list (but NOT sims.array) have
+been randomly permuted)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>summary</code></td>
+<td>
+<p>summary statistics and convergence information for
+each saved parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mean</code></td>
+<td>
+<p>a list of the estimated parameter means</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sd</code></td>
+<td>
+<p>a list of the estimated parameter standard deviations</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>median</code></td>
+<td>
+<p>a list of the estimated parameter medians</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>root.short</code></td>
+<td>
+<p>names of argument <code>parameters.to.save</code> and
+“deviance”</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>long.short</code></td>
+<td>
+<p>indexes; programming stuff</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dimension.short</code></td>
+<td>
+<p>dimension of <code>indexes.short</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>indexes.short</code></td>
+<td>
+<p>indexes of <code>root.short</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>last.values</code></td>
+<td>
+<p>list of simulations from the most recent
+iteration; they can be used as starting points if you wish to run
+<span class="pkg">WinBUGS</span> for further iterations</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pD</code></td>
+<td>
+<p>an estimate of the effective number of parameters, for
+calculations see the section “Arguments”.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>DIC</code></td>
+<td>
+<p><code>mean(deviance) + pD</code></p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Andrew Gelman, <a href="mailto:gelman@stat.columbia.edu">gelman@stat.columbia.edu</a>; modifications and
+packaged by Sibylle Sturtz, <a href="mailto:sturtz@statistik.tu-dortmund.de">sturtz@statistik.tu-dortmund.de</a>,
+and Uwe Ligges.</p>
+
+
+<h3>References</h3>
+
+<p>Gelman, A., Carlin, J.B., Stern, H.S., Rubin, D.B. (2003):
+<em>Bayesian Data Analysis</em>, 2nd edition, CRC Press.
+</p>
+<p>Sturtz, S., Ligges, U., Gelman, A. (2005):
+R2WinBUGS: A Package for Running WinBUGS from R.
+<em>Journal of Statistical Software</em> 12(3), 1-16.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>print.bugs</code>, <code>plot.bugs</code>, as well as
+<span class="pkg">coda</span> and <span class="pkg">BRugs</span> packages</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># An example model file is given in:
+model.file &lt;- system.file(package="R2WinBUGS", "model", "schools.txt")
+# Let's take a look:
+file.show(model.file)
+
+# Some example data (see ?schools for details):
+data(schools)
+schools
+
+J &lt;- nrow(schools)
+y &lt;- schools$estimate
+sigma.y &lt;- schools$sd
+data &lt;- list(J=J, y=y, sigma.y=sigma.y)
+inits &lt;- function(){
+    list(theta=rnorm(J, 0, 100), mu.theta=rnorm(1, 0, 100),
+         sigma.theta=runif(1, 0, 100))
+}
+## or alternatively something like:
+# inits &lt;- list(
+#   list(theta=rnorm(J, 0, 90), mu.theta=rnorm(1, 0, 90),
+#        sigma.theta=runif(1, 0, 90)),
+#   list(theta=rnorm(J, 0, 100), mu.theta=rnorm(1, 0, 100),
+#        sigma.theta=runif(1, 0, 100))
+#   list(theta=rnorm(J, 0, 110), mu.theta=rnorm(1, 0, 110),
+#        sigma.theta=runif(1, 0, 110)))
+
+parameters &lt;- c("theta", "mu.theta", "sigma.theta")
+
+## Not run: 
+## You may need to edit "bugs.directory",
+## also you need write access in the working directory:
+schools.sim &lt;- bugs(data, inits, parameters, model.file,
+    n.chains=3, n.iter=5000,
+    bugs.directory="c:/Program Files/WinBUGS14/")
+print(schools.sim)
+plot(schools.sim)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

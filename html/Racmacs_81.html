@@ -1,0 +1,185 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>bootstrapMap</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Perform a bootstrap on a map</h2>
+
+<h3>Description</h3>
+
+<p>This function takes the map and original titer table, and performs a version
+of <a href="https://en.wikipedia.org/wiki/Bootstrapping_(statistics)">bootstrapping</a>
+defined by the method argument. For each bootstrap run
+this process is performed and a record of the coordinates of points in the
+lowest stress solution is kept. See details for a description of the bootstrapping
+methods you can apply.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">bootstrapMap(
+  map,
+  method,
+  bootstrap_repeats = 1000,
+  bootstrap_ags = TRUE,
+  bootstrap_sr = TRUE,
+  reoptimize = TRUE,
+  optimizations_per_repeat = 100,
+  ag_noise_sd = 0.7,
+  titer_noise_sd = 0.7,
+  options = list()
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>map</code></td>
+<td>
+<p>The map object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>One of "resample", "bayesian" or "noisy" (see details)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bootstrap_repeats</code></td>
+<td>
+<p>The number of bootstrap repeats to perform</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bootstrap_ags</code></td>
+<td>
+<p>For "resample" and "bayesian" methods, whether to apply bootstrapping across antigens</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bootstrap_sr</code></td>
+<td>
+<p>For "resample" and "bayesian" methods, whether to apply bootstrapping across sera</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reoptimize</code></td>
+<td>
+<p>Should the whole map be reoptimized with each bootstrap run. If FALSE,
+the map is simply relaxed from it's current optimization with each run.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optimizations_per_repeat</code></td>
+<td>
+<p>When re-optimizing the map from scratch, the
+number of optimization runs to perform</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ag_noise_sd</code></td>
+<td>
+<p>The standard deviation (on the log titer scale) of measurement noise
+applied per antigen when using the "noisy" method</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>titer_noise_sd</code></td>
+<td>
+<p>The standard deviation (on the log titer scale) of measurement noise
+applied per titer when using the "noisy" method</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>options</code></td>
+<td>
+<p>Map optimizer options, see <code>RacOptimizer.options()</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+
+
+<h4>Bootstrapping methods</h4>
+
+<p><strong>"resample"</strong>:
+The <a href="https://en.wikipedia.org/wiki/Bootstrapping_(statistics)#Case_resampling">resample bootstrap</a>
+is the most standard bootstrap method, a random resample of the titer table data is
+taken <em>with replacement</em>. Depending on your specification, resampling is applied across
+either individual antigens, individual sera or both antigens and sera.
+In essence this method tries to let you see how robust the map is to inclusion of
+particular titer measurements or antigens or sera. Like most bootstrapping techniques it
+will prove give more reliable results the more antigens and sera you have in your map. It
+won't work very well for a map of 5 sera and antigens for example, in this case a "noisy"
+bootstrap may be better.
+</p>
+<p><strong>"bayesian"</strong>:
+The <a href="https://en.wikipedia.org/wiki/Bootstrapping_(statistics)#Bayesian_bootstrap">bayesian bootstrap</a>
+is akin to the resampling bootstrap, but rather than explicitly resampling data, weights are
+assigned to each part of the titer table data according to random draws from a dirichilet distribution.
+Under this scheme, every data point will play at least some role in making the map, even if only
+weighted slightly. Sometimes this is helpful, if you know for example that the points in your map
+are highly dependent upon the presence of a few antigens / sera / titers to achieve reasonable
+triangulation of point positions and you don't really want to risk removing them completely and
+ending up with bootstrap runs that are under-constrained, you might want to consider this approach.
+On the other hand this might be exactly what you don't want and you want to know uncertainty that
+can be generated when certain subsets of the data are excluded completely, in that case you probably
+want to stick with the "resample" method.
+</p>
+<p><strong>"noisy"</strong>:
+The noisy bootstrap, sometimes termed a
+<a href="https://en.wikipedia.org/wiki/Bootstrapping_(statistics)#Smooth_bootstrap">smooth bootstrap</a>
+involved adding normally distributed noise to each observation. The distribution of this noise can
+be parameterised through the <code>ag_noise_sd</code> and <code>titer_noise_sd</code> arguments. <code>titer_noise_sd</code> refers to the
+standard deviation (on the log scale) of noise added to each individual titer measurement in the table,
+while <code>antigen_noise_sd</code> refers to the standard deviation of noise applied to titers for each antigen.
+The reason for this distinction is that we have noticed with repeat measurements of influenza data there
+is often both a random noise per titer and a random noise per antigen, i.e. in one repeat titers may all
+be around one 2-fold higher on average, in addition to unbiased additional titer noise. If you wish to only
+simulate additional noise per titer and not a per antigen effect, simply set <code>antigen_noise_sd</code> to 0. Note
+that in order to use this most effectively it is best to have an idea of the amount and type of measurement
+noise you may expect in your data and set these parameters accordingly.
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>Returns the map object updated with bootstrap information
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other map diagnostic functions: 
+<code>agCohesion()</code>,
+<code>bootstrapBlobs()</code>,
+<code>checkHemisphering()</code>,
+<code>dimensionTestMap()</code>,
+<code>logtiterTable()</code>,
+<code>map-table-distances</code>,
+<code>mapBootstrapCoords</code>,
+<code>mapDistances()</code>,
+<code>mapRelaxed()</code>,
+<code>mapResiduals()</code>,
+<code>pointStress</code>,
+<code>ptBootstrapBlob</code>,
+<code>ptBootstrapCoords()</code>,
+<code>ptLeverage</code>,
+<code>ptTriangulationBlob</code>,
+<code>recalculateStress()</code>,
+<code>stressTable()</code>,
+<code>tableColbases()</code>,
+<code>tableDistances()</code>,
+<code>triangulationBlobs()</code>,
+<code>unstableMaps</code>
+</p>
+
+
+</div>

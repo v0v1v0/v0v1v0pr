@@ -1,0 +1,113 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>RK45-class</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>RK45 ODE solver class</h2>
+
+<h3>Description</h3>
+
+<p>RK45 ODE solver class
+</p>
+<p>RK45 class constructor
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">RK45(ode)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>ode</code></td>
+<td>
+<p>and ODE object</p>
+</td>
+</tr></table>
+<h3>Examples</h3>
+
+<pre><code class="language-R"># ++++++++++++++++++++++++++++++++++++++++++++++++  example: ComparisonRK45App.R
+# Compares the solution by the RK45 ODE solver versus the analytical solution
+# Example file: ComparisonRK45App.R
+# ODE Solver:   Runge-Kutta 45
+# ODE class :   RK45
+# Base class:   ODETest
+
+importFromExamples("ODETest.R")
+
+ ComparisonRK45App &lt;- function(verbose = FALSE) {
+     ode &lt;- new("ODETest")                     # create an `ODETest` object
+     ode_solver &lt;- RK45(ode)                   # select the ODE solver
+     ode_solver &lt;- setStepSize(ode_solver, 1)      # set the step
+
+     # Two ways of setting the tolerance
+       # ode_solver &lt;- setTolerance(ode_solver, 1e-8)  # set the tolerance
+     setTolerance(ode_solver) &lt;-  1e-8
+
+     time &lt;-  0
+     rowVector &lt;- vector("list")
+     i &lt;- 1
+     while (time &lt; 50) {
+         rowVector[[i]] &lt;- list(t  = getState(ode)[2],
+                                s1 = getState(ode)[1],
+                                s2 = getState(ode)[2],
+                                xs = getExactSolution(ode, time),
+                                counts = getRateCounts(ode),
+                                time   = time
+                                )
+         ode_solver &lt;- step(ode_solver)           # advance one step
+         stepSize   &lt;- getStepSize(ode_solver)
+         time &lt;- time + stepSize
+         ode  &lt;- getODE(ode_solver)                     # get updated ODE object
+         i &lt;- i + 1
+     }
+     return(data.table::rbindlist(rowVector))    # a data table with the results
+ }
+# show solution
+solution &lt;- ComparisonRK45App()                          # run the example
+plot(solution)
+#  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++ example KeplerApp.R
+#  KeplerApp solves an inverse-square law model (Kepler model) using an adaptive
+#  stepsize algorithm.
+#  Application showing two planet orbiting
+#  File in examples: KeplerApp.R
+
+importFromExamples("Kepler.R") # source the class Kepler
+
+KeplerApp &lt;- function(verbose = FALSE) {
+
+    # set the orbit into a predefined state.
+    r &lt;- c(2, 0)                                   # orbit radius
+    v &lt;- c(0, 0.25)                                # velocity
+    dt &lt;- 0.1
+    planet &lt;- Kepler(r, v)                         # make up an ODE object
+    solver &lt;- RK45(planet)
+    rowVector &lt;- vector("list")
+    i &lt;- 1
+    while (getState(planet)[5] &lt;= 10) {
+        rowVector[[i]] &lt;- list(t  = planet@state[5],
+                               planet1.r = getState(planet)[1],
+                               p1anet1.v = getState(planet)[2],
+                               planet2.r = getState(planet)[3],
+                               p1anet2.v = getState(planet)[4])
+        solver &lt;- step(solver)
+        planet &lt;- getODE(solver)
+        i &lt;-  i + 1
+    }
+    DT &lt;- data.table::rbindlist(rowVector)
+
+    return(DT)
+}
+
+solution &lt;- KeplerApp()
+plot(solution)
+
+
+</code></pre>
+
+
+</div>

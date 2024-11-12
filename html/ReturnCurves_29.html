@@ -1,0 +1,180 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rc_unc</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Uncertainty of the Return Curve estimates</h2>
+
+<h3>Description</h3>
+
+<p>Uncertainty assessment of the return curve estimates following the procedure of Murphy-Barltrop et al. (2023).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rc_unc(retcurve, blocksize = 1, nboot = 250, nangles = 150, alpha = 0.05)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>retcurve</code></td>
+<td>
+<p>An S4 object of class <code>rc_est.class</code>. See <code>rc_est</code> for more details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>blocksize</code></td>
+<td>
+<p>Size of the blocks for the block bootstrap procedure. If <code>1</code> (default), then a standard bootstrap approach is applied.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nboot</code></td>
+<td>
+<p>Number of bootstrap samples to be taken. Default is <code>250</code> samples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nangles</code></td>
+<td>
+<script id="MathJax-script" async src="../../mathjaxr/doc/mathjax/es5/tex-chtml-full.js"></script><p> Number of angles \(m\) in the interval \((0, \pi/2)\) (Murphy-Barltrop et al. 2023). Default is <code>150</code> angles.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>Significance level to compute the \((1-\alpha)\)% confidence intervals. Default is <code>0.05</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Define a set of angles \[\boldsymbol{\Theta}:= \left\lbrace \frac{\pi(m+1-j)}{2(m+1)} \mid 1\leq j\leq m\right\rbrace\] decreasing from near \(\pi/2\) to \(0\), 
+and let \(L_\theta:=\left\lbrace(x,y)\in R^2_+ | \tan(\theta)=y/x\right\rbrace\) denote the line segment intersecting the origin with gradient \(\tan(\theta) &gt; 0.\)
+For each \(\theta\in \boldsymbol{\Theta},\) \(L_\theta\) intersects the estimated \(\hat{RC}(p)\) exactly once, i.e. \(\lbrace(\hat{x}_\theta, \hat{y}_\theta)\rbrace:= \hat{RC}(p)\cap L_\theta.\) 
+Uncertainty of the return curve is then quantified by the distribution of \(\hat{d}_\theta:=(\hat{x}^2_\theta + \hat{y}^2_\theta)^{1/2}\) via a (block) bootstrap procedure. 
+</p>
+<p>This procedure is as follows; for \(k = 1, \ldots, \) <code>nboot</code>:
+</p>
+<p>1. (Block) bootstrap the original data set; 
+</p>
+<p>2. For each \(\theta\in \boldsymbol{\Theta},\) obtain \(\hat{d}_{\theta,k}\) for the corresponding return curve point estimate.
+</p>
+<p>Full details can be found in Murphy-Barltrop et al. (2023)
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of S4 class <code>rc_unc.class</code>. This object returns the arguments of the function and an extra slot <code>unc</code> which is a list containing:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>median</code></td>
+<td>
+<p>A vector containing the median estimates of the return curve.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mean</code></td>
+<td>
+<p>A vector containing the mean estimates of the return curve.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lower</code></td>
+<td>
+<p>A vector containing the lower bound of the confidence interval.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>upper</code></td>
+<td>
+<p>A vector containing the upper bound of the confidence interval.</p>
+</td>
+</tr>
+</table>
+<p>The <code>plot</code> function takes an object of S4 class <code>rc_unc.class</code>, and a <code>which</code> argument specifying the type of plot desired (see <strong>Examples</strong>):
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>"rc"</code></td>
+<td>
+<p>Plots the estimated Return Curve and its uncertainty (default).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>"median"</code></td>
+<td>
+<p>Plots the median estimates of the Return Curve and its uncertainty.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>"mean"</code></td>
+<td>
+<p>Plots the mean estimates of the Return Curve and its uncertainty.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>"all"</code></td>
+<td>
+<p>Plots the estimated Return Curve, the median and mean estimates of the Return Curve together, and the associated uncertainty.</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Murphy-Barltrop CJR, Wadsworth JL, Eastoe EF (2023).
+“New estimation methods for extremal bivariate return curves.”
+<em>Environmetrics</em>, <b>34</b>(5).
+ISSN 1099095X, doi: <a href="https://doi.org/10.1002/env.2797">10.1002/env.2797</a>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(ReturnCurves)
+
+data(airdata)
+
+n &lt;- dim(airdata)[1]
+
+prob &lt;- 10/n
+
+margdata &lt;- margtransf(airdata)
+
+rc_orig &lt;- rc_est(margdata = margdata, p = prob, method = "hill")
+
+
+# Set nboot = 50 for an illustrative example
+# blocksize to account for temporal dependence
+unc &lt;- rc_unc(rc_orig, blocksize = 10) 
+
+# Plots the estimated Return Curve 
+plot(unc, which = "rc") 
+
+# Plots the median estimates of the Return Curve
+plot(unc, which = "median") 
+
+# Plots the mean estimates of the Return Curve
+plot(unc, which = "mean") 
+
+# Plots the estimated Return Curve and its the median and mean estimates
+plot(unc, which = "all") 
+
+# To see the the S4 object's slots
+str(unc)
+
+# To access the list of vectors
+unc@unc
+
+
+</code></pre>
+
+
+</div>

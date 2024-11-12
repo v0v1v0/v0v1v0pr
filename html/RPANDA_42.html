@@ -1,0 +1,252 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fit_t_comp</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Fits models of trait evolution incorporating competitive interactions
+</h2>
+
+<h3>Description</h3>
+
+<p>Fits matching competition (MC), diversity dependent linear (DDlin), or diversity dependent exponential (DDexp) models of trait evolution to a given dataset and phylogeny.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fit_t_comp(phylo, data, error=NULL, model=c("MC","DDexp","DDlin"), pars=NULL, 
+		geography.object=NULL, regime.map=NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>phylo</code></td>
+<td>
+
+<p>an object of type 'phylo' (see ape documentation)
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+
+<p>a named vector of trait values with names matching <code>phylo$tip.label</code>
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>error</code></td>
+<td>
+
+<p>A named vector with standard errors (SE) of trait values for each species (with names matching <code>"phylo$tip.label"</code>). The default is NULL, in this case potential error is ignored in the fit. If set to NA, the SE is estimated from the data (to be used when there are no error measurements, a nuisance parameter is estimated). Note: When standard errors are provided, a nuisance parameter is also estimated.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+
+<p>model chosen to fit trait data, <code>"MC"</code> is the matching competition model of Nuismer &amp; Harmon 2014, <code>"DDlin"</code> is the diversity-dependent linear model, and <code>"DDexp"</code> is the diversity-dependent exponential model of Weir &amp; Mursleen 2013.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pars</code></td>
+<td>
+
+<p>vector specifying starting parameter values for maximum likelihood optimization. If unspecified, default values are used (see Details)
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>geography.object</code></td>
+<td>
+
+<p>if incorporating biogeography, a list of sympatry through time created using <code>CreateGeoObject</code>
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>regime.map</code></td>
+<td>
+
+<p>if running two-regime versions of models, a stochastic map of the two regimes stored as a simmap object output from <code>make.simmap</code>
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Note: if including known measurement error, the model fit incorporates this known error and, in addition, estimates an unknown, nuisance contribution to measurement error. The current implementation does not differentiate between the two, so, for instance, it is not possible to estimate the nuisance measurement error without providing the known, intraspecific error values.
+</p>
+<p>For single-regime fits without measurement error, <code>par</code> takes the default values of <code>var(data)/max(nodeHeights(phylo))</code> for sig2 and 0 for either <code>S</code> for the matching competition model, 
+<code>b</code> for the linear diversity dependence model, or <code>r</code> for the exponential diversity dependence model. Values can be manually entered as a vector with the first element
+equal to the desired starting value for sig2 and the second value equal to the desired starting value for either <code>S</code>, <code>b</code>, or <code>r</code>. Note: since likelihood optimization
+uses sig rather than sig2, and since the starting value for is exponentiated to stabilize the likelihood search, if you input a <code>par</code> value, the first value specifying sig2 
+should be the log(sqrt()) of the desired sig2 starting value.
+</p>
+<p>For two-regime fits without measurement error, the second and third values for <code>par</code> correspond to the first and second <code>S</code>, <code>b</code>, or <code>r</code> value (run trial fit to see which regime corresponds to each slope).
+</p>
+<p>For fits including measurement error, the default starting value for sig2 is <code>0.95*var(data)/max(nodeHeights(phylo))</code>, and nuisance values start at <code>0.05*var(data)/max(nodeHeights(phylo))</code>.
+In all cases, the nuisance parameter is the last in the <code>par</code> vector, with the order of other variables as described above.
+</p>
+<p>For two-regime fits, particularly under the matching competition model, we recommend fitting with several different starting values.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a list with the following elements:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>LH</code></td>
+<td>
+<p>maximum log-likelihood value</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aic</code></td>
+<td>
+<p>Akaike Information Criterion value</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aicc</code></td>
+<td>
+<p>AIC value corrected for small sample size</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>free.parameters</code></td>
+<td>
+<p>number of free parameters from the model</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sig2</code></td>
+<td>
+<p>maximum-likelihood estimate of <code>sig2</code> parameter</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>S</code></td>
+<td>
+<p>maximum-likelihood estimate of <code>S</code> parameter of matching competition model (see Note)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>b</code></td>
+<td>
+<p>maximum-likelihood estimate of <code>b</code> parameter of linear diversity dependence model</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>r</code></td>
+<td>
+<p>maximum-likelihood estimate of <code>r</code> parameter of exponential diversity dependence model</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>z0</code></td>
+<td>
+<p>maximum-likelihood estimate of <code>z0</code>, the value at the root of the tree</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nuisance</code></td>
+<td>
+<p>maximum-likelihood estimate of <code>nuisance</code>, the unknown, nuisance contribution to measurement error (see details)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>convergence</code></td>
+<td>
+<p>convergence diagnostics from <code>optim</code> function (see optim documentation)</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>In current version, the <code>S</code> parameter is restricted to take on negative values in MC + geography ML optimization.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Jonathan Drury <a href="mailto:jonathan.p.drury@gmail.com">jonathan.p.drury@gmail.com</a>
+</p>
+<p>Julien Clavel 
+</p>
+
+
+<h3>References</h3>
+
+<p>Drury, J., Clavel, J. Tobias, J., Rolland, J., Sheard, C., and Morlon, H. Tempo and mode of morphological evolution are decoupled from latitude in birds. <em>PLOS Biology</em> doi:10.1371/journal.pbio.3001270
+</p>
+<p>Drury, J., Clavel, J., Manceau, M., and Morlon, H. 2016. Estimating the effect of competition on trait evolution using maximum likelihood inference. 
+<em>Systematic Biology</em> 65:700-710
+</p>
+<p>Nuismer, S. &amp; Harmon, L. 2015. Predicting rates of interspecific interaction from phylogenetic trees. <em>Ecology Letters</em> 18:17-27.
+</p>
+<p>Weir, J. &amp; Mursleen, S. 2012. Diversity-dependent cladogenesis and trait evolution in the adaptive radiation of the auks (Aves: Alcidae). <em>Evolution</em> 67:403-416.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>sim_t_comp</code>
+<code>CreateGeoObject</code>
+<code>likelihood_t_MC</code>
+<code>likelihood_t_MC_geog</code>
+<code>likelihood_t_DD</code>
+<code>likelihood_t_DD_geog</code>
+<code>fit_t_comp_subgroup</code>	
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+data(Anolis.data)
+geography.object&lt;-Anolis.data$geography.object
+pPC1&lt;-Anolis.data$data
+phylo&lt;-Anolis.data$phylo
+regime.map&lt;-Anolis.data$regime.map
+
+
+# Fit three models without biogeography to pPC1 data
+MC.fit&lt;-fit_t_comp(phylo, pPC1, model="MC")
+DDlin.fit&lt;-fit_t_comp(phylo, pPC1, model="DDlin")
+DDexp.fit&lt;-fit_t_comp(phylo, pPC1, model="DDexp")
+
+# Now fit models that incorporate biogeography, NOTE these models take longer to fit
+MC.geo.fit&lt;-fit_t_comp(phylo, pPC1, model="MC", geography.object=geography.object)
+DDlin.geo.fit&lt;-fit_t_comp(phylo, pPC1,model="DDlin", geography.object=geography.object)
+DDexp.geo.fit&lt;-fit_t_comp(phylo, pPC1, model="DDexp", geography.object=geography.object)
+
+# Now fit models that estimate parameters separately according to different 'regimes'
+MC.two_regime.fit&lt;-fit_t_comp(phylo, pPC1, model="MC", regime.map=regime.map)
+DDlin.two_regime.fit&lt;-fit_t_comp(phylo, pPC1,model="DDlin", regime.map=regime.map)
+DDexp.two_regime.fit&lt;-fit_t_comp(phylo, pPC1, model="DDexp", regime.map=regime.map)
+
+# Now fit models that estimate parameters separately according to different 'regimes', 
+# including biogeography
+MC.two_regime.geo.fit&lt;-fit_t_comp(phylo, pPC1, model="MC", 
+  geography.object=geography.object, regime.map=regime.map)
+DDlin.two_regime.geo.fit&lt;-fit_t_comp(phylo, pPC1,model="DDlin", 
+  geography.object=geography.object, regime.map=regime.map)
+DDexp.two_regime.geo.fit&lt;-fit_t_comp(phylo, pPC1, model="DDexp", 
+  geography.object=geography.object, regime.map=regime.map)
+
+
+</code></pre>
+
+
+</div>

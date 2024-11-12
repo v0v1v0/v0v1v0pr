@@ -1,0 +1,452 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rdrobust</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Local-Polynomial RD Estimation with Robust Confidence Intervals</h2>
+
+<h3>Description</h3>
+
+<p><code>rdrobust</code> implements local polynomial Regression Discontinuity (RD) point estimators with robust bias-corrected confidence intervals and inference procedures developed in Calonico, Cattaneo and Titiunik (2014a), Calonico, Cattaneo and Farrell (2018), Calonico, Cattaneo, Farrell and Titiunik (2019), and Calonico, Cattaneo and Farrell (2020). It also computes alternative estimation and inference procedures available in the literature. 
+</p>
+<p>Companion commands are: <code>rdbwselect</code> for data-driven bandwidth selection, and <code>rdplot</code> for data-driven RD plots (see Calonico, Cattaneo and Titiunik (2015a) for details).
+</p>
+<p>A detailed introduction to this command is given in Calonico, Cattaneo and Titiunik (2015b), and Calonico, Cattaneo, Farrell and Titiunik (2017). A companion <code>Stata</code> package is described in Calonico, Cattaneo and Titiunik (2014b).
+</p>
+<p>For more details, and related Stata and R packages useful for analysis of RD designs, visit <a href="https://rdpackages.github.io/">https://rdpackages.github.io/</a>
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rdrobust(y, x, c = NULL,  fuzzy = NULL, 
+          deriv = NULL, p = NULL, q = NULL, 
+          h = NULL, b = NULL, rho = NULL, 
+          covs = NULL,  covs_drop = TRUE, ginv.tol = 1e-20,
+          kernel = "tri", weights = NULL, bwselect = "mserd", 
+          vce = "nn", cluster = NULL, 
+          nnmatch = 3, level = 95, scalepar = 1, scaleregul = 1, 
+          sharpbw = FALSE, all = NULL, subset = NULL,
+          masspoints = "adjust", bwcheck = NULL,
+          bwrestrict = TRUE, stdvars = FALSE)</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>is the dependent variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>is the running variable (a.k.a. score or forcing variable).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>c</code></td>
+<td>
+<p>specifies the RD cutoff in <code>x</code>; default is <code>c = 0</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fuzzy</code></td>
+<td>
+<p>specifies the treatment status variable used to implement fuzzy RD estimation (or Fuzzy Kink RD if <code>deriv=1</code> is also specified). Default is Sharp RD design and hence this option is not used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deriv</code></td>
+<td>
+<p>specifies the order of the derivative of the regression functions to be estimated. Default is <code>deriv=0</code> (for Sharp RD, or for Fuzzy RD if <code>fuzzy</code> is also specified). Setting <code>deriv=1</code> results in estimation of a Kink RD design (up to scale), or Fuzzy Kink RD if <code>fuzzy</code> is also specified.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>specifies the order of the local-polynomial used to construct the point-estimator; default is <code>p = 1</code> (local linear regression).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>q</code></td>
+<td>
+<p>specifies the order of the local-polynomial used to construct the bias-correction; default is <code>q = 2</code> (local quadratic regression).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>h</code></td>
+<td>
+<p>specifies the main bandwidth used to construct the RD point estimator. If not specified, bandwidth <code>h</code> is computed by the companion command <code>rdbwselect</code>. If two bandwidths are specified, the first bandwidth is used for the data below the cutoff and the second bandwidth is used for the data above the cutoff.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>b</code></td>
+<td>
+<p>specifies the bias bandwidth used to construct the bias-correction estimator. If not specified, bandwidth <code>b</code> is computed by the companion command <code>rdbwselect</code>. If two bandwidths are specified, the first bandwidth is used for the data below the cutoff and the second bandwidth is used for the data above the cutoff.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rho</code></td>
+<td>
+<p>specifies the value of <code>rho</code>, so that the bias bandwidth <code>b</code> equals <code>h/rho</code>. Default is <code>rho = 1</code> if <code>h</code> is specified but <code>b</code> is not.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covs</code></td>
+<td>
+<p>specifies additional covariates to be used for estimation and inference.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covs_drop</code></td>
+<td>
+<p>if TRUE, it checks for collinear additional covariates and drops them. Default is TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ginv.tol</code></td>
+<td>
+<p>tolerance used to invert matrices involving covariates when <code>covs_drop=TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kernel</code></td>
+<td>
+<p>is the kernel function used to construct the local-polynomial estimator(s). Options are <code>triangular</code> (default option), <code>epanechnikov</code> and <code>uniform</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>is the variable used for optional weighting of the estimation procedure. The unit-specific weights multiply the kernel function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bwselect</code></td>
+<td>
+<p>specifies the bandwidth selection procedure to be used. By default it computes both <code>h</code> and <code>b</code>, unless <code>rho</code> is specified, in which case it only computes <code>h</code> and sets <code>b=h/rho</code>.</p>
+</td>
+</tr>
+</table>
+<p>Options are:
+</p>
+<p><code>mserd</code> one common MSE-optimal bandwidth selector for the RD treatment effect estimator.
+</p>
+<p><code>msetwo</code> two different MSE-optimal bandwidth selectors (below and above the cutoff) for the RD treatment effect estimator.
+</p>
+<p><code>msesum</code> one common MSE-optimal bandwidth selector for the sum of regression estimates (as opposed to difference thereof).
+</p>
+<p><code>msecomb1</code> for min(<code>mserd</code>,<code>msesum</code>).
+</p>
+<p><code>msecomb2</code> for median(<code>msetwo</code>,<code>mserd</code>,<code>msesum</code>), for each side of the cutoff separately.
+</p>
+<p><code>cerrd</code> one common CER-optimal bandwidth selector for the RD treatment effect estimator.
+</p>
+<p><code>certwo</code> two different CER-optimal bandwidth selectors (below and above the cutoff) for the RD treatment effect estimator.
+</p>
+<p><code>cersum</code> one common CER-optimal bandwidth selector for the sum of regression estimates (as opposed to difference thereof).
+</p>
+<p><code>cercomb1</code> for min(<code>cerrd</code>,<code>cersum</code>).
+</p>
+<p><code>cercomb2</code> for median(<code>certwo</code>,<code>cerrd</code>,<code>cersum</code>), for each side of the cutoff separately.
+</p>
+<p>Note: MSE = Mean Square Error; CER = Coverage Error Rate.
+Default is <code>bwselect=mserd</code>. For details on implementation see Calonico, Cattaneo and Titiunik (2014a), Calonico, Cattaneo and Farrell (2018), and Calonico, Cattaneo, Farrell and Titiunik (2019), and the companion software articles.
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>vce</code></td>
+<td>
+<p>specifies the procedure used to compute the variance-covariance matrix estimator.
+Options are:
+</p>
+<p><code>nn</code> for heteroskedasticity-robust nearest neighbor variance estimator with <code>nnmatch</code> the (minimum) number of neighbors to be used.
+</p>
+<p><code>hc0</code> for heteroskedasticity-robust plug-in residuals variance estimator without weights.
+</p>
+<p><code>hc1</code> for heteroskedasticity-robust plug-in residuals variance estimator with <code>hc1</code> weights.
+</p>
+<p><code>hc2</code> for heteroskedasticity-robust plug-in residuals variance estimator with <code>hc2</code> weights.
+</p>
+<p><code>hc3</code> for heteroskedasticity-robust plug-in residuals variance estimator with <code>hc3</code> weights.
+</p>
+<p>Default is <code>vce=nn</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cluster</code></td>
+<td>
+<p>indicates the cluster ID variable used for cluster-robust variance estimation with degrees-of-freedom weights. By default it is combined with <code>vce=nn</code> for cluster-robust nearest neighbor variance estimation. Another option is plug-in residuals combined with <code>vce=hc0</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nnmatch</code></td>
+<td>
+<p>to be combined with for <code>vce=nn</code> for heteroskedasticity-robust nearest neighbor variance estimator with <code>nnmatch</code> indicating the minimum number of neighbors to be used. Default is <code>nnmatch=3</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>level</code></td>
+<td>
+<p>sets the confidence level for confidence intervals; default is <code>level = 95</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scalepar</code></td>
+<td>
+<p>specifies scaling factor for RD parameter of interest. This option is useful when the population parameter of interest involves a known multiplicative factor (e.g., sharp kink RD).  Default is <code>scalepar = 1</code> (no scaling).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scaleregul</code></td>
+<td>
+<p>specifies scaling factor for the regularization term added to the denominator of the bandwidth selectors. Setting <code>scaleregul = 0</code> removes the regularization term from the bandwidth selectors; default is <code>scaleregul = 1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sharpbw</code></td>
+<td>
+<p>option to perform fuzzy RD estimation using a bandwidth selection procedure for the sharp RD model. This option is automatically selected if there is perfect compliance at either side of the cutoff.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>all</code></td>
+<td>
+<p>if specified, <code>rdrobust</code> reports three different procedures:
+</p>
+<p>(i) conventional RD estimates with conventional standard errors.
+</p>
+<p>(ii) bias-corrected estimates with conventional standard errors.
+</p>
+<p>(iii) bias-corrected estimates with robust standard errors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subset</code></td>
+<td>
+<p>an optional vector specifying a subset of observations to be used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>masspoints</code></td>
+<td>
+<p>checks and controls for repeated observations in the running variable. Options are:
+</p>
+<p>(i)  <code>off</code>: ignores the presence of mass points; 
+</p>
+<p>(ii) <code>check</code>: looks for and reports the number of unique observations at each side of the cutoff. 
+</p>
+<p>(iii) <code>adjust</code>: controls that the preliminary bandwidths used in the calculations contain a minimal number of unique observations. By default it uses 10 observations, but it can be manually adjusted with the option <code>bwcheck</code>). 
+</p>
+<p>Default option is <code>masspoints=adjust</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bwcheck</code></td>
+<td>
+<p>if a positive integer is provided, the preliminary bandwidth used in the calculations is enlarged so that at least <code>bwcheck</code> unique observations are used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bwrestrict</code></td>
+<td>
+<p>if <code>TRUE</code>, computed bandwidths are restricted to lie within the range of <code>x</code>; default is <code>bwrestrict = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stdvars</code></td>
+<td>
+<p>if <code>TRUE</code>, <code>x</code> and <code>y</code> are standardized before computing the bandwidths; default is <code>stdvars = FALSE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>N</code></td>
+<td>
+<p>vector with the sample sizes used to the left and to the right of the cutoff.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>N_h</code></td>
+<td>
+<p>vector with the effective sample sizes used to the left and to the right of the cutoff.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>c</code></td>
+<td>
+<p>cutoff value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>order of the polynomial used for estimation of the regression function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>q</code></td>
+<td>
+<p>order of the polynomial used for estimation of the bias of the regression function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bws</code></td>
+<td>
+<p>matrix containing the bandwidths used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tau_cl</code></td>
+<td>
+<p>conventional local-polynomial estimate to the left and to the right of the cutoff.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tau_bc</code></td>
+<td>
+<p>bias-corrected local-polynomial estimate to the left and to the right of the cutoff.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coef</code></td>
+<td>
+<p>vector containing conventional and bias-corrected local-polynomial RD estimates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>se</code></td>
+<td>
+<p>vector containing conventional and robust standard errors of the local-polynomial RD estimates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bias</code></td>
+<td>
+<p>estimated bias for the local-polynomial RD estimator below and above the cutoff.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta_Y_p_l</code></td>
+<td>
+<p>conventional p-order local-polynomial estimates to the left of the cutoff for the outcome variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta_Y_p_r</code></td>
+<td>
+<p>conventional p-order local-polynomial estimates to the right of the cutoff for the outcome variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta_T_p_l</code></td>
+<td>
+<p>conventional p-order local-polynomial estimates to the left of the cutoff for the first stage (fuzzy RD).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta_T_p_r</code></td>
+<td>
+<p>conventional p-order local-polynomial estimates to the right of the cutoff for the first stage (fuzzy RD).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta_covs</code></td>
+<td>
+<p>coefficients of the additional covariates, only returned when <code>covs()</code> are used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>V_cl_l</code></td>
+<td>
+<p>conventional variance-covariance matrix estimated below the cutoff.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>V_cl_r</code></td>
+<td>
+<p>conventional variance-covariance matrix estimated above the cutoff.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>V_rb_l</code></td>
+<td>
+<p>robust variance-covariance matrix estimated below the cutoff.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>V_rb_r</code></td>
+<td>
+<p>robust variance-covariance matrix estimated above the cutoff.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pv</code></td>
+<td>
+<p>vector containing the p-values associated with conventional, bias-corrected and robust local-polynomial RD estimates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ci</code></td>
+<td>
+<p>matrix containing the confidence intervals associated with conventional, bias-corrected and robust local-polynomial RD estimates.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Sebastian Calonico, Columbia University, New York, NY.  <a href="mailto:sebastian.calonico@columbia.edu">sebastian.calonico@columbia.edu</a>.
+</p>
+<p>Matias D. Cattaneo, Princeton University, Princeton, NJ.  <a href="mailto:cattaneo@princeton.edu">cattaneo@princeton.edu</a>.
+</p>
+<p>Max H. Farrell, University of California, Santa Barbara, CA. <a href="mailto:maxhfarrell@ucsb.edu">maxhfarrell@ucsb.edu</a>.
+</p>
+<p>Rocio Titiunik, Princeton University, Princeton, NJ.  <a href="mailto:titiunik@princeton.edu">titiunik@princeton.edu</a>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Calonico, S., M. D. Cattaneo, and M. H. Farrell. 2018. <a href="https://nppackages.github.io/references/Calonico-Cattaneo-Farrell_2018_JASA.pdf">On the Effect of Bias Estimation on Coverage Accuracy in Nonparametric Inference.</a> <em>Journal of the American Statistical Association</em>, 113(522): 767-779.
+</p>
+<p>Calonico, S., M. D. Cattaneo, and M. H. Farrell. 2020. <a href="https://rdpackages.github.io/references/Calonico-Cattaneo-Farrell_2020_ECTJ.pdf">Optimal Bandwidth Choice for Robust Bias Corrected Inference in Regression Discontinuity Designs.</a> <em>Econometrics Journal</em>, 23(2): 192-210.
+</p>
+<p>Calonico, S., M. D. Cattaneo, M. H. Farrell, and R. Titiunik. 2017. <a href="https://rdpackages.github.io/references/Calonico-Cattaneo-Farrell-Titiunik_2017_Stata.pdf">rdrobust: Software for Regression Discontinuity Designs.</a> <em>Stata Journal</em>, 17(2): 372-404.
+</p>
+<p>Calonico, S., M. D. Cattaneo, M. H. Farrell, and R. Titiunik. 2019. <a href="https://rdpackages.github.io/references/Calonico-Cattaneo-Farrell-Titiunik_2019_RESTAT.pdf">Regression Discontinuity Designs using Covariates.</a> <em>Review of Economics and Statistics</em>, 101(3): 442-451. 
+</p>
+<p>Calonico, S., M. D. Cattaneo, and R. Titiunik. 2014a. <a href="https://rdpackages.github.io/references/Calonico-Cattaneo-Titiunik_2014_ECMA.pdf">Robust Nonparametric Confidence Intervals for Regression-Discontinuity Designs.</a> <em>Econometrica</em> 82(6): 2295-2326.
+</p>
+<p>Calonico, S., M. D. Cattaneo, and R. Titiunik. 2014b. <a href="https://rdpackages.github.io/references/Calonico-Cattaneo-Titiunik_2014_Stata.pdf">Robust Data-Driven Inference in the Regression-Discontinuity Design.</a> <em>Stata Journal</em> 14(4): 909-946.
+</p>
+<p>Calonico, S., M. D. Cattaneo, and R. Titiunik. 2015a. <a href="https://rdpackages.github.io/references/Calonico-Cattaneo-Titiunik_2015_JASA.pdf">Optimal Data-Driven Regression Discontinuity Plots.</a> <em>Journal of the American Statistical Association</em> 110(512): 1753-1769.
+</p>
+<p>Calonico, S., M. D. Cattaneo, and R. Titiunik. 2015b. <a href="https://rdpackages.github.io/references/Calonico-Cattaneo-Titiunik_2015_R.pdf">rdrobust: An R Package for Robust Nonparametric Inference in Regression-Discontinuity Designs.</a> <em>R Journal</em> 7(1): 38-51.
+</p>
+<p>Cattaneo, M. D., B. Frandsen, and R. Titiunik. 2015. <a href="https://rdpackages.github.io/references/Cattaneo-Frandsen-Titiunik_2015_JCI.pdf">Randomization Inference in the Regression Discontinuity Design: An Application to the Study of Party Advantages in the U.S. Senate.</a> <em>Journal of Causal Inference</em> 3(1): 1-24.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>rdbwselect</code>, <code>rdplot</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"> 
+x&lt;-runif(1000,-1,1)
+y&lt;-5+3*x+2*(x&gt;=0)+rnorm(1000)
+rdrobust(y,x)
+</code></pre>
+
+
+</div>

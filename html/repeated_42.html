@@ -1,0 +1,461 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>kalseries</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Repeated Measurements Models for Continuous Variables with Frailty or
+Serial Dependence</h2>
+
+<h3>Description</h3>
+
+<p><code>kalseries</code> is designed to handle repeated measurements models with
+time-varying covariates. The distributions have two extra parameters as
+compared to the functions specified by <code>intensity</code> and are generally
+longer tailed than those distributions. Dependence among observations on a
+unit can be through gamma or power variance family frailties (a type of
+random effect), with or without autoregression, or one of two types of
+serial dependence over time.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">kalseries(
+  response = NULL,
+  times = NULL,
+  intensity = "exponential",
+  depend = "independence",
+  mu = NULL,
+  shape = NULL,
+  density = FALSE,
+  ccov = NULL,
+  tvcov = NULL,
+  torder = 0,
+  interaction = NULL,
+  preg = NULL,
+  ptvc = NULL,
+  pintercept = NULL,
+  pshape = NULL,
+  pinitial = 1,
+  pdepend = NULL,
+  pfamily = NULL,
+  delta = NULL,
+  transform = "identity",
+  link = "identity",
+  envir = parent.frame(),
+  print.level = 0,
+  ndigit = 10,
+  gradtol = 1e-05,
+  steptol = 1e-05,
+  fscale = 1,
+  iterlim = 100,
+  typsize = abs(p),
+  stepmax = 10 * sqrt(p %*% p)
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>response</code></td>
+<td>
+<p>A list of two column matrices with responses and
+corresponding times for each individual, one matrix or dataframe of
+response values, or an object of class, <code>response</code> (created by
+<code>restovec</code>) or <code>repeated</code> (created by
+<code>rmna</code> or <code>lvna</code>). If the
+<code>repeated</code> data object contains more than one response variable, give
+that object in <code>envir</code> and give the name of the response variable to
+be used here.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>times</code></td>
+<td>
+<p>When response is a matrix, a vector of possibly unequally
+spaced times when they are the same for all individuals or a matrix of
+times. Not necessary if equally spaced. Ignored if response has class,
+<code>response</code> or <code>repeated</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intensity</code></td>
+<td>
+<p>The form of function to be put in the Pareto distribution.
+Choices are exponential, Weibull, gamma, normal, logistic, Cauchy, log
+normal, log logistic, log Cauchy, log Student, inverse Gauss, and
+gen(eralized) logistic. (For definitions of distributions, see the
+corresponding [dpqr]distribution help.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>depend</code></td>
+<td>
+<p>Type of dependence. Choices are <code>independence</code>,
+<code>Markov</code>, <code>serial</code>, and <code>frailty</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mu</code></td>
+<td>
+<p>A regression function for the location parameter or a formula
+beginning with ~, specifying either a linear regression function in the
+Wilkinson and Rogers notation or a general function with named unknown
+parameters. Give the initial estimates in <code>preg</code> if there are no
+time-varying covariates and in <code>ptvc</code> if there are.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>shape</code></td>
+<td>
+<p>A regression function for the shape parameter or a formula
+beginning with ~, specifying either a linear regression function in the
+Wilkinson and Rogers notation or a general function with named unknown
+parameters. It must yield one value per observation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>density</code></td>
+<td>
+<p>If TRUE, the density of the function specified in
+<code>intensity</code> is used instead of the intensity.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ccov</code></td>
+<td>
+<p>A vector or matrix containing time-constant baseline covariates
+with one row per individual, a model formula using vectors of the same
+size, or an object of class, <code>tccov</code> (created by
+<code>tcctomat</code>). If response has class, <code>repeated</code>,
+the covariates must be supplied as a Wilkinson and Rogers formula unless
+none are to be used or <code>mu</code> is given.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tvcov</code></td>
+<td>
+<p>A list of matrices with time-varying covariate values,
+observed at the event times in <code>response</code>, for each individual (one
+column per variable), one matrix or dataframe of such covariate values, or
+an object of class, <code>tvcov</code> (created by
+<code>tvctomat</code>). If a time-varying covariate is observed at
+arbitrary time, <code>gettvc</code> can be used to find the most
+recent values for each response and create a suitable list. If response has
+class, <code>repeated</code>, the covariates must be supplied as a Wilkinson and
+Rogers formula unless none are to be used or <code>mu</code> is given.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>torder</code></td>
+<td>
+<p>The order of the polynomial in time to be fitted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interaction</code></td>
+<td>
+<p>Vector of length equal to the number of time-constant
+covariates, giving the levels of interactions between them and the
+polynomial in time in the <code>linear model</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>preg</code></td>
+<td>
+<p>Initial parameter estimates for the regression model:
+intercept, one for each covariate in <code>ccov</code>, and <code>torder</code> plus
+sum(<code>interaction</code>). If <code>mu</code> is a formula or function, the
+parameter estimates must be given here only if there are no time-varying
+covariates. If <code>mu</code> is a formula with unknown parameters, their
+estimates must be supplied either in their order of appearance in the
+expression or in a named list.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ptvc</code></td>
+<td>
+<p>Initial parameter estimates for the coefficients of the
+time-varying covariates, as many as in <code>tvcov</code>. If <code>mu</code> is a
+formula or function, the parameter estimates must be given here if there
+are time-varying covariates present.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pintercept</code></td>
+<td>
+<p>The initial estimate of the intercept for the generalized
+logistic intensity.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pshape</code></td>
+<td>
+<p>An initial estimate for the shape parameter of the intensity
+function (except exponential intensity). If <code>shape</code> is a function or
+formula, the corresponding initial estimates. If <code>shape</code> is a formula
+with unknown parameters, their estimates must be supplied either in their
+order of appearance in the expression or in a named list.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pinitial</code></td>
+<td>
+<p>An initial estimate for the initial parameter. With
+<code>frailty</code> dependence, this is the frailty parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pdepend</code></td>
+<td>
+<p>An initial estimate for the serial dependence parameter. For
+<code>frailty</code> dependence, if a value is given here, an autoregression is
+fitted as well as the frailty.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pfamily</code></td>
+<td>
+<p>An optional initial estimate for the second parameter of a
+two-parameter power variance family mixture instead of the default gamma
+mixture. This yields a gamma mixture as <code>family -&gt; 0</code>, an inverse
+Gauss mixture for <code>family = 0.5</code>, and a compound distribution of a
+Poisson-distributed number of gamma distributions for <code>-1 &lt; family &lt;
+0</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>delta</code></td>
+<td>
+<p>Scalar or vector giving the unit of measurement for each
+response value, set to unity by default. For example, if a response is
+measured to two decimals, delta=0.01. If the response has been
+pretransformed, this must be multiplied by the Jacobian. This
+transformation cannot contain unknown parameters. For example, with a log
+transformation, <code>delta=1/y</code>. The jacobian is calculated automatically
+for the transform option. Ignored if response has class, <code>response</code> or
+<code>repeated</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>transform</code></td>
+<td>
+<p>Transformation of the response variable: <code>identity</code>,
+<code>exp</code>, <code>square</code>, <code>sqrt</code>, or <code>log</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>link</code></td>
+<td>
+<p>Link function for the mean: <code>identity</code>, <code>exp</code>,
+<code>square</code>, <code>sqrt</code>, or <code>log</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>envir</code></td>
+<td>
+<p>Environment in which model formulae are to be interpreted or a
+data object of class, <code>repeated</code>, <code>tccov</code>, or <code>tvcov</code>; the
+name of the response variable should be given in <code>response</code>. If
+<code>response</code> has class <code>repeated</code>, it is used as the environment.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>print.level</code></td>
+<td>
+<p>Arguments for nlm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ndigit</code></td>
+<td>
+<p>Arguments for nlm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gradtol</code></td>
+<td>
+<p>Arguments for nlm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>steptol</code></td>
+<td>
+<p>Arguments for nlm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fscale</code></td>
+<td>
+<p>Arguments for nlm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iterlim</code></td>
+<td>
+<p>Arguments for nlm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>typsize</code></td>
+<td>
+<p>Arguments for nlm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stepmax</code></td>
+<td>
+<p>Arguments for nlm.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>By default, a gamma mixture of the distribution specified in
+<code>intensity</code> is used, as the conditional distribution in the
+<code>Markov</code> and <code>serial</code> dependence models, and as a symmetric
+multivariate (random effect) model for <code>frailty</code> dependence. For
+example, with a Weibull <code>intensity</code> and <code>frailty</code> dependence,
+this yields a multivariate Burr distribution and with <code>Markov</code> or
+<code>serial</code> dependence, univariate Burr conditional distributions.
+</p>
+<p>If a value for <code>pfamily</code> is used, the gamma mixture is replaced by a
+power variance family mixture.
+</p>
+<p>Nonlinear regression models can be supplied as formulae where parameters
+are unknowns in which case factor variables cannot be used and parameters
+must be scalars. (See <code>finterp</code>.)
+</p>
+<p>Marginal and individual profiles can be plotted using
+<code>mprofile</code> and <code>iprofile</code> and
+residuals with <code>plot.residuals</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list of classes <code>kalseries</code> and <code>recursive</code> is
+returned.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>J.K. Lindsey
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+treat &lt;- c(0,0,1,1)
+tr &lt;- tcctomat(treat)
+dose &lt;- matrix(rpois(20,10), ncol=5)
+dd &lt;- tvctomat(dose)
+y &lt;- restovec(matrix(rnorm(20), ncol=5), name="y")
+reps &lt;- rmna(y, ccov=tr, tvcov=dd)
+#
+# normal intensity, independence model
+kalseries(y, intensity="normal", dep="independence", preg=1, pshape=5)
+## Not run: 
+# random effect
+kalseries(y, intensity="normal", dep="frailty", preg=1, pinitial=1, psh=5)
+# serial dependence
+kalseries(y, intensity="normal", dep="serial", preg=1, pinitial=1,
+	pdep=0.1, psh=5)
+# random effect and autoregression
+kalseries(y, intensity="normal", dep="frailty", preg=1, pinitial=1,
+	pdep=0.1, psh=5)
+#
+# add time-constant variable
+kalseries(y, intensity="normal", dep="serial", pinitial=1,
+	pdep=0.1, psh=5, preg=c(1,0), ccov=treat)
+# or equivalently
+kalseries(y, intensity="normal", mu=~treat, dep="serial", pinitial=1,
+	pdep=0.1, psh=5, preg=c(1,0))
+# or
+kalseries(y, intensity="normal", mu=~b0+b1*treat, dep="serial",
+	pinitial=1, pdep=0.1, psh=5, preg=c(1,0), envir=reps)
+#
+# add time-varying variable
+kalseries(y, intensity="normal", dep="serial", pinitial=1, pdep=0.1,
+	psh=5, preg=c(1,0), ccov=treat, ptvc=0, tvc=dose)
+# or equivalently, from the environment
+dosev &lt;- as.vector(t(dose))
+kalseries(y, intensity="normal",
+	mu=~b0+b1*rep(treat,rep(5,4))+b2*dosev,
+	dep="serial", pinitial=1, pdep=0.1, psh=5, ptvc=c(1,0,0))
+# or from the reps data object
+kalseries(y, intensity="normal", mu=~b0+b1*treat+b2*dose,
+	dep="serial", pinitial=1, pdep=0.1, psh=5, ptvc=c(1,0,0),
+	envir=reps)
+# try power variance family instead of gamma distribution for mixture
+kalseries(y, intensity="normal", mu=~b0+b1*treat+b2*dose,
+	dep="serial", pinitial=1, pdep=0.1, psh=5, ptvc=c(1,0,0),
+	pfamily=0.1, envir=reps)
+# first-order one-compartment model
+# data objects for formulae
+dose &lt;- c(2,5)
+dd &lt;- tcctomat(dose)
+times &lt;- matrix(rep(1:20,2), nrow=2, byrow=TRUE)
+tt &lt;- tvctomat(times)
+# vector covariates for functions
+dose &lt;- c(rep(2,20),rep(5,20))
+times &lt;- rep(1:20,2)
+# functions
+mu &lt;- function(p) exp(p[1]-p[3])*(dose/(exp(p[1])-exp(p[2]))*
+	(exp(-exp(p[2])*times)-exp(-exp(p[1])*times)))
+shape &lt;- function(p) exp(p[1]-p[2])*times*dose*exp(-exp(p[1])*times)
+# response
+conc &lt;- matrix(rgamma(40,shape(log(c(0.01,1))),
+	scale=mu(log(c(1,0.3,0.2))))/shape(log(c(0.1,0.4))),ncol=20,byrow=TRUE)
+conc[,2:20] &lt;- conc[,2:20]+0.5*(conc[,1:19]-matrix(mu(log(c(1,0.3,0.2))),
+	ncol=20,byrow=TRUE)[,1:19])
+conc &lt;- restovec(ifelse(conc&gt;0,conc,0.01))
+reps &lt;- rmna(conc, ccov=dd, tvcov=tt)
+#
+# constant shape parameter
+kalseries(reps, intensity="gamma", dep="independence", mu=mu,
+	ptvc=c(-1,-1.1,-1), pshape=1.5)
+# or
+kalseries(reps, intensity="gamma", dep="independence",
+	mu=~exp(absorption-volume)*
+	dose/(exp(absorption)-exp(elimination))*
+	(exp(-exp(elimination)*times)-exp(-exp(absorption)*times)),
+	ptvc=list(absorption=-1,elimination=-1.1,volume=-1),
+	pshape=1.2)
+# add serial dependence
+kalseries(reps, intensity="gamma", dep="serial", pdep=0.9,
+	mu=~exp(absorption-volume)*
+	dose/(exp(absorption)-exp(elimination))*
+	(exp(-exp(elimination)*times)-exp(-exp(absorption)*times)),
+	ptvc=list(absorption=-1,elimination=-1.1,volume=-1),
+	pshape=0.2)
+# time dependent shape parameter
+kalseries(reps, intensity="gamma", dep="independence", mu=mu,
+	shape=shape, ptvc=c(-1,-1.1,-1), pshape=c(-3,0))
+# or
+kalseries(reps, intensity="gamma", dep="independence",
+	mu=~exp(absorption-volume)*
+	dose/(exp(absorption)-exp(elimination))*
+	(exp(-exp(elimination)*times)-exp(-exp(absorption)*times)),
+	ptvc=list(absorption=-1,elimination=-1.1,volume=-1),
+	shape=~exp(b1-b2)*times*dose*exp(-exp(b1)*times),
+	pshape=list(b1=-3,b2=0))
+# add serial dependence
+kalseries(reps, intensity="gamma", dep="serial", pdep=0.5,
+	mu=~exp(absorption-volume)*
+	dose/(exp(absorption)-exp(elimination))*
+	(exp(-exp(elimination)*times)-exp(-exp(absorption)*times)),
+	ptvc=list(absorption=-1,elimination=-1.1,volume=-1),
+	shape=~exp(b1-b2)*times*dose*exp(-exp(b1)*times),
+	pshape=list(b1=-3,b2=0))
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,708 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Cache</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Saves a wide variety function call outputs to disk and optionally RAM, for recovery later</h2>
+
+<h3>Description</h3>
+
+<p><img src="../help/figures/lifecycle-maturing.svg" alt="maturing"></p>
+<p>A function that can be used to wrap around other functions to cache function calls
+for later use. This is normally most effective when the function to cache is
+slow to run, yet the inputs and outputs are small. The benefit of caching, therefore,
+will decline when the computational time of the "first" function call is fast and/or
+the argument values and return objects are large. The default setting (and first
+call to Cache) will always save to disk. The 2nd call to the same function will return
+from disk, unless <code>options("reproducible.useMemoise" = TRUE)</code>, then the 2nd time
+will recover the object from RAM and is normally much faster (at the expense of RAM use).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">Cache(
+  FUN,
+  ...,
+  notOlderThan = NULL,
+  .objects = NULL,
+  .cacheExtra = NULL,
+  .functionName = NULL,
+  outputObjects = NULL,
+  algo = "xxhash64",
+  cacheRepo = NULL,
+  cachePath = NULL,
+  length = getOption("reproducible.length", Inf),
+  compareRasterFileLength,
+  userTags = c(),
+  omitArgs = NULL,
+  classOptions = list(),
+  debugCache = character(),
+  sideEffect = FALSE,
+  makeCopy = FALSE,
+  quick = getOption("reproducible.quick", FALSE),
+  verbose = getOption("reproducible.verbose", 1),
+  cacheId = NULL,
+  useCache = getOption("reproducible.useCache", TRUE),
+  useCloud = FALSE,
+  cloudFolderID = NULL,
+  showSimilar = getOption("reproducible.showSimilar", FALSE),
+  drv = getDrv(getOption("reproducible.drv", NULL)),
+  conn = getOption("reproducible.conn", NULL)
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>FUN</code></td>
+<td>
+<p>Either a function (e.g., <code>rnorm</code>), a function call (e.g., <code>rnorm(1)</code>),
+or an unevaluated function call (e.g., using
+<code>quote</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Arguments passed to <code>FUN</code>, if <code>FUN</code> is not an expression.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>notOlderThan</code></td>
+<td>
+<p>A time. Load an object from the Cache if it was created after this.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.objects</code></td>
+<td>
+<p>Character vector of objects to be digested. This is only applicable
+if there is a list, environment (or similar) with named objects
+within it. Only this/these objects will be considered for caching,
+i.e., only use a subset of
+the list, environment or similar objects. In the case of nested list-type
+objects, this will only be applied outermost first.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.cacheExtra</code></td>
+<td>
+<p>A an arbitrary R object that will be included in the <code>CacheDigest</code>,
+but otherwise not passed into the <code>FUN</code>. If the user supplies a named list, then
+<code>Cache</code> will report which individual elements of <code>.cacheExtra</code> have changed
+when <code>options("reproducible.showSimilar" = TRUE)</code>. This can allow a user
+more control and understanding for debugging.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.functionName</code></td>
+<td>
+<p>A an arbitrary character string that provides a name that is different
+than the actual function name (e.g., "rnorm") which will be used for messaging. This
+can be useful when the actual function is not helpful for a user, such as <code>do.call</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outputObjects</code></td>
+<td>
+<p>Optional character vector indicating which objects to
+return. This is only relevant for list, environment (or similar) objects</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>algo</code></td>
+<td>
+<p>The algorithms to be used; currently available choices are
+<code>md5</code>, which is also the default, <code>sha1</code>, <code>crc32</code>,
+<code>sha256</code>, <code>sha512</code>, <code>xxhash32</code>, <code>xxhash64</code>,
+<code>murmur32</code>, <code>spookyhash</code>, <code>blake3</code>, <code>crc32c</code>,
+<code>xxh3_64</code>, and <code>xxh3_128</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cacheRepo</code></td>
+<td>
+<p>Same as <code>cachePath</code>, but kept for backwards compatibility.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cachePath</code></td>
+<td>
+<p>A repository used for storing cached objects.
+This is optional if <code>Cache</code> is used inside a SpaDES module.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>length</code></td>
+<td>
+<p>Numeric. If the element passed to Cache is a <code>Path</code> class
+object (from e.g., <code>asPath(filename)</code>) or it is a <code>Raster</code> with
+file-backing, then this will be
+passed to <code>digest::digest</code>, essentially limiting the number of bytes
+to digest (for speed). This will only be used if <code>quick = FALSE</code>.
+Default is <code>getOption("reproducible.length")</code>, which is set to <code>Inf</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>compareRasterFileLength</code></td>
+<td>
+<p>Being deprecated; use <code>length</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>userTags</code></td>
+<td>
+<p>A character vector with descriptions of the Cache function call. These
+will be added to the Cache so that this entry in the Cache can be found using
+<code>userTags</code> e.g., via <code>showCache()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>omitArgs</code></td>
+<td>
+<p>Optional character string of arguments in the FUN to omit from the digest.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>classOptions</code></td>
+<td>
+<p>Optional list. This will pass into <code>.robustDigest</code> for
+specific classes. Should be options that the <code>.robustDigest</code> knows what
+to do with.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>debugCache</code></td>
+<td>
+<p>Character or Logical. Either <code>"complete"</code> or <code>"quick"</code> (uses
+partial matching, so "c" or "q" work). <code>TRUE</code> is equivalent to <code>"complete"</code>.
+If <code>"complete"</code>, then the returned object from the Cache
+function will have two attributes, <code>debugCache1</code> and <code>debugCache2</code>,
+which are the entire <code>list(...)</code> and that same object, but after all
+<code>.robustDigest</code> calls, at the moment that it is digested using
+<code>digest</code>, respectively. This <code>attr(mySimOut, "debugCache2")</code>
+can then be compared to a subsequent call and individual items within
+the object <code>attr(mySimOut, "debugCache1")</code> can be compared.
+If <code>"quick"</code>, then it will return the same two objects directly,
+without evalutating the <code>FUN(...)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sideEffect</code></td>
+<td>
+<p>Now deprecated. Logical or path. Determines where the function will look for
+new files following function completion. See Details.
+<em>NOTE: this argument is experimental and may change in future releases.</em></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>makeCopy</code></td>
+<td>
+<p>Now deprecated. Ignored if used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quick</code></td>
+<td>
+<p>Logical or character. If <code>TRUE</code>,
+no disk-based information will be assessed, i.e., only
+memory content. See Details section about <code>quick</code> in <code>Cache()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Numeric, -1 silent (where possible), 0 being very quiet,
+1 showing more messaging, 2 being more messaging, etc.
+Default is 1. Above 3 will output much more information about the internals of
+Caching, which may help diagnose Caching challenges. Can set globally with an
+option, e.g., <code style="white-space: pre;">⁠options('reproducible.verbose' = 0) to reduce to minimal⁠</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cacheId</code></td>
+<td>
+<p>Character string. If passed, this will override the calculated hash
+of the inputs, and return the result from this cacheId in the <code>cachePath</code>.
+Setting this is equivalent to manually saving the output of this function, i.e.,
+the object will be on disk, and will be recovered in subsequent
+This may help in some particularly finicky situations
+where Cache is not correctly detecting unchanged inputs. This will guarantee
+the object will be identical each time; this may be useful in operational code.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>useCache</code></td>
+<td>
+<p>Logical, numeric or <code>"overwrite"</code> or <code>"devMode"</code>. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>useCloud</code></td>
+<td>
+<p>Logical. See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cloudFolderID</code></td>
+<td>
+<p>A googledrive dribble of a folder, e.g., using <code>drive_mkdir()</code>.
+If left as <code>NULL</code>, the function will create a cloud folder with name from last
+two folder levels of the <code>cachePath</code> path, :
+<code>paste0(basename(dirname(cachePath)), "_", basename(cachePath))</code>.
+This <code>cloudFolderID</code> will be added to <code>options("reproducible.cloudFolderID")</code>,
+but this will not persist across sessions. If this is a character string, it will
+treat this as a folder name to create or use on GoogleDrive.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>showSimilar</code></td>
+<td>
+<p>A logical or numeric. Useful for debugging.
+If <code>TRUE</code> or <code>1</code>, then if the Cache
+does not find an identical archive in the <code>cachePath</code>, it will report (via message)
+the next most recent similar archive, and indicate which argument(s) is/are different.
+If a number larger than <code>1</code>, then it will report the N most recent similar archived
+objects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drv</code></td>
+<td>
+<p>if using a database backend, drv must be an object that
+inherits from DBIDriver e.g., from package RSQLite, e.g., SQLite</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>conn</code></td>
+<td>
+<p>an optional DBIConnection object, as returned by dbConnect().</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>There are other similar functions in the R universe. This version of Cache has
+been used as part of a robust continuous workflow approach. As a result, we have
+tested it with many "non-standard" R objects (e.g., RasterLayer, terra objects) and
+environments (which are always unique, so do not cache readily).
+</p>
+<p>This version of the <code>Cache</code> function accommodates those four special,
+though quite common, cases by:
+</p>
+
+<ol>
+<li>
+<p> converting any environments into list equivalents;
+</p>
+</li>
+<li>
+<p> identifying the dispatched S4 method (including those made through
+inheritance) before hashing so the correct method is being cached;
+</p>
+</li>
+<li>
+<p> by hashing the linked file, rather than the Raster object.
+Currently, only file-backed <code style="white-space: pre;">⁠Raster*⁠</code> or <code style="white-space: pre;">⁠terra*⁠</code> objects are digested
+(e.g., not <code>ff</code> objects, or any other R object where the data
+are on disk instead of in RAM);
+</p>
+</li>
+<li>
+<p> Uses <code>digest::digest()</code>
+This is used for file-backed objects as well.
+</p>
+</li>
+<li>
+<p> Cache will save arguments passed by user in a hidden environment. Any
+nested Cache functions will use arguments in this order 1) actual arguments
+passed at each Cache call, 2) any inherited arguments from an outer Cache
+call, 3) the default values of the Cache function. See section on <em>Nested
+Caching</em>.
+</p>
+</li>
+</ol>
+<p><code>Cache</code> will add a tag to the entry in the cache database called <code>accessed</code>,
+which will assign the time that it was accessed, either read or write.
+That way, cached items can be shown (using <code>showCache</code>) or removed (using
+<code>clearCache</code>) selectively, based on their access dates, rather than only
+by their creation dates. See example in <code>clearCache()</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns the value of the
+function call or the cached version (i.e., the result from a previous call
+to this same cached function with identical arguments).
+</p>
+
+
+<h3>Nested Caching</h3>
+
+<p>Commonly, Caching is nested, i.e., an outer function is wrapped in a <code>Cache</code>
+function call, and one or more inner functions are also wrapped in a <code>Cache</code>
+function call. A user <em>can</em> always specify arguments in every Cache function
+call, but this can get tedious and can be prone to errors. The normal way that
+<em>R</em> handles arguments is it takes the user passed arguments if any, and
+default arguments for all those that have no user passed arguments. We have inserted
+a middle step. The order or precedence for any given <code>Cache</code> function call is
+</p>
+
+<ol><li>
+<p> user arguments, 2. inherited arguments, 3. default arguments. At this time,
+the top level <code>Cache</code> arguments will propagate to all inner functions unless
+each individual <code>Cache</code> call has other arguments specified, i.e., "middle"
+nested <code>Cache</code> function calls don't propagate their arguments to further "inner"
+<code>Cache</code> function calls.  See example.
+</p>
+</li></ol>
+<p><code>userTags</code> is unique of all arguments: its values will be appended to the
+inherited <code>userTags</code>.
+</p>
+
+
+<h3>quick</h3>
+
+<p>The <code>quick</code> argument is attempting to sort out an ambiguity with character strings:
+are they file paths or are they simply character strings. When <code>quick = TRUE</code>,
+<code>Cache</code> will treat these as character strings; when <code>quick = FALSE</code>,
+they will be attempted to be treated as file paths first; if there is no file, then
+it will revert to treating them as character strings. If user passes a
+character vector to this, then this will behave like <code>omitArgs</code>:
+<code>quick = "file"</code> will treat the argument <code>"file"</code> as character string.
+</p>
+<p>The most often encountered situation where this ambiguity matters is in arguments about
+filenames: is the filename an input pointing to an object whose content we want to
+assess (e.g., a file-backed raster), or an output (as in saveRDS) and it should not
+be assessed. If only run once, the output file won't exist, so it will be treated
+as a character string. However, once the function has been run once, the output file
+will exist, and <code>Cache(...)</code> will assess it, which is incorrect. In these cases,
+the user is advised to use <code>quick = "TheOutputFilenameArgument"</code> to
+specify the argument whose content on disk should not be assessed, but whose
+character string should be assessed (distinguishing it from <code>omitArgs = "TheOutputFilenameArgument"</code>, which will not assess the file content nor the
+character string).
+</p>
+<p>This is relevant for objects of class <code>character</code>, <code>Path</code> and
+<code>Raster</code> currently. For class <code>character</code>, it is ambiguous whether
+this represents a character string or a vector of file paths. If it is known
+that character strings should not be treated as paths, then <code>quick = TRUE</code> is appropriate, with no loss of information. If it is file or
+directory, then it will digest the file content, or <code>basename(object)</code>.
+For class <code>Path</code> objects, the file's metadata (i.e., filename and file
+size) will be hashed instead of the file contents if <code>quick = TRUE</code>. If
+set to <code>FALSE</code> (default), the contents of the file(s) are hashed. If
+<code>quick = TRUE</code>, <code>length</code> is ignored. <code>Raster</code> objects are
+treated as paths, if they are file-backed.
+</p>
+
+
+<h3>Caching Speed</h3>
+
+<p>Caching speed may become a critical aspect of a final product. For example,
+if the final product is a shiny app, rerunning the entire project may need
+to take less then a few seconds at most. There are 3 arguments that affect
+Cache speed: <code>quick</code>, <code>length</code>, and
+<code>algo</code>. <code>quick</code> is passed to <code>.robustDigest</code>, which currently
+only affects <code>Path</code> and <code style="white-space: pre;">⁠Raster*⁠</code> class objects. In both cases, <code>quick</code>
+means that little or no disk-based information will be assessed.
+</p>
+
+
+<h3>Filepaths</h3>
+
+<p>If a function has a path argument, there is some ambiguity about what should be
+done. Possibilities include:
+</p>
+
+<ol>
+<li>
+<p> hash the string as is (this will be very system specific, meaning a
+<code>Cache</code> call will not work if copied between systems or directories);
+</p>
+</li>
+<li>
+<p> hash the <code>basename(path)</code>;
+</p>
+</li>
+<li>
+<p> hash the contents of the file.
+</p>
+</li>
+</ol>
+<p>If paths are passed in as is (i.e,. character string), the result will not be predictable.
+Instead, one should use the wrapper function <code>asPath(path)</code>, which sets the
+class of the string to a <code>Path</code>, and one should decide whether one wants
+to digest the content of the file (using <code>quick = FALSE</code>),
+or just the filename (<code>(quick = TRUE)</code>). See examples.
+</p>
+
+
+<h3>Stochasticity or randomness</h3>
+
+<p>In general, it is expected that caching will only be used when randomness is not
+desired, e.g., <code>Cache(rnorm(1))</code> is unlikely to be useful in many cases. However,
+<code>Cache</code> captures the call that is passed to it, leaving all functions unevaluated.
+As a result <code>Cache(glm, x ~ y, rnorm(1))</code> will not work as a means of forcing
+a new evaluation each time, as the <code>rnorm(1)</code> is not evaluated before the call
+is assessed against the cache database. To force a new call each time, evaluate
+the randomness prior to the Cache call, e.g., <code>ran = rnorm(1)</code> then pass this
+to <code>.cacheExtra</code>, e.g., <code>Cache(glm, x ~ y, .cacheExtra = ran)</code>
+</p>
+
+
+<h3>
+<code>drv</code> and <code>conn</code>
+</h3>
+
+<p>By default, <code>drv</code> uses an SQLite database. This can be sufficient for most cases.
+However, if a user has dozens or more cores making requests to the Cache database,
+it may be insufficient. A user can set up a different database backend, e.g.,
+PostgreSQL that can handle multiple simultaneous read-write situations. See
+<a href="https://github.com/PredictiveEcology/SpaDES/wiki/Using-alternate-database-backends-for-Cache">https://github.com/PredictiveEcology/SpaDES/wiki/Using-alternate-database-backends-for-Cache</a>.
+</p>
+
+
+<h3><code>useCache</code></h3>
+
+<p>Logical or numeric. If <code>FALSE</code> or <code>0</code>, then the entire Caching
+mechanism is bypassed and the
+function is evaluated as if it was not being Cached. Default is
+<code>getOption("reproducible.useCache")</code>), which is <code>TRUE</code> by default,
+meaning use the Cache mechanism. This may be useful to turn all Caching on or
+off in very complex scripts and nested functions. Increasing levels of numeric
+values will cause deeper levels of Caching to occur (though this may not
+work as expected in all cases). The following is no longer supported:
+Currently, only implemented
+in <code>postProcess</code>: to do both caching of inner <code>cropInputs</code>, <code>projectInputs</code>
+and <code>maskInputs</code>, and caching of outer <code>postProcess</code>, use
+<code>useCache = 2</code>; to skip the inner sequence of 3 functions, use <code>useCache = 1</code>.
+For large objects, this may prevent many duplicated save to disk events.
+</p>
+<p>If <code>useCache = "overwrite"</code>
+(which can be set with <code>options("reproducible.useCache" = "overwrite")</code>), then the function invoke the caching mechanism but will purge
+any entry that is matched, and it will be replaced with the results of the
+current call.
+</p>
+<p>If <code>useCache = "devMode"</code>: The point of this mode is to facilitate using the Cache when
+functions and datasets are continually in flux, and old Cache entries are
+likely stale very often. In <code>devMode</code>, the cache mechanism will work as
+normal if the Cache call is the first time for a function OR if it
+successfully finds a copy in the cache based on the normal Cache mechanism.
+It <em>differs</em> from the normal Cache if the Cache call does <em>not</em> find a copy
+in the <code>cachePath</code>, but it does find an entry that matches based on
+<code>userTags</code>. In this case, it will delete the old entry in the <code>cachePath</code>
+(identified based on matching <code>userTags</code>), then continue with normal <code>Cache</code>.
+For this to work correctly, <code>userTags</code> must be unique for each function call.
+This should be used with caution as it is still experimental. Currently, if
+<code>userTags</code> are not unique to a single entry in the cachePath, it will
+default to the behaviour of <code>useCache = TRUE</code> with a message. This means
+that <code>"devMode"</code> is most useful if used from the start of a project.
+</p>
+
+
+<h3><code>useCloud</code></h3>
+
+<p>This is experimental and there are many conditions under which this is known
+to not work correctly. This is a way to store all or some of the local Cache in the cloud.
+Currently, the only cloud option is Google Drive, via <span class="pkg">googledrive</span>.
+For this to work, the user must be or be able to be authenticated
+with <code>googledrive::drive_auth</code>. The principle behind this
+<code>useCloud</code> is that it will be a full or partial mirror of a local Cache.
+It is not intended to be used independently from a local Cache. To share
+objects that are in the Cloud with another person, it requires 2 steps. 1)
+share the <code>cloudFolderID$id</code>, which can be retrieved by
+<code>getOption("reproducible.cloudFolderID")$id</code> after at least one Cache
+call has been made. 2) The other user must then set their  <code>cacheFolderID</code> in a
+<code style="white-space: pre;">⁠Cache\(..., reproducible.cloudFolderID = \"the ID here\"\)⁠</code> call or
+set their option manually
+<code style="white-space: pre;">⁠options\(\"reproducible.cloudFolderID\" = \"the ID here\"\)⁠</code>.
+</p>
+<p>If <code>TRUE</code>, then this Cache call will download
+(if local copy doesn't exist, but cloud copy does exist), upload
+(local copy does or doesn't exist and
+cloud copy doesn't exist), or
+will not download nor upload if object exists in both. If <code>TRUE</code> will be at
+least 1 second slower than setting this to <code>FALSE</code>, and likely even slower as the
+cloud folder gets large. If a user wishes to keep "high-level" control, set this to
+<code>getOption("reproducible.useCloud", FALSE)</code> or
+<code>getOption("reproducible.useCloud", TRUE)</code> (if the default behaviour should
+be <code>FALSE</code> or <code>TRUE</code>, respectively) so it can be turned on and off with
+this option. NOTE: <em>This argument will not be passed into inner/nested Cache calls.</em>)
+</p>
+
+
+<h3>Object attributes</h3>
+
+<p>Users should be cautioned that object attributes may not be preserved, especially
+in the case of objects that are file-backed, such as <code>Raster</code> or <code>SpatRaster</code> objects.
+If a user needs to keep attributes, they may need to manually re-attach them to
+the object after recovery. With the example of <code>SpatRaster</code> objects, saving
+to disk requires <code>terra::wrap</code> if it is a memory-backed object. When running
+<code>terra::unwrap</code> on this object, any attributes that a user had added are lost.
+</p>
+
+
+<h3><code>sideEffect</code></h3>
+
+<p>This feature is now deprecated. Do not use as it is ignored.
+</p>
+
+
+<h3>Note</h3>
+
+<p>As indicated above, several objects require pre-treatment before
+caching will work as expected. The function <code>.robustDigest</code> accommodates this.
+It is an S4 generic, meaning that developers can produce their own methods for
+different classes of objects. Currently, there are methods for several types
+of classes. See <code>.robustDigest()</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Eliot McIntire
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>showCache()</code>, <code>clearCache()</code>, <code>keepCache()</code>,
+<code>CacheDigest()</code> to determine the digest of a given function or expression,
+as used internally within <code>Cache</code>, <code>movedCache()</code>, <code>.robustDigest()</code>, and
+for more advanced uses there are several helper functions,
+e.g., <code>rmFromCache()</code>, <code>CacheStorageDir()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data.table::setDTthreads(2)
+tmpDir &lt;- file.path(tempdir())
+opts &lt;- options(reproducible.cachePath = tmpDir)
+
+# Usage -- All below are equivalent; even where args are missing or provided,
+#   Cache evaluates using default values, if these are specified in formals(FUN)
+a &lt;- list()
+b &lt;- list(fun = rnorm)
+bbb &lt;- 1
+ee &lt;- new.env(parent = emptyenv())
+ee$qq &lt;- bbb
+
+a[[1]] &lt;- Cache(rnorm(1)) # no evaluation prior to Cache
+a[[2]] &lt;- Cache(rnorm, 1) # no evaluation prior to Cache
+a[[3]] &lt;- Cache(do.call, rnorm, list(1))
+a[[4]] &lt;- Cache(do.call(rnorm, list(1)))
+a[[5]] &lt;- Cache(do.call(b$fun, list(1)))
+a[[6]] &lt;- Cache(do.call, b$fun, list(1))
+a[[7]] &lt;- Cache(b$fun, 1)
+a[[8]] &lt;- Cache(b$fun(1))
+a[[10]] &lt;- Cache(quote(rnorm(1)))
+a[[11]] &lt;- Cache(stats::rnorm(1))
+a[[12]] &lt;- Cache(stats::rnorm, 1)
+a[[13]] &lt;- Cache(rnorm(1, 0, get("bbb", inherits = FALSE)))
+a[[14]] &lt;- Cache(rnorm(1, 0, get("qq", inherits = FALSE, envir = ee)))
+a[[15]] &lt;- Cache(rnorm(1, bbb - bbb, get("bbb", inherits = FALSE)))
+a[[16]] &lt;- Cache(rnorm(sd = 1, 0, n = get("bbb", inherits = FALSE))) # change order
+a[[17]] &lt;- Cache(rnorm(1, sd = get("ee", inherits = FALSE)$qq), mean = 0)
+
+# with base pipe -- this is put in quotes ('') because R version 4.0 can't understand this
+#  if you are using R &gt;= 4.1 or R &gt;= 4.2 if using the _ placeholder,
+#  then you can just use pipe normally
+usingPipe1 &lt;- "b$fun(1) |&gt; Cache()"  # base pipe
+
+# For long pipe, need to wrap sequence in { }, or else only last step is cached
+usingPipe2 &lt;-
+  '{"bbb" |&gt;
+      parse(text = _) |&gt;
+      eval() |&gt;
+      rnorm()} |&gt;
+    Cache()'
+if (getRversion() &gt;= "4.1") {
+  a[[9]] &lt;- eval(parse(text = usingPipe1)) # recovers cached copy
+}
+if (getRversion() &gt;= "4.2") { # uses the _ placeholder; only available in R &gt;= 4.2
+  a[[18]] &lt;- eval(parse(text = usingPipe2)) # recovers cached copy
+}
+
+length(unique(a)) == 1 #  all same
+
+### Pipe -- have to use { } or else only final function is Cached
+if (getRversion() &gt;= "4.1") {
+  b1a &lt;- 'sample(1e5, 1) |&gt; rnorm() |&gt; Cache()'
+  b1b &lt;- 'sample(1e5, 1) |&gt; rnorm() |&gt; Cache()'
+  b2a &lt;- '{sample(1e5, 1) |&gt; rnorm()} |&gt; Cache()'
+  b2b &lt;- '{sample(1e5, 1) |&gt; rnorm()} |&gt; Cache()'
+  b1a &lt;- eval(parse(text = b1a))
+  b1b &lt;- eval(parse(text = b1b))
+  b2a &lt;- eval(parse(text = b2a))
+  b2b &lt;- eval(parse(text = b2b))
+  all.equal(b1a, b1b) # Not TRUE because the sample is run first
+  all.equal(b2a, b2b) # TRUE because of {  }
+}
+
+#########################
+# Advanced examples
+#########################
+
+# .cacheExtra -- add something to digest
+Cache(rnorm(1), .cacheExtra = "sfessee11") # adds something other than fn args
+Cache(rnorm(1), .cacheExtra = "nothing") # even though fn is same, the extra is different
+
+# omitArgs -- remove something from digest (kind of the opposite of .cacheExtra)
+Cache(rnorm(2, sd = 1), omitArgs = "sd") # removes one or more args from cache digest
+Cache(rnorm(2, sd = 2), omitArgs = "sd") # b/c sd is not used, this is same as previous
+
+# cacheId -- force the use of a digest -- can give undesired consequences
+Cache(rnorm(3), cacheId = "k323431232") # sets the cacheId for this call
+Cache(runif(14), cacheId = "k323431232") # recovers same as above, i.e, rnorm(3)
+
+# Turn off Caching session-wide
+opts &lt;- options(reproducible.useCache = FALSE)
+Cache(rnorm(3)) # doesn't cache
+options(opts)
+
+# showSimilar can help with debugging why a Cache call isn't picking up a cached copy
+Cache(rnorm(4), showSimilar = TRUE) # shows that the argument `n` is different
+
+###############################################
+# devMode -- enables cache database to stay
+#            small even when developing code
+###############################################
+opt &lt;- options("reproducible.useCache" = "devMode")
+clearCache(tmpDir, ask = FALSE)
+centralTendency &lt;- function(x) {
+  mean(x)
+}
+funnyData &lt;- c(1, 1, 1, 1, 10)
+uniqueUserTags &lt;- c("thisIsUnique", "reallyUnique")
+ranNumsB &lt;- Cache(centralTendency, funnyData, cachePath = tmpDir,
+                  userTags = uniqueUserTags) # sets new value to Cache
+showCache(tmpDir) # 1 unique cacheId -- cacheId is 71cd24ec3b0d0cac
+
+# During development, we often redefine function internals
+centralTendency &lt;- function(x) {
+  median(x)
+}
+# When we rerun, we don't want to keep the "old" cache because the function will
+#   never again be defined that way. Here, because of userTags being the same,
+#   it will replace the entry in the Cache, effetively overwriting it, even though
+#   it has a different cacheId
+ranNumsD &lt;- Cache(centralTendency, funnyData, cachePath = tmpDir, userTags = uniqueUserTags)
+showCache(tmpDir) # 1 unique artifact -- cacheId is 632cd06f30e111be
+
+# If it finds it by cacheID, doesn't matter what the userTags are
+ranNumsD &lt;- Cache(centralTendency, funnyData, cachePath = tmpDir, userTags = "thisIsUnique")
+options(opt)
+
+#########################################
+# For more in depth uses, see vignette
+if (interactive())
+  browseVignettes(package = "reproducible")
+</code></pre>
+
+
+</div>

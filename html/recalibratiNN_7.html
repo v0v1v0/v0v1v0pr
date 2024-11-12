@@ -1,0 +1,174 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>recalibrate</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Generates Recalibrated Samples of the Predictive Distribution</h2>
+
+<h3>Description</h3>
+
+<p>This function offers recalibration techniques for regression models that assume Gaussian distributions by using the
+Mean Squared Error (MSE) as the loss function. Based on the work by Torres R. et al. (2024), it supports
+both local and global recalibration approaches to provide samples from a recalibrated predictive distribution. A detailed algorithm can also be found in Musso C. (2023).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">recalibrate(
+  yhat_new,
+  pit_values,
+  mse,
+  space_cal = NULL,
+  space_new = NULL,
+  type = c("local", "global"),
+  p_neighbours = 0.1,
+  epsilon = 0
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>yhat_new</code></td>
+<td>
+<p>Numeric vector with predicted response values for the new (or test) set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pit_values</code></td>
+<td>
+<p>Numeric vector of Global Probability Integral Transform (PIT) values calculated on the calibration set. We recommend using the PIT_global function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mse</code></td>
+<td>
+<p>Mean Squared Error calculated from the calibration/validation set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>space_cal</code></td>
+<td>
+<p>Numeric matrix or data frame representing the covariates/features of the calibration/validation set,
+or any intermediate representation (like an intermediate layer of a neural network).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>space_new</code></td>
+<td>
+<p>Similar to space_cal, but for a new set of covariates/features, ensuring they are in the same
+space as those in space_cal for effective local recalibration.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>Character string to choose between 'local' or 'global' calibration.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p_neighbours</code></td>
+<td>
+<p>Proportion (0,1] of the calibration dataset to be considered for determining the number of neighbors
+in the KNN method. Default is set to 0.1. With p_neighbours=1, calibration is global but weighted by distance.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>epsilon</code></td>
+<td>
+<p>Numeric value for approximation in the K-nearest neighbors (KNN) method. Default is 0, indicating exact distances.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The calibration technique implemented here draws inspiration from Approximate Bayesian Computation and Inverse Transform Theorem,
+allowing for recalibration either locally or globally. The global method employs a uniform kernel, while the local method employs an Epanechnikov kernel.
+</p>
+<p>It's important to note that the least squares method will only yield a probabilistic interpretation if the output to be modeled
+follows a normal distribution, and this assumption was used to implement this function.
+</p>
+<p>The local recalibration method is expected to improve the predictive performance of the model, especially when the model is not able to capture the heteroscedasticity of the data.
+However, there is a trade off between refinement of localization and the Monte Carlo error, which can be controlled by the number of neighbors.
+That is, when more localized, the recalibration will grasp local changes better, but the Monte Carlo error will increase, because of the reduced number of neighbors.
+</p>
+<p>When p_neighbours=1, recalibration is performed using the entire calibration dataset but with distance-weighted contributions.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list containing the calibrated predicted mean and variance, along with samples from the recalibrated predictive distribution
+and their respective weights calculated using an Epanechnikov kernel over the distances obtained from KNN.
+</p>
+
+
+<h3>References</h3>
+
+<p>Torres R, Nott DJ, Sisson SA, Rodrigues T, Reis JG, Rodrigues GS (2024).
+“Model-Free Local Recalibration of Neural Networks.”
+<em>arXiv preprint arXiv:2403.05756</em>.
+<a href="https://doi.org/10.48550/arXiv.2403.05756">doi:10.48550/arXiv.2403.05756</a>.
+Musso C (2023).
+“Recalibration of Gaussian Neural Network Regression Models: The RecalibratiNN Package.”
+Undergraduate Thesis (Bachelor in Statistics), University of Brasília.
+Available at: <a href="https://bdm.unb.br/handle/10483/38504">https://bdm.unb.br/handle/10483/38504</a>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+n &lt;- 1000
+split &lt;- 0.8
+
+# Auxiliary functions
+mu &lt;- function(x1){
+10 + 5*x1^2
+}
+
+sigma_v &lt;- function(x1){
+30*x1
+}
+
+# Generating heteroscedastic data.
+x &lt;- runif(n, 1, 10)
+y &lt;- rnorm(n, mu(x), sigma_v(x))
+
+# Train set
+x_train &lt;- x[1:(n*split)]
+y_train &lt;- y[1:(n*split)]
+
+# Calibration/Validation set.
+x_cal &lt;- x[(n*split+1):n]
+y_cal &lt;- y[(n*split+1):n]
+
+# New observations or the test set.
+x_new &lt;- runif(n/5, 1, 10)
+
+# Fitting a simple linear regression, which will not capture the heteroscedasticity
+model &lt;- lm(y_train ~ x_train)
+
+y_hat_cal &lt;- predict(model, newdata=data.frame(x_train=x_cal))
+MSE_cal &lt;- mean((y_hat_cal - y_cal)^2)
+
+y_hat_new &lt;- predict(model, newdata=data.frame(x_train=x_new))
+
+pit &lt;- PIT_global(ycal=y_cal, yhat= y_hat_cal, mse=MSE_cal)
+
+recalibrate(
+  space_cal=x_cal,
+  space_new=x_new,
+  yhat_new=y_hat_new,
+  pit_values=pit,
+  mse= MSE_cal,
+  type="local")
+
+</code></pre>
+
+
+</div>

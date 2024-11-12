@@ -1,0 +1,230 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>robyn_run</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Robyn Modelling Function</h2>
+
+<h3>Description</h3>
+
+<p><code>robyn_run()</code> consumes <code>robyn_input()</code> outputs,
+runs <code>robyn_mmm()</code>, and collects all modeling results.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">robyn_run(
+  InputCollect = NULL,
+  dt_hyper_fixed = NULL,
+  json_file = NULL,
+  ts_validation = FALSE,
+  add_penalty_factor = FALSE,
+  refresh = FALSE,
+  seed = 123L,
+  quiet = FALSE,
+  cores = NULL,
+  trials = 5,
+  iterations = 2000,
+  rssd_zero_penalty = TRUE,
+  objective_weights = NULL,
+  nevergrad_algo = "TwoPointsDE",
+  intercept = TRUE,
+  intercept_sign = "non_negative",
+  lambda_control = NULL,
+  outputs = FALSE,
+  ...
+)
+
+## S3 method for class 'robyn_models'
+print(x, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>InputCollect</code></td>
+<td>
+<p>List. Contains all input parameters for the model.
+Required when <code>robyn_object</code> is not provided.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dt_hyper_fixed</code></td>
+<td>
+<p>data.frame or named list. Only provide when loading
+old model results. It consumes hyperparameters from saved csv
+<code>pareto_hyperparameters.csv</code> or JSON file to replicate a model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>json_file</code></td>
+<td>
+<p>Character. JSON file to import previously exported inputs or
+recreate a model. To generate this file, use <code>robyn_write()</code>.
+If you didn't export your data in the json file as "raw_data",
+<code>dt_input</code> must be provided; <code>dt_holidays</code> input is optional.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ts_validation</code></td>
+<td>
+<p>Boolean. When set to <code>TRUE</code>, Robyn will split data
+by test, train, and validation partitions to validate the time series. By
+default the "train_size" range is set to <code>c(0.5, 0.8)</code>, but it can be
+customized or set to a fixed value using the hyperparameters input. For example,
+if <code>train_size = 0.7</code>, validation size and test size will both be 0.15
+and 0.15. When <code>ts_validation = FALSE</code>, nrmse_train is the
+objective function; when <code>ts_validation = TRUE</code>, nrmse_val is the objective
+function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>add_penalty_factor</code></td>
+<td>
+<p>Boolean. Add penalty factor hyperparameters to
+glmnet's penalty.factor to be optimized by nevergrad. Use with caution, because
+this feature might add too much hyperparameter space and probably requires
+more iterations to converge.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refresh</code></td>
+<td>
+<p>Boolean. Set to <code>TRUE</code> when used in <code>robyn_refresh()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>Integer. For reproducible results when running nevergrad.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quiet</code></td>
+<td>
+<p>Boolean. Keep messages off?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cores</code></td>
+<td>
+<p>Integer. Default to <code>parallel::detectCores() - 1</code> (all cores
+except one). Set to 1 if you want to turn parallel computing off.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trials</code></td>
+<td>
+<p>Integer. Recommended 5 for default
+<code>nevergrad_algo = "TwoPointsDE"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iterations</code></td>
+<td>
+<p>Integer. Recommended 2000 for default when using
+<code>nevergrad_algo = "TwoPointsDE"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rssd_zero_penalty</code></td>
+<td>
+<p>Boolean. When TRUE, the objective function
+DECOMP.RSSD will penalize models with more 0 media effects additionally.
+In other words, given the same DECOMP.RSSD score, a model with 50% 0-coef
+variables will get penalized by DECOMP.RSSD * 1.5 (larger error), while
+another model with no 0-coef variables gets un-penalized with DECOMP.RSSD * 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>objective_weights</code></td>
+<td>
+<p>Numeric vector. Default to NULL to give equal weights
+to all objective functions. Order: NRMSE, DECOMP.RSSD, MAPE (when calibration
+data is provided). When you are not calibrating, only the first 2 values for
+<code>objective_weights</code> must be defined, i.e. set c(2, 1) to give double weight
+to the 1st (NRMSE). This is an experimental feature. There's no research on
+optimal weight setting. Subjective weights might strongly bias modeling results.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nevergrad_algo</code></td>
+<td>
+<p>Character. Default to "TwoPointsDE". Options are
+<code>c("DE","TwoPointsDE", "OnePlusOne", "DoubleFastGADiscreteOnePlusOne",
+"DiscreteOnePlusOne", "PortfolioDiscreteOnePlusOne", "NaiveTBPSA",
+"cGA", "RandomSearch")</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intercept</code></td>
+<td>
+<p>Boolean. Should intercept(s) be fitted (default=TRUE) or
+set to zero (FALSE).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intercept_sign</code></td>
+<td>
+<p>Character. Choose one of "non_negative" (default) or
+"unconstrained". By default, if intercept is negative, Robyn will drop intercept
+and refit the model. Consider changing intercept_sign to "unconstrained" when
+there are <code>context_vars</code> with large positive values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda_control</code></td>
+<td>
+<p>Deprecated in v3.6.0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outputs</code></td>
+<td>
+<p>Boolean. If set to TRUE, will run <code>robyn_run()</code> and
+<code>robyn_outputs()</code>, returning a list with OutputModels and
+OutputCollect results.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional parameters passed to <code>robyn_outputs()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><code>robyn_models()</code> output.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>List. Class: <code>robyn_models</code>. Contains the results of all trials
+and iterations modeled.
+</p>
+<p>List. Contains all trained models. Class: <code>robyn_models</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# Having InputCollect results
+OutputModels &lt;- robyn_run(
+  InputCollect = InputCollect,
+  cores = 2,
+  iterations = 200,
+  trials = 1
+)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

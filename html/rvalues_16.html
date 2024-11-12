@@ -1,0 +1,198 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rvalues</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+R-values
+</h2>
+
+<h3>Description</h3>
+
+<p>Given data on a collection of units, this
+function computes
+r-values which are percentiles constructed
+to maximize the agreement between the reported
+percentiles and the percentiles of the effect of
+interest. Additional details about r-values are provided below and can also be found
+in the listed references.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rvalues(data, family = gaussian, hypers = "estimate", prior = "conjugate",
+       alpha.grid = NULL, ngrid = NULL, smooth = "none", control = list()) 
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame or a matrix with the number of rows equal to the number of sampling units. 
+The first column should contain the main estimates, and the second column should contain 
+the nuisance terms.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>An argument which determines the sampling distribution; this could be either
+<code>family = gaussian</code>, <code>family = tdist</code>, <code>family = binomial</code>,
+<code>family = poisson</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hypers</code></td>
+<td>
+<p>values of the hyperparameters; only meaningful when the conjugate prior is used; if set to "estimate", 
+the hyperparameters are found through maximum likelihood; if not set to "estimate" the user
+should supply a vector of length two.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior</code></td>
+<td>
+<p>the form of the prior; either <code>prior="conjugate"</code> or <code>prior="nonparametric"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha.grid</code></td>
+<td>
+<p>a numeric vector of points in (0,1); this grid is used in the 
+discrete approximation of r-values</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ngrid</code></td>
+<td>
+<p>number of grid points for alpha.grid; only relevant when <code>alpha.grid=NULL</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>smooth</code></td>
+<td>
+<p>either <code>smooth="none"</code> or <code>smooth</code> takes 
+a value between 0 and 10; this determines the level of smoothing applied to the
+estimate of <code class="reqn">\lambda(\alpha)</code> (see below for the definition of
+<code class="reqn">\lambda(\alpha)</code>); if <code>smooth</code> is given a number, the
+number is used as the <code>bass</code> argument in <code>supsmu</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>a list of control parameters for estimation of the prior; only used 
+when the prior is nonparametric</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The r-value computation assumes the following two-level sampling model
+<code class="reqn"> X_i|\theta_i</code> ~ <code class="reqn">p(x|\theta_i,\eta_i)</code>
+and <code class="reqn">\theta_i</code> ~ <code class="reqn">F</code>, for <code class="reqn">i = 1,...,n</code>,
+with parameters of interest <code class="reqn">\theta_i</code>, effect size estimates <code class="reqn">X_i</code>,
+and nuisance terms <code class="reqn">\eta_i</code>. The form of <code class="reqn">p(x|\theta_i,\eta_i)</code> is determined
+by the <code>family</code> argument. When <code>family = gaussian</code>, it is assumed that
+<code class="reqn">X_i|\theta_i,\eta_i</code> ~ N(<code class="reqn">\theta_i,\eta_i^{2})</code>.
+When <code>family = binomial</code>, the <code class="reqn">(X_i,\eta_i)</code> represent the number of successes
+and number of trials respectively, and it is assumed that <code class="reqn">X_i|\theta_i,\eta_i</code> ~
+Binomial<code class="reqn">(\theta_i,\eta_i)</code>. When <code>family = poisson</code>, the <code class="reqn">{X_i}</code> should be
+counts, and it is assumed that <code class="reqn">X_i|\theta_i,\eta_i</code> ~ Poisson(<code class="reqn">\theta_i * \eta_i)</code>. 
+</p>
+<p>The distribution of the effect sizes <code class="reqn">F</code> may be a parametric distribution
+that is conjugate to the corresponding <code>family</code> argument,
+or it may be estimated nonparametrically. When it is desired that <code class="reqn">F</code> be
+parametric (i.e., <code>prior = "conjugate"</code>), the default is to estimate the 
+hyperparameters (i.e., <code>hypers = "estimate"</code>), but these may be supplied by the 
+user as a vector of length two. To estimate <code class="reqn">F</code> nonparametrically, one
+should use <code>prior = "nonparametric"</code> (see <code>npmle</code> for
+further details about nonparametric estimation of <code class="reqn">F</code>).
+</p>
+<p>The <em>r-value</em>, <code class="reqn">r_i</code>, assigned to the ith case of interest is determined by
+<code class="reqn">  r_i = </code> inf[ <code class="reqn">0 &lt; \alpha &lt; 1: V_\alpha(X_i,\eta_i) \ge \lambda(\alpha) </code> ]
+where <code class="reqn">V_\alpha(X_i,\eta_i) = P( \theta_i \ge \theta_\alpha|X_i,\eta_i) </code>
+is the posterior probability that <code class="reqn">\theta_i</code> exceeds the threshold <code class="reqn">\theta_\alpha</code>,
+and <code class="reqn">\lambda(\alpha)</code> is the upper-<code class="reqn">\alpha</code>th quantile associated
+with the marginal distribution of <code class="reqn">V_\alpha(X_i,\eta_i)</code> (i.e., 
+<code class="reqn"> P(V_\alpha(X_i,\eta_i) \ge \lambda(\alpha)) = \alpha). </code> Similarly, 
+the threshold <code class="reqn">\theta_\alpha</code> is the upper-<code class="reqn">\alpha</code>th quantile of 
+<code class="reqn">F</code> (i.e., <code class="reqn">P(\theta_i \ge \theta_\alpha) = \alpha</code> ). 
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class "rvals" which is a list containing at least the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>main</code></td>
+<td>
+<p>a data frame containing the r-values, the r-value rankings along with
+the rankings from several other common procedures</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aux</code></td>
+<td>
+<p>a list containing other extraneous information</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rvalues</code></td>
+<td>
+<p>a vector of r-values</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Nicholas C. Henderson and Michael A. Newton
+</p>
+
+
+<h3>References</h3>
+
+<p>Henderson, N.C. and Newton, M.A. (2016). <em>Making the cut: improved ranking and selection
+for large-scale inference</em>. J. Royal Statist. Soc. B., 78(4), 781-804.
+doi: <a href="https://doi.org/10.1111/rssb.12131">10.1111/rssb.12131</a>
+<a href="https://arxiv.org/abs/1312.5776">https://arxiv.org/abs/1312.5776</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>rvaluesMCMC</code>, <code>PostSummaries</code>, <code>Valpha</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+### Binomial example with Beta prior:
+data(fluEnrich)
+flu.rvals &lt;- rvalues(fluEnrich, family = binomial)
+hist(flu.rvals$rvalues)
+
+### look at the r-values for indices 10 and 2484
+fig_indices  &lt;- c(10,2484)
+fluEnrich[fig_indices,]
+
+flu.rvals$rvalues[fig_indices]
+
+### Gaussian sampling distribution with nonparametric prior
+### Use a maximum of 5 iterations for the nonparam. estimate
+data(hiv)
+hiv.rvals &lt;- rvalues(hiv, prior = "nonparametric")
+
+## End(Not run)
+</code></pre>
+
+
+</div>

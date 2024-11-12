@@ -1,0 +1,798 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rmcMultiRun</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Learn and predict a Mixture Model</h2>
+
+<h3>Description</h3>
+
+<p>Estimate the parameter of a mixture model or predict the cluster of new samples.
+It manages heterogeneous data as well as missing and incomplete data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rmcMultiRun(
+  algo,
+  data,
+  model,
+  resLearn = list(),
+  nRun = 1,
+  nCore = 1,
+  verbose = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>algo</code></td>
+<td>
+<p>a list containing the parameters of the SEM-Gibbs algorithm (see <em>Details</em>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a data.frame, a matrix or a named list containing the data (see <em>Details</em> <em>Data format</em> sections).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>a named list containing models and hyperparameters (see <em>Details</em> section).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>resLearn</code></td>
+<td>
+<p>output of <em>rmcMultiRun</em> (only for predict mode).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nRun</code></td>
+<td>
+<p>number of runs for every given number of class. If &gt;1, SEM is run <code>nRun</code> times for every number of class,
+and the best according to observed likelihood is kept.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nCore</code></td>
+<td>
+<p>number of cores used for the parallelization of the <em>nRun</em> runs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>if TRUE, print some information.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The <em>data</em> object is a list where each element corresponds to a variable, each element must be named.
+Missing and incomplete data are managed, see section <em>Data format</em> for how to format them.
+</p>
+<p>The <em>model</em> object is a named list containing the variables to use in the model.
+All variables listed in the <em>model</em> object must be in the <em>data</em> object.
+<em>model</em> can contain less variables than <em>data</em>.
+An element of the list corresponds to a model which is described by a list of 2 elements:
+type containing the model name and paramStr containing the hyperparameters.
+For example:
+<code>model &lt;- list(real1 = list(type = "Gaussian", paramStr = ""), func1 = list(type = "Func_CS", paramStr = "nSub: 4, nCoeff: 2"))</code>.
+</p>
+<p>Eight models are available in RMixtComp: <em>Gaussian</em>, <em>Multinomial</em>, <em>Poisson</em>, <em>NegativeBinomial</em>,
+<em>Weibull</em>, <em>Func_CS</em>, <em>Func_SharedAlpha_CS</em>, <em>Rank_ISR</em>.
+<em>Func_CS</em> and <em>Func_SharedAlpha_CS</em> models require hyperparameters: the number of subregressions of functional
+and the number of coefficients of each subregression.
+These hyperparameters are specified by: <em>nSub: i, nCoeff: k</em> in the <em>paramStr</em> field of the <em>model</em> object.
+The <em>Func_SharedAlpha_CS</em> is a variant of the <em>Func_CS</em> model with the alpha parameter shared between clusters.
+It means that the start and end of each subregression will be the same across the clusters.
+</p>
+<p>To perform a (semi-)supervised clustering, user can add a variable named <em>z_class</em> in the data and model objects
+with <em>LatentClass</em> as model in the model object.
+</p>
+<p>The <em>algo</em> object is a list containing the different number of iterations for the algorithm.
+The algorithm is decomposed in a burn-in phase and a normal phase.
+Estimates from the burn-in phase are not shown in output.
+</p>
+
+<ul>
+<li>
+<p>nClass: number of class
+</p>
+</li>
+<li>
+<p>nInd: number of individuals
+</p>
+</li>
+<li>
+<p>nbBurnInIter: Number of iterations of the burn-in part of the SEM algorithm.
+</p>
+</li>
+<li>
+<p>nbIter: Number of iterations of the SEM algorithm.
+</p>
+</li>
+<li>
+<p>nbGibbsBurnInIter: Number of iterations of the burn-in part of the Gibbs algorithm.
+</p>
+</li>
+<li>
+<p>nbGibbsIter: Number of iterations of the Gibbs algorithm.
+</p>
+</li>
+<li>
+<p>nInitPerClass: Number of individuals used to initialize each cluster (default = 10).
+</p>
+</li>
+<li>
+<p>nSemTry: Number of try of the algorithm for avoiding an error.
+</p>
+</li>
+<li>
+<p>confidenceLevel: confidence level for confidence bounds for parameter estimation
+</p>
+</li>
+<li>
+<p>ratioStableCriterion: stability partition required to stop earlier the SEM 
+</p>
+</li>
+<li>
+<p>nStableCriterion: number of iterations of partition stability to stop earlier the SEM
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>An object of class MixtComp
+</p>
+
+
+<h3>Data format</h3>
+
+<p>- Gaussian data:
+Gaussian data are real values with the dot as decimal separator.
+Missing data are indicated by a <em>?</em>. Partial data can be provided through intervals denoted by
+<em>[a:b]</em> where <em>a</em> (resp. <em>b</em>) is a real or <em>-inf</em> (resp. <em>+inf</em>).
+</p>
+<p>- Categorical Data:
+Categorical data must be consecutive integer with 1 as minimal value. Missing data are indicated by a <em>?</em>.
+For partial data, a list of possible values can be provided by <em>a_1,...,a_j</em>,
+where <em>a_i</em> denotes a categorical value.
+</p>
+<p>- Poisson and NegativeBinomial Data:
+Poisson and NegativeBinomial data must be positive integer. Missing data are indicated by a <em>?</em>.
+Partial data can be provided through intervals denoted by
+<em>[a:b]</em> where <em>a</em> and <em>b</em> are  positive integers. <em>b</em> can be <em>+inf</em>.
+</p>
+<p>- Weibull Data:
+Weibull data are real positive values with the dot as decimal separator.
+Missing data are indicated by a <em>?</em>. Partial data can be provided through intervals denoted by
+<em>[a:b]</em> where <em>a</em> and <em>b</em> are  positive reals. <em>b</em> can be <em>+inf</em>.
+</p>
+<p>- Rank data:
+The format of a rank is: <em>o_1, ..., o_j</em> where o_1 is an integer corresponding to the number of the object ranked
+in 1st position.
+For example: 4,2,1,3 means that the fourth object is ranked first then the second object is in second position and so on.
+Missing data can be specified by replacing and object by a <em>?</em> or a list of potential object, for example:
+<em>4, {2 3}, {2 1}, ?</em> means that the object ranked in second position is either the object number 2 or
+the object number 3, then the object ranked in third position is either the object 2 or 1 and the last one can be anything.
+A totally missing rank is specified by <em>?,?,...,?</em>
+</p>
+<p>- Functional data:
+The format of a functional data is: <em>time_1:value_1,..., time_j:value_j</em>. Between individuals,
+functional data can have different length and different time.
+<em>i</em> is the number of subregressions in a functional data and <em>k</em> the number of coefficients
+of each regression (2 = linear, 3 = quadratic, ...). Missing data are not supported.
+</p>
+<p>- z_class:
+To perform a (semi-)supervised clustering, user can add a variable named 'z_class' (with eventually some missing values)
+with "LatentClass" as model. Missing data are indicated by a <em>?</em>. For partial data, a list of possible values
+can be provided by <em>a_1,...,a_j</em>, where <em>a_i</em> denotes a class number.
+</p>
+
+
+<h3>MixtComp object</h3>
+
+<p>A MixtComp object is a result of a single run of MixtComp algorithm. It is a list containing three elements
+<em>mixture</em>, <em>variable</em> and <em>algo</em>.
+If MixtComp fails to run, the list contains a single element: warnLog containing error messages.
+</p>
+<p>The <em>mixture</em> element contains
+</p>
+
+<ul>
+<li>
+<p>BIC: value of BIC
+</p>
+</li>
+<li>
+<p>ICL: value of ICL
+</p>
+</li>
+<li>
+<p>nbFreeParameters: number of free parameters of the mixture
+</p>
+</li>
+<li>
+<p>lnObservedLikelihood: observed loglikelihood
+</p>
+</li>
+<li>
+<p>lnCompletedLikelihood: completed loglikelihood
+</p>
+</li>
+<li>
+<p>IDClass: entropy used to compute the discriminative power of variable:
+-<code class="reqn">\sum_{i=1}^n t_{ikj} log(t_{ikj})/(n * log(K))</code>
+</p>
+</li>
+<li>
+<p>IDClassBar: entropy used to compute the discriminative power of variable:
+-<code class="reqn">\sum_{i=1}^n (1-t_{ikj}) log((1-t_{ikj}))/(n * log(K))</code>
+</p>
+</li>
+<li>
+<p>delta: similarities between variables
+</p>
+</li>
+<li>
+<p>completedProbabilityLogBurnIn: evolution of the completed log-probability during the burn-in period
+(can be used to check the convergence and determine the ideal number of iteration)
+</p>
+</li>
+<li>
+<p>completedProbabilityLogRun: evolution of the completed log-probability  after the burn-in period
+(can be used to check the convergence and determine the ideal number of iteration)
+</p>
+</li>
+<li>
+<p>runTime: list containing the total execution time in seconds and the execution time of some subpart.
+</p>
+</li>
+<li>
+<p>lnProbaGivenClass: log-proportion + log-probability of x_i for each class
+</p>
+</li>
+</ul>
+<p>The <em>algo</em> list contains a copy of <em>algo</em> parameter with extra elements:
+nInd, nClass, mode ("learn" or "predict").
+</p>
+<p>The <em>variable</em> list contains 3 lists : <em>data</em>, <em>type</em> and <em>param</em>.
+Each of these lists contains a list for each variable (the name of each list is the name of the variable) and for
+the class of samples (<em>z_class</em>).
+The <em>type</em> list contains the model used for each variable.
+</p>
+<p>Each list of the <em>data</em> list contains the completed data in the <em>completed</em> element and
+some statistics about them (<em>stat</em>).
+</p>
+<p>The estimated parameter can be found in the <em>stat</em> element in the <em>param</em> list
+(see Section <em>View of an output object</em>).
+For more details about the parameters of each model, you can refer to rnorm, rpois, rweibull,
+rnbinom, rmultinom, or references in the <em>References</em> section.
+</p>
+
+
+<h3>View of a MixtComp object</h3>
+
+<p>Example of output object with variables named "categorical", "gaussian", "rank", "functional", "poisson", "nBinom"
+and "weibull" with respectively <em>Multinomial</em>, <em>Gaussian</em>, <em>Rank_ISR</em>, <em>Func_CS</em>
+(or <em>Func_SharedAlpha_CS</em>), <em>Poisson</em>, <em>NegativeBinomial</em> and <em>Weibull</em> as model.
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+output  </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+|_______ </td>
+<td style="text-align: left;"> algo </td>
+<td style="text-align: left;"> __ nbBurnInIter</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+|        </td>
+<td style="text-align: left;">      </td>
+<td style="text-align: left;"> |_ nbIter</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+|        </td>
+<td style="text-align: left;">      </td>
+<td style="text-align: left;"> |_ nbGibbsBurnInIter</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+|        </td>
+<td style="text-align: left;">      </td>
+<td style="text-align: left;"> |_ nbGibbsIter</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+|        </td>
+<td style="text-align: left;">      </td>
+<td style="text-align: left;"> |_ nInitPerClass</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+|        </td>
+<td style="text-align: left;">      </td>
+<td style="text-align: left;"> |_ nSemTry</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+|        </td>
+<td style="text-align: left;">      </td>
+<td style="text-align: left;"> |_ ratioStableCriterion</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+|        </td>
+<td style="text-align: left;">      </td>
+<td style="text-align: left;"> |_ nStableCriterion</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+|        </td>
+<td style="text-align: left;">      </td>
+<td style="text-align: left;"> |_ confidenceLevel  </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+|        </td>
+<td style="text-align: left;">      </td>
+<td style="text-align: left;"> |_ mode </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+|        </td>
+<td style="text-align: left;">      </td>
+<td style="text-align: left;"> |_ nInd  </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+|        </td>
+<td style="text-align: left;">      </td>
+<td style="text-align: left;"> |_ nClass </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+| </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+|_______ </td>
+<td style="text-align: left;"> mixture </td>
+<td style="text-align: left;"> __ BIC </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+|        </td>
+<td style="text-align: left;">         </td>
+<td style="text-align: left;"> |_ ICL</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+|        </td>
+<td style="text-align: left;">         </td>
+<td style="text-align: left;"> |_ lnCompletedLikelihood</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+|        </td>
+<td style="text-align: left;">         </td>
+<td style="text-align: left;"> |_ lnObservedLikelihood </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+|        </td>
+<td style="text-align: left;">         </td>
+<td style="text-align: left;"> |_ IDClass  </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+|        </td>
+<td style="text-align: left;">         </td>
+<td style="text-align: left;"> |_ IDClassBar  </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+|        </td>
+<td style="text-align: left;">         </td>
+<td style="text-align: left;"> |_ delta  </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+|        </td>
+<td style="text-align: left;">         </td>
+<td style="text-align: left;"> |_ runTime </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+|        </td>
+<td style="text-align: left;">         </td>
+<td style="text-align: left;"> |_ nbFreeParameters </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+|        </td>
+<td style="text-align: left;">         </td>
+<td style="text-align: left;"> |_ completedProbabilityLogBurnIn </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+|        </td>
+<td style="text-align: left;">         </td>
+<td style="text-align: left;"> |_ completedProbabilityLogRun </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+|        </td>
+<td style="text-align: left;">         </td>
+<td style="text-align: left;"> |_ lnProbaGivenClass </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<table>
+<tr>
+<td style="text-align: left;">
+|  </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+|_______ </td>
+<td style="text-align: left;"> variable </td>
+<td style="text-align: left;"> __ type </td>
+<td style="text-align: left;"> __ z_class  </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |       </td>
+<td style="text-align: left;"> |_ categorical </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |       </td>
+<td style="text-align: left;"> |_ gaussian </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |       </td>
+<td style="text-align: left;"> |_ ...   </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |       </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |_ data </td>
+<td style="text-align: left;"> __ z_class </td>
+<td style="text-align: left;"> __ completed</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |       </td>
+<td style="text-align: left;"> |          </td>
+<td style="text-align: left;"> |_ stat </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |       </td>
+<td style="text-align: left;"> |_ categorical </td>
+<td style="text-align: left;"> __ completed</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |       </td>
+<td style="text-align: left;"> |              </td>
+<td style="text-align: left;"> |_ stat </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |       </td>
+<td style="text-align: left;"> |_ ...         </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |       </td>
+<td style="text-align: left;"> |_ functional </td>
+<td style="text-align: left;"> __ data</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |       </td>
+<td style="text-align: left;">               </td>
+<td style="text-align: left;"> |_ time </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |       </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |_ param </td>
+<td style="text-align: left;"> __ z_class </td>
+<td style="text-align: left;"> __ stat</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |          </td>
+<td style="text-align: left;"> |_ log </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |          </td>
+<td style="text-align: left;"> |_ paramStr </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |_ functional </td>
+<td style="text-align: left;"> __ alpha </td>
+<td style="text-align: left;"> __ stat</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |             </td>
+<td style="text-align: left;"> |        </td>
+<td style="text-align: left;"> |_ log </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |             </td>
+<td style="text-align: left;"> |_ beta  </td>
+<td style="text-align: left;"> __ stat</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |             </td>
+<td style="text-align: left;"> |        </td>
+<td style="text-align: left;"> |_ log </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |             </td>
+<td style="text-align: left;"> |_ sd    </td>
+<td style="text-align: left;"> __ stat</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |             </td>
+<td style="text-align: left;"> |        </td>
+<td style="text-align: left;"> |_ log </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |             </td>
+<td style="text-align: left;"> |_ paramStr </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |_ rank </td>
+<td style="text-align: left;"> __ mu </td>
+<td style="text-align: left;"> __ stat</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |       </td>
+<td style="text-align: left;"> |     </td>
+<td style="text-align: left;"> |_ log </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |       </td>
+<td style="text-align: left;"> |_ pi </td>
+<td style="text-align: left;"> __ stat</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |       </td>
+<td style="text-align: left;"> |     </td>
+<td style="text-align: left;"> |_ log </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |       </td>
+<td style="text-align: left;"> |_ paramStr </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |       </td>
+<td style="text-align: left;">       </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |_ gaussian </td>
+<td style="text-align: left;"> __ stat</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |           </td>
+<td style="text-align: left;"> |_ log </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |           </td>
+<td style="text-align: left;"> |_ paramStr </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |_ poisson  </td>
+<td style="text-align: left;"> __ stat</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |           </td>
+<td style="text-align: left;"> |_ log </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |           </td>
+<td style="text-align: left;"> |_ paramStr </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+         </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;">          </td>
+<td style="text-align: left;"> |_ ...
+
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Quentin Grimonprez
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">dataLearn &lt;- list(
+  var1 = as.character(c(rnorm(50, -2, 0.8), rnorm(50, 2, 0.8))),
+  var2 = as.character(c(rnorm(50, 2), rpois(50, 8)))
+)
+
+dataPredict &lt;- list(
+  var1 = as.character(c(rnorm(10, -2, 0.8), rnorm(10, 2, 0.8))),
+  var2 = as.character(c(rnorm(10, 2), rpois(10, 8)))
+)
+
+model &lt;- list(
+  var1 = list(type = "Gaussian", paramStr = ""),
+  var2 = list(type = "Poisson", paramStr = "")
+)
+
+algo &lt;- list(
+  nClass = 2,
+  nInd = 100,
+  nbBurnInIter = 100,
+  nbIter = 100,
+  nbGibbsBurnInIter = 100,
+  nbGibbsIter = 100,
+  nInitPerClass = 3,
+  nSemTry = 20,
+  confidenceLevel = 0.95,
+  ratioStableCriterion = 0.95,
+  nStableCriterion = 10,
+  mode = "learn"
+)
+
+
+# run RMixtComp in unsupervised clustering mode + data as matrix
+resLearn &lt;- rmcMultiRun(algo, dataLearn, model, nRun = 3)
+
+
+# run RMixtComp in predict mode + data as list
+algo$nInd &lt;- 20
+algo$mode &lt;- "predict"
+resPredict &lt;- rmcMultiRun(algo, dataPredict, model, resLearn)
+</code></pre>
+
+
+</div>

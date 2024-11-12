@@ -1,0 +1,421 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>R.s.estimate.me</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+
+Calculates the proportion of treatment effect explained correcting for measurement error in the surrogate marker
+</h2>
+
+<h3>Description</h3>
+
+
+<p>This function calculates the proportion of treatment effect on the primary outcome explained by the treatment effect on a surrogate marker, correcting for measurement error in the surrogate marker. This function is intended to be used for a fully observed continuous outcome. The user must specify what type of estimation they would like (parametric or nonparametric estimation of the proportion explained, denoted by R) and what estimator they would like (see below for details). 
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">R.s.estimate.me(sone, szero, yone, yzero, parametric = FALSE, estimator = "n", 
+me.variance, extrapolate = TRUE, transform = FALSE, naive = FALSE, Ronly = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>sone</code></td>
+<td>
+
+
+<p>numeric vector or matrix; surrogate marker for treated observations, assumed to be continuous. If there are multiple surrogates then this should be a matrix with <code class="reqn">n_1</code> (number of treated observations) rows and n.s (number of surrogate markers) columns.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>szero</code></td>
+<td>
+
+
+<p>numeric vector; surrogate marker for control observations, assumed to be continuous.If there are multiple surrogates then this should be a matrix with <code class="reqn">n_0</code> (number of control observations) rows and n.s (number of surrogate markers) columns. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yone</code></td>
+<td>
+
+
+<p>numeric vector; primary outcome for treated observations, assumed to be continuous.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yzero</code></td>
+<td>
+
+
+<p>numeric vector; primary outcome for control observations, assumed to be continuous.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parametric</code></td>
+<td>
+
+
+<p>TRUE or FALSE; indicates whether the user wants the parametric approach to be used (TRUE) or nonparametric (FALSE).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estimator</code></td>
+<td>
+
+
+<p>options are "d","q","n" for parametric and "q","n" for nonparametric; "d" stands for the disattenuated estimator, "q" stands for the SIMEX estimator with quadratic extrapolation, "n" stands for the SIMEX estimator with a nonlinear extrapolation. Note that the nonlinear extrapolation may have convergence issues with a small sample size; if this occurs, please consider using quadratic extrapolation instead.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>me.variance</code></td>
+<td>
+
+
+<p>the variance of the measurement error; must be provided.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extrapolate</code></td>
+<td>
+
+
+<p>TRUE or FALSE; indicates whether the user wants to use extrapolation.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>transform</code></td>
+<td>
+
+
+<p>TRUE or FALSE; indicates whether the user wants to use a transformation for the surrogate marker. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>naive</code></td>
+<td>
+
+
+<p>TRUE or FALSE; indicates whether the user wants the naive estimate (not correcting for measurement error) to also be calculated
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Ronly</code></td>
+<td>
+
+
+<p>TRUE or FALSE; indicates whether the user wants only R (and corresponding variance and confidence intervals) to be returned.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>While there are many methods available to quantify the value of a surrogate marker, most assume that the marker is measured without error. This function calculates the proportion of treatment effect on the primary outcome explained by the treatment effect on a surrogate marker, correcting for measurement error in the surrogate marker. The user can choose either the parametric framework or nonparametric framework for estmation. Within the parametric framework there are three options for measurement error correction: the disattenuated estimator, the SIMEX estimator with quadratic extrapolation, and the SIMEX estimator with nonlinear extrapolation. Within the nonparametric framework there are two options for measurement error correction: the SIMEX estimator with quadratic extrapolation and the SIMEX estimator with nonlinear extrapolation. We describe each below. 
+</p>
+<p>Let <code class="reqn">G</code> be the binary treatment indicator with <code class="reqn">G=1</code> indicating treatment and <code class="reqn">G=0</code> indicating control (or placebo).  We assume throughout that subjects are randomly assigned to treatment or control at baseline. Let <code class="reqn">Y</code> and <code class="reqn">S</code> denote the continuous primary outcome and continuous surrogate marker, respectively, where <code class="reqn">S</code> is measured post-baseline and is assumed to be a biomarker, clinical measurement, psychological test score, or other  physiological measurement. In the absence of measurement error, the observed data consists of <code class="reqn">\{Y_i, S_i, G_i\}</code> for <code class="reqn">i \in \{1,...,n\}</code>. With measurement error, instead of observing <code class="reqn">S</code> we observe <code class="reqn">W = S + U</code>, where <code class="reqn">E(U|S) = 0</code> and the variance of <code class="reqn">U</code> is <code class="reqn">\sigma_u^2</code>. Such measurement error may be attributable to, for example, laboratory error. Thus, our observed data will consist of <code class="reqn">\{Y_i, W_i, G_i\}</code> for <code class="reqn">i \in \{1,...,n\}</code>. Throughout, we assume that  <code class="reqn">\sigma_u^2</code> is known. Here, we are interested in estimating the proprtion of the treatment effect on the primary outcome that is explained by the treatment effect on the surrogate marker, denoted as <code class="reqn">R_S</code>. 
+</p>
+<p>To estimate <code class="reqn">R_S</code> parametrically, we assume the following models <code class="reqn">E(Y|G) = \beta_0 + \beta_1 G</code> and <code class="reqn">E(Y|G,S) = \beta_0^* + \beta_1^*G + \beta_2^* S</code>. It can be shown that if these models hold,  <code class="reqn">R_S=1-\beta_1^*/\beta_1</code>. When <code class="reqn">W = S+U</code> is available instead of <code class="reqn">S</code>, this measurement error does not affect estimation of <code class="reqn">\beta_1</code>, but it does affect estimation of <code class="reqn">\beta_1^*</code>, and <code class="reqn">\beta_2^*</code>. Since estimation of <code class="reqn">R_S</code> relies on estimation of <code class="reqn">\beta_1</code> and <code class="reqn">\beta_1^*</code>, we focus on the effect of measurement error on <code class="reqn">\beta_1^*</code> estimation. The attenuation bias for <code class="reqn">\hat \beta_1^*</code> and <code class="reqn">\hat R</code> can be written out in closed form when the proportion of treatment effect is parametrically estimated as described above, when these specified models hold, and when the surrogate marker <code class="reqn">S</code> is measured with error. There exist two methods to eliminate this bias when estimating <code class="reqn">R_S</code>. Taking advantage of the fact that we can express the attenuation bias in closed form, the first is a straightforward disattenuated estimator: <code class="reqn">\hat \beta _{1A} = \hat{\beta}_1^* -  \frac{  \hat{\beta}_2^* \{\Omega^2_{W} \Omega_{GW}-\Omega_{GW}(\Omega^2_{W} - \sigma_u^2)\}}{\Omega^2_{G}(\Omega^2_{W} - \sigma_u^2)-\Omega_{GW}\Omega_{GW}}</code> and <code class="reqn">\hat{R}_{A} = 1- \left [ \hat{\beta}_1^* -  \frac{  \hat{\beta}_2^* \{\Omega^2_{W} \Omega_{GW}-\Omega_{GW}(\Omega^2_{W} - \sigma_u^2)\}}{\Omega^2_{G}(\Omega^2_{W} - \sigma_u^2)-\Omega_{GW}\Omega_{GW}}  \right] / \hat{\beta}_1</code> where <code class="reqn">\Omega^2</code> denotes the sample variance or covariance.
+</p>
+<p>The second method to eliminate this bias uses Simulation Extrapolation (SIMEX) estimation, which is a simulation-based method that involves first generating additional measurement error and observing how it affects the bias of the parameter estimate of interest, and then extrapolating this information to a setting with no measurement error. To incorporate SIMEX estimation within our surrogate marker framework, we define <code class="reqn">W_{b,i}(\lambda) = W_i + \lambda^{1/2} \sigma_u \epsilon_{i,b}</code>
+for <code class="reqn">b=1,...,B</code> where <code class="reqn">B=50</code>, <code class="reqn">\epsilon_{i,b} \sim N(0,1)</code>, <code class="reqn">\sigma_u</code> is assumed known, and <code class="reqn">\lambda \in (0,0.25,0.5,0.75,1.0,</code> <code class="reqn">1.25,1.5,1.75,2.0)</code> and for each iteration <code class="reqn">b</code> and <code class="reqn">\lambda</code> value, obtaining  <code class="reqn">\hat \beta_{1b}^*(\lambda)</code> by fitting the regression model: <code class="reqn">E(Y \mid W_b(\lambda),S) = \beta_{0b}^* + \beta_{1b}^* W_{b}(\lambda) + \beta_{2b}^* S.</code> We then calculate the average estimate for each quantity over the iterations <code class="reqn">b=1,...,B</code> for each <code class="reqn">\lambda</code> value, denoted as <code class="reqn">\hat \beta^*_{1,S,\sigma^2_u(1+\lambda)} = \sum_{b=1}^B \hat \beta_{1b}^*(\lambda)</code>. The second step, extrapolation, takes these average estimates for each <code class="reqn">\lambda</code> value and extrapolates using a function <code class="reqn">G(\Gamma, \lambda)</code> to obtain the estimated quantity if <code class="reqn">\lambda=-1</code>. For the extrapolation step, we use both a quadratic extrapolation and nonlinear extrapolation i.e., we solve for <code class="reqn">\Gamma = (\alpha_0, \alpha_1, \alpha_2)^T</code> in  <code class="reqn">\hat \beta^*_{1,S,\sigma^2_u(1+\lambda)} = \alpha_0 + \alpha_1 \lambda + \alpha_2 \lambda^2</code> and <code class="reqn">\hat \beta^*_{1,S,\sigma^2_u(1+\lambda)}= \alpha_0 + \alpha_1 /( \alpha_2 + \lambda)</code>, respectively. Using the estimates of <code class="reqn">\alpha_0, \alpha_1, \alpha_2</code>, we calculate the predicted <code class="reqn">\hat \beta^*_{1,S,\sigma^2_u(1+\lambda)}</code> when <code class="reqn">\lambda = -1</code>. In essence, the simulations add successively larger measurement errors of size <code class="reqn">(1+\lambda)\sigma^2_u</code> and then extrapolate to the case when <code class="reqn">\lambda = -1</code> such that the measurement error is 0. We denote the resulting estimator of <code class="reqn">\beta_1^*</code> as <code class="reqn">\hat{\beta}^*_{1,SIMEX} = G(\hat \Gamma, -1)</code> and define <code class="reqn">\hat{R}_{SIMEX} = 1- \hat{\beta}^*_{1,SIMEX}/ \hat \beta_1.</code> 
+</p>
+<p>While the parametric approach to estimate the proportion of treatment effect explained by <code class="reqn">S</code> is most commonly used in clinical practice, previous work has demonstrated biased results when the assumed models are not correctly specified. An alternative approach involves estimating the treatment effect, <code class="reqn">\Delta</code>, and residual treatment effect, <code class="reqn">\Delta_S</code>, as <code class="reqn">R_S</code> is defined as <code class="reqn">1-\Delta/\Delta_S</code>. The quantity <code class="reqn">\Delta</code> can be estimated simply by <code class="reqn">\hat{\Delta} = n_1^{-1}\sum_{i=1}^{n} Y_i I(G_i = 1) - n_0^{-1}\sum_{i=1}^{n} Y_i I(G_i = 0)</code>, where <code class="reqn">n_1</code> and <code class="reqn">n_0</code> denote the number of individuals in the treatment and control groups, respectively. The quantity <code class="reqn">\Delta_S</code> can be estimated nonparametrically using kernel smoothing as <code class="reqn">\hat{\Delta}_S = n_0^{-1} \sum_{i: G_i = 0}\hat{\mu}_1(S_i) - n_0^{-1}\sum_{i=1}^{n} Y_i I(G_i = 0)</code>
+where <code class="reqn">\hat{\mu}_1(s) = \{ \sum_{j: G_j = 1} K_h(S_j - s)Y_j \}/ \{\sum_{j:G_j = 1} K_h(S_j - s)\}</code>, <code class="reqn">K(\cdot)</code> is a smooth symmetric density function with finite support, <code class="reqn">K_h(\cdot)=K(\cdot/h)/h</code> and <code class="reqn">h</code> is a specified bandwidth such that <code class="reqn">h=O(n_1^{-\nu})</code> with <code class="reqn">\nu \in (1/4,1/2).</code> 
+</p>
+<p>When <code class="reqn">W = S + U</code> is available instead of <code class="reqn">S</code>, estimation of <code class="reqn">\Delta</code> is not affected whereas estimation of <code class="reqn">\Delta_S</code> is affected and thus, the nonparametric estimation procedure described above results in a biased estimate of <code class="reqn">R_S</code>. Unlike the parametric approach, the attenuation bias cannot be expressed in closed form. Within this nonparametric framework, SIMEX estimation can be used to correct for measurement error. We implement the estimation procedure as described above where we first generate additional measurement error to obtain <code class="reqn">W_{b,i}(\lambda)</code> and for each iteration <code class="reqn">b</code> and <code class="reqn">\lambda</code> values obtain <code class="reqn">\hat{\Delta}_{S,b}(\lambda) = n_0^{-1} \sum_{i: G_i = 0} \left \{ \frac{\sum_{j: G_j = 1} K_h(W_{b,j}(\lambda) - W_{b,i}(\lambda))Y_j}{\sum_{j:G_j = 1} K_h(W_{b,j}(\lambda)- W_{b,i}(\lambda))} \right \} - n_0^{-1}\sum_{i=1}^{n} Y_i I(G_i = 0).</code> We then calculate the average estimate for each quantity over the iterations <code class="reqn">b=1,...,B</code> for each <code class="reqn">\lambda</code> value, denoted as <code class="reqn">\hat{\Delta}_{S,\sigma_u^2(1+\lambda)} = \sum_{b=1}^B \hat{\Delta}_{S,b}(\lambda)</code> and extrapolate using a function <code class="reqn">G(\Gamma, \lambda)</code>; we specifically use the quadratic and nonlinear functions as in the parametric setting. We denote the resulting estimator of <code class="reqn">\Delta_S</code> as <code class="reqn">\hat{\Delta}_{S,SIMEX} = G(\hat \Gamma, -1)</code> and define <code class="reqn">\hat{R}_{S,SIMEX} = 1- \hat{\Delta}_{S,SIMEX} / \hat \Delta.</code> 
+</p>
+<p>In this function, parametric estimation is equivalent to Freedman's approach in the R.s.estimate documentation; nonparametric estimation is equivalent to the robust approach in the R.s.estimate documentation. Variance estimates for all estimators are calculated in this function based on derived closed form variance expressions. For all approaches, confidence intervals for <code class="reqn">\Delta_S</code> can be constructed using a normal approximation; confidence intervals for <code class="reqn">R_S</code> can be constructed using either a normal approximation or using Fieller's method, all of which are provided in this function. Details regarding the asymptotic properties of these estimators and closed form variance calculation can be found in: Parast, L., Garcia, T. P., Prentice, R. L., &amp; Carroll, R. J. (2022). Robust methods to correct for measurement error when evaluating a surrogate marker. Biometrics, 78(1), 9-23.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list is returned:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>R.naive</code></td>
+<td>
+<p>the naive estimate of the proportion of treatment effect explained by the surrogate marker; only if naive = TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R.naive.var</code></td>
+<td>
+<p>the estimated variance of the naive estimate of the proportion of treatment effect explained by the surrogate marker; only if naive = TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R.naive.CI.normal</code></td>
+<td>
+<p>the 95% confidence interval using the normal approximation for the naive estimate of the proportion of treatment effect explained by the surrogate marker; only if naive = TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R.naive.CI.fieller</code></td>
+<td>
+<p>the 95% confidence interval using Fieller's approach for the naive estimate of the proportion of treatment effect explained by the surrogate marker; only if naive = TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B1star.naive</code></td>
+<td>
+<p>the naive estimate of the adjusted regression coefficient for treatment; only if naive = TRUE and Ronly = FALSE and parametric = TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B1star.naive.var</code></td>
+<td>
+<p>the estimated variance of the naive estimate of the adjusted regression coefficient for treatment; only if naive = TRUE and Ronly = FALSE and parametric = TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B1star.naive.CI.normal</code></td>
+<td>
+<p>the 95% confidence interval using the normal approximation for the naive estimate of the adjusted regression coefficient for treatment; only if naive = TRUE and Ronly = FALSE and parametric = TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deltas.naive</code></td>
+<td>
+<p>the naive estimate of the residual treatment effect; only if naive = TRUE and Ronly = FALSE and parametric = FALSE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deltas.naive.var</code></td>
+<td>
+<p>the estimated variance of the naive estimate of the residual treatment effect; only if naive = TRUE and Ronly = FALSE and parametric = FALSE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deltas.naive.CI.normal</code></td>
+<td>
+<p>the 95% confidence interval using the normal approximation for the naive estimate of the residual treatment effect; only if naive = TRUE and Ronly = FALSE and parametric = FALSE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R.corrected.dis</code></td>
+<td>
+<p>the corrected disattenuated estimate of the proportion of treatment effect explained by the surrogate marker; only if parametric = TRUE and estimator ="d"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R.corrected.var.dis</code></td>
+<td>
+<p>the estimated variance of the corrected disattenuated estimate of the proportion of treatment effect explained by the surrogate marker; only if naive = TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R.corrected.CI.normal.dis</code></td>
+<td>
+<p>the 95% confidence interval using the normal approximation for the corrected disattenuated estimate of the proportion of treatment effect explained by the surrogate marker; only if parametric = TRUE and estimator ="d"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R.corrected.CI.fieller.dis</code></td>
+<td>
+<p>the 95% confidence interval using Fieller's approach for the corrected disattenuated estimate of the proportion of treatment effect explained by the surrogate marker; only if parametric = TRUE and estimator ="d"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B1star.corrected.dis</code></td>
+<td>
+<p>the corrected disattenuated estimate of the adjusted regression coefficient for treatment; only if parametric = TRUE and estimator = "d" and Ronly = FALSE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B1star.corrected.var.dis</code></td>
+<td>
+<p>the estimated variance of the corrected disattenuated estimate of the adjusted regression coefficient for treatment; only if parametric = TRUE and estimator = "d" and Ronly = FALSE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B1star.corrected.CI.normal.dis</code></td>
+<td>
+<p>the 95% confidence interval using the normal approximation for the corrected disattenuated estimate of the adjusted regression coefficient for treatment; only if parametric = TRUE and estimator = "d" and Ronly = FALSE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R.corrected.q</code></td>
+<td>
+<p>the corrected SIMEX (quadratic) estimate of the proportion of treatment effect explained by the surrogate marker; only if estimator = "q"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R.corrected.var.q</code></td>
+<td>
+<p>the estimated variance of the corrected SIMEX (quadratic) estimate of the proportion of treatment effect explained by the surrogate marker; only if estimator = "q"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R.corrected.CI.normal.q</code></td>
+<td>
+<p>the 95% confidence interval using the normal approximation for the corrected SIMEX (quadratic) estimate of the proportion of treatment effect explained by the surrogate marker; only if estimator = "q"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R.corrected.CI.fieller.q</code></td>
+<td>
+<p>the 95% confidence interval using Fieller's approach for the corrected SIMEX (quadratic) estimate of the proportion of treatment effect explained by the surrogate marker; only if estimator = "q"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B1star.corrected.q</code></td>
+<td>
+<p>the corrected SIMEX (quadratic) estimate of the adjusted regression coefficient for treatment; only if estimator = "q" and Ronly = FALSE and parametric = TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B1star.corrected.var.q</code></td>
+<td>
+<p>the estimated variance of the corrected SIMEX (quadratic) estimate of the adjusted regression coefficient for treatment; only if estimator = "q" and Ronly = FALSE and parametric = TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B1star.corrected.CI.normal.q</code></td>
+<td>
+<p>the 95% confidence interval using the normal approximation for the corrected SIMEX (quadratic) estimate of the adjusted regression coefficient for treatment; only if estimator = "q" and Ronly = FALSE and parametric = TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deltas.corrected.q</code></td>
+<td>
+<p>the corrected SIMEX (quadratic) estimate of the residual treatment effect; only if estimator = "q" and Ronly = FALSE and parametric = FALSE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deltas.corrected.var.q</code></td>
+<td>
+<p>the estimated variance of the corrected SIMEX (quadratic) estimate of the residual treatment effect; only if estimator = "q" and Ronly = FALSE and parametric = FALSE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deltas.corrected.CI.normal.q</code></td>
+<td>
+<p>the 95% confidence interval using the normal approximation for the corrected SIMEX (quadratic) estimate of the residual treatment effect; only if estimator = "q" and Ronly = FALSE and parametric = FALSE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R.corrected.nl</code></td>
+<td>
+<p>the corrected SIMEX (nonlinear) estimate of the proportion of treatment effect explained by the surrogate marker; only if estimator = "q"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R.corrected.var.nl</code></td>
+<td>
+<p>the estimated variance of the corrected SIMEX (nonlinear) estimate of the proportion of treatment effect explained by the surrogate marker; only if estimator = "q"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R.corrected.CI.normal.nl</code></td>
+<td>
+<p>the 95% confidence interval using the normal approximation for the corrected SIMEX (nonlinear) estimate of the proportion of treatment effect explained by the surrogate marker; only if estimator = "q"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R.corrected.CI.fieller.nl</code></td>
+<td>
+<p>the 95% confidence interval using Fieller's approach for the corrected SIMEX (nonlinear) estimate of the proportion of treatment effect explained by the surrogate marker; only if estimator = "q"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B1star.corrected.nl</code></td>
+<td>
+<p>the corrected SIMEX (nonlinear) estimate of the adjusted regression coefficient for treatment; only if estimator = "q" and Ronly = FALSE and parametric = TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B1star.corrected.var.nl</code></td>
+<td>
+<p>the estimated variance of the corrected SIMEX (nonlinear) estimate of the adjusted regression coefficient for treatment; only if estimator = "q" and Ronly = FALSE and parametric = TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B1star.corrected.CI.normal.nl</code></td>
+<td>
+<p>the 95% confidence interval using the normal approximation for the corrected SIMEX (nonlinear) estimate of the adjusted regression coefficient for treatment; only if estimator = "q" and Ronly = FALSE and parametric = TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deltas.corrected.nl</code></td>
+<td>
+<p>the corrected SIMEX (nonlinear) estimate of the residual treatment effect; only if estimator = "q" and Ronly = FALSE and parametric = FALSE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deltas.corrected.var.nl</code></td>
+<td>
+<p>the estimated variance of the corrected SIMEX (nonlinear) estimate of the residual treatment effect; only if estimator = "q" and Ronly = FALSE and parametric = FALSE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deltas.corrected.CI.normal.nl</code></td>
+<td>
+<p>the 95% confidence interval using the normal approximation for the corrected SIMEX (nonlinear) estimate of the residual treatment effect; only if estimator = "q" and Ronly = FALSE and parametric = FALSE</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+
+<p>Layla Parast
+</p>
+
+
+<h3>References</h3>
+
+
+<p>Parast, L., Garcia, T. P., Prentice, R. L., &amp; Carroll, R. J. (2022). Robust methods to correct for measurement error when evaluating a surrogate marker. Biometrics, 78(1), 9-23.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(d_example_me)
+names(d_example_me)
+R.s.estimate.me(yone=d_example_me$y1, yzero=d_example_me$y0, sone=d_example_me$s1, 
+szero=d_example_me$s0, parametric = TRUE, estimator = "d", me.variance = 0.5, 
+naive= TRUE, Ronly = FALSE)
+R.s.estimate.me(yone=d_example_me$y1, yzero=d_example_me$y0, sone=d_example_me$s1, 
+szero=d_example_me$s0, parametric = TRUE, estimator = "q", me.variance = 0.5, 
+naive= FALSE, Ronly = TRUE)
+
+#estimating measurement error variance with replicates
+replicates = rbind(cbind(d_example_me$s1_rep1, d_example_me$s1_rep2, 
+d_example_me$s1_rep3), cbind(d_example_me$s0_rep1, d_example_me$s0_rep2, 
+d_example_me$s0_rep3))
+mean.i = apply(replicates,1,mean, na.rm = TRUE)
+num.i = apply(replicates,1,function(x) sum(!is.na(x)))
+var.u = sum((replicates-mean.i)^2, na.rm = TRUE)/sum(num.i)
+var.u
+R.s.estimate.me(yone=d_example_me$y1, yzero=d_example_me$y0, sone=d_example_me$s1, 
+szero=d_example_me$s0, parametric = TRUE, estimator = "d", me.variance = var.u, 
+naive= TRUE, Ronly = FALSE)
+
+R.s.estimate.me(yone=d_example_me$y1, yzero=d_example_me$y0, 
+sone=d_example_me$s1, szero=d_example_me$s0, parametric = FALSE, estimator = "q", 
+me.variance = 0.5, naive= FALSE, Ronly = TRUE)
+
+</code></pre>
+
+
+</div>

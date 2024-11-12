@@ -1,0 +1,175 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>dclust</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Divisive clustering</h2>
+
+<h3>Description</h3>
+
+<p>Recursive bipartitioning by rank-2 matrix factorization with an efficient modularity-approximate stopping criteria
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">dclust(
+  A,
+  min_samples,
+  min_dist = 0,
+  verbose = TRUE,
+  tol = 1e-05,
+  maxit = 100,
+  nonneg = TRUE,
+  seed = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>A</code></td>
+<td>
+<p>matrix of features-by-samples in sparse format (preferred class is "Matrix::dgCMatrix")</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min_samples</code></td>
+<td>
+<p>stopping criteria giving the minimum number of samples permitted in a cluster</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min_dist</code></td>
+<td>
+<p>stopping criteria giving the minimum cosine distance of samples within a cluster to the center of their assigned vs. unassigned cluster. If <code>0</code>, neither this distance nor cluster centroids will be calculated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>print number of divisions in each generation</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>in rank-2 NMF, the correlation distance (<code class="reqn">1 - R^2</code>) between <code class="reqn">w</code> across consecutive iterations at which to stop factorization</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxit</code></td>
+<td>
+<p>stopping criteria, maximum number of alternating updates of <code class="reqn">w</code> and <code class="reqn">h</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nonneg</code></td>
+<td>
+<p>in rank-2 NMF, enforce non-negativity</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>random seed for rank-2 NMF model initialization</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Divisive clustering is a sensitive and fast method for sample classification. Samples are recursively partitioned into two groups until a stopping criteria is satisfied and prevents successful partitioning.
+</p>
+<p>See <code>nmf</code> and <code>bipartition</code> for technical considerations and optimizations relevant to bipartitioning.
+</p>
+<p><strong>Stopping criteria</strong>. Two stopping criteria are used to prevent indefinite division of clusters and tune the clustering resolution to a desirable range:
+</p>
+
+<ul>
+<li> <p><code>min_samples</code>: Minimum number of samples permitted in a cluster
+</p>
+</li>
+<li> <p><code>min_dist</code>: Minimum cosine distance of samples to their cluster center relative to their unassigned cluster center (an approximation of Newman-Girvan modularity)
+</p>
+</li>
+</ul>
+<p>Newman-Girvan modularity (<code class="reqn">Q</code>) is an interpretable and widely used measure of modularity for a bipartition. However, it requires the calculation of distance between all within-cluster and between-cluster sample pairs. This is computationally intensive, especially for large sample sets.
+</p>
+<p><code>dclust</code> uses a measure which linearly approximates Newman-Girvan modularity, and simply requires the calculation of distance between all samples in a cluster and both cluster centers (the assigned and unassigned center), which is orders of magnitude faster to compute. Cosine distance is used instead of Euclidean distance since it handles outliers and sparsity well.
+</p>
+<p>A bipartition is rejected if either of the two clusters contains fewer than <code>min_samples</code> or if the mean relative cosine distance of the bipartition is less than <code>min_dist</code>.
+</p>
+<p>A bipartition will only be attempted if there are more than <code>2 * min_samples</code> samples in the cluster, meaning that <code>dist</code> may not be calculated for some clusters.
+</p>
+<p><strong>Reproducibility.</strong> Because rank-2 NMF is approximate and requires random initialization, results may vary slightly across restarts. Therefore, specify a <code>seed</code> to guarantee absolute reproducibility.
+</p>
+<p>Other than setting the seed, reproducibility may be improved by setting <code>tol</code> to a smaller number to increase the exactness of each bipartition.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list of lists corresponding to individual clusters:
+</p>
+
+<ul>
+<li>
+<p> id      : character sequence of "0" and "1" giving position of clusters along splitting hierarchy
+</p>
+</li>
+<li>
+<p> samples : indices of samples in the cluster
+</p>
+</li>
+<li>
+<p> center  : mean feature expression of all samples in the cluster
+</p>
+</li>
+<li>
+<p> dist    : if applicable, relative cosine distance of samples in cluster to assigned/unassigned cluster center.
+</p>
+</li>
+<li>
+<p> leaf    : is cluster a leaf node
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>Zach DeBruine
+</p>
+
+
+<h3>References</h3>
+
+<p>Schwartz, G. et al. "TooManyCells identifies and visualizes relationships of single-cell clades". Nature Methods (2020).
+</p>
+<p>Newman, MEJ. "Modularity and community structure in networks". PNAS (2006)
+</p>
+<p>Kuang, D, Park, H. (2013). "Fast rank-2 nonnegative matrix factorization for hierarchical document clustering." Proc. 19th ACM SIGKDD intl. conf. on Knowledge discovery and data mining.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>bipartition</code>, <code>nmf</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+library(Matrix)
+data(USArrests)
+A &lt;- as(as.matrix(t(USArrests)), "dgCMatrix")
+clusters &lt;- dclust(A, min_samples = 2, min_dist = 0.001)
+str(clusters)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

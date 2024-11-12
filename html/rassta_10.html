@@ -1,0 +1,227 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>similarity</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate the Landscape Similarity to Stratification Units</h2>
+
+<h3>Description</h3>
+
+<p>For each stratification unit present in a single-layer SpatRaster, a raster
+layer of landscape similarity is created by aggregating the stratification
+unit's corresponding set of spatial signatures (see <code>signature</code>).
+For a stratification unit <em>x</em>, the corresponding set of spatial
+signatures consists of one spatial signature for each of the <em>n</em>
+classification units that are present in the numeric code of <em>x</em> (one
+classification unit per landscape factor/factor scale). The aggregation
+process is performed cell-wise, and by using a mathematical function which
+takes multiple values but return a single value (e.g., mean, sum, min, max).
+The resulting raster layer represents the correspondence between an <em>XY</em>
+location in geographic space and the landscape configuration represented by a
+given stratification unit.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">similarity(
+  su.rast,
+  su.code,
+  sig.rast,
+  fun = mean,
+  to.disk = FALSE,
+  outdir = ".",
+  prefix = "su_",
+  extension = ".tif",
+  overwrite = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>su.rast</code></td>
+<td>
+<p>SpatRaster, as in <code>rast</code>. Single-layer
+SpatRaster representing the stratification units occurring across
+geographic space. Integer values are expected as cell values (i.e., numeric
+codes) of stratification units.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>su.code</code></td>
+<td>
+<p>List. The structure of the stratification units' numeric code.
+This (nested) list should indicate the names of the landscape
+factors/factor scales used to create the stratification units, and the
+position (start, end) of their corresponding classification units' ID in
+the numeric code. See <strong>Examples</strong>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sig.rast</code></td>
+<td>
+<p>SpatRaster. Multi-layer SpatRaster with the spatial
+signatures of all the classification units that were used to create the
+stratification units. The spatial signatures should follow this name
+convention: <em>x_n</em>; where <em>x</em> is the landscape factor/factor scale,
+and <em>n</em> is the numeric ID of the classification unit to which
+the spatial signature belongs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fun</code></td>
+<td>
+<p>Function. The mathematical function must accept a vector of values
+and return a single value (e.g., mean, max, sum, etc.). See
+<code>app</code>. Default: mean</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>to.disk</code></td>
+<td>
+<p>Boolean. Write the output raster layers of landscape
+similarity to disk? See note about parallel processing. Default: FALSE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outdir</code></td>
+<td>
+<p>Character. If <em>to.disk = TRUE</em>, string specifying the path
+for the output raster layers of landscape similarity. Default: "."</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prefix</code></td>
+<td>
+<p>Character. If <em>to.disk = TRUE</em>, prefix for the file name
+of the output raster layers of landscape similarity. Default: "su_"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extension</code></td>
+<td>
+<p>Character. If <em>to.disk = TRUE</em>, string specifying the
+extension for the output raster layers of landscape signature. Default:
+".tif"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite</code></td>
+<td>
+<p>Boolean. When <em>to.disk = TRUE</em>, should raster layers in
+disk and with same name as the output landscape similarities be
+overwritten? Default: FALSE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments as for <code>writeRaster</code> (if
+<em>to.disk = TRUE</em>).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The landscape similarity is a landscape correspondence metric. The
+aggregation of multiple spatial signatures into a single landscape similarity
+layer is somewhat similar to the application of fuzzy logic and aggregation
+operators in GIS-based multi-criteria decision analysis. Furthermore, the
+aggregation of raster layers indicating relative optimality for
+spatially-varying phenomena, like spatial signatures, can be guided by
+physical/ecological principles like Sprengel-Liebig's law of the minimum. In
+such case, one could select the <em>min</em> function when aggregating the
+spatial signatures into landscape similarities.
+</p>
+<p>When writing the output raster layers of landscape similarity to disk, a
+parallel backend can be registered before running this function with
+<code>registerDoParallel</code> to speed-up computation.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with the following components:
+</p>
+<p><strong>landsim</strong>: Multi-layer SpatRaster with the landscape similarity to
+each stratification unit present in <em>su.rast</em>.
+</p>
+<p><strong>codes</strong>: A data frame with the numeric code for each stratification
+unit and the corresponding classification units' numeric ID for each
+landscape factor/factor scale.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>strata</code>
+</p>
+<p>Other Landscape Correspondence Metrics: 
+<code>predict_functions()</code>,
+<code>select_functions()</code>,
+<code>signature</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">require(terra)
+p &lt;- system.file("exdat", package = "rassta")
+# Single-layer SpatRaster of stratification units
+fsu &lt;- list.files(path = p, pattern = "strata2.tif", full.names = TRUE)
+su &lt;- terra::rast(fsu)
+# Define the structure of the stratification units' numeric code
+code &lt;- list(geology = c(1,1), climate = c(2,2), topography = c(3,3))
+# Multi-layer SpatRaster of spatial signatures of classification units
+fsig &lt;- list.files(path = p, pattern = "geology_|climate_|topography_",
+                   full.names = TRUE
+                  )
+sig &lt;- terra::rast(fsig)
+# Calculate landscape similarity to stratification units
+landsim &lt;- similarity(su.rast = su, su.code = code, sig.rast = sig)
+
+# Plot some landscape similarities
+# if(interactive()){plot(landsim$landsim[[c(1,10,12,14)]],
+#                        col = hcl.colors(100, "Oslo", rev = TRUE)
+#                       )}
+
+#-------
+# A note on the numeric code of stratification units
+
+# For a given stratification unit, the structure of its corresponding numeric
+# code indicates: (1) the landscape factors and/or factor scales that were
+# accounted for when creating the stratification unit, and (2) the numeric id
+# of the classification unit from each landscape factor/factor scale.
+# Consider the following numeric code structure:
+
+su.code &lt;- list(geology = c(1,1), climate = c(2,2), topography = c(3,4))
+
+# The stratification units are composed of classification units from...
+# ...three landscape factors: geology, climate, and topography
+names(su.code)
+
+# For geology, the classification units are represented by the first...
+# ...digit in the numeric code
+su.code$geology
+
+# For climate, the classification units are represented by the second...
+# ...digit in the numeric code
+su.code$climate
+# For topography, the classification units are represented by the third...
+# ...and fourth digit in the numeric code
+su.code$topography
+
+# Thus, the numeric code of the stratification units 1101 and 2410 means:
+su &lt;- c(1101, 2410)
+su[1]   # 'geology' = 1, 'climate' = 1, and 'topography' = 1
+su[2]   # 'geology' = 2, 'climate' = 4, and 'topography' = 10
+
+</code></pre>
+
+
+</div>

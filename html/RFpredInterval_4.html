@@ -1,0 +1,258 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pibf</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Prediction intervals with boosted forests</h2>
+
+<h3>Description</h3>
+
+<p>Constructs prediction intervals with boosted forests.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pibf(
+  formula,
+  traindata,
+  testdata,
+  alpha = 0.05,
+  calibration = c("cv", "oob", FALSE),
+  coverage_range = c(1 - alpha - 0.005, 1 - alpha + 0.005),
+  numfolds = 5,
+  params_ranger = list(num.trees = 2000, mtry = ceiling(px/3), min.node.size = 5,
+    replace = TRUE),
+  oob = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>Object of class <code>formula</code> or <code>character</code> describing
+the model to fit.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>traindata</code></td>
+<td>
+<p>Training data of class <code>data.frame</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>testdata</code></td>
+<td>
+<p>Test data of class <code>data.frame</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>Confidence level. (1 - <code>alpha</code>) is the desired coverage
+level. The default is <code>alpha</code> = 0.05 for the 95% prediction interval.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>calibration</code></td>
+<td>
+<p>Calibration method for finding working level of
+<code>alpha</code>, i.e. <code class="reqn">\alpha_w</code>. Options are <code>"cv"</code>, <code>"oob"</code>,
+and <code>FALSE</code> standing for calibration with cross-validation, OOB
+calibration, and no calibration, respectively. See below for details. The
+default is <code>"cv"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coverage_range</code></td>
+<td>
+<p>The allowed target calibration range for coverage level.
+<code class="reqn">\alpha_w</code> is selected such that the <code>"cv"</code> or <code>"oob"</code>
+coverage is within <code>coverage_range</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>numfolds</code></td>
+<td>
+<p>Number of folds for calibration with cross-validation. The
+default is 5 folds.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>params_ranger</code></td>
+<td>
+<p>List of parameters that should be passed to
+<code>ranger</code>. In the default parameter set, <code>num.trees</code> = 2000,
+<code>mtry</code> = <code class="reqn">px/3</code> (rounded up), <code>min.node.size</code> = 5,
+<code>replace</code> = TRUE. See <code>ranger</code> for possible parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>oob</code></td>
+<td>
+<p>Should out-of-bag (OOB) predictions and prediction intervals for
+the training observations be returned?</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list with the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>pred_interval</code></td>
+<td>
+<p>Prediction intervals for test data. A list containing
+lower and upper bounds.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test_pred</code></td>
+<td>
+<p>Bias-corrected random forest predictions for test data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alphaw</code></td>
+<td>
+<p>Working level of <code>alpha</code>, i.e. <code class="reqn">\alpha_w</code>. If
+<code>calibration = FALSE</code>, it returns <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test_response</code></td>
+<td>
+<p>If available, test response.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>oob_pred_interval</code></td>
+<td>
+<p>Out-of-bag (OOB) prediction intervals for train
+data. Prediction intervals are built with <code>alpha</code>. If
+<code>oob = FALSE</code>, it returns <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>oob_pred</code></td>
+<td>
+<p>Bias-corrected out-of-bag (OOB) predictions for train data.
+If <code>oob = FALSE</code>, it returns <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>train_response</code></td>
+<td>
+<p>Train response.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><strong>Calibration process</strong>
+</p>
+<p>Let (<code class="reqn">1-\alpha</code>) be the target coverage level. The goal of the
+calibration is to find the value of <code class="reqn">\alpha_w</code>, which is the working
+level of <code class="reqn">\alpha</code> called by Roy and Larocque (2020), such that the
+coverage level of the PIs for the training observations is closest to the
+target coverage level. Two calibration procedures are provided: calibration
+with cross-validation and out-of-bag (OOB) calibration.
+</p>
+
+<ol>
+<li>
+<p> In calibration with CV, we apply k-fold cross-validation to form
+prediction intervals for the training observations. In each fold, we split
+the original training data set into training and testing sets. For the
+training set, we train a one-step boosted random forest and compute the OOB
+residuals. Then, for each observation in the testing set, we build a PI.
+After completing CV, we compute the coverage level with the constructed PIs
+and if the coverage is not within the acceptable coverage range
+(<code>coverage_range</code>), then we apply a grid search to find the
+<code class="reqn">\alpha_w</code> such that <code class="reqn">\alpha_w</code> is the closest to the target
+<code class="reqn">\alpha</code> among the set of <code class="reqn">\alpha_w</code>'s that ensures the target
+coverage level for the constructed PIs. Once we find the <code class="reqn">\alpha_w</code>, we
+use this level to build the PI for the new observations.
+</p>
+</li>
+<li>
+<p> The OOB calibration procedure is proposed by Roy and Larocque (2020)
+and it is the default calibration procedure of <code>rfpi()</code>. See details
+section of <code>rfpi()</code> for the detailed explanation of this calibration
+procedure.
+</p>
+</li>
+</ol>
+<p>In terms of computational time, OOB calibration is faster than calibration
+with CV. However, empirical results show that OOB calibration may result in
+conservative prediction intervals. Therefore, the recommended calibration
+procedure for the PIBF method is calibration with CV.
+</p>
+
+
+<h3>References</h3>
+
+<p>Alakus, C., Larocque, D., &amp; Labbe, A. (2022). RFpredInterval: An
+R Package for Prediction Intervals with Random Forests and Boosted Forests.
+R JOURNAL, 14(1), 300-319.
+</p>
+<p>Roy, M. H., &amp; Larocque, D. (2020). Prediction intervals with
+random forests. Statistical methods in medical research, 29(1), 205-229.
+doi:10.1177/0962280219829885.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>piall</code> <code>rfpi</code>
+<code>print.rfpredinterval</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## load example data
+data(BostonHousing, package = "RFpredInterval")
+set.seed(2345)
+
+## define train/test split
+testindex &lt;- 1:10
+trainindex &lt;- sample(11:nrow(BostonHousing), size = 100, replace = FALSE)
+traindata &lt;- BostonHousing[trainindex, ]
+testdata &lt;- BostonHousing[testindex, ]
+px &lt;- ncol(BostonHousing) - 1
+
+## construct 95% PI with "cv" calibration using 5-folds
+out &lt;- pibf(formula = medv ~ ., traindata = traindata,
+  testdata = testdata, calibration = "cv", numfolds = 5,
+  params_ranger = list(num.trees = 40))
+
+## get the PI for the first observation in the testdata
+c(out$pred_interval$lower[1], out$pred_interval$upper[1])
+
+## get the bias-corrected random forest predictions for testdata
+out$test_pred
+
+## construct 90% PI with "oob" calibration
+out2 &lt;- pibf(formula = medv ~ ., traindata = traindata,
+  testdata = testdata, alpha = 0.1, calibration = "oob",
+  coverage_range = c(0.89,91), params_ranger = list(num.trees = 40))
+
+## get the PI for the testdata
+out2$pred_interval
+
+## get the working level of alpha (alphaw)
+out2$alphaw
+
+
+</code></pre>
+
+
+</div>

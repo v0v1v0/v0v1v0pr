@@ -1,0 +1,220 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>plot_outputs</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Plotting function</h2>
+
+<h3>Description</h3>
+
+<p>Various plots related to an epidemic curve.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">plot_outputs(
+  curve = NULL,
+  Time = NULL,
+  cases = NULL,
+  cfg = NULL,
+  window_size = NULL,
+  serial_mean,
+  serial_var,
+  predict.beyond = 0,
+  waves_list = NULL,
+  num_waves = NULL,
+  rt_func = NULL,
+  restrictions = NULL,
+  restriction.starts = NULL,
+  a1 = NULL,
+  a2 = NULL,
+  a3 = NULL,
+  a4 = NULL,
+  rt.max = NULL,
+  option = "all",
+  verbose = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>curve</code></td>
+<td>
+<p>The output list from the prediction function, see <code>pred.curve</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Time</code></td>
+<td>
+<p>A vector of dates corresponding to cases.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cases</code></td>
+<td>
+<p>A vector containing cases for each time point.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cfg</code></td>
+<td>
+<p>The object that contains all variables from the configuration file.
+<code>curve</code>, <code>Time</code>, and <code>cases</code> are also required
+for the method to execute. All other parameters will not be used if <code>cfg</code> is passed to the method.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>window_size</code></td>
+<td>
+<p>The maximum value for the serial interval.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>serial_mean</code></td>
+<td>
+<p>Mean of the serial interval on the log scale.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>serial_var</code></td>
+<td>
+<p>Variance of the serial interval on the log scale.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predict.beyond</code></td>
+<td>
+<p>How many days to predict beyond the end of <code>cases</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>waves_list</code></td>
+<td>
+<p>A two-dimensional list containing the waves' time data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>num_waves</code></td>
+<td>
+<p>Total number of waves.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rt_func</code></td>
+<td>
+<p>A flag that indicates which rt function to use. Should match the shape of <code>curve</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>restrictions</code></td>
+<td>
+<p>A numeric integer vector giving the severity of restrictions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>restriction.starts</code></td>
+<td>
+<p>A vector of same length as restrictions, of times when restrictions
+came into effect. Note: the first index time should be 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>a1, a2, a3, a4</code></td>
+<td>
+<p>Parameters of the contact rate curve specified by <code>rt_func</code>. These override
+the values given in <code>curve</code> for the last plot only. If not specified, will use the values from <code>curve</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rt.max</code></td>
+<td>
+<p>An optional upper limit for the y-axis when plotting <code class="reqn">R_t</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>option</code></td>
+<td>
+<p>A choice of which plot to return (1,2, or 3 - see Value for options). If set to "all" (the default) plots all three figures.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Logical. If TRUE, provides additional details while running the function.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>NULL. Generates a few plots: a plot of <code class="reqn">R_t</code> over time, with waves shaded (for <code>option</code> = 1); the epidemic curve
+overlaid on top of observed cases (<code>option</code> = 2), where the shading reflects restriction measures; and a plot of the
+theoretical <code class="reqn">R_t</code> versus <code class="reqn">S_t</code>, in a fully susceptible population with no restrictions (<code>option</code> = 3).
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(REffectivePred)
+## Read in the data
+path_to_data &lt;- system.file("extdata/NY_OCT_4_2022.csv", package = "REffectivePred")
+data &lt;- read.csv(path_to_data)
+head(data)
+cases &lt;- diff(c(0, data$cases)) # Convert cumulative cases into daily cases
+lt &lt;- length(cases)             # Length of cases
+Time &lt;- as.Date(data$date, tryFormats = c("%d-%m-%Y", "%d/%m/%Y"))
+
+navigate_to_config() # Open the config file, make any necessary changes here.
+path_to_config &lt;- system.file("config.yml", package = "REffectivePred")  # Read config file
+cfg &lt;- load_config()    # Build the cfg object
+
+# Estimate parameters
+est &lt;- estimate.mle(
+    cases = cases,
+    cfg = cfg
+    )
+a1 &lt;- est$a1
+a2 &lt;- est$a2
+a3 &lt;- est$a3
+a4 &lt;- est$a4
+nu &lt;- est$nu
+vt &lt;- c(1, est$vt_params_est)
+psi &lt;- est$Psi
+betas &lt;- est$betas
+
+# Predict curve
+r1 &lt;- pred.curve(
+a1 = a1,
+a2 = a2,
+a3 = a3,
+a4 = a4,
+nu = nu,
+variant.transm = vt,
+Psi = psi,
+betas = betas,
+cases = cases,
+cfg = cfg
+)
+
+plot_outputs(Time = Time,
+cases = cases,
+window_size = cfg$window.size,
+serial_mean = cfg$serial_mean,
+serial_var = cfg$serial_var,
+predict.beyond = cfg$predict.beyond,
+waves_list = cfg$waves_list,
+num_waves = cfg$num_waves,
+rt_func = cfg$rt.func.num,
+curve = r1,
+restrictions = cfg$restrictions_params,
+restriction.starts = cfg$restriction_st_params,
+rt.max = 10
+)
+</code></pre>
+
+
+</div>

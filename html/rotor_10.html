@@ -1,0 +1,601 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Cache</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>An R6 class for managing a persistent file-based cache</h2>
+
+<h3>Description</h3>
+
+<p><code>Cache</code> provides an R6 API for managing an on-disk key-value
+store for <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> objects. The objects are serialized to a single folder as
+.rds files and the key of the object equals the name of the file.
+<code>Cache</code> supports automatic removal of old files if the cache folder exceeds a
+predetermined number of files, total size, or if the individual files exceed
+a certain age.
+</p>
+
+
+<h3>Details</h3>
+
+<p>This class is part of the R6 API of <strong>rotor</strong> which is
+intended for developers that want to extend this package. For normal usage,
+the simpler functional API is recommended (see <code>rotate()</code>).
+</p>
+
+
+<h3>Super class</h3>
+
+<p><code>rotor::DirectoryQueue</code> -&gt; <code>Cache</code>
+</p>
+
+
+<h3>Public fields</h3>
+
+<div class="r6-fields">
+
+<dl>
+<dt><code>dir</code></dt>
+<dd>
+<p>a <code>character</code> scalar. path of the directory in which to store the cache files</p>
+</dd>
+<dt><code>n</code></dt>
+<dd>
+<p><code>integer</code> scalar: number of files in the cache</p>
+</dd>
+<dt><code>max_files</code></dt>
+<dd>
+<p>see the <code>compress</code> argument of <code>base::saveRDS()</code>.
+<strong>Note</strong>: this differs from the <code style="white-space: pre;">⁠$compress⁠</code> argument of <code>rotate()</code>.</p>
+</dd>
+<dt><code>max_files</code></dt>
+<dd>
+<p><code>integer</code> scalar: maximum number of files to keep in
+the cache</p>
+</dd>
+</dl>
+</div>
+
+
+<h3>Active bindings</h3>
+
+<div class="r6-active-bindings">
+
+<dl>
+<dt><code>dir</code></dt>
+<dd>
+<p>a <code>character</code> scalar. path of the directory in which to store the cache files</p>
+</dd>
+<dt><code>n</code></dt>
+<dd>
+<p><code>integer</code> scalar: number of files in the cache</p>
+</dd>
+<dt><code>max_files</code></dt>
+<dd>
+<p>see the <code>compress</code> argument of <code>base::saveRDS()</code>.
+<strong>Note</strong>: this differs from the <code style="white-space: pre;">⁠$compress⁠</code> argument of <code>rotate()</code>.</p>
+</dd>
+<dt><code>max_files</code></dt>
+<dd>
+<p><code>integer</code> scalar: maximum number of files to keep in
+the cache</p>
+</dd>
+<dt><code>max_size</code></dt>
+<dd>
+<p>scalar <code>integer</code>, <code>character</code> or <code>Inf</code>. Delete
+cached files (starting with the oldest) until the total size of the
+cache is below <code>max_size</code>. <code>Integers</code> are interpreted as bytes. You
+can pass <code>character</code> vectors that contain a file size suffix like <code style="white-space: pre;">⁠1k⁠</code>
+(kilobytes), <code style="white-space: pre;">⁠3M⁠</code> (megabytes), <code style="white-space: pre;">⁠4G⁠</code> (gigabytes), <code style="white-space: pre;">⁠5T⁠</code> (terabytes). Instead
+of these short forms you can also be explicit and use the IEC suffixes
+<code>KiB</code>, <code>MiB</code>, <code>GiB</code>, <code>TiB</code>. In Both cases <code>1</code> kilobyte is <code>1024</code> bytes, 1
+<code>megabyte</code> is <code>1024</code> kilobytes, etc... .</p>
+</dd>
+<dt><code>max_age</code></dt>
+<dd>
+<ul>
+<li>
+<p> a <code>Date</code> scalar: Remove all backups before this date
+</p>
+</li>
+<li>
+<p> a <code>character</code> scalar representing a Date in ISO format (e.g. <code>"2019-12-31"</code>)
+</p>
+</li>
+<li>
+<p> a <code>character</code> scalar representing an Interval in the form <code>"&lt;number&gt; &lt;interval&gt;"</code> (see <code>rotate()</code>)
+</p>
+</li>
+</ul>
+</dd>
+<dt><code>hashfun</code></dt>
+<dd>
+<p><code>NULL</code> or a <code>function</code> to generate a unique hash from the
+object to be cached (see example). The hash <em>must</em> be a text string
+that is a valid filename on the target system. If <code style="white-space: pre;">⁠$hashfun⁠</code> is <code>NULL</code>,
+a storage key must be supplied manually in <code>cache$push()</code>. If a new
+object is added with the same key as an existing object, the existing
+object will be overwritten without warning.
+All cached files</p>
+</dd>
+</dl>
+</div>
+
+
+<h3>Methods</h3>
+
+
+
+<h4>Public methods</h4>
+
+
+<ul>
+<li> <p><a href="#method-Cache-new"><code>Cache$new()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Cache-push"><code>Cache$push()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Cache-read"><code>Cache$read()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Cache-remove"><code>Cache$remove()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Cache-pop"><code>Cache$pop()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Cache-prune"><code>Cache$prune()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Cache-purge"><code>Cache$purge()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Cache-destroy"><code>Cache$destroy()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Cache-print"><code>Cache$print()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Cache-set_max_files"><code>Cache$set_max_files()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Cache-set_max_age"><code>Cache$set_max_age()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Cache-set_max_size"><code>Cache$set_max_size()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Cache-set_compression"><code>Cache$set_compression()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Cache-set_hashfun"><code>Cache$set_hashfun()</code></a>
+</p>
+</li>
+</ul>
+<details open><summary>Inherited methods</summary><ul>
+<li><span class="pkg-link" data-pkg="rotor" data-topic="DirectoryQueue" data-id="set_dir"><a href="../../rotor/html/DirectoryQueue.html#method-DirectoryQueue-set_dir"><code>rotor::DirectoryQueue$set_dir()</code></a></span></li>
+</ul></details><hr>
+<a id="method-Cache-new"></a>
+
+
+
+<h4>Method <code>new()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Cache$new(
+  dir = dirname(file),
+  max_files = Inf,
+  max_size = Inf,
+  max_age = Inf,
+  compression = TRUE,
+  hashfun = digest::digest,
+  create_dir = TRUE
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>create_dir</code></dt>
+<dd>
+<p><code>logical</code> scalar. If <code>TRUE</code> <code>dir</code> is created if it
+does not exist.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Examples</h5>
+
+<div class="r example copy">
+<pre>td &lt;- file.path(tempdir(), "cache-test")
+
+# When using a real hash function as hashfun, identical objects will only
+# be added to the cache once
+cache_hash &lt;- Cache$new(td, hashfun = digest::digest)
+cache_hash$push(iris)
+cache_hash$push(iris)
+cache_hash$files
+cache_hash$purge()
+
+# To override this behaviour use a generator for unique ids, such as uuid
+if (requireNamespace("uuid")){
+  cache_uid &lt;- Cache$new(td, hashfun = function(x) uuid::UUIDgenerate())
+  cache_uid$push(iris)
+  cache_uid$push(iris)
+  cache_uid$files
+  cache_uid$purge()
+}
+
+unlink(td, recursive = TRUE)
+</pre>
+</div>
+
+
+<hr>
+<a id="method-Cache-push"></a>
+
+
+
+<h4>Method <code>push()</code>
+</h4>
+
+<p>push a new object to the cache
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Cache$push(x, key = self$hashfun(x))</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>x</code></dt>
+<dd>
+<p>any <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object</p>
+</dd>
+<dt><code>key</code></dt>
+<dd>
+<p>a <code>character</code> scalar. Key under which to store the cached
+object. Must be a valid filename. Defaults to being generated by
+<code style="white-space: pre;">⁠$hashfun()⁠</code> but may also be supplied manually.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>a <code>character</code> scalar: the key of the newly added object
+</p>
+
+
+<hr>
+<a id="method-Cache-read"></a>
+
+
+
+<h4>Method <code>read()</code>
+</h4>
+
+<p>read a cached file
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Cache$read(key)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>key</code></dt>
+<dd>
+<p><code>character</code> scalar. key of the cached file to read.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-Cache-remove"></a>
+
+
+
+<h4>Method <code>remove()</code>
+</h4>
+
+<p>remove a single file from the cache
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Cache$remove(key)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>key</code></dt>
+<dd>
+<p><code>character</code> scalar. key of the cached file to remove</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-Cache-pop"></a>
+
+
+
+<h4>Method <code>pop()</code>
+</h4>
+
+<p>Read and remove a single file from the cache
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Cache$pop(key)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>key</code></dt>
+<dd>
+<p><code>character</code> scalar. key of the cached file to read/remove</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-Cache-prune"></a>
+
+
+
+<h4>Method <code>prune()</code>
+</h4>
+
+<p>Prune the cache
+</p>
+<p>Delete cached objects that match certain criteria. <code>max_files</code> and
+<code>max_size</code> deletes the oldest cached objects first; however, this is
+dependent on accuracy of the file modification timestamps on your system.
+For example, ext3 only supports second-accuracy, and some windows
+version only support timestamps at a resolution of two seconds.
+</p>
+<p>If two files have the same timestamp, they are deleted in the lexical
+sort order of their key. This means that by using a function that
+generates lexically sortable keys as <code>hashfun</code> (such as
+<code>ulid::generate()</code>) you can enforce the correct deletion order. There
+is no such workaround if you use a real hash function.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Cache$prune(
+  max_files = self$max_files,
+  max_size = self$max_size,
+  max_age = self$max_age,
+  now = Sys.time()
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>max_files, max_size, max_age</code></dt>
+<dd>
+<p>see section Active Bindings.</p>
+</dd>
+<dt><code>now</code></dt>
+<dd>
+<p>a <code>POSIXct</code> datetime scalar. The current time (for max_age)</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-Cache-purge"></a>
+
+
+
+<h4>Method <code>purge()</code>
+</h4>
+
+<p>purge the cache (remove all cached files)
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Cache$purge()</pre></div>
+
+
+<hr>
+<a id="method-Cache-destroy"></a>
+
+
+
+<h4>Method <code>destroy()</code>
+</h4>
+
+<p>purge the cache (remove all cached files)
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Cache$destroy()</pre></div>
+
+
+<hr>
+<a id="method-Cache-print"></a>
+
+
+
+<h4>Method <code>print()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Cache$print()</pre></div>
+
+
+<hr>
+<a id="method-Cache-set_max_files"></a>
+
+
+
+<h4>Method <code>set_max_files()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Cache$set_max_files(x)</pre></div>
+
+
+<hr>
+<a id="method-Cache-set_max_age"></a>
+
+
+
+<h4>Method <code>set_max_age()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Cache$set_max_age(x)</pre></div>
+
+
+<hr>
+<a id="method-Cache-set_max_size"></a>
+
+
+
+<h4>Method <code>set_max_size()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Cache$set_max_size(x)</pre></div>
+
+
+<hr>
+<a id="method-Cache-set_compression"></a>
+
+
+
+<h4>Method <code>set_compression()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Cache$set_compression(x)</pre></div>
+
+
+<hr>
+<a id="method-Cache-set_hashfun"></a>
+
+
+
+<h4>Method <code>set_hashfun()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Cache$set_hashfun(x)</pre></div>
+
+
+
+
+<h3>See Also</h3>
+
+<p>Other R6 Classes: 
+<code>BackupQueueDateTime</code>,
+<code>BackupQueueDate</code>,
+<code>BackupQueueIndex</code>,
+<code>BackupQueue</code>,
+<code>DirectoryQueue</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## ------------------------------------------------
+## Method `Cache$new`
+## ------------------------------------------------
+
+td &lt;- file.path(tempdir(), "cache-test")
+
+# When using a real hash function as hashfun, identical objects will only
+# be added to the cache once
+cache_hash &lt;- Cache$new(td, hashfun = digest::digest)
+cache_hash$push(iris)
+cache_hash$push(iris)
+cache_hash$files
+cache_hash$purge()
+
+# To override this behaviour use a generator for unique ids, such as uuid
+if (requireNamespace("uuid")){
+  cache_uid &lt;- Cache$new(td, hashfun = function(x) uuid::UUIDgenerate())
+  cache_uid$push(iris)
+  cache_uid$push(iris)
+  cache_uid$files
+  cache_uid$purge()
+}
+
+unlink(td, recursive = TRUE)
+</code></pre>
+
+
+</div>

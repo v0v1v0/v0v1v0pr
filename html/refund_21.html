@@ -1,0 +1,156 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ffpc</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Construct a PC-based function-on-function regression term</h2>
+
+<h3>Description</h3>
+
+<p>Defines a term <code class="reqn">\int X_i(s)\beta(t,s)ds</code>
+for inclusion in an <code>mgcv::gam</code>-formula (or <code>bam</code> or <code>gamm</code> or <code>gamm4:::gamm4</code>) as constructed
+by <code>pffr</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ffpc(
+  X,
+  yind = NULL,
+  xind = seq(0, 1, length = ncol(X)),
+  splinepars = list(bs = "ps", m = c(2, 1), k = 8),
+  decomppars = list(pve = 0.99, useSymm = TRUE),
+  npc.max = 15
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>an n by <code>ncol(xind)</code> matrix of function evaluations <code class="reqn">X_i(s_{i1}),\dots, X_i(s_{iS})</code>; <code class="reqn">i=1,\dots,n</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yind</code></td>
+<td>
+<p><em>DEPRECATED</em> used to supply matrix (or vector) of indices of evaluations of <code class="reqn">Y_i(t)</code>, no longer used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xind</code></td>
+<td>
+<p>matrix (or vector) of indices of evaluations of <code class="reqn">X_i(t)</code>, defaults to <code>seq(0, 1, length=ncol(X))</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>splinepars</code></td>
+<td>
+<p>optional arguments supplied to the <code>basistype</code>-term. Defaults to a cubic
+B-spline with first difference penalties and 8 basis functions for each <code class="reqn">\tilde \beta_k(t)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>decomppars</code></td>
+<td>
+<p>parameters for the FPCA performed with <code>fpca.sc</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>npc.max</code></td>
+<td>
+<p>maximal number <code class="reqn">K</code> of FPCs to use, regardless of <code>decomppars</code>; defaults to 15</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>In contrast to <code>ff</code>, <code>ffpc</code>
+does an FPCA decomposition <code class="reqn">X(s) \approx \sum^K_{k=1} \xi_{ik} \Phi_k(s)</code> using <code>fpca.sc</code> and
+represents <code class="reqn">\beta(t,s)</code> in the function space spanned by these <code class="reqn">\Phi_k(s)</code>.
+That is, since
+</p>
+<p style="text-align: center;"><code class="reqn">\int X_i(s)\beta(t,s)ds = \sum^K_{k=1} \xi_{ik} \int \Phi_k(s) \beta(s,t) ds = \sum^K_{k=1} \xi_{ik} \tilde \beta_k(t),</code>
+</p>
+
+<p>the function-on-function term can be represented as a sum of <code class="reqn">K</code> univariate functions <code class="reqn">\tilde \beta_k(t)</code> in <code class="reqn">t</code> each multiplied by the FPC
+scores <code class="reqn">\xi_{ik}</code>. The truncation parameter <code class="reqn">K</code> is chosen as described in <code>fpca.sc</code>.
+Using this instead of <code>ff()</code> can be beneficial if the covariance operator of the <code class="reqn">X_i(s)</code>
+has low effective rank (i.e., if <code class="reqn">K</code> is small). If the covariance operator of the <code class="reqn">X_i(s)</code>
+is of (very) high rank, i.e., if <code class="reqn">K</code> is large, <code>ffpc()</code> will not be very efficient.
+</p>
+<p>To reduce model complexity, the <code class="reqn">\tilde \beta_k(t)</code> all have a single joint smoothing parameter
+(in <code>mgcv</code>, they get the same <code>id</code>, see <code>s</code>).<br></p>
+<p>Please see <code>pffr</code> for details on model specification and
+implementation.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list containing the necessary information to construct a term to be included in a <code>mgcv::gam</code>-formula.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Fabian Scheipl
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+set.seed(1122)
+n &lt;- 55
+S &lt;- 60
+T &lt;- 50
+s &lt;- seq(0,1, l=S)
+t &lt;- seq(0,1, l=T)
+
+#generate X from a polynomial FPC-basis:
+rankX &lt;- 5
+Phi &lt;- cbind(1/sqrt(S), poly(s, degree=rankX-1))
+lambda &lt;- rankX:1
+Xi &lt;- sapply(lambda, function(l)
+            scale(rnorm(n, sd=sqrt(l)), scale=FALSE))
+X &lt;- Xi %*% t(Phi)
+
+beta.st &lt;- outer(s, t, function(s, t) cos(2 * pi * s * t))
+
+y &lt;- (1/S*X) %*% beta.st + 0.1 * matrix(rnorm(n * T), nrow=n, ncol=T)
+
+data &lt;- list(y=y, X=X)
+# set number of FPCs to true rank of process for this example:
+m.pc &lt;- pffr(y ~ c(1) + 0 + ffpc(X, yind=t, decomppars=list(npc=rankX)),
+        data=data, yind=t)
+summary(m.pc)
+m.ff &lt;- pffr(y ~ c(1) + 0 + ff(X, yind=t), data=data, yind=t)
+summary(m.ff)
+
+# fits are very similar:
+all.equal(fitted(m.pc), fitted(m.ff))
+
+# plot implied coefficient surfaces:
+layout(t(1:3))
+persp(t, s, t(beta.st), theta=50, phi=40, main="Truth",
+    ticktype="detailed")
+plot(m.ff, select=1, zlim=range(beta.st), theta=50, phi=40,
+    ticktype="detailed")
+title(main="ff()")
+ffpcplot(m.pc, type="surf", auto.layout=FALSE, theta = 50, phi = 40)
+title(main="ffpc()")
+
+# show default ffpcplot:
+ffpcplot(m.pc)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

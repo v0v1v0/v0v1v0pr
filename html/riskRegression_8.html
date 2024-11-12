@@ -1,0 +1,449 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ate</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Average Treatment Effects Computation</h2>
+
+<h3>Description</h3>
+
+<p>Use the g-formula or the IPW or the double robust estimator
+to estimate the average treatment
+effect (absolute risk difference or ratio)
+based on Cox regression with or without competing risks.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ate(
+  event,
+  treatment,
+  censor = NULL,
+  data,
+  data.index = NULL,
+  formula = NULL,
+  estimator = NULL,
+  strata = NULL,
+  contrasts = NULL,
+  allContrasts = NULL,
+  times,
+  cause = NA,
+  landmark = NULL,
+  se = TRUE,
+  iid = (B == 0) &amp;&amp; (se || band),
+  known.nuisance = FALSE,
+  band = FALSE,
+  B = 0,
+  seed,
+  handler = "foreach",
+  mc.cores = 1,
+  cl = NULL,
+  verbose = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>event</code></td>
+<td>
+<p>Outcome model which describes how the probability of experiencing a terminal event depends
+on treatment and covariates. The object carry its own call and
+have a <code>predictRisk</code> method. See examples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>treatment</code></td>
+<td>
+<p>Treatment model which describes how the probability of being allocated to a treatment group depends
+on covariates. The object must be a <code>glm</code> object (logistic regression) or the name of the treatment variable.
+See examples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>censor</code></td>
+<td>
+<p>Censoring model which describes how the probability of being censored depends
+on treatment and covariates. The object must be a <code>coxph</code> or <code>cph</code> object. See examples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>[data.frame or data.table] Data set in which to evaluate risk predictions
+based on the outcome model</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data.index</code></td>
+<td>
+<p>[numeric vector] Position of the observation in argument data relative to the dataset used to obtain the argument event, treatment, censor.
+Only necessary for the standard errors when computing the Average Treatment Effects on a subset of the data set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>For analyses with time-dependent covariates, the response formula. See examples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estimator</code></td>
+<td>
+<p>[character] The type of estimator used to compute the average treatment effect. 
+Can be <code>"G-formula"</code>, <code>"IPTW"</code>, or <code>"AIPTW"</code>.
+When using <code>estimator="G-formula"</code>, a model for the outcome should be provided (argument event).
+When using <code>estimator="IPTW"</code>, a model for the treatment should be provided (argument treatment), as well as for the censoring (if any, argument censor).
+When using <code>estimator="AIPTW"</code> (double robust estimator), a model for the outcome and the treatment should be provided (argument event and treatment), as well as for the censoring (if any, argument censor).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>strata</code></td>
+<td>
+<p>[character] Strata variable on which to compute the average risk.
+Incompatible with treatment. Experimental.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>contrasts</code></td>
+<td>
+<p>[character vector] levels of the treatment variable for which the risks should be assessed and compared. Default is to consider all levels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>allContrasts</code></td>
+<td>
+<p>[2-row character matrix] levels of the treatment variable to be compared. Default is to consider all pairwise comparisons.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>times</code></td>
+<td>
+<p>[numeric vector] Time points at which to evaluate average treatment effects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cause</code></td>
+<td>
+<p>[integer/character] the cause of interest.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>landmark</code></td>
+<td>
+<p>for models with time-dependent covariates the landmark time(s) of evaluation.
+In this case, argument <code>time</code> may only be one value and for the prediction of risks
+it is assumed that that the covariates do not change between landmark and landmark+time.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>se</code></td>
+<td>
+<p>[logical] If <code>TRUE</code> compute and add the standard errors to the output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iid</code></td>
+<td>
+<p>[logical] If <code>TRUE</code> compute and add the influence function to the output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>known.nuisance</code></td>
+<td>
+<p>[logical] If <code>FALSE</code> the uncertainty related to the estimation of the nuisance parameters is ignored.
+This greatly simplifies computations but requires to use a double robust estimator.
+The resulting standard error is known to be consistent when all event, treatment, and censoring models are valid.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>band</code></td>
+<td>
+<p>[logical] If <code>TRUE</code> compute and add the quantiles for the confidence bands to the output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B</code></td>
+<td>
+<p>[integer, &gt;0] the number of bootstrap replications used to compute the confidence intervals.
+If it equals 0, then the influence function is used to compute Wald-type confidence intervals/bands.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>[integer, &gt;0] sed number used to generate seeds for bootstrap
+and to achieve reproducible results.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>handler</code></td>
+<td>
+<p>[character] Parallel handler for bootstrap. 
+<code>"foreach"</code> is the default and the only option on Windows. It uses <code>parallel</code> to create a cluster.
+Other operating systems can use <code>"mclapply"</code>.
+This argument is ignored when <code>mc.cores=1</code> and <code>cl=NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mc.cores</code></td>
+<td>
+<p>[integer, &gt;0] The number of cores to use,
+i.e., the upper limit for the number of child processes that run simultaneously.
+Passed to <code>parallel::mclapply</code> or <code>parallel::makeCluster</code>.
+The option is initialized from environment variable mc_cores if set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cl</code></td>
+<td>
+<p>A parallel socket cluster used to perform cluster calculation in parallel (output by <code>parallel::makeCluster</code>).
+The packages necessary to run the computations (e.g. riskRegression) must already be loaded on each worker.
+Only used when <code>handler="foreach"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>[logical] If <code>TRUE</code> inform about estimated run time.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>passed to predictRisk</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Brice Ozenne <a href="mailto:broz@sund.ku.dk">broz@sund.ku.dk</a>
+and Thomas Alexander Gerds <a href="mailto:tag@biostat.ku.dk">tag@biostat.ku.dk</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>Brice Maxime Hugues Ozenne, Thomas Harder Scheike, Laila Staerk, and Thomas
+Alexander Gerds. On the estimation of average treatment effects with right-
+censored time to event outcome and competing risks. Biometrical Journal, 62
+(3):751–763, 2020.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>as.data.table</code> to extract the estimates in a <code>data.table</code> object.
+<code>autoplot.ate</code> for a graphical representation the standardized risks.
+<code>confint.ate</code> to compute (pointwise/simultaneous) confidence intervals and (unadjusted/adjusted) p-values, possibly using a transformation.
+<code>summary.ate</code> for a table containing the standardized risks over time and treatment/strata.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(survival)
+library(rms)
+library(prodlim)
+library(data.table)
+set.seed(10)
+
+#### Survival settings  ####
+#### ATE with Cox model ####
+
+## generate data
+n &lt;- 100
+dtS &lt;- sampleData(n, outcome="survival")
+dtS$time &lt;- round(dtS$time,1)
+dtS$X1 &lt;- factor(rbinom(n, prob = c(0.3,0.4) , size = 2), labels = paste0("T",0:2))
+
+## estimate the Cox model
+fit &lt;- cph(formula = Surv(time,event)~ X1+X2,data=dtS,y=TRUE,x=TRUE)
+
+## compute the ATE at times 5, 6, 7, and 8 using X1 as the treatment variable
+## standard error computed using the influence function
+## confidence intervals / p-values based on asymptotic results
+ateFit1a &lt;- ate(fit, data = dtS, treatment = "X1", times = 5:8)
+summary(ateFit1a)
+summary(ateFit1a, short = TRUE, type = "meanRisk")
+summary(ateFit1a, short = TRUE, type = "diffRisk")
+summary(ateFit1a, short = TRUE, type = "ratioRisk")
+
+## Not run: 
+## same as before with in addition the confidence bands / adjusted p-values
+## (argument band = TRUE)
+ateFit1b &lt;- ate(fit, data = dtS, treatment = "X1", times = 5:8,
+                band = TRUE)
+summary(ateFit1b)
+
+## by default bands/adjuste p-values computed separately for each treatment modality
+summary(ateFit1b, band = 1,
+         se = FALSE, type = "diffRisk", short = TRUE, quantile = TRUE)
+## adjustment over treatment and time using the band argument of confint
+summary(ateFit1b, band = 2,
+       se = FALSE, type = "diffRisk", short = TRUE, quantile = TRUE)
+
+## confidence intervals / p-values computed using 1000 bootstrap samples
+## (argument se = TRUE and B = 1000) 
+ateFit1c &lt;- ate(fit, data = dtS, treatment = "X1",
+                times = 5:8, se = TRUE, B = 50, handler = "mclapply")
+## NOTE: for real applications 50 bootstrap samples is not enough 
+
+## same but using 2 cpus for generating and analyzing the bootstrap samples
+## (parallel computation, argument mc.cores = 2) 
+ateFit1d &lt;- ate(fit, data = dtS, treatment = "X1",
+                times = 5:8, se = TRUE, B = 50, mc.cores = 2)
+
+## manually defining the cluster to be used
+## useful when specific packages need to be loaded in each cluster
+fit &lt;- cph(formula = Surv(time,event)~ X1+X2+rcs(X6),data=dtS,y=TRUE,x=TRUE)
+
+cl &lt;- parallel::makeCluster(2)
+parallel::clusterEvalQ(cl, library(rms))
+
+ateFit1e &lt;- ate(fit, data = dtS, treatment = "X1",
+                times = 5:8, se = TRUE, B = 50,
+                handler = "foreach", cl = cl)
+
+## End(Not run)
+
+#### Survival settings without censoring ####
+#### ATE with glm                        ####
+
+## generate data
+n &lt;- 100
+dtB &lt;- sampleData(n, outcome="binary")
+dtB[, X2 := as.numeric(X2)]
+
+## estimate a logistic regression model
+fit &lt;- glm(formula = Y ~ X1+X2, data=dtB, family = "binomial")
+
+## compute the ATE using X1 as the treatment variable
+## only point estimate (argument se = FALSE)
+ateFit1a &lt;- ate(fit, data = dtB, treatment = "X1", se = FALSE)
+ateFit1a
+
+## Not run: 
+## with confidence intervals
+ateFit1b &lt;- ate(fit, data = dtB, treatment = "X1",
+               times = 5) ## just for having a nice output not used in computations
+summary(ateFit1b, short = TRUE)
+
+## using the lava package
+library(lava)
+ateLava &lt;- estimate(fit, function(p, data){
+a &lt;- p["(Intercept)"] ; b &lt;- p["X11"] ; c &lt;- p["X2"] ;
+R.X11 &lt;- expit(a + b + c * data[["X2"]])
+R.X10 &lt;- expit(a + c * data[["X2"]])
+list(risk0=R.X10,risk1=R.X11,riskdiff=R.X11-R.X10)},
+average=TRUE)
+ateLava
+
+## End(Not run)
+
+## see wglm for handling right-censoring with glm
+
+#### Competing risks settings               ####
+#### ATE with cause specific Cox regression ####
+
+## generate data
+n &lt;- 500
+set.seed(10)
+dt &lt;- sampleData(n, outcome="competing.risks")
+dt$X1 &lt;- factor(rbinom(n, prob = c(0.2,0.3) , size = 2), labels = paste0("T",0:2))
+
+## estimate cause specific Cox model
+fitCR &lt;-  CSC(Hist(time,event)~ X1+X8,data=dt,cause=1)
+
+## compute the ATE at times 1, 5, 10 using X1 as the treatment variable
+ateFit2a &lt;- ate(fitCR, data = dt, treatment = "X1", times = c(1,5,10),
+                cause = 1, se = TRUE, band = TRUE)
+summary(ateFit2a)
+as.data.table(ateFit2a)
+
+#### Double robust estimator ####
+## Not run: 
+## generate data
+n &lt;- 500
+set.seed(10)
+dt &lt;- sampleData(n, outcome="competing.risks")
+dt$time &lt;- round(dt$time,1)
+dt$X1 &lt;- factor(rbinom(n, prob = c(0.4) , size = 1), labels = paste0("T",0:1))
+
+## working models
+m.event &lt;-  CSC(Hist(time,event)~ X1+X2+X3+X5+X8,data=dt)
+m.censor &lt;-  coxph(Surv(time,event==0)~ X1+X2+X3+X5+X8,data=dt, x = TRUE, y = TRUE)
+m.treatment &lt;-  glm(X1~X2+X3+X5+X8,data=dt,family=binomial(link="logit"))
+
+## prediction + average
+ateRobust &lt;- ate(event = m.event,
+                 treatment = m.treatment,
+                 censor = m.censor,
+                 data = dt, times = 5:10, 
+                 cause = 1, band = TRUE)
+
+## compare various estimators
+ateRobust3 &lt;- ate(event = m.event,
+                 treatment = m.treatment,
+                 censor = m.censor,
+                 estimator = c("GFORMULA","IPTW","AIPTW"),
+                 data = dt, times = c(5:10), 
+                 cause = 1, se = TRUE)
+print(setkeyv(as.data.table(ateRobust3, type = "meanRisk"),"time"))
+print(setkeyv(as.data.table(ateRobust3, type = "diffRisk"),"time"))
+
+## End(Not run)
+
+#### time-dependent covariates ###
+## Not run: 
+library(survival)
+fit &lt;- coxph(Surv(time, status) ~ celltype+karno + age + trt, veteran)
+vet2 &lt;- survSplit(Surv(time, status) ~., veteran,
+                       cut=c(60, 120), episode ="timegroup")
+fitTD &lt;- coxph(Surv(tstart, time, status) ~ celltype +karno + age + trt,
+               data= vet2,x=1)
+set.seed(16)
+resVet &lt;- ate(fitTD,formula=Hist(entry=tstart,time=time,event=status)~1,
+          data = vet2, treatment = "celltype",
+        times=5,verbose=1,
+        landmark = c(0,30,60,90), cause = 1, B = 50, se = 1,
+        band = FALSE, mc.cores=1)
+summary(resVet)
+
+## End(Not run)
+
+## Not run: 
+set.seed(137)
+d=sampleDataTD(127)
+library(survival)
+d[,status:=1*(event==1)]
+d[,X3:=as.factor(X3)]
+## ignore competing risks
+cox1TD &lt;- coxph(Surv(start,time, status,type="counting") ~ X3+X5+X6+X8,
+                data=d, x = TRUE)
+resTD1 &lt;- ate(cox1TD,formula=Hist(entry=start,time=time,event=status)~1,
+        data = d, treatment = "X3", contrasts = NULL,
+        times=.5,verbose=1,
+        landmark = c(0,0.5,1), B = 20, se = 1,
+        band = FALSE, mc.cores=1)
+resTD1
+## account for competing risks
+cscTD &lt;- CSC(Hist(time=time, event=event,entry=start) ~ X3+X5+X6+X8, data=d)
+set.seed(16)
+resTD &lt;- ate(cscTD,formula=Hist(entry=start,time=time,event=event)~1,
+        data = d, treatment = "X3", contrasts = NULL,
+        times=.5,verbose=1,
+        landmark = c(0,0.5,1), cause = 1, B = 20, se = 1,
+        band = FALSE, mc.cores=1)
+resTD
+
+## End(Not run)
+</code></pre>
+
+
+</div>

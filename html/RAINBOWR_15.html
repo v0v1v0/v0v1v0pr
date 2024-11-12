@@ -1,0 +1,576 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>estNetwork</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Function to estimate &amp; plot haplotype network</h2>
+
+<h3>Description</h3>
+
+<p>Function to estimate &amp; plot haplotype network
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">estNetwork(
+  blockInterest = NULL,
+  gwasRes = NULL,
+  nTopRes = 1,
+  gene.set = NULL,
+  indexRegion = 1:10,
+  chrInterest = NULL,
+  posRegion = NULL,
+  blockName = NULL,
+  nHaplo = NULL,
+  pheno = NULL,
+  geno = NULL,
+  ZETA = NULL,
+  chi2Test = TRUE,
+  thresChi2Test = 0.05,
+  plotNetwork = TRUE,
+  distMat = NULL,
+  distMethod = "manhattan",
+  evolutionDist = FALSE,
+  complementHaplo = "phylo",
+  subpopInfo = NULL,
+  groupingMethod = "kmedoids",
+  nGrp = 3,
+  nIterClustering = 100,
+  iterRmst = 100,
+  networkMethod = "rmst",
+  autogamous = FALSE,
+  probParsimony = 0.95,
+  nMaxHaplo = 1000,
+  kernelTypes = "addNOIA",
+  n.core = parallel::detectCores() - 1,
+  parallel.method = "mclapply",
+  hOpt = "optimized",
+  hOpt2 = "optimized",
+  maxIter = 20,
+  rangeHStart = 10^c(-1:1),
+  saveName = NULL,
+  saveStyle = "png",
+  plotWhichMDS = 1:2,
+  colConnection = c("grey40", "grey60"),
+  ltyConnection = c("solid", "dashed"),
+  lwdConnection = c(1.5, 0.8),
+  pchBase = c(1, 16),
+  colCompBase = c(2, 4),
+  colHaploBase = c(3, 5, 6),
+  cexMax = 2,
+  cexMin = 0.7,
+  ggPlotNetwork = FALSE,
+  cexMaxForGG = 0.025,
+  cexMinForGG = 0.008,
+  alphaBase = c(0.9, 0.3),
+  verbose = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>blockInterest</code></td>
+<td>
+<p>A <code class="reqn">n \times M</code> matrix representing the marker genotype that belongs to the haplotype block of interest.
+If this argument is NULL, this argument will automatically be determined by 'geno',</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gwasRes</code></td>
+<td>
+<p>You can use the results (data.frame) of haplotype-based (SNP-set) GWAS by 'RGWAS.multisnp' function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nTopRes</code></td>
+<td>
+<p>Haplotype blocks (or gene sets, SNP-sets) with top 'nTopRes' p-values by 'gwasRes' will be used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gene.set</code></td>
+<td>
+<p>If you have information of gene (or haplotype block), you can use it to perform kernel-based GWAS.
+You should assign your gene information to gene.set in the form of a "data.frame" (whose dimension is (the number of gene) x 2).
+In the first column, you should assign the gene name. And in the second column, you should assign the names of each marker,
+which correspond to the marker names of "geno" argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>indexRegion</code></td>
+<td>
+<p>You can specify the haplotype block (or gene set, SNP-set) of interest by the marker index in 'geno'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chrInterest</code></td>
+<td>
+<p>You can specify the haplotype block (or gene set, SNP-set) of interest by the marker position in 'geno'.
+Please assign the chromosome number to this argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>posRegion</code></td>
+<td>
+<p>You can specify the haplotype block (or gene set, SNP-set) of interest by the marker position in 'geno'.
+Please assign the position in the chromosome to this argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>blockName</code></td>
+<td>
+<p>You can specify the haplotype block (or gene set, SNP-set) of interest by the name of haplotype block in 'geno'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nHaplo</code></td>
+<td>
+<p>Number of haplotypes. If not defined, this is automatically defined by the data.
+If defined, k-medoids clustering is performed to define haplotypes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pheno</code></td>
+<td>
+<p>Data frame where the first column is the line name (gid).
+The remaining columns should be a phenotype to test.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>geno</code></td>
+<td>
+<p>Data frame with the marker names in the first column. The second and third columns contain the chromosome and map position.
+Columns 4 and higher contain the marker scores for each line, coded as [-1, 0, 1] = [aa, Aa, AA].</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ZETA</code></td>
+<td>
+<p>A list of covariance (relationship) matrix (K: <code class="reqn">m \times m</code>) and its design matrix (Z: <code class="reqn">n \times m</code>) of random effects.
+Please set names of list "Z" and "K"! You can use more than one kernel matrix.
+For example,
+</p>
+<p>ZETA = list(A = list(Z = Z.A, K = K.A), D = list(Z = Z.D, K = K.D))
+</p>
+
+<dl>
+<dt>Z.A, Z.D</dt>
+<dd>
+<p>Design matrix (<code class="reqn">n \times m</code>) for the random effects. So, in many cases, you can use the identity matrix.</p>
+</dd>
+<dt>K.A, K.D</dt>
+<dd>
+<p>Different kernels which express some relationships between lines.</p>
+</dd>
+</dl>
+<p>For example, K.A is additive relationship matrix for the covariance between lines, and K.D is dominance relationship matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chi2Test</code></td>
+<td>
+<p>If TRUE, chi-square test for the relationship between haplotypes &amp; subpopulations will be performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thresChi2Test</code></td>
+<td>
+<p>The threshold for the chi-square test.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plotNetwork</code></td>
+<td>
+<p>If TRUE, the function will return the plot of haplotype network.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>distMat</code></td>
+<td>
+<p>You can assign the distance matrix of the block of interest.
+If NULL, the distance matrix will be computed in this function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>distMethod</code></td>
+<td>
+<p>You can choose the method to calculate distance between accessions.
+This argument corresponds to the 'method' argument in the 'dist' function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>evolutionDist</code></td>
+<td>
+<p>If TRUE, the evolution distance will be used instead of the pure distance.
+The 'distMat' will be converted to the distance matrix by the evolution distance when you use 'complementHaplo = "phylo"'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>complementHaplo</code></td>
+<td>
+<p>how to complement unobserved haplotypes.
+When 'complementHaplo = "all"', all possible haplotypes will be complemented from the observed haplotypes.
+When 'complementHaplo = "never"', unobserved haplotypes will not be complemented.
+When 'complementHaplo = "phylo"', unobserved haplotypes will be complemented as nodes of phylogenetic tree.
+When 'complementHaplo = "TCS"', unobserved haplotypes will be complemented by TCS methods (Clement et al., 2002).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subpopInfo</code></td>
+<td>
+<p>The information of subpopulations. This argument should be a vector of factor.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>groupingMethod</code></td>
+<td>
+<p>If 'subpopInfo' argument is NULL, this function estimates subpopulation information from marker genotype.
+You can choose the grouping method from 'kmeans', 'kmedoids', and 'hclust'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nGrp</code></td>
+<td>
+<p>The number of groups (or subpopulations) grouped by 'groupingMethod'.
+If this argument is 0, the subpopulation information will not be estimated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nIterClustering</code></td>
+<td>
+<p>If 'groupingMethod' = 'kmeans', the clustering will be performed multiple times.
+This argument specifies the number of classification performed by the function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iterRmst</code></td>
+<td>
+<p>The number of iterations for RMST (randomized minimum spanning tree).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>networkMethod</code></td>
+<td>
+<p>Either one of 'mst' (minimum spanning tree),
+'msn' (minimum spanning network), and 'rmst' (randomized minimum spanning tree).
+'rmst' is recommended.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>autogamous</code></td>
+<td>
+<p>This argument will be valid only when you use 'complementHaplo = "all"' or 'complementHaplo = "TCS"'.
+This argument specifies whether the plant is autogamous or not. If autogamous = TRUE,
+complemented haplotype will consist of only homozygous sites ([-1, 1]).
+If FALSE, complemented haplotype will consist of both homozygous &amp; heterozygous sites ([-1, 0, 1]).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>probParsimony</code></td>
+<td>
+<p>Equal to the argument 'prob' in 'haplotypes::parsimnet' function:
+</p>
+<p>A numeric vector of length one in the range [0.01, 0.99] giving the probability of parsimony as defined in Templeton et al. (1992).
+In order to set maximum connection steps to Inf (to connect all the haplotypes in a single network), set the probability to NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nMaxHaplo</code></td>
+<td>
+<p>The maximum number of haplotypes. If the number of total (complemented + original) haplotypes are larger than 'nMaxHaplo',
+we will only show the results only for the original haplotypes to reduce the computational time.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kernelTypes</code></td>
+<td>
+<p>In the function, similarlity matrix between accessions will be computed from marker genotype to estimate genotypic values.
+This argument specifies the method to compute similarity matrix:
+If this argument is 'addNOIA' (or one of other options in 'methodGRM' in 'calcGRM'),
+then the 'addNOIA' (or corresponding) option in the 'calcGRM' function will be used,
+and if this argument is 'diffusion', the diffusion kernel based on Laplacian matrix will be computed from network.
+You can assign more than one kernelTypes for this argument; for example, kernelTypes = c("addNOIA", "diffusion").</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.core</code></td>
+<td>
+<p>Setting n.core &gt; 1 will enable parallel execution on a machine with multiple cores.
+This argument is not valid when 'parallel.method = "furrr"'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel.method</code></td>
+<td>
+<p>Method for parallel computation in optimizing hyperparameters for estimating haplotype effects.
+We offer three methods, "mclapply", "furrr", and "foreach".
+</p>
+<p>When 'parallel.method = "mclapply"', we utilize <code>pbmclapply</code> function in the 'pbmcapply' package
+with 'count = TRUE' and <code>mclapply</code> function in the 'parallel' package with 'count = FALSE'.
+</p>
+<p>When 'parallel.method = "furrr"', we utilize <code>future_map</code> function in the 'furrr' package.
+With 'count = TRUE', we also utilize <code>progressor</code> function in the 'progressr' package to show the progress bar,
+so please install the 'progressr' package from github (<a href="https://github.com/HenrikBengtsson/progressr">https://github.com/HenrikBengtsson/progressr</a>).
+For 'parallel.method = "furrr"', you can perform multi-thread parallelization by
+sharing memories, which results in saving your memory, but quite slower compared to 'parallel.method = "mclapply"'.
+</p>
+<p>When 'parallel.method = "foreach"', we utilize <code>foreach</code> function in the 'foreach' package
+with the utilization of <code>makeCluster</code> function in 'parallel' package,
+and <code>registerDoParallel</code> function in 'doParallel' package.
+With 'count = TRUE', we also utilize <code>setTxtProgressBar</code> and
+<code>txtProgressBar</code> functions in the 'utils' package to show the progress bar.
+</p>
+<p>We recommend that you use the option 'parallel.method = "mclapply"', but for Windows users,
+this parallelization method is not supported. So, if you are Windows user,
+we recommend that you use the option 'parallel.method = "foreach"'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hOpt</code></td>
+<td>
+<p>Optimized hyper parameter for constructing kernel when estimating haplotype effects.
+If hOpt = "optimized", hyper parameter will be optimized in the function.
+If hOpt is numeric, that value will be directly used in the function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hOpt2</code></td>
+<td>
+<p>Optimized hyper parameter for constructing kernel when estimating complemented haplotype effects.
+If hOpt2 = "optimized", hyper parameter will be optimized in the function.
+If hOpt2 is numeric, that value will be directly used in the function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxIter</code></td>
+<td>
+<p>Max number of iterations for optimization algorithm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rangeHStart</code></td>
+<td>
+<p>The median of off-diagonal of distance matrix multiplied by rangeHStart will be used
+as the initial values for optimization of hyper parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>saveName</code></td>
+<td>
+<p>When drawing any plot, you can save plots in png format. In saveName, you should substitute the name you want to save.
+When saveName = NULL, the plot is not saved.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>saveStyle</code></td>
+<td>
+<p>This argument specifies how to save the plot of phylogenetic tree.
+The function offers 'png', 'pdf', 'jpg', and 'tiff'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plotWhichMDS</code></td>
+<td>
+<p>We will show the MDS (multi-dimensional scaling) plot,
+and this argument is a vector of two integers specifying that will define which MDS dimension will be plotted.
+The first and second integers correspond to the horizontal and vertical axes, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>colConnection</code></td>
+<td>
+<p>A vector of two integers or characters specifying the colors of connection between nodes for the original and complemented haplotypes, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ltyConnection</code></td>
+<td>
+<p>A vector of two characters specifying the line types of connection between nodes for the original and complemented haplotypes, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lwdConnection</code></td>
+<td>
+<p>A vector of two integers specifying the line widths of connection between nodes for the original and complemented haplotypes, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pchBase</code></td>
+<td>
+<p>A vector of two integers specifying the plot types for the positive and negative genotypic values respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>colCompBase</code></td>
+<td>
+<p>A vector of two integers or characters specifying color of complemented haplotypes for the positive and negative genotypic values respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>colHaploBase</code></td>
+<td>
+<p>A vector of integers or characters specifying color of original haplotypes for the positive and negative genotypic values respectively.
+The length of the vector should equal to the number of subpopulations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cexMax</code></td>
+<td>
+<p>A numeric specifying the maximum point size of the plot.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cexMin</code></td>
+<td>
+<p>A numeric specifying the minimum point size of the plot.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ggPlotNetwork</code></td>
+<td>
+<p>If TRUE, the function will return the ggplot version of haplotype network.
+It offers the precise information on subgroups for each haplotype.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cexMaxForGG</code></td>
+<td>
+<p>A numeric specifying the maximum point size of the plot for the ggplot version of haplotype network,
+relative to the range of x and y-axes (0 &lt; cexMaxForGG &lt;= 1).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cexMinForGG</code></td>
+<td>
+<p>A numeric specifying the minimum point size of the plot for the ggplot version of haplotype network,
+relative to the range of x and y-axes (0 &lt; cexMaxForGG &lt;= 1).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alphaBase</code></td>
+<td>
+<p>alpha (parameter that indicates the opacity of a geom) for original haplotype with positive / negative effects.
+alpha for complemented haplotype will be same as the alpha for original haplotype with negative effects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>If this argument is TRUE, messages for the current steps will be shown.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list / lists of
+</p>
+<dl>
+<dt>$haplotypeInfo</dt>
+<dd>
+<p>A list of haplotype information with
+</p>
+<dl>
+<dt>$haploCluster</dt>
+<dd>
+<p>A vector indicating each individual belongs to which haplotypes.</p>
+</dd>
+<dt>$haploMat</dt>
+<dd>
+<p>A n x h matrix where n is the number of genotypes and h is the number of haplotypes.</p>
+</dd>
+<dt>$haploBlock</dt>
+<dd>
+<p>Marker genotype of haplotype block of interest for the representing haplotypes.</p>
+</dd>
+</dl>
+</dd>
+<dt>$subpopInfo</dt>
+<dd>
+<p>The information of subpopulations.</p>
+</dd>
+<dt>$pValChi2Test</dt>
+<dd>
+<p>A p-value of the chi-square test for the dependency between haplotypes &amp; subpopulations.
+If 'chi2Test = FALSE', 'NA' will be returned.</p>
+</dd>
+<dt>$mstResults</dt>
+<dd>
+<p>A list of estimated results of MST / MSN / RMST:
+</p>
+<dl>
+<dt>$mstRes</dt>
+<dd>
+<p>Estimated results of MST / MSN / RMST for the data including original haplotypes.</p>
+</dd>
+<dt>$mstResComp</dt>
+<dd>
+<p>Estimated results of MST / MSN / RMST for the data including both original and complemented haplotype.</p>
+</dd>
+</dl>
+</dd>
+<dt>$distMats</dt>
+<dd>
+<p>A list of distance matrix:
+</p>
+<dl>
+<dt>$distMat</dt>
+<dd>
+<p>Distance matrix between haplotypes.</p>
+</dd>
+<dt>$distMatComp</dt>
+<dd>
+<p>Distance matrix between haplotypes (including unobserved ones).</p>
+</dd>
+<dt>$laplacianMat</dt>
+<dd>
+<p>Laplacian matrix between haplotypes (including unobserved ones).</p>
+</dd>
+</dl>
+</dd>
+<dt>$gvTotal</dt>
+<dd>
+<p>Estimated genotypic values by kernel regression for each haplotype.</p>
+</dd>
+<dt>$gvTotalForLine</dt>
+<dd>
+<p>Estimated genotypic values by kernel regression for each individual.</p>
+</dd>
+<dt>$minuslog10p</dt>
+<dd>
+<p><code class="reqn">-log_{10}(p)</code> for haplotype block of interest.
+p is the p-value for the siginifacance of the haplotype block effect.</p>
+</dd>
+<dt>$hOpts</dt>
+<dd>
+<p>Optimized hyper parameters, hOpt1 &amp; hOpt2.</p>
+</dd>
+<dt>$EMMResults</dt>
+<dd>
+<p>A list of estimated results of kernel regression:
+</p>
+<dl>
+<dt>$EM3Res</dt>
+<dd>
+<p>Estimated results of kernel regression for the estimation of haplotype effects. (1st step)</p>
+</dd>
+<dt>$EMMRes</dt>
+<dd>
+<p>Estimated results of kernel regression for the estimation of haplotype effects of nodes. (2nd step)</p>
+</dd>
+<dt>$EMM0Res</dt>
+<dd>
+<p>Estimated results of kernel regression for the null model.</p>
+</dd>
+</dl>
+</dd>
+<dt>$clusterNosForHaplotype</dt>
+<dd>
+<p>A list of cluster Nos of individuals that belong to each haplotype.</p>
+</dd>
+</dl>
+</div>

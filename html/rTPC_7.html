@@ -1,0 +1,131 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>delong_2017</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>DeLong enzyme-assisted Arrhenius model for fitting thermal performance curves</h2>
+
+<h3>Description</h3>
+
+<p>DeLong enzyme-assisted Arrhenius model for fitting thermal performance curves
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">delong_2017(temp, c, eb, ef, tm, ehc)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>temp</code></td>
+<td>
+<p>temperature in degrees centigrade</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>c</code></td>
+<td>
+<p>potential reaction rate</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eb</code></td>
+<td>
+<p>baseline energy needed for the reaction to occur (eV)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ef</code></td>
+<td>
+<p>temperature dependence of folding the enzymes used in the metabolic reaction, relative to the melting temperature (eV)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tm</code></td>
+<td>
+<p>melting temperature in degrees centigrade</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ehc</code></td>
+<td>
+<p>temperature dependence of the heat capacity between the folded and unfolded state of the enzymes, relative to the melting temperature (eV)</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Equation:
+</p>
+<p style="text-align: center;"><code class="reqn">rate = c \cdot exp\frac{-(e_b-(e_f(1-\frac{temp + 273.15}{t_m})+e_{hc} \cdot ((temp + 273.15) - t_m - (temp + 273.15) \cdot ln(\frac{temp + 273.15}{t_m}))))}{k \cdot (temp + 273.15)}</code>
+</p>
+
+<p>where <code>k</code> is Boltzmann's constant with a value of 8.62e-05 and <code>tm</code> is actually <code>tm - 273.15</code>
+</p>
+<p>Start values in <code>get_start_vals</code> are derived from the data or sensible values from the literature.
+</p>
+<p>Limits in <code>get_lower_lims</code> and <code>get_upper_lims</code> are derived from the data or based extreme values that are unlikely to occur in ecological settings.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a numeric vector of rate values based on the temperatures and parameter values provided to the function
+</p>
+
+
+<h3>Note</h3>
+
+<p>Generally we found this model easy to fit.
+</p>
+
+
+<h3>References</h3>
+
+<p>DeLong, John P., et al. The combined effects of reactant kinetics and enzyme stability explain the temperature dependence of metabolic rates. Ecology and evolution 7.11 (2017): 3940-3950.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># load in ggplot
+library(ggplot2)
+
+# subset for the first TPC curve
+data('chlorella_tpc')
+d &lt;- subset(chlorella_tpc, curve_id == 1)
+
+# get start values and fit model
+start_vals &lt;- get_start_vals(d$temp, d$rate, model_name = 'delong_2017')
+# fit model
+mod &lt;- nls.multstart::nls_multstart(rate~delong_2017(temp = temp, c, eb, ef, tm,ehc),
+data = d,
+iter = c(4,4,4,4,4),
+start_lower = start_vals - 10,
+start_upper = start_vals + 10,
+lower = get_lower_lims(d$temp, d$rate, model_name = 'delong_2017'),
+upper = get_upper_lims(d$temp, d$rate, model_name = 'delong_2017'),
+supp_errors = 'Y',
+convergence_count = FALSE)
+
+# look at model fit
+summary(mod)
+
+# get predictions
+preds &lt;- data.frame(temp = seq(min(d$temp), max(d$temp), length.out = 100))
+preds &lt;- broom::augment(mod, newdata = preds)
+
+# plot
+ggplot(preds) +
+geom_point(aes(temp, rate), d) +
+geom_line(aes(temp, .fitted), col = 'blue') +
+theme_bw()
+</code></pre>
+
+
+</div>

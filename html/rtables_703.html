@@ -1,0 +1,138 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>cell_values</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Retrieve cell values by row and column path</h2>
+
+<h3>Description</h3>
+
+<p>Retrieve cell values by row and column path
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">cell_values(tt, rowpath = NULL, colpath = NULL, omit_labrows = TRUE)
+
+value_at(tt, rowpath = NULL, colpath = NULL)
+
+## S4 method for signature 'VTableTree'
+value_at(tt, rowpath = NULL, colpath = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>tt</code></td>
+<td>
+<p>(<code>TableTree</code> or related class)<br> a <code>TableTree</code> object representing a populated table.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rowpath</code></td>
+<td>
+<p>(<code>character</code>)<br> path in row-split space to the desired row(s). Can include <code>"@content"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>colpath</code></td>
+<td>
+<p>(<code>character</code>)<br> path in column-split space to the desired column(s). Can include <code>"*"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>omit_labrows</code></td>
+<td>
+<p>(<code>flag</code>)<br> whether label rows underneath <code>rowpath</code> should be omitted (<code>TRUE</code>, the default),
+or return empty lists of cell "values" (<code>FALSE</code>).</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+
+<ul>
+<li> <p><code>cell_values</code> returns a <code>list</code> (regardless of the type of value the cells hold). If <code>rowpath</code> defines a path to
+a single row, <code>cell_values</code> returns the list of cell values for that row, otherwise a list of such lists, one for
+each row captured underneath <code>rowpath</code>. This occurs after subsetting to <code>colpath</code> has occurred.
+</p>
+</li>
+<li> <p><code>value_at</code> returns the "unwrapped" value of a single cell, or an error, if the combination of <code>rowpath</code> and
+<code>colpath</code> do not define the location of a single cell in <code>tt</code>.
+</p>
+</li>
+</ul>
+<h3>Note</h3>
+
+<p><code>cell_values</code> will return a single cell's value wrapped in a list. Use <code>value_at</code> to receive the "bare" cell
+value.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">lyt &lt;- basic_table() %&gt;%
+  split_cols_by("ARM") %&gt;%
+  split_cols_by("SEX") %&gt;%
+  split_rows_by("RACE") %&gt;%
+  summarize_row_groups() %&gt;%
+  split_rows_by("STRATA1") %&gt;%
+  analyze("AGE")
+
+
+library(dplyr) ## for mutate
+tbl &lt;- build_table(lyt, DM %&gt;%
+  mutate(SEX = droplevels(SEX), RACE = droplevels(RACE)))
+
+row_paths_summary(tbl)
+col_paths_summary(tbl)
+
+cell_values(
+  tbl, c("RACE", "ASIAN", "STRATA1", "B"),
+  c("ARM", "A: Drug X", "SEX", "F")
+)
+
+# it's also possible to access multiple values by being less specific
+cell_values(
+  tbl, c("RACE", "ASIAN", "STRATA1"),
+  c("ARM", "A: Drug X", "SEX", "F")
+)
+cell_values(tbl, c("RACE", "ASIAN"), c("ARM", "A: Drug X", "SEX", "M"))
+
+## any arm, male columns from the ASIAN content (i.e. summary) row
+cell_values(
+  tbl, c("RACE", "ASIAN", "@content"),
+  c("ARM", "B: Placebo", "SEX", "M")
+)
+cell_values(
+  tbl, c("RACE", "ASIAN", "@content"),
+  c("ARM", "*", "SEX", "M")
+)
+
+## all columns
+cell_values(tbl, c("RACE", "ASIAN", "STRATA1", "B"))
+
+## all columns for the Combination arm
+cell_values(
+  tbl, c("RACE", "ASIAN", "STRATA1", "B"),
+  c("ARM", "C: Combination")
+)
+
+cvlist &lt;- cell_values(
+  tbl, c("RACE", "ASIAN", "STRATA1", "B", "AGE", "Mean"),
+  c("ARM", "B: Placebo", "SEX", "M")
+)
+cvnolist &lt;- value_at(
+  tbl, c("RACE", "ASIAN", "STRATA1", "B", "AGE", "Mean"),
+  c("ARM", "B: Placebo", "SEX", "M")
+)
+stopifnot(identical(cvlist[[1]], cvnolist))
+
+</code></pre>
+
+
+</div>

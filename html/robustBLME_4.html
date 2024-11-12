@@ -1,0 +1,106 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rblme</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fits robust Bayesian Linear Mixed-effects Models (LMM) to data via robust REML estimating functions.</h2>
+
+<h3>Description</h3>
+
+<p>This function fits robust Bayesian LMMs to data via robust REML estimating functions. The latters are those proposed by Richardson &amp; Welsh (1995), which are robustified versions of restricted maximum likelihood (REML) estimating equations. Posterior sampling is done with an ABC-MCMC algorithm, where the data are summarised through a rescaled version of the aforementioned estimating functions; see Ruli et al. (2017) for the properties and details of the method. The current package version (0.1.2) supports only models with a single random effects. Extensions to more general settings will be provided in the future versions of the package.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rblme(nabc, h.obj, chain.control = list(trace.init = NULL, thin.by = NULL),
+        n.cores = 1)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>nabc</code></td>
+<td>
+<p>number of posterior samples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>h.obj</code></td>
+<td>
+<p>list of objects as returned by the <code>tune.h</code> function. Hence <code>tune.h</code> must be called first.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chain.control</code></td>
+<td>
+<p>parameters that control the tracing and the thinning of the chain(s).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.cores</code></td>
+<td>
+<p>number of cores for parallel computation on non Windows machines. For <code>n.cores</code>&gt;2, <code>n.cores</code> chains are run each on a different core with using the same parameters but with a different random seed.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>list or list of lists with elements <code>abc</code> and <code>effi</code>. In case of <code>n.cores</code>=1, <code>effi</code> is the actual acceptance rate of the ABC-MCMC algorithm whereas in <code>abc</code> are stored the posterior samples. The latters are stored as a <code class="reqn">(q + c) \times</code>nabc matrix, where <code class="reqn">q</code> is the number of fixed effects, i.e. the number of columns in the design matrix and <code class="reqn">c = 2</code> is the number of variance components. Hence, the first <code class="reqn">q</code> rows of the matrix <code>abc</code> give the posterior samples for the fixed effects and the last two rows give the posterior samples for the log-variances of the fixed effects and the residual term, respectively. If <code>n.cores</code> &gt; 1, i.e. if simulations are performed in parallel, then a list of lists is returned, where each element of the list is a list with elements <code>abc</code> and <code>effi</code>, where <code>abc</code> and <code>effi</code> are as those aforementioned.
+</p>
+
+
+<h3>References</h3>
+
+<p>Ruli E., Sartori N. &amp; Ventura L. (2017)
+Robust approximate Bayesian inference with an application to linear mixed models.
+<a href="https://arxiv.org/abs/1706.01752">https://arxiv.org/abs/1706.01752</a>
+</p>
+<p>Richardson A. M. &amp; Welsh A. H. (1995) Robust restricted maximum likelihood in mixed linear models. <em>Biometrics</em> <b>51</b>, 1429-1439.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>tune.h</code>, <code>ergoStool</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## The following example is meant for function documentation.
+## For realistic use probably you'll need to take a larger sample and choose a
+## "better" bandwidth h.
+
+data(ergoStool)
+
+require(lme4)
+fm1 &lt;- lmer(effort~Type + (1| Subject), data = ergoStool)
+
+## tune h to get 0.8% acceptance
+hopt &lt;- tune.h(effort~Type + (1|Subject), data = ergoStool, n.samp = 1e+4,
+               acc.rate = 0.01, n.sim.HJ = 100, grid.h = seq(0.3, 0.7, len = 3),
+               prior = list(beta.sd = 10, s2.scale = 5), n.cores = 1)
+
+## draw posterior samples with hopt.
+abc.tmp &lt;- rblme(nabc = 1e+4, h.obj = hopt,
+                 n.cores = 1)
+
+# process ABC samples
+abc.sim &lt;- t(abc.tmp$abc)
+abc.sim[,c(5,6)] &lt;- exp(abc.sim[,c(5,6)])
+
+# ABC posterior
+colMeans(abc.sim)
+
+# REML estimates
+summary(fm1)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,135 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>local_fuzzy_thresholding</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Local fuzzy thresholding</h2>
+
+<h3>Description</h3>
+
+<p>This function was first presented in Díaz and Lencinas (2015).
+It uses a threshold value as the location parameter of a logistic membership
+function whose scale parameter depends on a variable, here named <code>mem</code>. This
+dependence can be explained as follows: if the variable is equal to <code>1</code>, then
+the membership function is same as a threshold function because the scale
+parameter is <code>0</code>; lowering the variable increases the scale parameter, thus
+blurring the threshold because it decreases the steepness of the curve. Since
+the variable is defined pixel by pixel, this should be considered as a
+<strong>local</strong> fuzzy thresholding method.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">local_fuzzy_thresholding(lightness, m, mem, thr = NULL, fuzziness = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>lightness</code></td>
+<td>
+<p>SpatRaster. A normalized greyscale image (see
+<code>normalize()</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m</code></td>
+<td>
+<p>SpatRaster. A mask. For hemispherical photographs,
+check <code>mask_hs()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mem</code></td>
+<td>
+<p>SpatRaster. It is the scale parameter of the logistic
+membership function. Typically it is obtained with <code>membership_to_color()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thr</code></td>
+<td>
+<p>Numeric vector of length one. Location parameter of the logistic
+membership function. Use <code>NULL</code> to estimate it automatically with
+<code>thr_isodata()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fuzziness</code></td>
+<td>
+<p>Numeric vector of length one. This number is a constant
+value that scales <code>mem</code>. Use <code>NULL</code> to estimate it automatically as the
+midpoint between the maximum and minimum values of <code>lightness</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Argument <code>m</code> can be used to affect the automatic estimation of <code>thr</code> and
+<code>fuzziness</code>.
+</p>
+<p>If you use this function in your research, please cite
+Díaz and Lencinas (2015) in addition to this package
+(<code style="white-space: pre;">⁠citation("rcaiman"⁠</code>).
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class SpatRaster with same pixel dimensions than
+<code>caim</code>. Depending on <code>mem</code>, changes could be subtle.
+</p>
+
+
+<h3>References</h3>
+
+<p>Díaz GM, Lencinas JD (2015).
+“Enhanced gap fraction extraction from hemispherical photography.”
+<em>IEEE Geoscience and Remote Sensing Letters</em>, <b>12</b>(8), 1785–1789.
+<a href="https://doi.org/10.1109/lgrs.2015.2425931">doi:10.1109/lgrs.2015.2425931</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Pre-processing Functions: 
+<code>enhance_caim()</code>,
+<code>gbc()</code>,
+<code>membership_to_color()</code>,
+<code>normalize()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+caim &lt;- read_caim()
+z &lt;- zenith_image(ncol(caim), lens())
+a &lt;- azimuth_image(z)
+
+caim &lt;- normalize(caim)
+
+# ImageJ can be used to digitize points
+path &lt;- system.file("external/sky_points.csv",
+                    package = "rcaiman")
+img_points &lt;- read.csv(path)
+img_points &lt;- img_points[c("Y", "X")]
+colnames(img_points) &lt;- c("row", "col")
+head(img_points)
+target_color &lt;- extract_dn(caim, img_points, fun = median)
+as(target_color, "HSV")
+target_color &lt;- HSV(240, 0.85, 0.5) #to increase saturation
+
+mem &lt;- membership_to_color(caim, target_color)
+mem_thr &lt;- local_fuzzy_thresholding(mean(caim), m,  mem$membership_to_grey)
+plot(mem_thr)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

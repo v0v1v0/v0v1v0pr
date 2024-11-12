@@ -1,0 +1,145 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>group_vfold_cv</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Group V-Fold Cross-Validation</h2>
+
+<h3>Description</h3>
+
+<p>Group V-fold cross-validation creates splits of the data based
+on some grouping variable (which may have more than a single row
+associated with it). The function can create as many splits as
+there are unique values of the grouping variable or it can
+create a smaller set of splits where more than one group is left
+out at a time. A common use of this kind of resampling is when you have
+repeated measures of the same subject.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">group_vfold_cv(
+  data,
+  group = NULL,
+  v = NULL,
+  repeats = 1,
+  balance = c("groups", "observations"),
+  ...,
+  strata = NULL,
+  pool = 0.1
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group</code></td>
+<td>
+<p>A variable in <code>data</code> (single character or name) used for
+grouping observations with the same value to either the analysis or
+assessment set within a fold.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>v</code></td>
+<td>
+<p>The number of partitions of the data set. If left as <code>NULL</code> (the
+default), <code>v</code> will be set to the number of unique values in the grouping
+variable, creating "leave-one-group-out" splits.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>repeats</code></td>
+<td>
+<p>The number of times to repeat the V-fold partitioning.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>balance</code></td>
+<td>
+<p>If <code>v</code> is less than the number of unique groups, how should
+groups be combined into folds? Should be one of
+<code>"groups"</code>, which will assign roughly the same number of groups to each
+fold, or <code>"observations"</code>, which will assign roughly the same number of
+observations to each fold.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>These dots are for future extensions and must be empty.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>strata</code></td>
+<td>
+<p>A variable in <code>data</code> (single character or name) used to conduct
+stratified sampling. When not <code>NULL</code>, each resample is created within the
+stratification variable. Numeric <code>strata</code> are binned into quartiles.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pool</code></td>
+<td>
+<p>A proportion of data used to determine if a particular group is
+too small and should be pooled into another group. We do not recommend
+decreasing this argument below its default of 0.1 because of the dangers
+of stratifying groups that are too small.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A tibble with classes <code>group_vfold_cv</code>,
+<code>rset</code>, <code>tbl_df</code>, <code>tbl</code>, and <code>data.frame</code>.
+The results include a column for the data split objects and an
+identification variable.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+data(ames, package = "modeldata")
+
+set.seed(123)
+group_vfold_cv(ames, group = Neighborhood, v = 5)
+group_vfold_cv(
+  ames,
+  group = Neighborhood,
+  v = 5,
+  balance = "observations"
+)
+group_vfold_cv(ames, group = Neighborhood, v = 5, repeats = 2)
+
+# Leave-one-group-out CV
+group_vfold_cv(ames, group = Neighborhood)
+
+library(dplyr)
+data(Sacramento, package = "modeldata")
+
+city_strata &lt;- Sacramento %&gt;%
+  group_by(city) %&gt;%
+  summarize(strata = mean(price)) %&gt;%
+  summarize(city = city,
+            strata = cut(strata, quantile(strata), include.lowest = TRUE))
+
+sacramento_data &lt;- Sacramento %&gt;%
+  full_join(city_strata, by = "city")
+
+group_vfold_cv(sacramento_data, city, strata = strata)
+
+</code></pre>
+
+
+</div>

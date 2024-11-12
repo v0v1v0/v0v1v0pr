@@ -1,0 +1,256 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>RollingLDA</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>RollingLDA</h2>
+
+<h3>Description</h3>
+
+<p>Performs a rolling version of Latent Dirichlet Allocation.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">RollingLDA(...)
+
+## Default S3 method:
+RollingLDA(
+  texts,
+  dates,
+  chunks,
+  memory,
+  vocab.abs = 5L,
+  vocab.rel = 0,
+  vocab.fallback = 100L,
+  doc.abs = 0L,
+  memory.fallback = 0L,
+  init,
+  type = c("ldaprototype", "lda"),
+  id,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments passed to <code>LDARep</code>
+or <code>LDAPrototype</code>, respectively.
+Default parameters are <code>alpha = eta = 1/K</code> and <code>num.iterations = 200</code>.
+There is no default for <code>K</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>texts</code></td>
+<td>
+<p>[<code>named list</code>]<br>
+Tokenized texts.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dates</code></td>
+<td>
+<p>[<code>(un)named Date</code>]<br>
+Dates of the tokenized texts. If unnamed, it must match the order of texts.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chunks</code></td>
+<td>
+<p>[<code>Date</code> or <code>character(1)</code>]<br>
+Sorted dates of the beginnings of each chunk to be modeled after the initial model.
+If passed as <code>character</code>, dates are determined by passing <code>init</code>
+plus one day as <code>from</code> argument, <code>max(dates)</code> as <code>to</code> argument
+and <code>chunks</code> as <code>by</code> argument in <code>seq.Date</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>memory</code></td>
+<td>
+<p>[<code>Date</code>, <code>character(1)</code> or <code>integer(1)</code>]<br>
+Sorted dates of the beginnings of each chunk's memory. If passed as <code>character</code>,
+dates are determined by using the dates of the beginnings of each chunk and
+substracting the given time interval in <code>memory</code> passing it as
+<code>by</code> argument in <code>seq.Date</code>. If passed as
+<code>integer/numeric</code>, the dates are determined by going backwards the
+modeled texts chronologically and taking the date of the text at position
+<code>memory</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vocab.abs</code></td>
+<td>
+<p>[<code>integer(1)</code>]<br>
+An absolute lower bound limit for which words are taken into account. All
+words are considered in the vocabularies that have a count higher than
+<code>vocab.abs</code> over all texts and at the same time a higher relative
+frequency than <code>vocab.rel</code>. Default is 5.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vocab.rel</code></td>
+<td>
+<p>[0,1]<br>
+A relative lower bound limit for which words are taken into account. See also
+<code>vocab.abs</code>. Default is 0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vocab.fallback</code></td>
+<td>
+<p>[<code>integer(1)</code>]<br>
+An absolute lower bound limit for which words are taken into account. All
+words are considered in the vocabularies that have a count higher than
+<code>vocab.fallback</code> over all texts even if they might not have a higher
+relative frequency than <code>vocab.rel</code>. Default is 100.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>doc.abs</code></td>
+<td>
+<p>[<code>integer(1)</code>]<br>
+An absolute lower bound limit for which texts are taken into account. All
+texts are considered for modeling that have more words (subsetted to words
+occurring in the vocabularies) than <code>doc.abs</code>. Default is 0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>memory.fallback</code></td>
+<td>
+<p>[<code>integer(1)</code>]<br>
+If there are no texts as memory in a certain chunk, <code>memory</code> is
+determined by going backwards the modeled texts chronologically and taking
+the date of the text at position <code>memory.fallback</code>.
+Default is 0, which means "end the fitting".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init</code></td>
+<td>
+<p>[<code>Date(1)</code> or <code>integer(1)</code>]<br>
+Date up to which the initial model should be computed. This parameter is
+needed/used only if <code>chunks</code> is passed as <code>character</code>. Otherwise
+the initial model is computed up to the first date in <code>chunks</code> minus one
+day. If <code>init</code> is passed as <code>integer/numeric</code>, the <code>init</code>
+lowest date from <code>dates</code> is selected.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>[<code>character(1)</code>]<br>
+One of "ldaPrototype" or "lda" specifying whether a LDAProtoype or standard
+LDA should be modeled as initial model. Default is "ldaprototype".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id</code></td>
+<td>
+<p>[<code>character(1)</code>]<br>
+Name for the computation/model.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The function first computes a initial LDA model (using
+<code>LDARep</code> or <code>LDAPrototype</code>).
+Afterwards it models temporal chunks of texts with a specified memory for
+initialization of each model chunk.
+</p>
+<p>The function returns a <code>RollingLDA</code> object. You can receive results and
+all other elements of this object with getter functions (see <code>getChunks</code>).
+</p>
+
+
+<h3>Value</h3>
+
+<p>[<code>named list</code>] with entries
+</p>
+
+<dl>
+<dt><code>id</code></dt>
+<dd>
+<p>[<code>character(1)</code>] See above.</p>
+</dd>
+<dt><code>lda</code></dt>
+<dd>
+<p><code>LDA</code> object of the fitted RollingLDA.</p>
+</dd>
+<dt><code>docs</code></dt>
+<dd>
+<p>[<code>named list</code>] with modeled texts in a preprocessed format.
+See <code>LDAprep</code>.</p>
+</dd>
+<dt><code>dates</code></dt>
+<dd>
+<p>[<code>named Date</code>] with dates of the modeled texts.</p>
+</dd>
+<dt><code>vocab</code></dt>
+<dd>
+<p>[<code>character</code>] with the vocabularies considered
+for modeling.</p>
+</dd>
+<dt><code>chunks</code></dt>
+<dd>
+<p>[<code>data.table</code>] with specifications for each
+model chunk.</p>
+</dd>
+<dt><code>param</code></dt>
+<dd>
+<p>[<code>named list</code>] with parameter specifications for
+<code>vocab.abs</code> [<code>integer(1)</code>], <code>vocab.rel</code> [0,1],
+<code>vocab.fallback</code> [<code>integer(1)</code>] and
+<code>doc.abs</code> [<code>integer(1)</code>]. See above for explanation.</p>
+</dd>
+</dl>
+<h3>See Also</h3>
+
+<p>Other RollingLDA functions: 
+<code>as.RollingLDA()</code>,
+<code>getChunks()</code>,
+<code>updateRollingLDA()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">roll_lda = RollingLDA(texts = economy_texts,
+                      dates = economy_dates,
+                      chunks = "quarter",
+                      memory = "3 quarter",
+                      init = "2008-07-03",
+                      K = 10,
+                      type = "lda")
+
+roll_lda
+getChunks(roll_lda)
+getLDA(roll_lda)
+
+
+roll_proto = RollingLDA(texts = economy_texts,
+                        dates = economy_dates,
+                        chunks = "quarter",
+                        memory = "3 quarter",
+                        init = "2007-07-03",
+                        K = 10,
+                        n = 12,
+                        pm.backend = "socket",
+                        ncpus = 2)
+
+roll_proto
+getChunks(roll_proto)
+getLDA(roll_proto)
+
+
+</code></pre>
+
+
+</div>

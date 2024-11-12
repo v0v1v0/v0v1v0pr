@@ -1,0 +1,203 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>compare</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Compare Records</h2>
+
+<h3>Description</h3>
+
+<p>Builds comparison patterns of record pairs for deduplication or
+linkage.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">compare.dedup (dataset, blockfld = FALSE, phonetic = FALSE, 
+  phonfun = soundex, strcmp = FALSE, strcmpfun = jarowinkler, exclude = FALSE,
+  identity = NA, n_match = NA, n_non_match = NA)
+
+compare.linkage (dataset1, dataset2, blockfld = FALSE, 
+  phonetic = FALSE, phonfun = soundex, strcmp = FALSE, 
+  strcmpfun = jarowinkler, exclude = FALSE, identity1 = NA, identity2 = NA,
+  n_match = NA, n_non_match = NA)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>dataset</code></td>
+<td>
+<p>Table of records to be deduplicated. Either a data frame or 
+a matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dataset1, dataset2</code></td>
+<td>
+<p>Two data sets to be linked.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>blockfld</code></td>
+<td>
+<p>Blocking field definition. A list of integer or character vectors
+with column indices or <code>FALSE</code> to disable
+blocking. See details and examples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phonetic</code></td>
+<td>
+<p>Determines usage of a phonetic code. If <code>FALSE</code>, no
+phonetic code will be used; if <code>TRUE</code>, the phonetic code
+will be used for all columns; if a numeric or character vector is given, the
+phonetic code will be used for the specified columns.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phonfun</code></td>
+<td>
+<p>Function for phonetic code. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>strcmp</code></td>
+<td>
+<p>Determines usage of a string metric. Used in the same manner
+as <code>phonetic</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>strcmpfun</code></td>
+<td>
+<p>User-defined function for string metric. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exclude</code></td>
+<td>
+<p>Columns to be excluded. A numeric or character vector specifying the columns which should be excluded from comparison</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>identity, identity1, identity2</code></td>
+<td>
+<p>Optional numerical vectors for identifying matches and non-matches. In a deduplication process, two records <code>dataset[i,]</code> and <code>dataset[j,]</code> are a true match if and only if           <code>identity[i,]==identity[j,]</code>. In a linkage process, two records <code>dataset1[i,]</code> and <code>dataset2[j,]</code> are a true match if and only if <br><code>identity1[i,]==identity2[j,]</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_match, n_non_match</code></td>
+<td>
+<p>Number of desired matches and non-matches in the result.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>These functions build record pairs and finally comparison patterns
+by which these pairs are later classified as links or non-links. They make up
+the initial stage in a Record Linkage process after possibly 
+normalizing the data. Two general
+scenarios are reflected by the two functions: <code>compare.dedup</code> works on a
+single data set which is to be deduplicated, <code>compare.linkage</code> is intended
+for linking two data sets together.
+</p>
+<p>Data sets are represented as data frames or matrices (typically of type 
+character), each row representing one record, each column representing one
+field or attribute (like first name, date of birth...). Row names are not
+retained in the record pairs. If an identifier other than row number is
+needed, it should be supplied as a designated column and excluded from
+comparison (see note on <code>exclude</code> below).
+</p>
+<p>Each element of <code>blockfld</code> specifies a set of columns in which two
+records must agree to be included in the output. Each blocking definition in
+the list is applied individually, the sets obtained 
+thereby are combined by a union operation.                              
+If <code>blockfld</code> is <code>FALSE</code>, no blocking will be performed,
+which leads to a large number of record pairs 
+(<code class="reqn">\frac{n(n-1)}{2}</code> where <code class="reqn">n</code> is the number of
+records).
+</p>
+<p>As an alternative to blocking, a determined number of <code>n_match</code> matches 
+and <code>n_non_match</code> non-matches can be drawn if <code>identity</code> or
+<code>identity1</code> and <code>identity2</code> are supplied. This is relevant for generating training sets for the supervised classificators (see <code>trainSupv</code>).
+</p>
+<p>Fields can be excluded from the linkage process by supplying their column index in the vector <code>exclude</code>, which is especially useful for external identifiers. Excluded fields can still be used for blocking, also with phonetic code.
+</p>
+<p>Phonetic codes and string similarity measures are supported for enhanced detection of misspellings. Applying a phonetic code leads to a binary values, where 1 denotes equality of the generated phonetic code. A string comparator leads to a similarity value in the range <code class="reqn">[0,1]</code>.
+</p>
+<p>String comparison is not allowed on a field for which a phonetic code is generated. For phonetic encoding functions included in the package,  see phonetics. For the included string comparators, see <code>jarowinkler</code> and <code>levenshteinSim</code>.
+</p>
+<p>Please note that phonetic code and string metrics can slow down the generation of comparison patterns significantly.
+</p>
+<p>User-defined functions for phonetic code and string comparison can be supplied  via the arguments <code>phonfun</code> and <code>strcmpfun</code>. <code>phonfun</code> is expected to have a single character argument (the string to be transformed) and must return a character value with the encoded string. 
+</p>
+<p><code>strcmpfun</code> must have as arguments the two strings to be compared and return a similarity value in the range <code class="reqn">[0,1]</code>, with 0 denoting the lowest and 1 denoting the highest degree of similarity. Both functions must be fully vectorized to work on matrices.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>RecLinkPairs</code> with the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>Copy of the records, converted to a data frame.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pairs</code></td>
+<td>
+<p>Generated comparison patterns.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>frequencies</code></td>
+<td>
+<p>For each column included in <code>pairs</code>, the average
+frequency of values (reciprocal of number of distinct values).</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Andreas Borg, Murat Sariyar</p>
+
+
+<h3>See Also</h3>
+
+<p><code>RecLinkData</code> for the format of returned objects.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(RLdata500)
+data(RLdata10000)
+
+# deduplication without blocking, use string comparator on names
+## Not run: rpairs=compare.dedup(RLdata500,strcmp=1:4)
+# linkage with blocking on first name and year of birth, use phonetic
+# code on first components of first and last name
+
+## Not run: rpairs=compare.linkage(RLdata500,RLdata10000,blockfld=c(1,7),phonetic=c(1,3))
+# deduplication with blocking on either last name or complete date of birth,
+# use string comparator on all fields, include identity information
+## Not run: rpairs=compare.dedup(RLdata500, identity=identity.RLdata500, strcmp=TRUE,
+  blockfld=list(1,c(5,6,7)))
+## End(Not run)
+
+# Draw 100 matches and 1000 non-matches
+## Not run: rpairs=compare.dedup(RLdata10000,identity=identity.RLdata10000,n_match=100,
+  n_non_match=10000)
+## End(Not run)
+</code></pre>
+
+
+</div>

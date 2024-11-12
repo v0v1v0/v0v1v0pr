@@ -1,0 +1,151 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>cvFPM</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Cross-Validation Optimization of the Floating Percentile Model</h2>
+
+<h3>Description</h3>
+
+<p>Use leave-one-out (LOO) or k-folds cross-validation methods to calculate parameter inputs that optimize benchmark performance
+while attempting to account for out-of-sample uncertainty
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">cvFPM(
+  data,
+  paramList,
+  FN_crit = seq(0.1, 0.9, by = 0.05),
+  alpha.test = seq(0.05, 0.5, by = 0.05),
+  k = 5,
+  seed = 1,
+  plot = TRUE,
+  which = c(1, 2, 3, 4),
+  colors = heat.colors(10),
+  colsteps = 100,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>data.frame containing, at a minimum, chemical concentrations as columns and a logical <code>Hit</code> column classifying toxicity</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>paramList</code></td>
+<td>
+<p>character vector of column names of chemical concentration variables in <code>data</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>FN_crit</code></td>
+<td>
+<p>numeric vector of values between 0 and 1 indicating false negative threshold for floating percentile model benchmark selection (default = <code>seq(0.1, 0.9, 0.05)</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha.test</code></td>
+<td>
+<p>numeric vector of values between 0 and 1 indicating type-I error rate for chemical selection (default = <code>seq(0.05, 0.5, by = 0.05)</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>integer with length = 1 and value &gt; 1 indicating how many folds to include in k-folds type cross-validation method (default = <code>5</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>integer with length = 1 indicating the random seed to set for assigning k classes for k-folds cross-validation (default = <code>1</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>whether to plot the output of <code>cvFPM</code> (default = <code>TRUE</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>which</code></td>
+<td>
+<p>numeric or character indicating which type of plot to generate (see Details; default = <code>c(1, 2, 3, 4)</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>colors</code></td>
+<td>
+<p>values recognizible as colors to be passed to <code>colorRampPalette</code> (via <code>colorGradient</code>) to generate a palette for plotting (default = <code>heat.colors(10)</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>colsteps</code></td>
+<td>
+<p>integer; number of discrete steps to interpolate colors in <code>colorGradient</code> (default = <code>100</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments passed to <code>chemSig</code> and <code>FPM</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>cvFPM</code> allows users to "tune" the <code>FN_crit</code> and <code>alpha.test</code> arguments used by <code>FPM</code> (via <code>chemSig</code>). This is achieved by splitting the empirical dataset into "test" and "training" subsets,
+calculating benchmarks for the training set, and then evaluating the benchmarks' ability to predict Hits in the out-of-sample test set. The output of <code>cvFPM</code> is similar to <code>optimFPM</code>: optimal <code>FN_crit</code> and <code>alpha.test</code> inputs
+based on several classification metrics (see <code>?optimFPM</code> for more details). The key difference between <code>cvFPM</code> and <code>optimFPM</code> is that <code>cvFPM</code> attempts to account for
+out-of-sample uncertainty, whereas <code>optimFPM</code> is specific (and potentially overly specific) to the full FPM dataset. Because the primary use of FPM SQBs will be to predict
+toxicity in sediment samples where toxicity is not measured, the FPM should be parameterized in a way that best accounts for out-of-sample uncertainty. In other words, while FPM
+generates classification metrics like "overall reliability" for SQBs, they are unlikely to achieve the expected reliability when applied to new samples. This is an inherent limitation of SQBs,
+which the FPM cannot fully address but that <code>cvFPM</code> considers.
+</p>
+<p>Two cross-validation methods are available, controlled through the <code>k</code> argument. If the user specifies <code>k = NULL</code> or <code>k = nrow(data)</code>, then leave-one-out (LOO) is used.
+LOO is computationally intensive but is better suited to small datasets.
+Other values of <code>k</code> (e.g., the default <code>k = 5</code>) will result in applying a k-folds cross-validation method, which uses larger test subsets (and smaller training sets),
+evaluates fewer scenarios, and greatly improves runtime for large datasets. The <code>seed</code> argument can be used to establish a consistent result; if <code>is.null(seed)</code>, the result will vary based on randomization.
+Allowing for randomization may be desireable to understand between-run variability in <code>cvFPM</code> output caused by re-sampling of training/test sets.
+</p>
+<p>By setting <code>plot = TRUE</code> (the default), the outcome of cross-validation can be visualized over the range of <code>FN_crit</code> values considered. Visualizing the results
+can inform the user about variability in the cross-validation process, ranges of potentially reasonable <code>FN_crit</code> values, etc. Graphical output depends on
+whether many <code>FN_crit</code> and/or many <code>alpha.test</code> are evaluated, with line plots or heat plots alternately generated.
+</p>
+<p>IMPORTANT: <code>cvFPM</code> is not in itself optimized for runtime - running <code>cvFPM</code> can take a long time
+</p>
+<p>The <code>which</code> argument can be used to specify which of the metric-specific plots should be generated when <code>plot = TRUE</code>. Inputs
+to <code>which</code> are, by default, <code>c(1, 2, 3, 4)</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>data.frame of metric output, base R graphical output
+</p>
+
+
+<h3>See Also</h3>
+
+<p>chemSig, FPM, optimFPM
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">paramList = c("Cd", "Cu", "Fe", "Mn", "Ni", "Pb", "Zn")
+par(mfrow = c(2,2))
+cvFPM(h.tristate, paramList, seq(0.1, 0.9, 0.1), 0.05)
+</code></pre>
+
+
+</div>

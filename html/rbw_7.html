@@ -1,0 +1,166 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rbwPanel</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Residual Balancing Weights for Analyzing Time-varying Treatments</h2>
+
+<h3>Description</h3>
+
+<p><code>rbwPanel</code> is a function that produces residual balancing weights (rbw) for
+estimating the marginal effects of time-varying treatments. The user supplies
+a long format data frame (each row being a unit-period) and a list of
+fitted model objects for the conditional mean of each post-treatment confounder given
+past treatments and past confounders. The residuals of each time-varying confounder
+are balanced across both the current treatment <code class="reqn">A_t</code> and the regressors of the confounder
+model. In addition, when <code>future &gt; 0</code>, the residuals are also balanced across future
+treatments <code class="reqn">A_{t+1},\ldots A_{t + future}</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rbwPanel(
+  treatment,
+  xmodels,
+  id,
+  time,
+  data,
+  base_weights,
+  future = 1L,
+  max_iter = 200,
+  tol = 1e-04,
+  print_level = 1
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>treatment</code></td>
+<td>
+<p>A symbol or character string for the treatment variable in <code>data</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xmodels</code></td>
+<td>
+<p>A list of fitted <code>lm</code> or <code>glm</code> objects for
+time-varying confounders.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id</code></td>
+<td>
+<p>A symbol or character string for the unit id variable in <code>data</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time</code></td>
+<td>
+<p>A symbol or character string for the time variable in <code>data</code>. The time variable should be numeric.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame containing all variables in the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>base_weights</code></td>
+<td>
+<p>(Optional) A vector of base weights (or its name).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>future</code></td>
+<td>
+<p>An integer indicating the number of future treatments in the balancing conditions. When
+<code>future &gt; 0</code>, the residualized time-varying covariates are balanced not only with respect to
+current treatment <code class="reqn">A_t</code>, but also with respect to future treatments <code class="reqn">A_{t+1},\ldots A_{t + future}</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_iter</code></td>
+<td>
+<p>Maximum number of iterations for Newton's method in entropy minimization.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>Tolerance parameter used to determine convergence in entropy minimization.
+See documentation for <code>eb2</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>print_level</code></td>
+<td>
+<p>The level of printing. See documentation for <code>eb2</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list containing the results.
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>A data frame containing the unit id variable and residual balancing weights.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>constraints</code></td>
+<td>
+<p>A matrix of (linearly independent) residual balancing constraints</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eb_out</code></td>
+<td>
+<p>Results from calling the <code>eb2</code> function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>The matched call.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R"># models for time-varying confounders
+m1 &lt;- lm(dem.polls ~ (d.gone.neg.l1 + dem.polls.l1 + undother.l1) * factor(week),
+data = campaign_long)
+m2 &lt;- lm(undother ~ (d.gone.neg.l1 + dem.polls.l1 + undother.l1) * factor(week),
+data = campaign_long)
+
+xmodels &lt;- list(m1, m2)
+
+# residual balancing weights
+rbwPanel_fit &lt;- rbwPanel(treatment = d.gone.neg, xmodels = xmodels, id = id,
+time = week, data = campaign_long)
+
+summary(rbwPanel_fit$weights)
+
+# merge weights into wide-format data
+campaign_wide2 &lt;- merge(campaign_wide, rbwPanel_fit$weights, by = "id")
+
+# fit a marginal structural model (adjusting for baseline confounders)
+if(require(survey)){
+  rbw_design &lt;- svydesign(ids = ~ 1, weights = ~ rbw, data = campaign_wide2)
+  msm_rbwPanel &lt;- svyglm(demprcnt ~ cum_neg * deminc + camp.length + factor(year) + office,
+  design = rbw_design)
+  summary(msm_rbwPanel)
+}
+</code></pre>
+
+
+</div>

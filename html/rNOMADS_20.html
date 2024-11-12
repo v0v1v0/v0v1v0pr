@@ -1,0 +1,186 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ReadGrib</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Extract data from grib files
+</h2>
+
+<h3>Description</h3>
+
+<p>This function wraps <code>wgrib2</code> and <code>wgrib</code>, external grib file readers provided by the National Weather Service Climate Prediction Center (see <a href="http://www.cpc.ncep.noaa.gov/products/wesley/wgrib2/">http://www.cpc.ncep.noaa.gov/products/wesley/wgrib2/</a> and <a href="http://www.cpc.ncep.noaa.gov/products/wesley/wgrib.html">http://www.cpc.ncep.noaa.gov/products/wesley/wgrib.html</a>).
+<code>ReadGrib</code> extracts forecast data into R.
+It does this by building an argument string, executing a system call to the appropriate external grib file reader, and extracting the result.
+Note that <code>wgrib2</code> must be installed for <code>ReadGrib</code> to work for current grib files, and <code>wgrib</code> may need to be installed when looking at archived data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ReadGrib(file.names, levels, variables, 
+    forecasts = NULL, domain = NULL, domain.type = "latlon", 
+file.type = "grib2", missing.data = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>file.names</code></td>
+<td>
+
+<p>The path and file name of the grib files to read.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>levels</code></td>
+<td>
+
+<p>The levels to extract.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>variables</code></td>
+<td>
+
+<p>The variables to extract.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>forecasts</code></td>
+<td>
+
+<p>Names of forecasts to extract.  
+If <code>NULL</code>, include everything.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>domain</code></td>
+<td>
+
+<p>Include model nodes in the specified region: <code>c(LEFT LON, RIGHT LON, NORTH LAT, SOUTH LAT)</code>.
+If <code>NULL</code>, include everything.
+This argument works for GRIB2 only.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>domain.type</code></td>
+<td>
+
+<p>Either <code>\"latlon\"</code> 
+(the <code>domain</code> argument is a latitude/longitude quadruplet) 
+or <code>\"index\"</code> (the <code>domain</code> argument is a model node index quadruplet; 
+much faster but requires you to know the model setup)
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>file.type</code></td>
+<td>
+
+<p>Whether the file is in GRIB (<code>"grib1"</code>) or GRIB2 (<code>"grib2"</code>) format.
+Default is <code>"grib2"</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>missing.data</code></td>
+<td>
+
+<p>Replace missing data in grib archive with this value.
+If <code>NULL</code>, leave the data out.  Only works with wgrib2. Default <code>NULL</code>.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function constructs system calls to <code>wgrib</code> and <code>wgrib2</code>.
+Therefore, you must have installed these programs and made it available on the system path.
+Unless you are interested in accessing archive data that's more than a few years old, you can <code>install</code> wgrib2 only.
+A description of <code>wgrib2</code> and installation links are available at <a href="http://www.cpc.ncep.noaa.gov/products/wesley/wgrib2/">http://www.cpc.ncep.noaa.gov/products/wesley/wgrib2/</a> and <a href="http://www.cpc.ncep.noaa.gov/products/wesley/wgrib.html">http://www.cpc.ncep.noaa.gov/products/wesley/wgrib.html</a>.
+Also, rNOMADS is focused towards GRIB2 files; I have included GRIB1 format support as a convenience.
+</p>
+
+
+<h3>Value</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>model.data</code></td>
+<td>
+<p>A structure with a series of elements containing data extracted from the grib files.</p>
+</td>
+</tr></table>
+<h3>Author(s)</h3>
+
+<p>Daniel C. Bowman <a href="mailto:danny.c.bowman@gmail.com">danny.c.bowman@gmail.com</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>Ebisuzaki, W, Bokhorst, R., Hyvatti, J., Jovic, D., Nilssen, K,  
+Pfeiffer, K.,  Romero, P.,  Schwarb, M., da Silva, A., Sondell, N., and Varlamov, S. (2011).
+wgrib2: read and write GRIB2 files.  <em>National Weather Service Climate Prediction Center</em>,
+<a href="http://www.cpc.ncep.noaa.gov/products/wesley/wgrib2/">http://www.cpc.ncep.noaa.gov/products/wesley/wgrib2/</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>GribGrab</code>, <code>ArchiveGribGrab</code>, <code>ModelGrid</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+#Operational Forecast Data Extraction
+#NCEP output is always in GRIB2 format - this makes things easy for us
+#An example for the Global Forecast System 0.5 degree model
+
+#Get the latest model url
+## Not run: 
+urls.out &lt;- CrawlModels(abbrev = "gfs_0p50", depth = 1)
+
+#Get a list of forecasts, variables and levels
+model.parameters &lt;- ParseModelPage(urls.out[1])
+
+#Figure out which one is the 6 hour forecast
+#provided by the latest model run
+#(will be the forecast from 6-12 hours from the current date) 
+
+my.pred &lt;- model.parameters$pred[grep("06$", model.parameters$pred)]
+
+#What region of the atmosphere to get data for
+levels &lt;- c("2 m above ground", "800 mb")
+
+#What data to return
+variables &lt;- c("TMP", "RH") #Temperature and relative humidity
+
+#Get the data
+model.info &lt;- GribGrab(urls.out[1], my.pred, levels, variables)
+
+#Extract the data
+model.data &lt;- ReadGrib(model.info[[1]]$file.name, levels, variables)
+
+#Reformat it
+model.grid &lt;- ModelGrid(model.data, c(0.5, 0.5))
+
+#Show an image of world temperature at ground level
+image(model.grid$z[2, 1,,])
+
+
+## End(Not run)
+</code></pre>
+
+
+</div>

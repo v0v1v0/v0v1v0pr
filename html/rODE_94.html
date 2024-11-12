@@ -1,0 +1,116 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>setStepSize</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>setStepSize</h2>
+
+<h3>Description</h3>
+
+<p>setStepSize uses either of two step parameters: stepSize and dt
+stepSize works for most of the applications
+dt is used in Pendulum
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">setStepSize(object, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>a class object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional parameters</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R"># ++++++++++++++++++++++++++++++++++++++++++++++++++application:  SpringRK4App.R
+# Simulation of a spring considering no friction
+
+importFromExamples("SpringRK4.R")
+
+
+# run application
+SpringRK4App &lt;- function(verbose = FALSE) {
+    theta    &lt;- 0
+    thetaDot &lt;- -0.2
+    tmax     &lt;- 22; dt &lt;- 0.1
+    spring &lt;- SpringRK4()
+    spring@state[3] &lt;- 0      # set time to zero, t = 0
+    spring &lt;- setState(spring, theta, thetaDot)
+    #  spring &lt;- setStepSize(spring, dt = dt) # using stepSize in RK4
+    spring@odeSolver &lt;- setStepSize(spring@odeSolver, dt) # set new step size
+    rowvec &lt;- vector("list")
+    i &lt;- 1
+    while (getState(spring)[3] &lt;= tmax)    {
+        rowvec[[i]] &lt;- list(t  = getState(spring)[3],      # angle
+                            y1 = getState(spring)[1],      # derivative of the angle
+                            y2 = getState(spring)[2])      # time
+        i &lt;- i + 1
+        spring &lt;- step(spring)
+    }
+    DT &lt;- data.table::rbindlist(rowvec)
+    return(DT)
+}
+
+# show solution
+solution &lt;- SpringRK4App()
+plot(solution)
+# ++++++++++++++++++++++++++++++++++++++++++++++++  example: ComparisonRK45App.R
+# Compares the solution by the RK45 ODE solver versus the analytical solution
+# Example file: ComparisonRK45App.R
+# ODE Solver:   Runge-Kutta 45
+# ODE class :   RK45
+# Base class:   ODETest
+
+importFromExamples("ODETest.R")
+
+ ComparisonRK45App &lt;- function(verbose = FALSE) {
+     ode &lt;- new("ODETest")                     # create an `ODETest` object
+     ode_solver &lt;- RK45(ode)                   # select the ODE solver
+     ode_solver &lt;- setStepSize(ode_solver, 1)      # set the step
+
+     # Two ways of setting the tolerance
+       # ode_solver &lt;- setTolerance(ode_solver, 1e-8)  # set the tolerance
+     setTolerance(ode_solver) &lt;-  1e-8
+
+     time &lt;-  0
+     rowVector &lt;- vector("list")
+     i &lt;- 1
+     while (time &lt; 50) {
+         rowVector[[i]] &lt;- list(t  = getState(ode)[2],
+                                s1 = getState(ode)[1],
+                                s2 = getState(ode)[2],
+                                xs = getExactSolution(ode, time),
+                                counts = getRateCounts(ode),
+                                time   = time
+                                )
+         ode_solver &lt;- step(ode_solver)           # advance one step
+         stepSize   &lt;- getStepSize(ode_solver)
+         time &lt;- time + stepSize
+         ode  &lt;- getODE(ode_solver)                     # get updated ODE object
+         i &lt;- i + 1
+     }
+     return(data.table::rbindlist(rowVector))    # a data table with the results
+ }
+# show solution
+solution &lt;- ComparisonRK45App()                          # run the example
+plot(solution)
+</code></pre>
+
+
+</div>

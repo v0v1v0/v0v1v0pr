@@ -1,0 +1,284 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>RUV4</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Remove Unwanted Variation, 4-step
+</h2>
+
+<h3>Description</h3>
+
+<p>The RUV-4 algorithm.  Estimates and adjusts for unwanted variation using negative controls.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">RUV4(Y, X, ctl, k, Z = 1, eta = NULL, include.intercept=TRUE,
+fullW0=NULL, inputcheck=TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+
+<p>The data.  A m by n matrix, where m is the number of samples and n is the number of features.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+
+<p>The factor(s) of interest.  A m by p matrix, where m is the number of samples and p is the number of factors of interest.  Very often p = 1.  Factors and dataframes are also permissible, and converted to a matrix by <code>design.matrix</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ctl</code></td>
+<td>
+
+<p>An index vector to specify the negative controls.  Either a logical vector of length n or a vector of integers.  
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+
+<p>The number of unwanted factors to use.  Can be 0.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Z</code></td>
+<td>
+
+<p>Any additional covariates to include in the model, typically a m by q matrix.  Factors and dataframes are also permissible, and converted to a matrix by <code>design.matrix</code>.  Alternatively, may simply be 1 (the default) for an intercept term.  May also be <code>NULL</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eta</code></td>
+<td>
+
+<p>Gene-wise (as opposed to sample-wise) covariates.  These covariates are adjusted for by RUV-1 before any further analysis proceeds.  Can be either (1) a matrix with n columns, (2) a matrix with n rows, (3) a dataframe with n rows, (4) a vector or factor of length n, or (5) simply 1, for an intercept term.  
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>include.intercept</code></td>
+<td>
+
+<p>Applies to both <code>Z</code> and <code>eta</code>.  When <code>Z</code> or <code>eta</code> (or both) is specified (not <code>NULL</code>) but does not already include an intercept term, this will automatically include one.  If only one of <code>Z</code> or <code>eta</code> should include an intercept, this variable should be set to <code>FALSE</code>, and the intercept term should be included manually where desired.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fullW0</code></td>
+<td>
+
+<p>Can be included to speed up execution.  Is returned by previous calls of <code>RUV4</code>, <code>RUVinv</code>, or <code>RUVrinv</code> (see  below).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inputcheck</code></td>
+<td>
+
+<p>Perform a basic sanity check on the inputs, and issue a warning if there is a problem.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Implements the RUV-4 algorithm as described in Gagnon-Bartsch, Jacob, and Speed (2013), using the SVD as the factor analysis routine.  Unwanted factors W are estimated using control genes.  Y is then regressed on the variables X, Z, and W.   
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list containing
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>betahat</code></td>
+<td>
+<p>The estimated coefficients of the factor(s) of interest.  A p by n matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma2</code></td>
+<td>
+<p>Estimates of the features' variances.  A vector of length n.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>t</code></td>
+<td>
+<p>t statistics for the factor(s) of interest.  A p by n matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>P-values for the factor(s) of interest.  A p by n matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Fstats</code></td>
+<td>
+<p>F statistics for testing all of the factors in <code>X</code> simultaneously.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Fpvals</code></td>
+<td>
+<p>P-values for testing all of the factors in <code>X</code> simultaneously.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>multiplier</code></td>
+<td>
+<p>The constant by which <code>sigma2</code> must be multiplied in order get an estimate of the variance of <code>betahat</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>df</code></td>
+<td>
+<p>The number of residual degrees of freedom.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>W</code></td>
+<td>
+<p>The estimated unwanted factors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>The estimated coefficients of W.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>byx</code></td>
+<td>
+<p>The coefficients in a regression of Y on X (after both Y and X have been "adjusted" for Z).  Useful for projection plots.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bwx</code></td>
+<td>
+<p>The coefficients in a regression of W on X (after X has been "adjusted" for Z).  Useful for projection plots.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p><code>X</code>.  Included for reference.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p><code>k</code>.  Included for reference.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ctl</code></td>
+<td>
+<p><code>ctl</code>.  Included for reference.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Z</code></td>
+<td>
+<p><code>Z</code>.  Included for reference.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eta</code></td>
+<td>
+<p><code>eta</code>.  Included for reference.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fullW0</code></td>
+<td>
+<p>Can be used to speed up future calls of RUV4.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>include.intercept</code></td>
+<td>
+<p><code>include.intercept</code>.  Included for reference.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Character variable with value "RUV4".  Included for reference.</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>Additional resources can be found at <a href="http://www-personal.umich.edu/~johanngb/ruv/">http://www-personal.umich.edu/~johanngb/ruv/</a>. 
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Johann Gagnon-Bartsch <a href="mailto:johanngb@umich.edu">johanngb@umich.edu</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>Using control genes to correct for unwanted variation in microarray data.  Gagnon-Bartsch and Speed, 2012.  Available at: <a href="http://biostatistics.oxfordjournals.org/content/13/3/539.full">http://biostatistics.oxfordjournals.org/content/13/3/539.full</a>. 
+</p>
+<p>Removing Unwanted Variation from High Dimensional Data with Negative Controls.  Gagnon-Bartsch, Jacob, and Speed, 2013.  Available at: <a href="http://statistics.berkeley.edu/tech-reports/820">http://statistics.berkeley.edu/tech-reports/820</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>RUV2</code>, <code>RUVinv</code>, <code>RUVrinv</code>, <code>variance_adjust</code> 
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Create some simulated data
+m = 50
+n = 10000
+nc = 1000
+p = 1
+k = 20
+ctl = rep(FALSE, n)
+ctl[1:nc] = TRUE
+X = matrix(c(rep(0,floor(m/2)), rep(1,ceiling(m/2))), m, p)
+beta = matrix(rnorm(p*n), p, n)
+beta[,ctl] = 0
+W = matrix(rnorm(m*k),m,k)
+alpha = matrix(rnorm(k*n),k,n)
+epsilon = matrix(rnorm(m*n),m,n)
+Y = X%*%beta + W%*%alpha + epsilon
+
+## Run RUV-4
+fit = RUV4(Y, X, ctl, k)
+
+## Get adjusted variances and p-values
+fit = variance_adjust(fit)
+</code></pre>
+
+
+</div>

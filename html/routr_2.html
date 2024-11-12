@@ -1,0 +1,204 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ressource_route</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create a route for fetching files</h2>
+
+<h3>Description</h3>
+
+<p>This function creates a route mapping different paths to files on the server
+filesystem. Different subpaths can be mapped to different locations on the
+server so that e.g. <code style="white-space: pre;">⁠/data/⁠</code> maps to <code style="white-space: pre;">⁠/path/to/data/⁠</code> and <code style="white-space: pre;">⁠/assets/⁠</code> maps to
+<code style="white-space: pre;">⁠/a/completely/different/path/⁠</code>. The route support automatic expansion of
+paths to a default extension or file, using compressed versions of files if
+the request permits it, and setting the correct headers so that results are
+cached.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ressource_route(
+  ...,
+  default_file = "index.html",
+  default_ext = "html",
+  finalize = NULL,
+  continue = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Named arguments mapping a subpath in the URL to a location on the
+file system. These mappings will be checked in sequence</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>default_file</code></td>
+<td>
+<p>The default file to look for if the path does not map to
+a file directly (see Details)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>default_ext</code></td>
+<td>
+<p>The default file extension to add to the file if a file
+cannot be found at the provided path and the path does not have an extension
+(see Details)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>finalize</code></td>
+<td>
+<p>An optional function to run if a file is found. The function
+will recieve the request as the first argument, the response as the second,
+and anything passed on through <code>...</code> in the <code>dispatch</code> method. Any return
+value from the function is discarded.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>continue</code></td>
+<td>
+<p>A logical that should be returned if a file is found.
+Defaults to <code>FALSE</code> indicating that the response should be send unmodified.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The way paths are resolved to a file is, for every mounted location,
+</p>
+
+<ol>
+<li>
+<p> Check if the path contains the mount point. If not, continue to the next
+mount point
+</p>
+</li>
+<li>
+<p> substitute the mount point for the local location in the path
+</p>
+</li>
+<li>
+<p> if the path ends with <code>/</code> add the <code>default_file</code> (defaults to <code>index.html</code>)
+</p>
+</li>
+<li>
+<p> see if the file exists along with compressed versions (versions with
+<code>.gz</code>, <code>.zip</code>, <code>.br</code>, <code>.zz</code> appended)
+</p>
+</li>
+<li>
+<p> if any version exists, chose the prefered encoding based on the
+<code>Accept-Encoding</code> header in the request, and return.
+</p>
+</li>
+<li>
+<p> if none exists and the path does not specify a file extension, add
+<code>default_ext</code> to the path and repeat 3-4
+</p>
+</li>
+<li>
+<p> if none exists still and the path does not specify a file extension, add
+<code>default_file</code> to the path and repeat 3-4
+</p>
+</li>
+<li>
+<p> if none exists still, continue to the next mount point
+</p>
+</li>
+</ol>
+<p>This means that for the path <code style="white-space: pre;">⁠/data/mtcars⁠</code>, the following locations will be
+tested (assuming the <code style="white-space: pre;">⁠/data/⁠</code> -&gt; <code style="white-space: pre;">⁠/path/to/data/⁠</code> mapping):
+</p>
+
+<ol>
+<li> <p><code style="white-space: pre;">⁠/path/to/data/mtcars⁠</code>, <code style="white-space: pre;">⁠/path/to/data/mtcars.gz⁠</code>,
+<code style="white-space: pre;">⁠/path/to/data/mtcars.zip⁠</code>, <code style="white-space: pre;">⁠/path/to/data/mtcars.br⁠</code>,
+<code style="white-space: pre;">⁠/path/to/data/mtcars.zz⁠</code>
+</p>
+</li>
+<li> <p><code style="white-space: pre;">⁠/path/to/data/mtcars.html⁠</code>, <code style="white-space: pre;">⁠/path/to/data/mtcars.html.gz⁠</code>,
+<code style="white-space: pre;">⁠/path/to/data/mtcars.html.zip⁠</code>, <code style="white-space: pre;">⁠/path/to/data/mtcars.html.br⁠</code>,
+<code style="white-space: pre;">⁠/path/to/data/mtcars.html.zz⁠</code>
+</p>
+</li>
+<li> <p><code style="white-space: pre;">⁠/path/to/data/mtcars/index.html⁠</code>, <code style="white-space: pre;">⁠/path/to/data/mtcars/index.html.gz⁠</code>,
+<code style="white-space: pre;">⁠/path/to/data/mtcars/index.html.zip⁠</code>, <code style="white-space: pre;">⁠/path/to/data/mtcars/index.html.br⁠</code>,
+<code style="white-space: pre;">⁠/path/to/data/mtcars/index.html.zz⁠</code>
+</p>
+</li>
+</ol>
+<p>Assuming the default values of <code>default_file</code> and <code>default_ext</code>
+</p>
+<p>If a file is not found, the route will simply return <code>TRUE</code> to hand of
+control to subsequent routes in the stack, otherwise it will return the
+logical value in the <code>continue</code> argument (defaults to <code>FALSE</code>, thus
+shortcutting any additional routes in the stack).
+</p>
+<p>If a file is found the request headers <code>If-Modified-Since</code> and
+<code>If-None-Match</code>, will be fetched and, if exist, will be used to determine
+whether a <code style="white-space: pre;">⁠304 - Not Modified⁠</code> response should be send instead of the file.
+If the file should be send, it will be added to the response along with the
+following headers:
+</p>
+
+<ul>
+<li> <p><code>Content-Type</code> based on the extension of the file (without any encoding
+extensions)
+</p>
+</li>
+<li> <p><code>Content-Encoding</code> based on the negotiated file encoding
+</p>
+</li>
+<li> <p><code>ETag</code> based on <code>digest::digest()</code> of the last modified date
+</p>
+</li>
+<li> <p><code>Cache-Control</code> set to <code>max-age=3600</code>
+</p>
+</li>
+</ul>
+<p>Furthermore <code>Content-Length</code> will be set automatically by <code>httpuv</code>
+</p>
+<p>Lastly, if found, the finalize function will be called, forwarding the
+<code>request</code>, <code>response</code> and <code>...</code> from the <code>dispatch</code> method.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Either <code>TRUE</code> if no file is found or <code>continue = TRUE</code> or <code>FALSE</code> if
+a file is found and <code>continue = FALSE</code>
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Route constructors: 
+<code>sizelimit_route()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Map package files
+res_route &lt;- ressource_route(
+  '/package_files/' = system.file(package = 'routr')
+)
+
+rook &lt;- fiery::fake_request('http://example.com/package_files/DESCRIPTION')
+req &lt;- reqres::Request$new(rook)
+res_route$dispatch(req)
+req$response$as_list()
+</code></pre>
+
+
+</div>

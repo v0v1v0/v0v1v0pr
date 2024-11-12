@@ -1,0 +1,225 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>hovmoller-methods</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Hovmoller plots</h2>
+
+<h3>Description</h3>
+
+<p>Hovmoller plots of Raster objects.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S4 method for signature 'RasterStackBrick'
+hovmoller(object, dirXY=y, FUN=mean, 
+digits=2, xlab='Direction', ylab='Time',
+par.settings=rasterTheme(), xscale.components=xscale.raster,
+add.contour=FALSE, labels=FALSE, region=TRUE, ...)
+
+## S4 method for signature 'SpatRaster'
+hovmoller(object, dirXY=y, FUN=mean, 
+digits=2, xlab='Direction', ylab='Time',
+par.settings=rasterTheme(), xscale.components=xscale.raster,
+add.contour=FALSE, labels=FALSE, region=TRUE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>A RasterStackBrick with a non-empty <code>z</code> slot, or a
+SpatRaster with a time index.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dirXY</code></td>
+<td>
+<p>A direction as a function of the coordinates (see
+<code>xyLayer</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>FUN</code></td>
+<td>
+<p>A function to be applied to the zones calculated with
+<code>dirXY</code> and <code>zonal</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>digits</code></td>
+<td>
+<p>An integer, number of digits for <code>zonal</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xlab, ylab</code></td>
+<td>
+<p>Labels of the axis.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>par.settings</code></td>
+<td>
+<p>Customization of lattice. See
+<code>levelplot</code> and <code>rasterTheme</code> for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xscale.components</code></td>
+<td>
+<p>See <code>xscale.raster</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>labels, region</code></td>
+<td>
+<p>Customization of <code>contourplot</code> when <code>add.contour</code> is
+TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>add.contour</code></td>
+<td>
+<p>Logical, if TRUE a contourplot with filled regions
+is drawn.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments for the <code>contourplot</code>
+and <code>levelplot</code> functions.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Extracted from wikipedia: "A Hovmöller diagram is a
+commonly used way of plotting meteorological data to highlight the role
+of waves. The axes of a Hovmöller diagram are typically longitude or
+latitude (abscissa or x-axis) and time (ordinate or y-axis) with the
+value of some field represented through color or shading."
+The direction defined by <code>dirXY</code> and the function <code>FUN</code> allows
+for a variety of diagrams with this method.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Oscar Perpiñán Lamigueiro</p>
+
+
+<h3>References</h3>
+
+
+<ul>
+<li>
+<p> Hovmoller, E. 1949. The trough and ridge diagram. Tellus 1, 62–66.
+</p>
+</li>
+<li> <p><a href="https://www2.mmm.ucar.edu/episodes/Hovmoller/noJS/hovm200707.htm">https://www2.mmm.ucar.edu/episodes/Hovmoller/noJS/hovm200707.htm</a>
+</p>
+</li>
+<li> <p><a href="https://psl.noaa.gov/map/clim/sst.shtml">https://psl.noaa.gov/map/clim/sst.shtml</a>
+</p>
+</li>
+</ul>
+<h3>See Also</h3>
+
+<p><code>levelplot</code>,
+<code>zonal</code>, <code>panel.2dsmoother</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+library(raster)
+library(terra)
+
+dataURL &lt;- "https://raw.github.com/oscarperpinan/bookvis/master/data/"
+
+##Solar irradiation data from CMSAF http://dx.doi.org/10.5676/EUM_SAF_CM/RAD_MVIRI/V001
+old &lt;- setwd(tempdir())
+download.file(paste0(dataURL, "SISmm2008_CMSAF.zip"),
+   "SISmm2008_CMSAF.zip", method='wget')
+unzip("SISmm2008_CMSAF.zip")
+
+listFich &lt;- dir(pattern='\\.nc')
+stackSIS &lt;- stack(listFich)
+stackSIS &lt;- stackSIS*24 ##from irradiance (W/m2) to irradiation Wh/m2
+
+idx &lt;- seq(as.Date('2008-01-15'), as.Date('2008-12-15'), 'month')
+
+SISmm &lt;- setZ(stackSIS, idx)
+names(SISmm) &lt;- month.abb
+
+SISmmt &lt;- rast(SISmm)
+time(SISmmt) &lt;- getZ(SISmm)
+
+## Latitude as default
+hovmoller(SISmm, xlab='Latitude')
+hovmoller(SISmmt, xlab = 'Latitude')
+
+## With contour lines and labels
+hovmoller(SISmm, labels=TRUE, add.contour=TRUE,
+          xlab='Latitude')
+
+## Smooth color regions with latticeExtra::panel.2dsmoother
+library(latticeExtra)
+
+hovmoller(SISmm, panel=panel.2dsmoother, n=1000,
+          labels=FALSE, add.contour=TRUE,
+          xlab='Latitude')
+
+## Using a function of coordinates
+hovmoller(SISmm, dirXY=sqrt(x^2+y^2))
+
+## End(Not run)
+
+## Not run: 
+library(zoo)
+
+## DESCRIPTION: http://iridl.ldeo.columbia.edu/SOURCES/.CAC/.sst/
+setwd(tempdir())
+download.file('http://iridl.ldeo.columbia.edu/SOURCES/.CAC/.sst/data.nc', destfile = 'SST.nc')
+SST &lt;- stack('SST.nc')
+idx &lt;- seq(as.Date('1970-01-01'), as.Date('2003-03-01'), by='month')
+tt &lt;- as.yearmon(idx)
+SST &lt;- setZ(SST, tt)
+names(SST) &lt;- as.character(tt)
+
+## Extract month value from a Date or yearmon object
+month &lt;- function(x)format(x, '%m')
+## Compute anomaly using monthly grouping with ave  
+anomaly &lt;- function(x){
+    ## Monthly means
+    mm &lt;- ave(x, month(tt), FUN = mean)
+    ## Monthly standard deviation
+    msd &lt;- ave(x, month(tt), FUN = sd)
+    ## anomaly
+    (x - mm)/msd
+}
+## Use anomaly with calc
+SSTanom &lt;- calc(SST, anomaly)
+SSTanom &lt;- setZ(SSTanom, tt)
+
+## Ok, let's see the result
+hovmoller(SSTanom,
+          at = seq(-3, 3, .25),
+          panel = panel.levelplot.raster,
+          interpolate = TRUE,
+          yscale.components = yscale.raster.subticks,
+          par.settings = BuRdTheme)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

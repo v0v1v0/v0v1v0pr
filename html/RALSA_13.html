@@ -1,0 +1,223 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>lsa.recode.vars</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Recode variables in large-scale assessments' data sets</h2>
+
+<h3>Description</h3>
+
+<p>Utility function to recode variables in objects or data sets containing objects of class <code>lsa.data</code>, taking care of user-defined missing values, if specified.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">lsa.recode.vars(
+  data.file,
+  data.object,
+  src.variables,
+  new.variables,
+  old.new,
+  new.labels,
+  missings.attr,
+  variable.labels,
+  out.file
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data.file</code></td>
+<td>
+<p>Full path to the <code>.RData</code> file containing <code>lsa.data</code> object.
+Either this or <code>data.object</code> shall be specified, but not both.
+See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data.object</code></td>
+<td>
+<p>The object in the memory containing <code>lsa.data</code> object. Either this or
+<code>data.file</code> shall be specified, but not both. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>src.variables</code></td>
+<td>
+<p>Names of the source variables with the same class whose values shall be
+recoded. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>new.variables</code></td>
+<td>
+<p>Optional, vector of variable names to be created with the recoded values
+with the same length as <code>src.variables</code>. If missing, the <code>src.variables</code>
+will be overwritten.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>old.new</code></td>
+<td>
+<p>String with the recoding instructions matching the length of the factor
+levels (or unique values in case of numeric or character variables) in
+the variables. See details and examples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>new.labels</code></td>
+<td>
+<p>The new labels if the <code>src.variables</code> variables are of class <code>factor</code>
+or labels to be assigned to the recoded values (i.e. turning variables of class
+<code>numeric</code> or <code>character</code> into factors) with the same length as the
+new desired values. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>missings.attr</code></td>
+<td>
+<p>Optional, list of character vectors to assign user-defined missing values
+for each recoded variable. See details and examples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>variable.labels</code></td>
+<td>
+<p>Optional, string vector with the new variable labels to be assigned.
+See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>out.file</code></td>
+<td>
+<p>Full path to the <code>.RData</code> file to be written. If missing, the object
+will be written to memory. See examples.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Before recoding variables of interest, it is worth running the <code>lsa.vars.dict</code> to check their properties.
+</p>
+<p>Either <code>data.file</code> or <code>data.object</code> shall be provided as source of data. If both of them are provided, the function will stop with an error message.
+</p>
+<p>The variable names passed to <code>src.variables</code> must be with the same class and structure, i.e. same number of levels and same labels in case of <code>factor</code> variables, or the same unique values in case of <code>numeric</code> or <code>character</code> variables. If the classes differ, the function will stop with an error. If the unique values and/or labels differ, the function would execute the recodings, but will drop a warning.
+</p>
+<p>The <code>new.variables</code> is optional. If provided, the recoded values will be saved under the provided new variable names and the <code>src.variables</code> will remain unchanged. If missing, the variables passed in <code>src.variables</code> will be overwritten. Note that the number of names passed to <code>src.variables</code> and <code>new.variables</code> must be the same.
+</p>
+<p>The <code>old.new</code> (old values to new values) is the recoding scheme to be evaluated and executed provided as a characters string in the form of <code>"1=1;2=1;3=2;4=3"</code>. In this example it means "recode 1 into 1, 2 into one, 3 into 2, and 4 into 3". Note that all available values have to be included in the recoding statement, even if they are not to be changed. In this example, if we omit recoding 1 into 1, 1 will be set to NA during the recoding. This recoding definition works with factor and numeric variables. For character variables the individual values have to be defined in full, e.g. <code>"'No time'='30 minutes or less';'30 minutes or less'='30 minutes or less';'More than 30 minutes'='More than 30 minutes';'Omitted or invalid'='Omitted or invalid'"</code> because these cannot be reliably referred to by position (as for factors) or actual number (as for numeric).
+</p>
+<p>The <code>new.labels</code> assigns new labels to factor variables. Their length must be the same as for the newly recoded values. If the variables passed to <code>src.variabes</code> are character or numeric, and <code>new.labels</code> are provided, the recoded variables will be converted to factors. If, on the other hand, the <code>src.variables</code> are factors and no <code>new.labels</code> are provided, the variables will be converted to numeric.
+</p>
+<p>Note that the <code>lsa.convert.data</code> has two options: keep the user-defined missing values (<code>missing.to.NA = FALSE</code>) and set the user-defined missing values to NA (<code>missing.to.NA = TRUE</code>). The former option will provide an attribute with user-defined missing values attached to each variable they have been defined for, the latter will not (i.e. will assign all user-defined missing values to NA). In case variables from data converted with the former option are recoded, user-defined missing values have to be supplied to <code>missings.attr</code>, otherwise (if all available values are recoded) the user-defined missing values will appear as valid codes. Not recoding the user-defined missing codes available in the data will automatically set them to <code>NA</code>. In either case, the function will drop a warning. On the other hand, if the data was exported with <code>missing.to.NA = TRUE</code>, there will be no attributes with user-defined missing codes and omitting <code>missings.attr</code> will issue no warning. User-defined missing codes can, however, be added in this case too, if necessary. The <code>missings.attr</code> has to be provided as a list where each component is a vector with the values for the missing codes. See the examples.
+</p>
+<p>The <code>variable.labels</code> argument provides the variable labels to be assigned to the recoded variables. If omitted and <code>new.variables</code> are provided the newly created variables will have no variable labels. If provided, and <code>new.variables</code> are not provided, they will be ignored.
+If full path to <code>.RData</code> file is provided to <code>out.file</code>, the data.set will be written to that file. If no, the data will remain in the memory.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>lsa.data</code> object in memory (if <code>out.file</code> is missing) or <code>.RData</code> file containing <code>lsa.data</code> object with the recoded values for the specified variables.
+In addition, the function will print tables for the specified variables before and after recoding them to check if all recodings were done as intended. In addition, it will print warnings if different issues have been encountered.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>lsa.convert.data</code>, <code>lsa.vars.dict</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Recode PIRLS 2016 student variables "ASBG10A" (How much time do you spend using a computer or
+# tablet to do these activities for your schoolwork on a normal school day? Finding and reading
+# information) and "ASBG10B" (How much time do you spend using a computer or tablet to do these
+# activities for your schoolwork on a normal school day? Preparing reports and presentations).
+# Both variables are factors, the original valid values (1 - "No time",
+# 2 - "30 minutes or less", 3 - "More than 30 minutes") are recoded to
+# 1 - "No time or 30 minutes" and 2 - "More than 30 minutes", collapsing the first two.
+# The missing value "Omitted or invalid" which originally appears as 4th has to be recoded to
+# 3rd. The "Omitted or invalid" is assigned as user-defined missing value for both variables.
+# The data is saved on disk as a new data set.
+## Not run: 
+lsa.recode.vars(data.file = "C:/temp/test.RData", src.variables = c("ASBG10A", "ASBG10B"),
+new.variables = c("ASBG10A_rec", "ASBG10B_rec"),
+variable.labels = c("Recoded ASBG10A", "Recoded ASBG10B"),
+old.new = "1=1;2=1;3=2;4=3",
+new.labels = c("No time or 30 minutes", "More than 30 minutes", "Omitted or invalid"),
+missings.attr = list("Omitted or invalid", "Omitted or invalid"),
+out.file = "C:/temp/test_new.RData")
+
+## End(Not run)
+
+# Similar to the above, recode PIRLS 2016 student variables "ASBG10A" and "ASBG10B", this time
+# leaving the original categories (1 - "No time", 2 - "30 minutes or less",
+# 3 - "More than 30 minutes") as they are, but changing the user-defined missing values
+# definition (1 - "No time" becomes user-defined missing).
+# The recoded data remains in the memory.
+## Not run: 
+lsa.recode.vars(data.file = "C:/temp/test.RData", src.variables = c("ASBG10A", "ASBG10B"),
+new.variables = c("ASBG10A_rec", "ASBG10B_rec"),
+variable.labels = c("Recoded ASBG10A", "Recoded ASBG10B"), old.new = "1=1;2=2;3=3;4=4",
+new.labels = c("No time", "30 minutes or less", "More than 30 minutes", "Omitted or invalid"),
+missings.attr = list(c("No time", "Omitted or invalid"), c("No time", "Omitted or invalid")))
+
+## End(Not run)
+
+# Similar to the first example, this time overwriting the original variables. The first valid
+# value (1 - "No time") is set to NA (note that no new value and factor level is provided for
+# it in "new.labels"), the rest of the values are redefined, so the factor starts from 1,
+# as it always does in R.
+## Not run: 
+lsa.recode.vars(data.file = "C:/temp/test.RData", src.variables = c("ASBG10A", "ASBG10B"),
+variable.labels = c("Recoded ASBG10A", "Recoded ASBG10B"), old.new = "2=1;3=2;4=3",
+new.labels = c("30 minutes or less", "More than 30 minutes", "Omitted or invalid"),
+missings.attr = list("Omitted or invalid"),
+out.file = "C:/temp/test_new.RData")
+
+## End(Not run)
+# The databases rarely contain character variables and the numeric variables have too many
+# unique values to be recoded using the function. The following two examples are just for
+# demonstration purpose on how to recode character and numeric variables.
+
+# Convert the "ASBG04" (number of books at home) from ePIRLS 2016 to numeric and recode the
+# values of the new variable, collapsing the first two and the last two valid values.
+# The data remains in the memory.
+## Not run: 
+load("/tmp/test.RData")
+test[ , ASBG04NUM := as.numeric(ASBG04)]
+table(test[ , ASBG04NUM])
+lsa.recode.vars(data.object = test, src.variables = "ASBG04NUM",
+old.new = "1=1;2=1;3=2;4=3;5=3;6=4",
+missings.attr = list("Omitted or invalid" = 4))
+
+# Similar to the above, this time converting "ASBG03" to character, collapsing its categories
+# of frequency of using the test language at home to two ("Always or almost always" and
+# "Sometimes or never").
+\dontrun{
+load("/tmp/test.RData")
+test[ , ASBG03CHAR := as.character(ASBG03)]
+table(test[ , ASBG03CHAR])
+# Add the lines together to be able to run the following
+lsa.recode.vars(data.object = test, src.variables = "ASBG03CHAR",
+old.new = "'I always speak &lt;language of test&gt; at home'='Always or almost always';
+'I almost always speak &lt;language of test&gt; at home'='Always or almost always';
+'I sometimes speak &lt;language of test&gt; and sometimes speak another language at home'=
+'Sometimes or never';'I never speak &lt;language of test&gt; at home'='Sometimes or never';
+'Omitted or invalid'='Omitted or invalid'",
+missings.attr = list("Omitted or invalid"))
+}
+
+
+## End(Not run)
+</code></pre>
+
+
+</div>

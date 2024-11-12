@@ -1,0 +1,819 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>mbl</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>A function for memory-based learning (mbl)</h2>
+
+<h3>Description</h3>
+
+<script id="MathJax-script" async src="../../mathjaxr/doc/mathjax/es5/tex-chtml-full.js"></script><p>This function is implemented for memory-based learning (a.k.a.
+instance-based learning or local regression) which is a non-linear lazy
+learning approach for predicting a given response variable from a set of
+predictor variables. For each observation in a prediction set, a specific
+local regression is carried out based on a subset of similar observations
+(nearest neighbors) selected from a reference set. The local model is
+then used to predict the response value of the target (prediction)
+observation. Therefore this function does not yield a global
+regression model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">mbl(Xr, Yr, Xu, Yu = NULL, k, k_diss, k_range, spike = NULL,
+    method = local_fit_wapls(min_pls_c = 3, max_pls_c = min(dim(Xr), 15)),
+    diss_method = "pca", diss_usage = "predictors", gh = TRUE,
+    pc_selection = list(method = "opc", value = min(dim(Xr), 40)),
+    control = mbl_control(), group = NULL, center = TRUE, scale = FALSE,
+    verbose = TRUE, documentation = character(), seed = NULL, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Xr</code></td>
+<td>
+<p>a matrix of predictor variables of the reference data
+(observations in rows and variables in columns).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Yr</code></td>
+<td>
+<p>a numeric matrix of one column containing the values of the
+response variable corresponding to the reference data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Xu</code></td>
+<td>
+<p>a matrix of predictor variables of the data to be predicted
+(observations in rows and variables in columns).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Yu</code></td>
+<td>
+<p>an optional matrix of one column containing the values of the
+response variable corresponding to the data to be predicted. Default is
+<code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>a vector of integers specifying the sequence of k-nearest
+neighbors to be tested. Either <code>k</code> or <code>k_diss</code> must be specified.
+This vector will be automatically sorted into ascending order. If
+non-integer numbers are passed, they will be coerced to the next upper
+integers.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k_diss</code></td>
+<td>
+<p>a numeric vector specifying the sequence of dissimilarity
+thresholds to be tested for the selection of the nearest neighbors found in
+<code>Xr</code> around each observation in <code>Xu</code>. These thresholds depend on
+the corresponding dissimilarity measure specified in the object passed to
+<code>control</code>. Either <code>k</code> or <code>k_diss</code> must be specified.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k_range</code></td>
+<td>
+<p>an integer vector of length 2 which specifies the minimum
+(first value) and the maximum (second value) number of neighbors to be
+retained when the <code>k_diss</code> is given.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>spike</code></td>
+<td>
+<p>an integer vector (with positive and/or negative values) indicating
+the indices of observations in <code>Xr</code> that must be either be forced into
+or avoided in the neighborhoods of every <code>Xu</code> observation. Default is
+<code>NULL</code> (i.e. no observations are forced or avoided). Note
+that this argument is not intended for increasing or reducing the neighborhood
+size which is only controlled by <code>k</code> or <code>k_diss</code> and <code>k_range</code>.
+By forcing observations into the neighborhood, some of the farthest
+observations may be forced out of the neighborhood. In contrast, by avoiding
+observations in the neighborhood,  some of farthest
+observations may be included into the neighborhood. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>an object of class <code>local_fit</code> which indicates the
+type of regression to conduct at each local segment as well as additional
+parameters affecting this regression. See <code>local_fit</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>diss_method</code></td>
+<td>
+<p>a character string indicating the spectral dissimilarity
+metric to be used in the selection of the nearest neighbors of each
+observation. Options are:
+</p>
+
+<ul>
+<li>
+<p><code>"pca"</code> (Default): Mahalanobis distance
+computed on the matrix of scores of a Principal Component (PC)
+projection of <code>Xr</code> and <code>Xu</code>. PC projection is done using the
+singular value decomposition (SVD) algorithm.
+See <code>ortho_diss</code> function.
+</p>
+</li>
+<li>
+<p><code>"pca.nipals"</code>: Mahalanobis distance
+computed on the matrix of scores of a Principal Component (PC)
+projection of <code>Xr</code> and <code>Xu</code>. PC projection is done using the
+non-linear iterative partial least squares (nipals) algorithm.
+See <code>ortho_diss</code> function.
+</p>
+</li>
+<li>
+<p><code>"pls"</code>: Mahalanobis distance
+computed on the matrix of scores of a partial least squares projection
+of <code>Xr</code> and <code>Xu</code>. In this case, <code>Yr</code> is always
+required. See <code>ortho_diss</code> function.
+</p>
+</li>
+<li>
+<p><code>"cor"</code>: correlation coefficient
+between observations. See <code>cor_diss</code> function.
+</p>
+</li>
+<li>
+<p><code>"euclid"</code>: Euclidean distance
+between observations. See <code>f_diss</code> function.
+</p>
+</li>
+<li>
+<p><code>"cosine"</code>: Cosine distance
+between observations. See <code>f_diss</code> function.
+</p>
+</li>
+<li>
+<p><code>"sid"</code>: spectral information divergence between
+observations. See <code>sid</code> function.
+</p>
+</li>
+</ul>
+<p>Alternatively, a matrix of dissimilarities can also be passed to this
+argument. This matrix is supposed to be a user-defined matrix
+representing the dissimilarities between observations in <code>Xr</code> and
+<code>Xu</code>. When <code>diss_usage = "predictors"</code>, this matrix must be squared
+(derived from a matrix of the form <code>rbind(Xr, Xu)</code>) for which the
+diagonal values are zeros (since the dissimilarity between an object and
+itself must be 0). On the other hand, if <code>diss_usage</code> is set to either
+<code>"weights"</code> or <code>"none"</code>, it must be a matrix representing the
+dissimilarity of each observation in <code>Xu</code> to each observation in
+<code>Xr</code>. The number of columns of the input matrix must be equal to the
+number of rows in <code>Xu</code> and the number of rows equal to the number of
+rows in <code>Xr</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>diss_usage</code></td>
+<td>
+<p>a character string specifying how the dissimilarity
+information shall be used. The possible options are: <code>"predictors"</code>,
+<code>"weights"</code> and <code>"none"</code> (see details below).
+Default is <code>"predictors"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gh</code></td>
+<td>
+<p>a logical indicating if the global Mahalanobis distance (in the pls
+score space) between each observation and the pls mean (centre) must be
+computed. This metric is known as the GH distance in the literature. Note
+that this computation is based on the number of pls components determined by
+using the <code>pc_selection</code> argument. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pc_selection</code></td>
+<td>
+<p>a list of length 2 used for the computation of GH (if
+<code>gh = TRUE</code>) as well as in the computation of the dissimilarity methods
+based on <code>ortho_diss</code> (i.e. when <code>diss_method</code> is one of:
+<code>"pca"</code>, <code>"pca.nipals"</code> or <code>"pls"</code>) or when <code>gh = TRUE</code>.
+This argument is used for optimizing the number of components (principal
+components or pls factors) to be retained for dissimilarity/distance
+computation purposes only (i.e not for regression).
+This list must contain two elements in the following order:
+<code>method</code> (a character indicating the method for selecting the number of
+components) and <code>value</code> (a numerical value that complements the selected
+method). The methods available are:
+</p>
+
+<ul>
+<li>
+<p><code>"opc"</code>: optimized principal component selection based
+on Ramirez-Lopez et al. (2013a, 2013b). The optimal number of
+components (of set of observations) is the one for which its distance
+matrix minimizes the differences between the <code>Yr</code> value of each
+observation and the <code>Yr</code> value of its closest observation. In
+this case <code>value</code> must be a value (larger than 0 and
+below the minimum dimension of <code>Xr</code> or <code>Xr</code> and <code>Xu</code>
+combined) indicating the maximum
+number of principal components to be tested. See the
+<code>ortho_projection</code> function for more details.
+</p>
+</li>
+<li>
+<p><code>"cumvar"</code>: selection of the principal components based
+on a given cumulative amount of explained variance. In this case,
+<code>value</code> must be a value (larger than 0 and below or equal to 1)
+indicating the minimum amount of cumulative variance that the
+combination of retained components should explain.
+</p>
+</li>
+<li>
+<p><code>"var"</code>: selection of the principal components based
+on a given amount of explained variance. In this case,
+<code>value</code> must be a value (larger than 0 and below or equal to 1)
+indicating the minimum amount of variance that a single component
+should explain in order to be retained.
+</p>
+</li>
+<li>
+<p><code>"manual"</code>: for manually specifying a fix number of
+principal components. In this case, <code>value</code> must be a value
+(larger than 0 and below the minimum dimension of <code>Xr</code> or
+<code>Xr</code> and <code>Xu</code> combined).
+indicating the minimum amount of variance that a component should
+explain in order to be retained.
+</p>
+</li>
+</ul>
+<p>The list
+<code>list(method = "opc", value = min(dim(Xr), 40))</code> is the default.
+Optionally, the <code>pc_selection</code> argument admits <code>"opc"</code> or
+<code>"cumvar"</code> or <code>"var"</code> or <code>"manual"</code> as a single character
+string. In such a case the default <code>"value"</code> when either <code>"opc"</code> or
+<code>"manual"</code> are used is 40. When <code>"cumvar"</code> is used the default
+<code>"value"</code> is set to 0.99 and when <code>"var"</code> is used, the default
+<code>"value"</code> is set to 0.01.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>a list created with the <code>mbl_control</code> function
+which contains additional parameters that control some few aspects of the
+<code>mbl</code> function (cross-validation, parameter tuning, etc).
+The default list is as returned by <code>mbl_control()</code>.
+See the <code>mbl_control</code> function for more details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group</code></td>
+<td>
+<p>an optional factor (or character vector vector
+that can be coerced to <code>factor</code> by <code>as.factor</code>) that
+assigns a group/class label to each observation in <code>Xr</code>
+(e.g. groups can be given by spectra collected from the same batch of
+measurements, from the same observation, from observations with very similar
+origin, etc). This is taken into account for internal leave-group-out cross
+validation for pls tuning (factor optimization) to avoid pseudo-replication.
+When one observation is selected for cross-validation, all observations of
+the same group are removed together and assigned to validation. The length
+of the vector must be equal to the number of observations in the
+reference/training set (i.e. <code>nrow(Xr)</code>). See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>center</code></td>
+<td>
+<p>a logical if the predictor variables must be centred at each
+local segment (before regression). In addition, if <code>TRUE</code>, <code>Xr</code>
+and <code>Xu</code> will be centred for  dissimilarity computations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>a logical indicating if the predictor variables must be scaled
+to unit variance at each local segment (before regression). In addition, if
+<code>TRUE</code>, <code>Xr</code> and <code>Xu</code> will be scaled for  dissimilarity
+computations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>a logical indicating whether or not to print a progress bar
+for each observation to be predicted. Default is <code>TRUE</code>. Note: In case
+parallel processing is used, these progress bars will not be printed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>documentation</code></td>
+<td>
+<p>an optional character string that can be used to
+describe anything related to the <code>mbl</code> call (e.g. description of the
+input data). Default: <code>character()</code>. NOTE: his is an experimental
+argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>an integer value containing the random number generator (RNG)
+state for random number generation. This argument can be used for
+reproducibility purposes (for random sampling) in the cross-validation
+results. Default is <code>NULL</code>, i.e. no RNG is applied.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments to be passed to the <code>dissimilarity</code>
+function. See details.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The argument <code>spike</code> can be used to indicate what reference observations
+in <code>Xr</code> must be kept in the neighborhood of every single <code>Xu</code>
+observation. If a vector of length \(m\) is passed to this argument,
+this means that the \(m\) original neighbors with the largest
+dissimilarities to the target observations will be forced out of the
+neighborhood. Spiking might be useful in cases where
+some reference observations are known to be somehow related to the ones in
+<code>Xu</code> and therefore might be relevant for fitting the local models. See
+Guerrero et al. (2010) for an example on the benefits of spiking.
+</p>
+<p>The <code>mbl</code> function uses the <code>dissimilarity</code> function to
+compute the dissimilarities between <code>Xr</code> and <code>Xu</code>. The dissimilarity
+method to be used is specified in the <code>diss_method</code> argument.
+Arguments to <code>dissimilarity</code> as well as further arguments to the
+functions used inside <code>dissimilarity</code>
+(i.e. <code>ortho_diss</code> <code>cor_diss</code> <code>f_diss</code>
+<code>sid</code>) can be passed to those functions by using <code>...</code>.
+</p>
+<p>The <code>diss_usage</code> argument is used to specify whether the dissimilarity
+information must be used within the local regressions and, if so, how.
+When <code>diss_usage = "predictors"</code> the local (square symmetric)
+dissimilarity matrix corresponding the selected neighborhood is used as
+source of additional predictors (i.e the columns of this local matrix are
+treated as predictor variables). In some cases this results in an improvement
+of the prediction performance (Ramirez-Lopez et al., 2013a).
+If <code>diss_usage = "weights"</code>, the neighbors of the query point
+(\(xu_{j}\)) are weighted according to their dissimilarity to
+\(xu_{j}\) before carrying out each local regression. The following
+tricubic function (Cleveland and Delvin, 1988; Naes et al., 1990) is used for
+computing the final weights based on the measured dissimilarities:
+</p>
+\[W_{j}  =  (1 - v^{3})^{3}\]
+<p>where if \({xr_{i} \in }\) neighbors of \(xu_{j}\):
+</p>
+\[v_{j}(xu_{j})  =  d(xr_{i}, xu_{j})\]
+<p>otherwise:
+</p>
+\[v_{j}(xu_{j})  =  0\]
+<p>In the above formulas \(d(xr_{i}, xu_{j})\) represents the
+dissimilarity between the query point and each object in \(Xr\).
+When <code>diss_usage = "none"</code> is chosen the dissimilarity information is
+not used.
+</p>
+<p>The global Mahalanobis distance (a.k.a GH) is computed based on the scores
+of a pls projection. A pls projection model is built with for <code>{Yr}, {Xr}</code>
+and this model is used to obtain the pls scores of the <code>Xu</code>
+observations. The Mahalanobis distance between each <code>Xu</code> observation in
+(the pls space) and the centre of <code>Xr</code> is then computed. The number of
+pls components is optimized based on the parameters passed to the
+<code>pc_selection</code> argument. In addition, the <code>mbl</code> function also
+reports the GH distance for the observations in <code>Xr</code>.
+</p>
+<p>Some aspects of the mbl process, such as the type of internal validation,
+parameter tuning, what extra objects to return, permission for parallel
+execution, prediction limits, etc, can be specified by using the
+<code>mbl_control</code> function.
+</p>
+<p>By using the <code>group</code> argument one can specify groups of observations
+that have something in common (e.g. observations with very similar origin).
+The purpose of <code>group</code> is to avoid biased cross-validation results due
+to pseudo-replication. This argument allows to select calibration points
+that are independent from the validation ones. In this regard, when
+<code>validation_type = "local_cv"</code> (used in <code>mbl_control</code>
+function), then the <code>p</code> argument refers to the percentage of groups of
+observations (rather than single observations) to be retained in each
+sampling iteration at each local segment.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a <code>list</code> of class <code>mbl</code> with the following components
+(sorted either by <code>k</code> or <code>k_diss</code>):
+</p>
+
+<ul>
+<li>
+<p><code>call</code>: the call to mbl.
+</p>
+</li>
+<li>
+<p><code>cntrl_param</code>: the list with the control parameters passed to
+control.
+</p>
+</li>
+<li>
+<p><code>Xu_neighbors</code>: a list containing two elements: a matrix of
+<code>Xr</code> indices corresponding to the neighbors of <code>Xu</code> and a matrix
+of dissimilarities between each <code>Xu</code> observation and its corresponding
+neighbor in <code>Xr</code>.
+</p>
+</li>
+<li>
+<p><code>dissimilarities</code>: a list with the method used to obtain the
+dissimilarity matrices and the dissimilarity matrix corresponding to
+\(D(Xr, Xu)\). This object is returned only if the
+<code>return_dissimilarity</code> argument in the <code>control</code> list was set
+to <code>TRUE</code>.
+</p>
+</li>
+<li>
+<p><code>n_predictions</code>: the total number of observations predicted.
+</p>
+</li>
+<li>
+<p><code>gh</code>: if <code>gh = TRUE</code>, a list containing the global
+Mahalanobis distance values for the observations in <code>Xr</code> and <code>Xu</code>
+as well as the results of the global pls projection object used to obtain
+the GH values.
+</p>
+</li>
+<li>
+<p><code>validation_results</code>: a list of validation results for
+"local cross validation" (returned if the <code>validation_type</code> in
+<code>control</code> list was set to <code>"local_cv"</code>),
+"nearest neighbor validation" (returned if the <code>validation_type</code>
+in <code>control</code> list was set to <code>"NNv"</code>) and
+"Yu prediction statistics" (returned  if <code>Yu</code> was supplied).“
+</p>
+</li>
+<li>
+<p><code>results</code>: a list of data tables containing the results of the
+predictions for each either <code>k</code> or <code>k_diss</code>. Each data table
+contains the following columns:
+</p>
+
+<ul>
+<li>
+<p><code>o_index</code>: The index of the predicted observation.
+</p>
+</li>
+<li>
+<p><code>k_diss</code>: This column is only output if the <code>k_diss</code>
+argument is used. It indicates the corresponding dissimilarity threshold
+for selecting the neighbors.
+</p>
+</li>
+<li>
+<p><code>k_original</code>: This column is only output if the <code>k_diss</code>
+argument is used. It indicates the number of neighbors that were originally
+found when the given dissimilarity threshold is used.
+</p>
+</li>
+<li>
+<p><code>k</code>: This column indicates the final number of neighbors
+used.
+</p>
+</li>
+<li>
+<p><code>npls</code>: This column is only output if the <code>pls</code>
+regression method was used. It indicates the final number of pls
+components used.
+</p>
+</li>
+<li>
+<p><code>min_pls</code>: This column is only output if <code>wapls</code>
+regression method was used. It indicates the final number of minimum pls
+components used. If no optimization was set, it retrieves the original
+minimum pls components passed to the <code>method</code> argument.
+</p>
+</li>
+<li>
+<p><code>max_pls</code>: This column is only output if the <code>wapls</code>
+regression method was used. It indicates the final number of maximum pls
+components used. If no optimization was set, it retrieves the original
+maximum pls components passed to the <code>method</code> argument.
+</p>
+</li>
+<li>
+<p><code>yu_obs</code>: The input values given in <code>Yu</code> (the response
+variable corresponding to the data to be predicted). If <code>Yu = NULL</code>,
+then <code>NA</code>s are retrieved.
+</p>
+</li>
+<li>
+<p><code>pred</code>: The predicted Yu values.
+</p>
+</li>
+<li>
+<p><code>yr_min_obs</code>: The minimum reference value (of the response
+variable) in the neighborhood.
+</p>
+</li>
+<li>
+<p><code>yr_max_obs</code>: The maximum reference value (of the response
+variable) in the neighborhood.
+</p>
+</li>
+<li>
+<p><code>index_nearest_in_Xr</code>: The index of the nearest neighbor found
+in <code>Xr</code>.
+</p>
+</li>
+<li>
+<p><code>index_farthest_in_Xr</code>: The index of the farthest neighbor
+found in <code>Xr</code>.
+</p>
+</li>
+<li>
+<p><code>y_nearest</code>: The reference value (<code>Yr</code>) corresponding to
+the nearest neighbor found in <code>Xr</code>.
+</p>
+</li>
+<li>
+<p><code>y_nearest_pred</code>: This column is only output if the
+validation method in the object passed to <code>control</code> was set to
+<code>"NNv"</code>. It represents the predicted value of the nearest neighbor
+observation found in <code>Xr</code>. This prediction come from model fitted
+with the remaining observations in the neighborhood of the target
+observation in <code>Xu</code>.
+</p>
+</li>
+<li>
+<p><code>loc_rmse_cv</code>: This column is only output if the validation
+method in the object passed to <code>control</code> was set to
+<code>'local_cv'</code>. It represents the RMSE of the cross-validation
+computed for the neighborhood of the target observation in <code>Xu</code>.
+</p>
+</li>
+<li>
+<p><code>loc_st_rmse_cv</code>: This column is only output if the
+validation method in the object passed to <code>control</code> was set to
+<code>'local_cv'</code>. It represents the standardized RMSE of the
+cross-validation computed for the neighborhood of the target observation
+in <code>Xu</code>.
+</p>
+</li>
+<li>
+<p><code>dist_nearest</code>: The distance to the nearest neighbor.
+</p>
+</li>
+<li>
+<p><code>dist_farthest</code>: The distance to the farthest neighbor.
+</p>
+</li>
+<li>
+<p><code>loc_n_components</code>: This column is only output if the
+dissimilarity method used is one of <code>"pca"</code>, <code>"pca.nipals"</code> or
+<code>"pls"</code> and in addition the dissimilarities are requested to be
+computed locally by passing <code>.local = TRUE</code> to the <code>mbl</code>
+function.
+See <code>.local</code> argument in the <code>ortho_diss</code> function.
+</p>
+</li>
+</ul>
+</li>
+<li>
+<p><code>seed</code>: a value mirroring the one passed to seed.
+</p>
+</li>
+<li>
+<p><code>documentation</code>: a character string mirroring the one provided
+in the <code>documentation</code> argument.
+</p>
+</li>
+</ul>
+<p>When the <code>k_diss</code> argument is used, the printed results show a table
+with a column named '<code>p_bounded</code>. It represents the percentage of
+observations for which the neighbors selected by the given dissimilarity
+threshold were outside the boundaries specified in the <code>k_range</code>
+argument.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p><a href="https://orcid.org/0000-0002-5369-5120">Leonardo Ramirez-Lopez</a>
+and Antoine Stevens
+</p>
+
+
+<h3>References</h3>
+
+<p>Cleveland, W. S., and Devlin, S. J. 1988. Locally weighted regression: an
+approach to regression analysis by local fitting. Journal of the American
+Statistical Association, 83, 596-610.
+</p>
+<p>Guerrero, C., Zornoza, R., Gómez, I., Mataix-Beneyto, J. 2010. Spiking of
+NIR regional models using observations from target sites: Effect of model
+size on prediction accuracy. Geoderma, 158(1-2), 66-77.
+</p>
+<p>Naes, T., Isaksson, T., Kowalski, B. 1990. Locally weighted regression and
+scatter correction for near-infrared reflectance data. Analytical Chemistry
+62, 664-673.
+</p>
+<p>Ramirez-Lopez, L., Behrens, T., Schmidt, K., Stevens, A., Dematte, J.A.M.,
+Scholten, T. 2013a. The spectrum-based learner: A new local approach for
+modeling soil vis-NIR spectra of complex data sets. Geoderma 195-196,
+268-279.
+</p>
+<p>Ramirez-Lopez, L., Behrens, T., Schmidt, K., Viscarra Rossel, R., Dematte,
+J. A. M.,  Scholten, T. 2013b. Distance and similarity-search metrics for
+use with soil vis-NIR spectra. Geoderma 199, 43-53.
+</p>
+<p>Rasmussen, C.E., Williams, C.K. Gaussian Processes for Machine Learning.
+Massachusetts Institute of Technology: MIT-Press, 2006.
+</p>
+<p>Shenk, J., Westerhaus, M., and Berzaghi, P. 1997. Investigation of a LOCAL
+calibration procedure for near infrared instruments. Journal of Near
+Infrared Spectroscopy, 5, 223-232.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>mbl_control</code>, <code>f_diss</code>,
+<code>cor_diss</code>, <code>sid</code>, <code>ortho_diss</code>,
+<code>search_neighbors</code>,  <code>local_fit</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(prospectr)
+data(NIRsoil)
+
+# Proprocess the data using detrend plus first derivative with Savitzky and
+# Golay smoothing filter
+sg_det &lt;- savitzkyGolay(
+  detrend(NIRsoil$spc,
+    wav = as.numeric(colnames(NIRsoil$spc))
+  ),
+  m = 1,
+  p = 1,
+  w = 7
+)
+
+NIRsoil$spc_pr &lt;- sg_det
+
+# split into training and testing sets
+test_x &lt;- NIRsoil$spc_pr[NIRsoil$train == 0 &amp; !is.na(NIRsoil$CEC), ]
+test_y &lt;- NIRsoil$CEC[NIRsoil$train == 0 &amp; !is.na(NIRsoil$CEC)]
+
+train_y &lt;- NIRsoil$CEC[NIRsoil$train == 1 &amp; !is.na(NIRsoil$CEC)]
+train_x &lt;- NIRsoil$spc_pr[NIRsoil$train == 1 &amp; !is.na(NIRsoil$CEC), ]
+
+# Example 1
+# A mbl implemented in Ramirez-Lopez et al. (2013,
+# the spectrum-based learner)
+# Example 1.1
+# An exmaple where Yu is supposed to be unknown, but the Xu
+# (spectral variables) are known
+my_control &lt;- mbl_control(validation_type = "NNv")
+
+## The neighborhood sizes to test
+ks &lt;- seq(40, 140, by = 20)
+
+sbl &lt;- mbl(
+  Xr = train_x,
+  Yr = train_y,
+  Xu = test_x,
+  k = ks,
+  method = local_fit_gpr(),
+  control = my_control,
+  scale = TRUE
+)
+sbl
+plot(sbl)
+get_predictions(sbl)
+
+# Example 1.2
+# If Yu is actually known...
+sbl_2 &lt;- mbl(
+  Xr = train_x,
+  Yr = train_y,
+  Xu = test_x,
+  Yu = test_y,
+  k = ks,
+  method = local_fit_gpr(),
+  control = my_control
+)
+sbl_2
+plot(sbl_2)
+
+# Example 2
+# the LOCAL algorithm (Shenk et al., 1997)
+local_algorithm &lt;- mbl(
+  Xr = train_x,
+  Yr = train_y,
+  Xu = test_x,
+  Yu = test_y,
+  k = ks,
+  method = local_fit_wapls(min_pls_c = 3, max_pls_c = 15),
+  diss_method = "cor",
+  diss_usage = "none",
+  control = my_control
+)
+local_algorithm
+plot(local_algorithm)
+
+# Example 3
+# A variation of the LOCAL algorithm (using the optimized pc
+# dissmilarity matrix) and dissimilarity matrix as source of
+# additional preditors
+local_algorithm_2 &lt;- mbl(
+  Xr = train_x,
+  Yr = train_y,
+  Xu = test_x,
+  Yu = test_y,
+  k = ks,
+  method = local_fit_wapls(min_pls_c = 3, max_pls_c = 15),
+  diss_method = "pca",
+  diss_usage = "predictors",
+  control = my_control
+)
+local_algorithm_2
+plot(local_algorithm_2)
+
+# Example 4
+# Running the mbl function in parallel with example 2
+
+n_cores &lt;- 2
+
+if (parallel::detectCores() &lt; 2) {
+  n_cores &lt;- 1
+}
+
+# Alternatively:
+# n_cores &lt;- parallel::detectCores() - 1
+# if (n_cores == 0) {
+#  n_cores &lt;- 1
+# }
+
+library(doParallel)
+clust &lt;- makeCluster(n_cores)
+registerDoParallel(clust)
+
+# Alernatively:
+# library(doSNOW)
+# clust &lt;- makeCluster(n_cores, type = "SOCK")
+# registerDoSNOW(clust)
+# getDoParWorkers()
+
+local_algorithm_par &lt;- mbl(
+  Xr = train_x,
+  Yr = train_y,
+  Xu = test_x,
+  Yu = test_y,
+  k = ks,
+  method = local_fit_wapls(min_pls_c = 3, max_pls_c = 15),
+  diss_method = "cor",
+  diss_usage = "none",
+  control = my_control
+)
+local_algorithm_par
+
+registerDoSEQ()
+try(stopCluster(clust))
+
+# Example 5
+# Using local pls distances
+with_local_diss &lt;- mbl(
+  Xr = train_x,
+  Yr = train_y,
+  Xu = test_x,
+  Yu = test_y,
+  k = ks,
+  method = local_fit_wapls(min_pls_c = 3, max_pls_c = 15),
+  diss_method = "pls",
+  diss_usage = "predictors",
+  control = my_control,
+  .local = TRUE,
+  pre_k = 150,
+)
+with_local_diss
+plot(with_local_diss)
+
+</code></pre>
+
+
+</div>

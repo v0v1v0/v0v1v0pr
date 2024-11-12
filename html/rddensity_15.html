@@ -1,0 +1,386 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rddensity</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Manipulation Testing Using Local Polynomial Density Estimation</h2>
+
+<h3>Description</h3>
+
+<p><code>rddensity</code> implements manipulation testing procedures using the
+local polynomial density estimators proposed in Cattaneo, Jansson and Ma (2020),
+and implements graphical procedures with valid confidence bands using the results
+in Cattaneo, Jansson and Ma (2022, 2023).  In addition, the command provides complementary
+manipulation testing based on finite sample exact binomial testing following the
+esults in Cattaneo, Frandsen and Titiunik (2015) and Cattaneo, Frandsen and
+Vazquez-Bare (2017). For an introduction to manipulation testing see McCrary (2008).
+</p>
+<p>A companion <code>Stata</code> package is described in Cattaneo, Jansson and Ma (2018).
+</p>
+<p>Companion commands: <code>rdbwdensity</code> for data-driven bandwidth selection, and
+<code>rdplotdensity</code> for density plots.
+</p>
+<p>Related Stata and R packages useful for inference in regression discontinuity (RD)
+designs are described in the website: <a href="https://rdpackages.github.io/">https://rdpackages.github.io/</a>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rddensity(
+  X,
+  c = 0,
+  p = 2,
+  q = 0,
+  fitselect = "",
+  kernel = "",
+  vce = "",
+  massPoints = TRUE,
+  h = c(),
+  bwselect = "",
+  all = FALSE,
+  regularize = TRUE,
+  nLocalMin = NULL,
+  nUniqueMin = NULL,
+  bino = TRUE,
+  binoW = NULL,
+  binoN = NULL,
+  binoWStep = NULL,
+  binoNStep = NULL,
+  binoNW = 10,
+  binoP = 0.5
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>Numeric vector or one dimensional matrix/data frame, the running variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>c</code></td>
+<td>
+<p>Numeric, specifies the threshold or cutoff value in the support of <code>X</code>,
+which determines the two samples (e.g., control and treatment units in RD settings).
+Default is <code>0</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>Nonnegative integer, specifies the local polynomial order used to construct
+the density estimators. Default is <code>2</code> (local quadratic approximation).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>q</code></td>
+<td>
+<p>Nonnegative integer, specifies the local polynomial order used to construct
+the bias-corrected density estimators. Default is <code>p+1</code> (local cubic approximation
+for default <code>p=2</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fitselect</code></td>
+<td>
+<p>String, specifies the density estimation method.
+<code>"unrestricted"</code> for density estimation without any restrictions (two-sample,
+unrestricted inference). This is the default option.
+<code>"restricted"</code> for density estimation assuming equal distribution function and
+higher-order derivatives.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kernel</code></td>
+<td>
+<p>String, specifies the kernel function used to construct the local
+polynomial estimators.
+<code>"triangular"</code>: <code>K(u)=(1-|u|)*(|u|&lt;=1)</code>. This is the
+default option.
+<code>"epanechnikov"</code>: <code>K(u) = 0.75*(1-u^2)*(|u|&lt;=1)</code>.
+<code>"uniform"</code>: <code>K(u) = 0.5 * (|u|&lt;=1)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vce</code></td>
+<td>
+<p>String, specifies the procedure used to compute the variance-covariance matrix estimator.
+<code>"plugin"</code> for asymptotic plug-in standard errors.
+<code>"jackknife"</code> for jackknife standard errors. This is the default option.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>massPoints</code></td>
+<td>
+<p><code>TRUE</code> (default) or <code>FALSE</code>, specifies whether to adjust for
+mass points in the data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>h</code></td>
+<td>
+<p>Numeric, specifies the bandwidth used to construct the density estimators on the two
+sides of the cutoff.  If not specified, the bandwidth h is computed by the companion command
+<code>rdbwdensity</code>  If two bandwidths are specified, the first bandwidth is used
+for the data below the cutoff and the second bandwidth is used for the data above the cutoff.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bwselect</code></td>
+<td>
+<p>String, specifies the bandwidth selection procedure to be used.
+<code>"each"</code> based on MSE of each density estimator separately (two distinct bandwidths, <code>hl</code> and <code>hr</code>).
+<code>"diff"</code> based on MSE of difference of two density estimators (one common bandwidth, <code>hl=hr</code>).
+<code>"sum"</code> based on MSE of sum of two density estimators (one common bandwidth, <code>hl=hr</code>).
+<code>"comb"</code> bandwidth is selected as a combination of the alternatives above. This is the default option.
+For <code>fitselect="unrestricted"</code>, it selects <code>median(each,diff,sum)</code>. For <code>fitselect = "restricted"</code>,
+it selects <code>min(diff,sum)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>all</code></td>
+<td>
+<p><code>TRUE</code> or <code>FALSE</code> (default), if specified, will report two
+testing procedures: conventional test statistic (not valid when using MSE-optimal bandwidth choice)
+and robust bias-corrected statistic.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>regularize</code></td>
+<td>
+<p><code>TRUE</code> (default) or <code>FALSE</code>, specifies whether to conduct local sample size checking.
+When set to <code>TRUE</code>, the bandwidth is chosen such that the local region includes
+at least <code>nLocalMin</code> observations and at least <code>nUniqueMin</code> unique observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nLocalMin</code></td>
+<td>
+<p>Nonnegative integer, specifies the minimum number of observations in each local neighborhood.
+This option will be ignored if set to <code>0</code>, or if <code>regularize=FALSE</code> is used. Default is <code>20+p+1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nUniqueMin</code></td>
+<td>
+<p>Nonnegative integer, specifies the minimum number of unique observations in
+each local neighborhood. This option will be ignored if set to <code>0</code>, or if <code>regularize=FALSE</code> is used.
+Default is <code>20+p+1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bino</code></td>
+<td>
+<p><code>TRUE</code> (default) or <code>FALSE</code>, specifies whether to conduct binomial tests. By default,
+the initial (smallest) window contains at least 20 observations on each side, and its length is also used as the increment
+for subsequent windows. This feature is based on the <code>binom.test</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>binoW</code></td>
+<td>
+<p>Numeric, specifies the half length(s) of the initial window. If two values are provided, they will
+be used for the data below and above the cutoff separately.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>binoN</code></td>
+<td>
+<p>Nonnegative integer, specifies the minimum number of observations on each side of the cutoff used for
+the binomial test. This option will be ignored if <code>binoW</code> is provided.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>binoWStep</code></td>
+<td>
+<p>Numeric, specifies the increment in half length(s).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>binoNStep</code></td>
+<td>
+<p>Nonnegative integer, specifies the minimum increment in sample size (on each side of the cutoff).
+This option will be ignored if <code>binoWStep</code> is provided.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>binoNW</code></td>
+<td>
+<p>Nonnegative integer, specifies the total number of windows. Default is <code>10</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>binoP</code></td>
+<td>
+<p>Numeric, specifies the null hypothesis of the binomial test. Default is <code>0.5</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>hat</code></td>
+<td>
+<p><code>left</code>/<code>right</code>: density estimate to the left/right of cutoff; <code>diff</code>: difference in
+estimated densities on the two sides of cutoff.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sd_asy</code></td>
+<td>
+<p><code>left</code>/<code>right</code>: standard error for the estimated density to the left/right of the
+cutoff; <code>diff</code>: standard error for the difference in estimated densities. (Based on
+asymptotic formula.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sd_jk</code></td>
+<td>
+<p><code>left</code>/<code>right</code>: standard error for the estimated density to the left/right of the
+cutoff; <code>diff</code>: standard error for the difference in estimated densities. (Based on the
+jackknife method.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test</code></td>
+<td>
+<p><code>t_asy</code>/<code>t_jk</code>: t-statistic for the density discontinuity test, with standard error
+based on asymptotic formula or the jackknife; <code>p_asy</code>/<code>p_jk</code>: p-value for the density
+discontinuity test, with standard error based on asymptotic formula or the jackknife.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hat_p</code></td>
+<td>
+<p>Same as <code>hat</code>, without bias correction (only available when <code>all=TRUE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sd_asy_p</code></td>
+<td>
+<p>Same as <code>sd_asy</code>, without bias correction (only available when <code>all=TRUE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sd_jk_p</code></td>
+<td>
+<p>Same as <code>sd_jk</code>, without bias correction (only available when <code>all=TRUE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test_p</code></td>
+<td>
+<p>Same as <code>test</code>, without bias correction (only available when <code>all=TRUE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>N</code></td>
+<td>
+<p><code>full</code>: full sample size; <code>left</code>/<code>right</code>: sample size to the left/right of the cutoff;
+<code>eff_left</code>/<code>eff_right</code>: effective sample size to the left/right of the cutoff (this depends
+on the bandwidth).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>h</code></td>
+<td>
+<p><code>left</code>/<code>right</code>: bandwidth used to the left/right of the cutoff.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>opt</code></td>
+<td>
+<p>Options passed to the function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bino</code></td>
+<td>
+<p>Binomial test results. <code>leftWindow</code>/<code>rightWindow</code>: window lengths.
+<code>leftN</code>/<code>rightN</code>: number of observations. <code>pval</code>: p-values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X_min</code></td>
+<td>
+<p><code>left</code>/<code>right</code>: the samllest observation to the left/right of the cutoff.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X_max</code></td>
+<td>
+<p><code>left</code>/<code>right</code>: the largest observation to the left/right of the cutoff.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Matias D. Cattaneo, Princeton University  <a href="mailto:cattaneo@princeton.edu">cattaneo@princeton.edu</a>.
+</p>
+<p>Michael Jansson, University of California Berkeley.  <a href="mailto:mjansson@econ.berkeley.edu">mjansson@econ.berkeley.edu</a>.
+</p>
+<p>Xinwei Ma (maintainer), University of California San Diego. <a href="mailto:x1ma@ucsd.edu">x1ma@ucsd.edu</a>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Cattaneo, M. D., B. Frandsen, and R. Titiunik. 2015. Randomization Inference in the Regression Discontinuity Design: An Application to the Study of Party Advantages in the U.S. Senate. <em>Journal of Causal Inference</em> 3(1): 1-24. <a href="https://doi.org/10.1515/jci-2013-0010">doi:10.1515/jci-2013-0010</a>
+</p>
+<p>Cattaneo, M. D., M. Jansson, and X. Ma. 2018. Manipulation Testing based on Density Discontinuity. <em>Stata Journal</em> 18(1): 234-261. <a href="https://doi.org/10.1177/1536867X1801800115">doi:10.1177/1536867X1801800115</a>
+</p>
+<p>Cattaneo, M. D., M. Jansson, and X. Ma. 2020. Simple Local Polynomial Density Estimators. <em>Journal of the American Statistical Association</em>, 115(531): 1449-1455. <a href="https://doi.org/10.1080/01621459.2019.1635480">doi:10.1080/01621459.2019.1635480</a>
+</p>
+<p>Cattaneo, M. D., M. Jansson, and X. Ma. 2022. lpdensity: Local Polynomial Density Estimation and Inference. <em>Journal of Statistical Software</em>, 101(2): 1–25. <a href="https://doi.org/10.18637/jss.v101.i02">doi:10.18637/jss.v101.i02</a>
+</p>
+<p>Cattaneo, M. D., M. Jansson, and X. Ma. 2023. Local Regression Distribution Estimators. <em>Journal of Econometrics</em>, 240(2): 105074. <a href="https://doi.org/10.1016/j.jeconom.2021.01.006">doi:10.1016/j.jeconom.2021.01.006</a>
+</p>
+<p>Cattaneo, M. D., R. Titiunik and G. Vazquez-Bare. 2017. Comparing Inference Approaches for RD Designs: A Reexamination of the Effect of Head Start on Child Mortality. <em>Journal of Policy Analysis and Management</em> 36(3): 643-681. <a href="https://doi.org/10.1002/pam.21985">doi:10.1002/pam.21985</a>
+</p>
+<p>McCrary, J. 2008. Manipulation of the Running Variable in the Regression Discontinuity Design: A Density Test. <em>Journal of Econometrics</em> 142(2): 698-714. <a href="https://doi.org/10.1016/j.jeconom.2007.05.005">doi:10.1016/j.jeconom.2007.05.005</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>rdbwdensity</code>, <code>rdplotdensity</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">### Continuous Density
+set.seed(42)
+x &lt;- rnorm(2000, mean = -0.5)
+rdd &lt;- rddensity(X = x, vce = "jackknife")
+summary(rdd)
+
+### Bandwidth selection using rdbwdensity()
+rddbw &lt;- rdbwdensity(X = x, vce = "jackknife")
+summary(rddbw)
+
+### Plotting using rdplotdensity()
+# 1. From -2 to 2 with 25 evaluation points at each side
+plot1 &lt;- rdplotdensity(rdd, x, plotRange = c(-2, 2), plotN = 25)
+
+# 2. Plotting a uniform confidence band
+set.seed(42) # fix the seed for simulating critical values
+plot2 &lt;- rdplotdensity(rdd, x, plotRange = c(-2, 2), plotN = 25, CIuniform = TRUE)
+
+### Density discontinuity at 0
+x[x &gt; 0] &lt;- x[x &gt; 0] * 2
+rdd2 &lt;- rddensity(X = x, vce = "jackknife")
+summary(rdd2)
+plot3 &lt;- rdplotdensity(rdd2, x, plotRange = c(-2, 2), plotN = 25)
+
+</code></pre>
+
+
+</div>

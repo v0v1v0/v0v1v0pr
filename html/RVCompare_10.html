@@ -1,0 +1,198 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>get_Y_AB_bounds_bootstrap</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate Y_A and Y_B bounds with bootstrap</h2>
+
+<h3>Description</h3>
+
+<p>Estimate the confidence intervals for the cumulative distributions of Y_A and Y_B using bootstrap.
+Much slower than the Dvoretzky–Kiefer–Wolfowitz approach.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">get_Y_AB_bounds_bootstrap(
+  X_A_observed,
+  X_B_observed,
+  alpha = 0.05,
+  EPSILON = 1e-20,
+  nOfBootstrapSamples = 1000,
+  ignoreMinimumLengthCheck = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X_A_observed</code></td>
+<td>
+<p>array of the observed samples (real values) of X_A.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X_B_observed</code></td>
+<td>
+<p>array of the observed samples (real values) of X_B, it needs to have the same length as X_A.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>(optional, default value 0.05) the error of the confidence interval. If alpha = 0.05 then we have 95 percent confidence interval.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>EPSILON</code></td>
+<td>
+<p>(optional, default value 1e-20) minimum difference between two values to be considered different.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nOfBootstrapSamples</code></td>
+<td>
+<p>(optional, default value 1e3) how many bootstrap samples to average. Increases computation time.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ignoreMinimumLengthCheck</code></td>
+<td>
+<p>(optional, default value FALSE) wether to check for a minimum length in X_A and X_B.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Returns a list with the following fields:
+</p>
+<p>- p: values in the interval [0,1] that represent the nOfEstimationPoints points in which the densities are estimated. Useful for plotting.
+</p>
+<p>- Y_A_cumulative_estimation: an array with the estimated cumulative diustribution function of Y_A from 0 to p[[i]].
+</p>
+<p>- Y_A_cumulative_upper: an array with the upper bounds of confidence 1 - alpha of the cumulative density of Y_A
+</p>
+<p>- Y_A_cumulative_lower: an array with the lower bounds of confidence 1 - alpha of the cumulative density of Y_A
+</p>
+<p>- Y_B_cumulative_estimation: The same as Y_A_cumulative_estimation for Y_B.
+</p>
+<p>- Y_B_cumulative_upper: The same as Y_A_cumulative_upper for Y_B
+</p>
+<p>- Y_B_cumulative_lower: The same as Y_A_cumulative_lower for Y_B
+</p>
+<p>- diff_estimation: Y_A_cumulative_estimation - Y_B_cumulative_estimation
+</p>
+<p>- diff_upper: an array with the upper bounds of confidence 1 - alpha of the difference between the cumulative distributions
+</p>
+<p>- diff_lower: an array with the lower bounds of confidence 1 - alpha of the difference between the cumulative distributions
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(ggplot2)
+
+### Example 1 ###
+X_A_observed &lt;- rnorm(100, mean = 2, sd = 1)
+X_B_observed &lt;- rnorm(100, mean = 2.1, sd = 0.5)
+
+ res &lt;- get_Y_AB_bounds_bootstrap(X_A_observed, X_B_observed)
+
+
+fig1 = plot_Y_AB(res, plotDifference=FALSE)+ ggplot2::ggtitle("Example 1")
+print(fig1)
+
+
+
+### Example 2 ###
+# Comparing the estimations with the actual distributions for two normal distributions.
+###################################
+## sample size = 100 ##############
+###################################
+X_A_observed &lt;- rnorm(100,mean = 1, sd = 1)
+X_B_observed &lt;- rnorm(100,mean = 1.3, sd = 0.5)
+res &lt;- get_Y_AB_bounds_bootstrap(X_A_observed, X_B_observed)
+
+X_A_observed_large_sample &lt;- sort(rnorm(1e4, mean = 1, sd = 1))
+X_B_observed_large_sample &lt;- sort(rnorm(1e4, mean = 1.3, sd = 0.5))
+actualDistributions &lt;- getEmpiricalCumulativeDistributions(
+        X_A_observed_large_sample,
+        X_B_observed_large_sample,
+        nOfEstimationPoints=1e4,
+        EPSILON=1e-20)
+
+
+actualDistributions$Y_A_cumulative_estimation &lt;- lm(Y_A_cumulative_estimation ~
+        p + I(p^2) + I(p^3)+ I(p^4)+ I(p^5)+ I(p^6)+I(p^7)+ I(p^8),
+        data = actualDistributions)$fitted.values
+actualDistributions$Y_B_cumulative_estimation &lt;- lm(Y_B_cumulative_estimation ~
+        p + I(p^2) + I(p^3)+ I(p^4)+ I(p^5)+ I(p^6)+I(p^7)+ I(p^8),
+        data = actualDistributions)$fitted.values
+
+fig = plot_Y_AB(res, plotDifference=FALSE) +
+
+geom_line(data=as.data.frame(actualDistributions),
+aes(x=p, y=Y_A_cumulative_estimation, colour = "Actual Y_A", linetype="Actual Y_A")) +
+
+geom_line(data=as.data.frame(actualDistributions),
+aes(x=p, y=Y_B_cumulative_estimation, colour = "Actual Y_B", linetype="Actual Y_B")) +
+
+scale_colour_manual("", breaks = c("X_A", "X_B","Actual Y_A", "Actual Y_B"),
+values = c("X_A"="#00BFC4", "X_B"="#F8766D", "Actual Y_A"="#0000FF", "Actual Y_B"="#FF0000"))+
+
+scale_linetype_manual("", breaks = c("X_A", "X_B","Actual Y_A", "Actual Y_B"),
+values = c("X_A"="solid", "X_B"="dashed", "Actual Y_A"="solid", "Actual Y_B"="solid"))+
+
+ggtitle("100 samples used in the estimation")
+print(fig)
+
+###################################
+## sample size = 300 ##############
+###################################
+X_A_observed &lt;- rnorm(300,mean = 1, sd = 1)
+X_B_observed &lt;- rnorm(300,mean = 1.3, sd = 0.5)
+res &lt;- get_Y_AB_bounds_bootstrap(X_A_observed, X_B_observed)
+
+X_A_observed_large_sample &lt;- sort(rnorm(1e4, mean = 1, sd = 1))
+X_B_observed_large_sample &lt;- sort(rnorm(1e4, mean = 1.3, sd = 0.5))
+actualDistributions &lt;- getEmpiricalCumulativeDistributions(
+        X_A_observed_large_sample,
+        X_B_observed_large_sample,
+        nOfEstimationPoints=1e4,
+        EPSILON=1e-20)
+
+
+actualDistributions$Y_A_cumulative_estimation &lt;- lm(Y_A_cumulative_estimation ~
+        p + I(p^2) + I(p^3)+ I(p^4)+ I(p^5)+ I(p^6)+I(p^7)+ I(p^8),
+        data = actualDistributions)$fitted.values
+
+actualDistributions$Y_B_cumulative_estimation &lt;- lm(Y_B_cumulative_estimation ~
+       p + I(p^2) + I(p^3)+ I(p^4)+ I(p^5)+ I(p^6)+I(p^7)+ I(p^8),
+       data = actualDistributions)$fitted.values
+
+fig = plot_Y_AB(res, plotDifference=FALSE) +
+
+geom_line(data=as.data.frame(actualDistributions),
+aes(x=p, y=Y_A_cumulative_estimation, colour = "Actual Y_A", linetype="Actual Y_A")) +
+
+geom_line(data=as.data.frame(actualDistributions),
+aes(x=p, y=Y_B_cumulative_estimation, colour = "Actual Y_B", linetype="Actual Y_B")) +
+
+scale_colour_manual("", breaks = c("X_A", "X_B","Actual Y_A", "Actual Y_B"),
+values = c("X_A"="#00BFC4", "X_B"="#F8766D", "Actual Y_A"="#0000FF", "Actual Y_B"="#FF0000"))+
+
+scale_linetype_manual("", breaks = c("X_A", "X_B","Actual Y_A", "Actual Y_B"),
+values = c("X_A"="solid", "X_B"="dashed", "Actual Y_A"="solid", "Actual Y_B"="solid"))+
+
+ggtitle("300 samples used in the estimation")
+print(fig)
+
+
+</code></pre>
+
+
+</div>

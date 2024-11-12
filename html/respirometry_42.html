@@ -1,0 +1,122 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>scale_MO2</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Mass-correct metabolic rate</h2>
+
+<h3>Description</h3>
+
+<p>For most organisms, metabolic rate does not scale linearly, but rather according to a power curve. This function estimates MO2 or size of an individual organism given the MO2 and size of another individual of a different size. To mass-correct your MO2 data, plug in your desired mass in <code>mass_2</code> and the output from <code>calc_b</code> to the <code>b</code> parameter.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">scale_MO2(mass_1, MO2_1, mass_2, MO2_2, b = 0.75)
+
+scale_mo2(mass_1, MO2_1, mass_2, MO2_2, b = 0.75)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>mass_1</code></td>
+<td>
+<p>animal mass for <code>MO2_1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>MO2_1</code></td>
+<td>
+<p>metabolic rate for <code>mass_1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mass_2</code></td>
+<td>
+<p>animal mass for <code>MO2_2</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>MO2_2</code></td>
+<td>
+<p>metabolic rate for <code>mass_2</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>b</code></td>
+<td>
+<p>scaling coefficient for MO2. Default is 0.75.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p style="text-align: center;"><code class="reqn">(MO2 = b0 * M^b)</code>
+</p>
+
+<p>where <code>b0</code> is species-specific normalization constant, <code>M</code> is mass and <code>b</code> is the scaling coefficient which is around 0.75 for many organisms.
+</p>
+<p>For scaling of <strong>mass-specific</strong> metabolic rates, use something closer to <code>b = -0.25</code> rather than <code>b = 0.75</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Matthew A. Birk, <a href="mailto:matthewabirk@gmail.com">matthewabirk@gmail.com</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>Q10</code>, <code>calc_b</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># I know a species has an SMR of 800 umol O2/h at 200 g.
+# What would be a likely SMR for a 300 g individual?
+scale_MO2(mass_1 = 200, MO2_1 = 800, mass_2 = 300)
+
+# Some squids have a much higher scaling coefficient:
+scale_MO2(mass_1 = 200, MO2_1 = 800, mass_2 = 300, b = 0.92)
+
+# A 100 g individual at 10 *C has an MO2 of 1270 umol/h. How much
+# would a 250 g individual likely consume at 14 *C?
+Q10(Q10 = 2, R1 = scale_MO2(mass_1 = 100, MO2_1 = 1270, mass_2 = 250), T1 = 10, T2 = 14)
+
+# Now I have data from real animals and I want to mass-correct them all to a 10 g animal.
+mass = 2:20 # obviously not real but you get the point
+mo2 = c(44.8, 41, 36, 35, 35, 33.5, 34.5, 40, 30, 23, 27, 30, 25.6, 27.8, 28, 24, 27, 28, 20)
+desired_mass = 10
+
+b = calc_b(mass = mass, MO2 = mo2)
+scale_MO2(mass_1 = mass, MO2_1 = mo2, mass_2 = desired_mass, b = b$b)
+
+plot(mass, mo2, ylab = 'Raw MO2') # before
+plot(mass, scale_MO2(mass_1 = mass, MO2_1 = mo2, mass_2 = 10, b = b$b),
+ylab = 'Mass-corrected MO2') # after
+
+
+# Visualize MO2 scaling by mass and temperature:
+mass &lt;- seq(10, 200, 10)
+temp &lt;- 10:25
+base_mass &lt;- 50
+base_temp &lt;- 20
+base_MO2 &lt;- 750
+mo2 &lt;- outer(mass, temp, function(mass, temp){
+	scale_MO2(mass_1 = base_mass, mass_2 = mass, MO2_1 = Q10(Q10 = 2, R1 = base_MO2,
+	 T1 = base_temp, T2 = temp))
+})
+persp(mass, temp, mo2, xlab = 'Mass (g)', ylab = 'Temperature (*C)', zlab = 'MO2 (umol / hr)',
+ theta = 35, phi = 15, expand = 0.5, ticktype = 'detailed', nticks = 10)
+
+</code></pre>
+
+
+</div>

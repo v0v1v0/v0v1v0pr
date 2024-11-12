@@ -1,0 +1,143 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rolling_origin</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Rolling Origin Forecast Resampling</h2>
+
+<h3>Description</h3>
+
+<p>This resampling method is useful when the data set has a strong time
+component. The resamples are not random and contain data points that are
+consecutive values. The function assumes that the original data set are
+sorted in time order.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rolling_origin(
+  data,
+  initial = 5,
+  assess = 1,
+  cumulative = TRUE,
+  skip = 0,
+  lag = 0,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>initial</code></td>
+<td>
+<p>The number of samples used for analysis/modeling in the
+initial resample.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>assess</code></td>
+<td>
+<p>The number of samples used for each assessment resample.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cumulative</code></td>
+<td>
+<p>A logical. Should the analysis resample grow beyond the
+size specified by <code>initial</code> at each resample?.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>skip</code></td>
+<td>
+<p>A integer indicating how many (if any) <em>additional</em> resamples
+to skip to thin the total amount of data points in the analysis resample.
+See the example below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lag</code></td>
+<td>
+<p>A value to include a lag between the assessment
+and analysis set. This is useful if lagged predictors will be used
+during training and testing.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>These dots are for future extensions and must be empty.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The main options, <code>initial</code> and <code>assess</code>, control the number of
+data points from the original data that are in the analysis and assessment
+set, respectively. When <code>cumulative = TRUE</code>, the analysis set will grow as
+resampling continues while the assessment set size will always remain
+static.
+<code>skip</code> enables the function to not use every data point in the resamples.
+When <code>skip = 0</code>, the resampling data sets will increment by one position.
+Suppose that the rows of a data set are consecutive days. Using <code>skip = 6</code>
+will make the analysis data set to operate on <em>weeks</em> instead of days. The
+assessment set size is not affected by this option.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An tibble with classes <code>rolling_origin</code>, <code>rset</code>, <code>tbl_df</code>, <code>tbl</code>,
+and <code>data.frame</code>. The results include a column for the data split objects
+and a column called <code>id</code> that has a character string with the resample
+identifier.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>sliding_window()</code>, <code>sliding_index()</code>, and <code>sliding_period()</code> for additional
+time based resampling functions.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+set.seed(1131)
+ex_data &lt;- data.frame(row = 1:20, some_var = rnorm(20))
+dim(rolling_origin(ex_data))
+dim(rolling_origin(ex_data, skip = 2))
+dim(rolling_origin(ex_data, skip = 2, cumulative = FALSE))
+
+# You can also roll over calendar periods by first nesting by that period,
+# which is especially useful for irregular series where a fixed window
+# is not useful. This example slides over 5 years at a time.
+library(dplyr)
+library(tidyr)
+data(drinks, package = "modeldata")
+
+drinks_annual &lt;- drinks %&gt;%
+  mutate(year = as.POSIXlt(date)$year + 1900) %&gt;%
+  nest(data = c(-year))
+
+multi_year_roll &lt;- rolling_origin(drinks_annual, cumulative = FALSE)
+
+analysis(multi_year_roll$splits[[1]])
+assessment(multi_year_roll$splits[[1]])
+
+</code></pre>
+
+
+</div>

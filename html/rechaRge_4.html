@@ -1,0 +1,245 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>compute_recharge</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Simulation using a recharge model</h2>
+
+<h3>Description</h3>
+
+<p>Performs a simulation of water recharge using a specific model.
+</p>
+<p>HydroBudget is a spatially distributed GWR model that computes a superficial water budget on
+grid cells of regional-scale watersheds. Runoff, actual evapotranspiration (AET), and potential
+GWR are simulated for each grid cell, with a monthly time step, and fluxes do not
+transfer from a cell to another (no water routing). The model inputs are distributed daily
+precipitation and temperature as well as distributed data of pedology, land cover, and slope.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">compute_recharge(
+  obj,
+  rcn,
+  climate,
+  rcn_climate,
+  period = NULL,
+  workers = 1,
+  ...
+)
+
+## Default S3 method:
+compute_recharge(
+  obj,
+  rcn,
+  climate,
+  rcn_climate,
+  period = NULL,
+  workers = 1,
+  ...
+)
+
+## S3 method for class 'hydrobudget'
+compute_recharge(
+  obj,
+  rcn,
+  climate,
+  rcn_climate,
+  period = NULL,
+  workers = 1,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>obj</code></td>
+<td>
+<p>The recharge object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rcn</code></td>
+<td>
+<p>The RCN values. Input can be a data.frame/data.table or a path to a data file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>climate</code></td>
+<td>
+<p>The daily total precipitation (mm/d) and average daily temperature (°C). Input can be a data.frame/data.table or a path to a data file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rcn_climate</code></td>
+<td>
+<p>The relation between the RCN and climate cells. Input can be a data.frame/data.table or a path to a data file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>period</code></td>
+<td>
+<p>The start and end years. If not provided, the start/end years will be extracted from the climate data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>workers</code></td>
+<td>
+<p>The number of workers to use in the parallel computations. If NULL, an optimal number of cores will be used. This optimal number is also the maximum value. Default value is 1 (no parallelization).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Other arguments passed to methods</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The expected columns for the RCN data set input are:
+</p>
+
+<ul>
+<li> <p><strong>rcn_id</strong>, the RCN cell ID
+</p>
+</li>
+<li> <p><strong>RCNII</strong>
+</p>
+</li>
+<li> <p><strong>lon</strong>
+</p>
+</li>
+<li> <p><strong>lat</strong>
+</p>
+</li>
+</ul>
+<p>The expected columns for the climate data set input are:
+</p>
+
+<ul>
+<li> <p><strong>climate_id</strong> the climate cell ID
+</p>
+</li>
+<li> <p><strong>day</strong>
+</p>
+</li>
+<li> <p><strong>month</strong>
+</p>
+</li>
+<li> <p><strong>year</strong>
+</p>
+</li>
+<li> <p><strong>t_mean</strong>
+</p>
+</li>
+<li> <p><strong>p_tot</strong>
+</p>
+</li>
+<li> <p><strong>lat</strong>
+</p>
+</li>
+</ul>
+<p>The expected columns for the RCN-climate data set input are:
+</p>
+
+<ul>
+<li> <p><strong>climate_id</strong> the climate cell ID
+</p>
+</li>
+<li> <p><strong>rcn_id</strong>, the RCN cell ID
+</p>
+</li>
+</ul>
+<p>The columns of the water budget data set output are:
+</p>
+
+<ul>
+<li> <p><strong>year</strong>
+</p>
+</li>
+<li> <p><strong>month</strong>
+</p>
+</li>
+<li> <p><strong>vi</strong>
+</p>
+</li>
+<li> <p><strong>t_mean</strong>
+</p>
+</li>
+<li> <p><strong>runoff</strong>
+</p>
+</li>
+<li> <p><strong>pet</strong>
+</p>
+</li>
+<li> <p><strong>aet</strong>
+</p>
+</li>
+<li> <p><strong>gwr</strong>
+</p>
+</li>
+<li> <p><strong>runoff_2</strong>
+</p>
+</li>
+<li> <p><strong>delta_reservoir</strong>
+</p>
+</li>
+<li> <p><strong>rcn_id</strong>
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>The water budget
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# Use input example files provided by the package
+base_url &lt;- "https://github.com/gwrecharge/rechaRge-book/raw/main/examples/input/"
+input_rcn &lt;- paste0(base_url, "rcn.csv.gz")
+input_climate &lt;- paste0(base_url, "climate.csv.gz")
+input_rcn_climate &lt;- paste0(base_url, "rcn_climate.csv.gz")
+
+# Calibration parameters
+HB &lt;- rechaRge::new_hydrobudget(
+  T_m = 2.1, # melting temperature (°C)
+  C_m = 6.2, # melting coefficient (mm/°C/d)
+  TT_F = -17.6, # Threshold temperature for soil frost (°C)
+  F_T = 16.4, # Freezing time (d)
+  t_API = 3.9, # Antecedent precipitation index time (d)
+  f_runoff = 0.63, # Runoff factor (-)
+  sw_m = 431, # Maximum soil water content (mm)
+  f_inf = 0.07 # infiltration factor (-)
+)
+
+# Simulation period
+simul_period &lt;- c(2010, 2017)
+
+# Parallel computing option
+# workers &lt;- 6
+
+# Simulation with the HydroBudget model
+water_budget &lt;- rechaRge::compute_recharge(
+  HB,
+  rcn = input_rcn,
+  climate = input_climate,
+  rcn_climate = input_rcn_climate,
+  period = simul_period
+  # workers = workers
+)
+head(water_budget)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

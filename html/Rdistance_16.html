@@ -1,0 +1,193 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>F.gx.estim</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>F.gx.estim - Estimate g(0) or g(x)</h2>
+
+<h3>Description</h3>
+
+<p>Estimate g(0) or g(x) for a specified distance function.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">F.gx.estim(fit, x.scl = NULL, g.x.scl = NULL, observer = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>An estimated <code>dfunc</code> object.  See <code>dfuncEstim</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x.scl</code></td>
+<td>
+<p>The x coordinate (a distance) at which to scale the 
+sightability function to <code>g.x.scl</code>, or the string "max".  
+When <code>x.scl</code> is specified (i.e., not 0 or "max"), it must have measurement 
+units assigned using either <code>library(units);units(x.scl) &lt;- '&lt;units&gt;'</code>
+or <code>x.scl &lt;- units::set_units(x.scl, &lt;units&gt;)</code>. See
+<code>units::valid_udunits()</code> for valid symbolic units. See 
+Details for more on 
+scaling the sightability function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g.x.scl</code></td>
+<td>
+<p>Height of the distance function at coordinate <em>x</em>. 
+The distance function 
+will be scaled so that g(<code>x.scl</code>) = <code>g.x.scl</code>. 
+If <code>g.x.scl</code> is not 
+a data frame, it must be a numeric value (vector of length 1) 
+between 0 and 1. 
+See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>observer</code></td>
+<td>
+<p>A numeric scalar or text string specifying whether observer 1 
+or observer 2 or both were full-time observers. 
+This parameter dictates which set of observations form the denominator 
+of a double observer system.   
+If, for example, observer 2 was a data recorder and part-time observer, 
+or if observer 2 was the pilot, set <code>observer</code> = 1.  
+If <code>observer</code> = 1, observations by observer 1 not seen 
+by observer 2 are ignored. The estimate of detection in this case is the 
+ratio of number of targets seen by both observers 
+to the number seen by both plus the number seen by just observer 2. 
+If observer = "both", the 
+computation goes both directions.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This routine scales sightability such that 
+g(<code>x.scl</code>) = <code>g.x.scl</code>, where g() is the sightability function.
+Specification of <code>x.scl</code> and <code>g.x.scl</code> covers several estimation cases:
+</p>
+  
+<ol>
+<li> <p><b>g(0) = 1</b> : (the default) Inputs are <code>x.scl</code> = 0, <code>g.x.scl</code> = 1. 
+If <code>w.lo</code> &gt; 0, <code>x.scl</code> will be set to <code>w.lo</code>
+so technically this case is g(<code>w.low</code>) = 1.
+</p>
+</li>
+<li> <p><b>User supplied probability at specified distance</b>: Inputs are 
+<code>x.scl</code> = a number greater than or equal 
+to <code>w.lo</code>, <code>g.x.scl</code> = a number between 0 and 1.  This case 
+covers situations where sightability on the transect (distance 0) is 
+not perfect.  This case  assumes researchers have an independent 
+estimate of sightability at distance 
+<code>x.scl</code> off the transect.  For example, researchers could be
+using multiple 
+observers to estimate that sightability at distance <code>x.scl</code> 
+is <code>g.x.scl</code>. 
+</p>
+</li>
+<li> <p><b>Maximum sightability specified</b>: Inputs 
+are <code>x.scl</code>="max", <code>g.x.scl</code> =  a number 
+between 0 and 1.  In this case, 
+g() is scaled such that its maximum value is <code>g.x.scl</code>.  
+This routine computes the distance at which g() is maximum, sets 
+g()'s height there to <code>g.x.scl</code>, and returns <code>x.max</code> where 
+x.max is the distance at which g is maximized. This case covers the 
+common aerial survey situation where maximum sightability is slightly 
+off the transect, but the distance at which the maximum occurs 
+is unknown. This case is the default, with <code>g.x.scl</code> = 1, 
+when gamma distance functions are estimated. 
+</p>
+</li>
+<li> <p><b>Double observer system</b>: Inputs are 
+<code>x.scl</code>="max", <code>g.x.scl</code> = &lt;a data frame&gt;. 
+In this case, g(<em>x</em>) = <em>h</em>, where <em>x</em> is the distance that 
+maximizes g and <em>h</em> is the height of g() at <em>x</em> 
+computed from the double observer data frame (see below for 
+structure of the double observer data frame).
+</p>
+</li>
+<li> <p><b>Distance of independence specified, height computed from double 
+observer system</b>: Inputs are 
+<code>x.scl</code> = a number greater than or equal to <code>w.lo</code>
+<code>g.x.scl</code> = a data frame.  In this case, g(<code>x.scl</code>) = <em>h</em>, 
+where <em>h</em> is computed from the double observer data frame 
+(see below for structure of the double observer data frame). 
+</p>
+</li>
+</ol>
+<p>When <code>x.scl</code>, <code>g.x.scl</code>, or <code>observer</code> are NULL, the routine 
+will look for and use <code>$call.x.scl</code>, or <code>$call.g.x.scl</code>, or 
+<code>$call.observer</code> components of the <code>fit</code> object for whichever 
+of these three parameters is missing.  Later, different 
+values can be specified in a direct call to <code>F.gx.estim</code> 
+without having to re-estimate the distance function. Because of this feature, 
+the default values in <code>dfuncEstim</code> are <code>x.scl</code> = 0 and 
+<code>g.x.scl</code> = 1 and <code>observer</code> = "both".
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list comprised of the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>x.scl</code></td>
+<td>
+<p>The value of x (distance) at which g() is evaluated.  </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>comp2 </code></td>
+<td>
+<p>The estimated value of g() when evaluated at <code>x.scl</code>.  </p>
+</td>
+</tr>
+</table>
+<h3>Structure of the double observer data frame</h3>
+
+<p>When <code>g.x.scl</code> is a data frame, it is assumed to contain 
+the components <code>$obsby.1</code> and <code>$obsby.2</code> (no flexibility on names). 
+Each row in the data frame contains data from one sighted target. 
+The <code>$obsby.1</code> and <code>$obsby.2</code> components are 
+TRUE/FALSE (logical) vectors indicating whether 
+observer 1 (<code>obsby.1</code>) or observer 2 (<code>obsby.2</code>) spotted the target.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>dfuncEstim</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">  set.seed(555574)
+  x &lt;- rnorm(1000) * 100
+  x &lt;- x[ 0 &lt; x &amp; x &lt; 100 ]
+  x &lt;- units::set_units(x, "m")
+  un.dfunc &lt;- dfuncEstim( x ~ 1
+                       , likelihood = "logistic")    
+  F.gx.estim(un.dfunc)
+  
+  x &lt;- rgamma(1000, shape = 5)
+  x &lt;- units::set_units(x, "m")
+  gam.dfunc &lt;- dfuncEstim( x ~ 1
+                         , likelihood="Gamma")    
+  F.gx.estim(gam.dfunc)
+  
+</code></pre>
+
+
+</div>

@@ -1,0 +1,169 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>mn.regu.cv</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Model-assisted inference for population means based on cross validation</h2>
+
+<h3>Description</h3>
+
+<p>This function implements model-assisted inference for population means with missing data,
+using regularized calibrated estimation based on cross validation.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">mn.regu.cv(fold, nrho = NULL, rho.seq = NULL, y, tr, x, ploss = "cal",
+  yloss = "gaus", off = 0, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>fold</code></td>
+<td>
+<p>A vector of length 2 giving the fold numbers for cross validation in propensity score estimation and outcome regression respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nrho</code></td>
+<td>
+<p>A vector of length 2 giving the numbers of tuning parameters searched in cross validation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rho.seq</code></td>
+<td>
+<p>A list of two vectors giving the tuning parameters in propensity score estimation (first vector) and outcome regression (second vector).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>An <code class="reqn">n</code> x <code class="reqn">1</code> vector of outcomes with missing data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tr</code></td>
+<td>
+<p>An <code class="reqn">n</code> x <code class="reqn">1</code> vector of non-missing indicators (=1 if <code>y</code> is observed or 0 if <code>y</code> is missing).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>An <code class="reqn">n</code> x <code class="reqn">p</code> matix of covariates, used in both propensity score and outcome regression models.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ploss</code></td>
+<td>
+<p>A loss function used in propensity score estimation (either "ml" or "cal").</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yloss</code></td>
+<td>
+<p>A loss function used in outcome regression (either "gaus" for continuous outcomes or "ml" for binary outcomes).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>off</code></td>
+<td>
+<p>An offset value (e.g., the true value in simulations) used to calculate the z-statistic from augmented IPW estimation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments to <code>glm.regu.cv</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Two steps are involved in this function: first fitting propensity score and outcome regression models and then applying the augmented IPW estimator 
+for a population mean. For <code>ploss</code>="cal", regularized calibrated estimation is performed with cross validation as described in Tan (2020a, 2020b). 
+The method then leads to model-assisted inference, in which confidence intervals are valid with high-dimensinoal data 
+if the propensity score model is correctly specified but the outcome regression model may be misspecified.
+With linear outcome models, the inference is also doubly robust.
+For <code>ploss</code>="ml", regularized maximum likelihood estimation is used (Belloni et al. 2014; Farrell 2015). In this case, standard errors 
+are only shown to be valid if both the propensity score model and the outcome regression model are correctly specified.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>ps</code></td>
+<td>
+<p>A list containing the results from fitting the propensity score model by <code>glm.regu.cv</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fp</code></td>
+<td>
+<p>The <code class="reqn">n</code> x <code class="reqn">1</code> vector of fitted propensity scores.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>or</code></td>
+<td>
+<p>A list containing the results from fitting the outcome regression model by <code>glm.regu.cv</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fo</code></td>
+<td>
+<p>The <code class="reqn">n</code> x <code class="reqn">1</code> vector of fitted values from outcome regression.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>est</code></td>
+<td>
+<p>A list containing the results from augmented IPW estimation by <code>mn.aipw</code>.</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Belloni, A., Chernozhukov, V., and Hansen, C. (2014) Inference on treatment effects after selection among high-dimensional controls,
+<em>Review of Economic Studies</em>, 81, 608-650.
+</p>
+<p>Farrell, M.H. (2015) Robust inference on average treatment effects with possibly more covariates than observations, <em>Journal of Econometrics</em>, 189, 1-23.
+</p>
+<p>Tan, Z. (2020a) Regularized calibrated estimation of propensity scores with model misspecification and high-dimensional data, <em>Biometrika</em>, 107, 137–158.
+</p>
+<p>Tan, Z. (2020b) Model-assisted inference for treatment effects using regularized calibrated estimation with high-dimensional data, <em>Annals of Statistics</em>, 48, 811–837.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+data(simu.data)
+n &lt;- dim(simu.data)[1]
+p &lt;- dim(simu.data)[2]-2
+
+y &lt;- simu.data[,1]
+tr &lt;- simu.data[,2]
+x &lt;- simu.data[,2+1:p]
+x &lt;- scale(x)
+
+# missing data
+y[tr==0] &lt;- NA
+
+mn.cv.rcal &lt;- mn.regu.cv(fold=5*c(1,1), nrho=(1+10)*c(1,1), rho.seq=NULL, y, tr, x, 
+                         ploss="cal", yloss="gaus")
+unlist(mn.cv.rcal$est)
+
+
+</code></pre>
+
+
+</div>

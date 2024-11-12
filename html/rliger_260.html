@@ -1,0 +1,353 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>runOnlineINMF</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Perform online iNMF on scaled datasets</h2>
+
+<h3>Description</h3>
+
+<p>Perform online integrative non-negative matrix factorization to
+represent multiple single-cell datasets in terms of <code class="reqn">H</code>, <code class="reqn">W</code>, and
+<code class="reqn">V</code> matrices. It optimizes the iNMF objective function (see
+<code>runINMF</code>) using online learning (non-negative least squares for
+<code class="reqn">H</code> matrices, and hierarchical alternating least squares (HALS) for
+<code class="reqn">V</code> matrices and <code class="reqn">W</code>), where the number of factors is set by
+<code>k</code>. The function allows online learning in 3 scenarios:
+</p>
+
+<ol>
+<li>
+<p> Fully observed datasets;
+</p>
+</li>
+<li>
+<p> Iterative refinement using continually arriving datasets;
+</p>
+</li>
+<li>
+<p> Projection of new datasets without updating the existing factorization
+</p>
+</li>
+</ol>
+<p>All three scenarios require fixed memory independent of the number of cells.
+</p>
+<p>For each dataset, this factorization produces an <code class="reqn">H</code> matrix (k by cell),
+a <code class="reqn">V</code> matrix (genes by k), and a shared <code class="reqn">W</code>
+matrix (genes by k). The <code class="reqn">H</code> matrices represent the cell factor loadings.
+<code class="reqn">W</code> is identical among all datasets, as it represents the shared
+components of the metagenes across datasets. The <code class="reqn">V</code> matrices represent
+the dataset-specific components of the metagenes.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">runOnlineINMF(object, k = 20, lambda = 5, ...)
+
+## S3 method for class 'liger'
+runOnlineINMF(
+  object,
+  k = 20,
+  lambda = 5,
+  newDatasets = NULL,
+  projection = FALSE,
+  maxEpochs = 5,
+  HALSiter = 1,
+  minibatchSize = 5000,
+  WInit = NULL,
+  VInit = NULL,
+  AInit = NULL,
+  BInit = NULL,
+  seed = 1,
+  nCores = 2L,
+  verbose = getOption("ligerVerbose", TRUE),
+  ...
+)
+
+## S3 method for class 'Seurat'
+runOnlineINMF(
+  object,
+  k = 20,
+  lambda = 5,
+  datasetVar = "orig.ident",
+  layer = "ligerScaleData",
+  assay = NULL,
+  reduction = "onlineINMF",
+  maxEpochs = 5,
+  HALSiter = 1,
+  minibatchSize = 5000,
+  seed = 1,
+  nCores = 2L,
+  verbose = getOption("ligerVerbose", TRUE),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>liger object. Scaled data required.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>Inner dimension of factorization–number of metagenes. A value in
+the range 20-50 works well for most analyses. Default <code>20</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>Regularization parameter. Larger values penalize
+dataset-specific effects more strongly (i.e. alignment should increase as
+lambda increases). We recommend always using the default value except
+possibly for analyses with relatively small differences (biological
+replicates, male/female comparisons, etc.) in which case a lower value such
+as 1.0 may improve reconstruction quality. Default <code>5.0</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Arguments passed to other S3 methods of this function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newDatasets</code></td>
+<td>
+<p>Named list of dgCMatrix. New datasets for
+scenario 2 or scenario 3. Default <code>NULL</code> triggers scenario 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>projection</code></td>
+<td>
+<p>Whether to perform data integration with scenario 3 when
+<code>newDatasets</code> is specified. See description. Default <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxEpochs</code></td>
+<td>
+<p>The number of epochs to iterate through. See detail.
+Default <code>5</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>HALSiter</code></td>
+<td>
+<p>Maximum number of block coordinate descent (HALS
+algorithm) iterations to perform for each update of <code class="reqn">W</code> and <code class="reqn">V</code>.
+Default <code>1</code>. Changing this parameter is not recommended.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minibatchSize</code></td>
+<td>
+<p>Total number of cells in each minibatch. See detail.
+Default <code>5000</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>WInit, VInit, AInit, BInit</code></td>
+<td>
+<p>Optional initialization for <code class="reqn">W</code>, <code class="reqn">V</code>,
+<code class="reqn">A</code>, and <code class="reqn">B</code> matrices, respectively. Must be presented all together.
+See detail. Default <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>Random seed to allow reproducible results. Default <code>1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nCores</code></td>
+<td>
+<p>The number of parallel tasks to speed up the computation.
+Default <code>2L</code>. Only supported for platform with OpenMP support.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Logical. Whether to show information of the progress. Default
+<code>getOption("ligerVerbose")</code> or <code>TRUE</code> if users have not set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>datasetVar</code></td>
+<td>
+<p>Metadata variable name that stores the dataset source
+annotation. Default <code>"orig.ident"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>layer</code></td>
+<td>
+<p>For Seurat&gt;=4.9.9, the name of layer to retrieve input
+non-negative scaled data. Default <code>"ligerScaleData"</code>. For older Seurat,
+always retrieve from <code>scale.data</code> slot.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>assay</code></td>
+<td>
+<p>Name of assay to use. Default <code>NULL</code> uses current active
+assay.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reduction</code></td>
+<td>
+<p>Name of the reduction to store result. Also used as the
+feature key. Default <code>"onlineINMF"</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For performing scenario 2 or 3, a complete set of factorization result from
+a run of scenario 1 is required. Given the structure of a liger
+object, all of the required information can be retrieved automatically.
+Under the circumstance where users need customized information for existing
+factorization, arguments <code>WInit</code>, <code>VInit</code>, <code>AInit</code> and
+<code>BInit</code> are exposed. The requirements for these argument follows:
+</p>
+
+<ul>
+<li>
+<p>WInit - A matrix object of size <code class="reqn">m \times k</code>. (see
+<code>runINMF</code> for notation)
+</p>
+</li>
+<li>
+<p>VInit - A list object of matrices each of size <code class="reqn">m \times k</code>.
+Number of matrices should match with <code>newDatasets</code>.
+</p>
+</li>
+<li>
+<p>AInit - A list object of matrices each of size <code class="reqn">k \times k</code>.
+Number of matrices should match with <code>newDatasets</code>.
+</p>
+</li>
+<li>
+<p>BInit - A list object of matrices each of size <code class="reqn">m \times k</code>.
+Number of matrices should match with <code>newDatasets</code>.
+</p>
+</li>
+</ul>
+<p>Minibatch iterations is performed on small subset of cells. The exact
+minibatch size applied on each dataset is <code>minibatchSize</code> multiplied by
+the proportion of cells in this dataset out of all cells. In general,
+<code>minibatchSize</code> should be no larger than the number of cells in the
+smallest dataset (considering both <code>object</code> and <code>newDatasets</code>).
+Therefore, a smaller value may be necessary for analyzing very small
+datasets.
+</p>
+<p>An epoch is one completion of calculation on all cells after a number of
+iterations of minibatches. Therefore, the total number of iterations is
+determined by the setting of <code>maxEpochs</code>, total number of cells, and
+<code>minibatchSize</code>.
+</p>
+<p>Currently, Seurat S3 method does not support working on Scenario 2 and 3,
+because there is no simple solution for organizing a number of miscellaneous
+matrices with a single Seurat object. We strongly recommend that users create
+a liger object which has the specific structure.
+</p>
+
+
+<h3>Value</h3>
+
+
+<ul>
+<li>
+<p>liger method - Returns updated input liger object.
+</p>
+
+<ul>
+<li>
+<p>A list of all <code class="reqn">H</code> matrices can be accessed with
+<code>getMatrix(object, "H")</code>
+</p>
+</li>
+<li>
+<p>A list of all <code class="reqn">V</code> matrices can be accessed with
+<code>getMatrix(object, "V")</code>
+</p>
+</li>
+<li>
+<p>The <code class="reqn">W</code> matrix can be accessed with
+<code>getMatrix(object, "W")</code>
+</p>
+</li>
+<li>
+<p>Meanwhile, intermediate matrices <code class="reqn">A</code> and <code class="reqn">B</code> produced in
+HALS update can also be accessed similarly.
+</p>
+</li>
+</ul>
+</li>
+<li>
+<p>Seurat method - Returns updated input Seurat object.
+</p>
+
+<ul>
+<li>
+<p><code class="reqn">H</code> matrices for all datasets will be concatenated and
+transposed (all cells by k), and form a DimReduc object in the
+<code>reductions</code> slot named by argument <code>reduction</code>.
+</p>
+</li>
+<li>
+<p><code class="reqn">W</code> matrix will be presented as <code>feature.loadings</code> in the
+same DimReduc object.
+</p>
+</li>
+<li>
+<p><code class="reqn">V</code> matrices, <code class="reqn">A</code> matrices, <code class="reqn">B</code> matricesm an objective
+error value and the dataset variable used for the factorization is
+currently stored in <code>misc</code> slot of the same DimReduc object.
+</p>
+</li>
+</ul>
+</li>
+</ul>
+<h3>References</h3>
+
+<p>Chao Gao and et al., Iterative single-cell multi-omic integration
+using online learning, Nat Biotechnol., 2021
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">pbmc &lt;- normalize(pbmc)
+pbmc &lt;- selectGenes(pbmc)
+pbmc &lt;- scaleNotCenter(pbmc)
+if (requireNamespace("RcppPlanc", quietly = TRUE)) {
+    # Scenario 1
+    pbmc &lt;- runOnlineINMF(pbmc, minibatchSize = 200)
+    # Scenario 2
+    # Fake new dataset by increasing all non-zero value in "ctrl" by 1
+    ctrl2 &lt;- rawData(dataset(pbmc, "ctrl"))
+    ctrl2@x &lt;- ctrl2@x + 1
+    colnames(ctrl2) &lt;- paste0(colnames(ctrl2), 2)
+    pbmc2 &lt;- runOnlineINMF(pbmc, k = 20, newDatasets = list(ctrl2 = ctrl2),
+                           minibatchSize = 100)
+    # Scenario 3
+    pbmc3 &lt;- runOnlineINMF(pbmc, k = 20, newDatasets = list(ctrl2 = ctrl2),
+                           projection = TRUE)
+}
+</code></pre>
+
+
+</div>

@@ -1,0 +1,312 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>import</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Import</h2>
+
+<h3>Description</h3>
+
+<p>Read in a data.frame from a file. Exceptions to this rule are Rdata, RDS, and JSON input file formats, which return the originally saved object without changing its class.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">import(
+  file,
+  format,
+  setclass = getOption("rio.import.class", "data.frame"),
+  which,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>file</code></td>
+<td>
+<p>A character string naming a file, URL, or single-file (can be Gzip or Bzip2 compressed), .zip or .tar archive.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>format</code></td>
+<td>
+<p>An optional character string code of file format, which can be used to override the format inferred from <code>file</code>. Shortcuts include: “,” (for comma-separated values), “;” (for semicolon-separated values), and “|” (for pipe-separated values).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>setclass</code></td>
+<td>
+<p>An optional character vector specifying one or more classes
+to set on the import. By default, the return object is always a
+“data.frame”. Allowed values include “tbl_df”, “tbl”, or
+“tibble” (if using tibble), “arrow”, “arrow_table” (if using arrow table; the suggested package <code>arrow</code> must be installed) or “data.table” (if using
+data.table). Other values are ignored, such that a data.frame is returned.
+The parameter takes precedents over parameters in ... which set a different class.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>which</code></td>
+<td>
+<p>This argument is used to control import from multi-object files; as a rule <code>import</code> only ever returns a single data frame (use <code>import_list()</code> to import multiple data frames from a multi-object file). If <code>file</code> is an archive format (zip and tar), <code>which</code> can be either a character string specifying a filename or an integer specifying which file (in locale sort order) to extract from the compressed directory. But please see the section <code>which</code> below. For Excel spreadsheets, this can be used to specify a sheet name or number. For .Rdata files, this can be an object name. For HTML files, it identifies which table to extract (from document order). Ignored otherwise. A character string value will be used as a regular expression, such that the extracted file is the first match of the regular expression against the file names in the archive.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments passed to the underlying import functions. For example, this can control column classes for delimited file types, or control the use of haven for Stata and SPSS or readxl for Excel (.xlsx) format. See details below.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function imports a data frame or matrix from a data file with the file format based on the file extension (or the manually specified format, if <code>format</code> is specified).
+</p>
+<p><code>import</code> supports the following file formats:
+</p>
+
+<ul>
+<li>
+<p> Comma-separated data (.csv), using <code>data.table::fread()</code>
+</p>
+</li>
+<li>
+<p> Pipe-separated data (.psv), using <code>data.table::fread()</code>
+</p>
+</li>
+<li>
+<p> Tab-separated data (.tsv), using <code>data.table::fread()</code>
+</p>
+</li>
+<li>
+<p> SAS (.sas7bdat), using <code>haven::read_sas()</code>
+</p>
+</li>
+<li>
+<p> SAS XPORT (.xpt), using <code>haven::read_xpt()</code>
+</p>
+</li>
+<li>
+<p> SPSS (.sav), using <code>haven::read_sav()</code>
+</p>
+</li>
+<li>
+<p> SPSS compressed (.zsav), using <code>haven::read_sav()</code>.
+</p>
+</li>
+<li>
+<p> Stata (.dta), using <code>haven::read_dta()</code>
+</p>
+</li>
+<li>
+<p> SPSS Portable Files (.por), using <code>haven::read_por()</code>.
+</p>
+</li>
+<li>
+<p> Excel (.xls and .xlsx), using <code>readxl::read_xlsx()</code> or <code>readxl::read_xls()</code>. Use <code>which</code> to specify a sheet number.
+</p>
+</li>
+<li>
+<p> R syntax object (.R), using <code>base::dget()</code>, see <code>trust</code> below.
+</p>
+</li>
+<li>
+<p> Saved R objects (.RData,.rda), using <code>base::load()</code> for single-object .Rdata files. Use <code>which</code> to specify an object name for multi-object .Rdata files. This can be any R object (not just a data frame), see <code>trust</code> below.
+</p>
+</li>
+<li>
+<p> Serialized R objects (.rds), using <code>base::readRDS()</code>. This can be any R object (not just a data frame), see <code>trust</code> below.
+</p>
+</li>
+<li>
+<p> Serialized R objects (.qs), using <code>qs::qread()</code>, which is
+significantly faster than .rds. This can be any R
+object (not just a data frame).
+</p>
+</li>
+<li>
+<p> Epiinfo (.rec), using <code>foreign::read.epiinfo()</code>
+</p>
+</li>
+<li>
+<p> Minitab (.mtp), using <code>foreign::read.mtp()</code>
+</p>
+</li>
+<li>
+<p> Systat (.syd), using <code>foreign::read.systat()</code>
+</p>
+</li>
+<li>
+<p> "XBASE" database files (.dbf), using <code>foreign::read.dbf()</code>
+</p>
+</li>
+<li>
+<p> Weka Attribute-Relation File Format (.arff), using <code>foreign::read.arff()</code>
+</p>
+</li>
+<li>
+<p> Data Interchange Format (.dif), using <code>utils::read.DIF()</code>
+</p>
+</li>
+<li>
+<p> Fortran data (no recognized extension), using <code>utils::read.fortran()</code>
+</p>
+</li>
+<li>
+<p> Fixed-width format data (.fwf), using a faster version of <code>utils::read.fwf()</code> that requires a <code>widths</code> argument and by default in rio has <code>stringsAsFactors = FALSE</code>
+</p>
+</li>
+<li> <p><a href="https://github.com/csvy">CSVY</a> (CSV with a YAML metadata header) using <code>data.table::fread()</code>.
+</p>
+</li>
+<li>
+<p> Apache Arrow Parquet (.parquet), using <code>nanoparquet::read_parquet()</code>
+</p>
+</li>
+<li>
+<p> Feather R/Python interchange format (.feather), using <code>arrow::read_feather()</code>
+</p>
+</li>
+<li>
+<p> Fast storage (.fst), using <code>fst::read.fst()</code>
+</p>
+</li>
+<li>
+<p> JSON (.json), using <code>jsonlite::fromJSON()</code>
+</p>
+</li>
+<li>
+<p> Matlab (.mat), using <code>rmatio::read.mat()</code>
+</p>
+</li>
+<li>
+<p> EViews (.wf1), using <code>hexView::readEViews()</code>
+</p>
+</li>
+<li>
+<p> OpenDocument Spreadsheet (.ods, .fods), using <code>readODS::read_ods()</code> or <code>readODS::read_fods()</code>.  Use <code>which</code> to specify a sheet number.
+</p>
+</li>
+<li>
+<p> Single-table HTML documents (.html), using <code>xml2::read_html()</code>. There is no standard HTML table and we have only tested this with HTML tables exported with this package. HTML tables will only be read correctly if the HTML file can be converted to a list via <code>xml2::as_list()</code>. This import feature is not robust, especially for HTML tables in the wild. Please use a proper web scraping framework, e.g. <code>rvest</code>.
+</p>
+</li>
+<li>
+<p> Shallow XML documents (.xml), using <code>xml2::read_xml()</code>. The data structure will only be read correctly if the XML file can be converted to a list via <code>xml2::as_list()</code>.
+</p>
+</li>
+<li>
+<p> YAML (.yml), using <code>yaml::yaml.load()</code>
+</p>
+</li>
+<li>
+<p> Clipboard import, using <code>utils::read.table()</code> with <code>row.names = FALSE</code>
+</p>
+</li>
+<li>
+<p> Google Sheets, as Comma-separated data (.csv)
+</p>
+</li>
+<li>
+<p> GraphPad Prism (.pzfx) using <code>pzfx::read_pzfx()</code>
+</p>
+</li>
+</ul>
+<p><code>import</code> attempts to standardize the return value from the various import functions to the extent possible, thus providing a uniform data structure regardless of what import package or function is used. It achieves this by storing any optional variable-related attributes at the variable level (i.e., an attribute for <code>mtcars$mpg</code> is stored in <code>attributes(mtcars$mpg)</code> rather than <code>attributes(mtcars)</code>). If you would prefer these attributes to be stored at the data.frame-level (i.e., in <code>attributes(mtcars)</code>), see <code>gather_attrs()</code>.
+</p>
+<p>After importing metadata-rich file formats (e.g., from Stata or SPSS), it may be helpful to recode labelled variables to character or factor using <code>characterize()</code> or <code>factorize()</code> respectively.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A data frame. If <code>setclass</code> is used, this data frame may have additional class attribute values, such as “tibble” or “data.table”.
+</p>
+
+
+<h3>Trust</h3>
+
+<p>For serialization formats (.R, .RDS, and .RData), please note that you should only load these files from trusted sources. It is because these formats are not necessarily for storing rectangular data and can also be used to store many things, e.g. code. Importing these files could lead to arbitary code execution. Please read the security principles by the R Project (Plummer, 2024). When importing these files via <code>rio</code>, you should affirm that you trust these files, i.e. <code>trust = TRUE</code>. See example below. If this affirmation is missing, the current version assumes <code>trust</code> to be true for backward compatibility and a deprecation notice will be printed. In the next major release (2.0.0), you must explicitly affirm your trust when importing these files.
+</p>
+
+
+<h3>Which</h3>
+
+<p>For compressed archives (zip and tar, where a compressed file can contain multiple files), it is possible to come to a situation where the parameter <code>which</code> is used twice to indicate two different concepts. For example, it is unclear for <code>.xlsx.zip</code>whether <code>which</code> refers to the selection of an exact file in the archive or the selection of an exact sheet in the decompressed Excel file. In these cases, <code>rio</code> assumes that <code>which</code> is only used for the selection of file. After the selection of file with <code>which</code>, <code>rio</code> will return the first item, e.g. the first sheet.
+</p>
+<p>Please note, however, <code>.gz</code> and <code>.bz2</code> (e.g. <code>.xlsx.gz</code>) are compressed, but not archive format. In those cases, <code>which</code> is used the same way as the non-compressed format, e.g. selection of sheet for Excel.
+</p>
+
+
+<h3>Note</h3>
+
+<p>For csv and txt files with row names exported from <code>export()</code>, it may be helpful to specify <code>row.names</code> as the column of the table which contain row names. See example below.
+</p>
+
+
+<h3>References</h3>
+
+<p>Plummer, M (2024). Statement on CVE-2024-27322. <a href="https://blog.r-project.org/2024/05/10/statement-on-cve-2024-27322/">https://blog.r-project.org/2024/05/10/statement-on-cve-2024-27322/</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>import_list()</code>, <code>characterize()</code>, <code>gather_attrs()</code>, <code>export()</code>, <code>convert()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## For demo, a temp. file path is created with the file extension .csv
+csv_file &lt;- tempfile(fileext = ".csv")
+## .xlsx
+xlsx_file &lt;- tempfile(fileext = ".xlsx")
+## create CSV to import
+export(iris, csv_file)
+## specify `format` to override default format: see export()
+export(iris, xlsx_file, format = "csv")
+
+## basic
+import(csv_file)
+
+## You can certainly import your data with the file name, which is not a variable:
+## import("starwars.csv"); import("mtcars.xlsx")
+
+## Override the default format
+## import(xlsx_file) # Error, it is actually not an Excel file
+import(xlsx_file, format = "csv")
+
+## import CSV as a `data.table`
+import(csv_file, setclass = "data.table")
+
+## import CSV as a tibble (or "tbl_df")
+import(csv_file, setclass = "tbl_df")
+
+## pass arguments to underlying import function
+## data.table::fread is the underlying import function and `nrows` is its argument
+import(csv_file, nrows = 20)
+
+## data.table::fread has an argument `data.table` to set the class explicitely to data.table. The
+## argument setclass, however, takes precedents over such undocumented features.
+class(import(csv_file, setclass = "tibble", data.table = TRUE))
+
+## the default import class can be set with options(rio.import.class = "data.table")
+## options(rio.import.class = "tibble"), or options(rio.import.class = "arrow")
+
+## Security
+rds_file &lt;- tempfile(fileext = ".rds")
+export(iris, rds_file)
+
+## You should only import serialized formats from trusted sources
+## In this case, you can trust it because it's generated by you.
+import(rds_file, trust = TRUE)
+</code></pre>
+
+
+</div>

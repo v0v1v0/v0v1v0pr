@@ -1,0 +1,196 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>setTolerance</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>setTolerance</h2>
+
+<h3>Description</h3>
+
+<p>Set the tolerance for the solver
+</p>
+<p>Set the tolerance for the solver
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">setTolerance(object, tol)
+
+setTolerance(object, ...) &lt;- value
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>a class object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>tolerance</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional parameters</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>value</code></td>
+<td>
+<p>a value to set</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Sets the tolerance like this: odeSolver &lt;- setTolerance(odeSolver, tol)
+</p>
+<p>Sets the tolerance like this: setTolerance(odeSolver) &lt;- tol
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># ++++++++++++++++++++++++++++++++++++++++++++++++  example: ComparisonRK45App.R
+# Compares the solution by the RK45 ODE solver versus the analytical solution
+# Example file: ComparisonRK45App.R
+# ODE Solver:   Runge-Kutta 45
+# ODE class :   RK45
+# Base class:   ODETest
+
+importFromExamples("ODETest.R")
+
+ ComparisonRK45App &lt;- function(verbose = FALSE) {
+     ode &lt;- new("ODETest")                     # create an `ODETest` object
+     ode_solver &lt;- RK45(ode)                   # select the ODE solver
+     ode_solver &lt;- setStepSize(ode_solver, 1)      # set the step
+
+     # Two ways of setting the tolerance
+       # ode_solver &lt;- setTolerance(ode_solver, 1e-8)  # set the tolerance
+     setTolerance(ode_solver) &lt;-  1e-8
+
+     time &lt;-  0
+     rowVector &lt;- vector("list")
+     i &lt;- 1
+     while (time &lt; 50) {
+         rowVector[[i]] &lt;- list(t  = getState(ode)[2],
+                                s1 = getState(ode)[1],
+                                s2 = getState(ode)[2],
+                                xs = getExactSolution(ode, time),
+                                counts = getRateCounts(ode),
+                                time   = time
+                                )
+         ode_solver &lt;- step(ode_solver)           # advance one step
+         stepSize   &lt;- getStepSize(ode_solver)
+         time &lt;- time + stepSize
+         ode  &lt;- getODE(ode_solver)                     # get updated ODE object
+         i &lt;- i + 1
+     }
+     return(data.table::rbindlist(rowVector))    # a data table with the results
+ }
+# show solution
+solution &lt;- ComparisonRK45App()                          # run the example
+plot(solution)
+# ++++++++++++++++++++++++++++++++++++++++++ example: KeplerDormandPrince45App.R
+# Demostration of the use of ODE solver RK45 for a particle subjected to
+# a inverse-law force. The difference with the example KeplerApp is we are
+# seeing the effect in thex and y axis on the particle.
+# The original routine used the Verlet ODE solver
+
+importFromExamples("KeplerDormandPrince45.R")
+
+set_solver &lt;- function(ode_object, solver) {
+    slot(ode_object, "odeSolver") &lt;- solver
+    ode_object
+}
+
+KeplerDormandPrince45App &lt;- function(verbose = FALSE) {
+    # values for the examples
+    x  &lt;- 1
+    vx &lt;- 0
+    y  &lt;- 0
+    vy &lt;- 2 * pi
+    dt &lt;- 0.01          # step size
+    tol &lt;- 1e-3         # tolerance
+    particle  &lt;- KeplerDormandPrince45()                      # use class Kepler
+
+    # Two ways of initializing the ODE object
+      # particle  &lt;- init(particle, c(x, vx, y, vy, 0))  # enter state vector
+    init(particle) &lt;- c(x, vx, y, vy, 0)
+
+    odeSolver &lt;- DormandPrince45(particle)      # select the ODE solver
+
+    # Two ways of initializing the solver
+      # odeSolver &lt;- init(odeSolver, dt)            # start the solver
+    init(odeSolver) &lt;-  dt
+
+    # Two ways of setting the tolerance
+      # odeSolver &lt;- setTolerance(odeSolver, tol) # this works for adaptive solvers
+    setTolerance(odeSolver) &lt;- tol
+    setSolver(particle) &lt;-  odeSolver
+
+    initialEnergy &lt;- getEnergy(particle)        # calculate the energy
+    rowVector &lt;- vector("list")
+    i &lt;- 1
+    while (getTime(particle) &lt; 1.5) {
+    rowVector[[i]] &lt;- list(t  = getState(particle)[5],
+                           x  = getState(particle)[1],
+                           vx = getState(particle)[2],
+                           y  = getState(particle)[3],
+                           vx = getState(particle)[4],
+                           energy = getEnergy(particle) )
+        particle &lt;- doStep(particle)            # advance one step
+        energy   &lt;- getEnergy(particle)         # calculate energy
+        i &lt;- i + 1
+    }
+    DT &lt;- data.table::rbindlist(rowVector)
+    return(DT)
+}
+
+solution &lt;- KeplerDormandPrince45App()
+plot(solution)
+
+
+importFromExamples("AdaptiveStep.R")
+
+# running function
+AdaptiveStepApp &lt;- function(verbose = FALSE) {
+    ode        &lt;- new("Impulse")
+    ode_solver &lt;- RK45(ode)
+
+    # Two ways to initialize the solver
+      # ode_solver &lt;- init(ode_solver, 0.1)
+    init(ode_solver) &lt;- 0.1
+
+    # two ways to set tolerance
+      # ode_solver &lt;- setTolerance(ode_solver, 1.0e-4)
+    setTolerance(ode_solver) &lt;- 1.0e-4
+
+    i &lt;- 1; rowVector &lt;- vector("list")
+    while (getState(ode)[1] &lt; 12) {
+        rowVector[[i]] &lt;- list(s1 = getState(ode)[1],
+                               s2 = getState(ode)[2],
+                               t  = getState(ode)[3])
+        ode_solver &lt;- step(ode_solver)
+        ode &lt;- getODE(ode_solver)
+        i &lt;- i + 1
+    }
+    return(data.table::rbindlist(rowVector))
+}
+
+# run application
+solution &lt;- AdaptiveStepApp()
+plot(solution)
+</code></pre>
+
+
+</div>

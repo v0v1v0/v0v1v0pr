@@ -1,0 +1,324 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>MVA.cmv</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Cross model validation
+</h2>
+
+<h3>Description</h3>
+
+<p>Performs cross model validation (2CV) with different PLS analyses.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">MVA.cmv(X, Y, repet = 10, kout = 7, kinn = 6, ncomp = 8, scale = TRUE,
+  model = c("PLSR", "CPPLS", "PLS-DA", "PPLS-DA", "PLS-DA/LDA", "PLS-DA/QDA",
+  "PPLS-DA/LDA", "PPLS-DA/QDA"), crit.inn = c("RMSEP", "Q2", "NMC"),
+  Q2diff = 0.05, lower = 0.5, upper = 0.5, Y.add = NULL, weights = rep(1, nrow(X)),
+  set.prior = FALSE, crit.DA = c("plug-in", "predictive", "debiased"), ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+
+<p>a data frame of independent variables.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+
+<p>the dependent variable(s): numeric vector, data frame of quantitative variables or factor.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>repet</code></td>
+<td>
+
+<p>an integer giving the number of times the whole 2CV procedure has to be repeated.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kout</code></td>
+<td>
+
+<p>an integer giving the number of folds in the outer loop (can be re-set internally if needed).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kinn</code></td>
+<td>
+
+<p>an integer giving the number of folds in the inner loop (can be re-set internally if needed). Cannot be <code>&gt; kout</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncomp</code></td>
+<td>
+
+<p>an integer giving the maximal number of components to be tested in the inner loop (can be re-set depending on the size of the train sets).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+
+<p>logical indicating if data should be scaled (see Details).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+
+<p>the model to be fitted (see Details).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>crit.inn</code></td>
+<td>
+
+<p>the criterion to be used to choose the number of components in the inner loop. Root Mean Square Error of Prediction (<code>"RMSEP"</code>, default) and Q2 (<code>"Q2"</code>) are only used for PLSR and CPPLS, whereas the Number of MisClassifications (<code>"NMC"</code>) is only used for discriminant analyses.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Q2diff</code></td>
+<td>
+
+<p>the threshold to be used if the number of components is chosen according to Q2. The next component is added only if it makes the Q2 increase more than <code>Q2diff</code> (5% by default).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lower</code></td>
+<td>
+
+<p>a vector of lower limits for power optimisation in CPPLS or PPLS-DA (see <code>cppls.fit</code>).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>upper</code></td>
+<td>
+
+<p>a vector of upper limits for power optimisation in CPPLS or PPLS-DA (see <code>cppls.fit</code>).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y.add</code></td>
+<td>
+
+<p>a vector or matrix of additional responses containing relevant information about the observations, in CPPLS or PPLS-DA (see <code>cppls.fit</code>).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+
+<p>a vector of individual weights for the observations, in CPPLS or PPLS-DA (see <code>cppls.fit</code>).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>set.prior</code></td>
+<td>
+
+<p>only used when a second analysis (LDA or QDA) is performed. If <code>TRUE</code>, the prior probabilities of class membership are defined according to the mean weight of individuals belonging to each class. If <code>FALSE</code>, prior probabilities are obtained from the data sets on which LDA/QDA models are built.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>crit.DA</code></td>
+<td>
+
+<p>criterion used to predict class membership when a second analysis (LDA or QDA) is used. See <code>predict.lda</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>other arguments to pass to <code>plsr</code> (PLSR, PLS-DA) or <code>cppls</code> (CPPLS, PPLS-DA).
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Cross model validation is detailed is Szymanska et al (2012). Some more details about how this function works:
+</p>
+<p>- when a discriminant analysis is used (<code>"PLS-DA"</code>, <code>"PPLS-DA"</code>, <code>"PLS-DA/LDA"</code>, <code>"PLS-DA/QDA"</code>, <code>"PPLS-DA/LDA"</code> or <code>"PPLS-DA/QDA"</code>), the training sets (test set itself in the inner loop, test+validation sets in the outer loop) are generated in respect to the relative proportions of the levels of <code>Y</code> in the original data set (see <code>splitf</code>).
+</p>
+<p>- <code>"PLS-DA"</code> is considered as PLS2 on a dummy-coded response. For a PLS-DA based on the CPPLS algorithm, use <code>"PPLS-DA"</code> with <code>lower</code> and <code>upper</code> limits of the power parameters set to <code>0.5</code>.
+</p>
+<p>- if a second analysis is used (<code>"PLS-DA/LDA"</code>, <code>"PLS-DA/QDA"</code>, <code>"PPLS-DA/LDA"</code> or <code>"PPLS-DA/QDA"</code>), a LDA or QDA is built on scores of the first analysis (PLS-DA or PPLS-DA) also in the inner loop. The classification error rate, based on this second analysis, is used to choose the number of components.
+</p>
+<p>If <code>scale = TRUE</code>, the scaling is done as this:
+</p>
+<p>- for each step of the outer loop (i.e. <code>kout</code> steps), the rest set is pre-processed by centering and unit-variance scaling. Means and standard deviations of variables in the rest set are then used to scale the test set.
+</p>
+<p>- for each step of the inner loop (i.e. <code>kinn</code> steps), the training set is pre-processed by centering and unit-variance scaling. Means and standard deviations of variables in the training set are then used to scale the validation set.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>model used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>type of model used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>repet</code></td>
+<td>
+<p>number of times the whole 2CV procedure was repeated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kout</code></td>
+<td>
+<p>number of folds in the outer loop.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kinn</code></td>
+<td>
+<p>number of folds in the inner loop.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>crit.inn</code></td>
+<td>
+<p>criterion used to choose the number of components in the inner loop.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>crit.DA</code></td>
+<td>
+<p>criterion used to classify individuals of the test and validation sets.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Q2diff</code></td>
+<td>
+<p>threshold used if the number of components is chosen according to Q2.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>groups</code></td>
+<td>
+<p>levels of <code>Y</code> if it is a factor.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>models.list</code></td>
+<td>
+<p>list of of models generated (<code>repet*kout</code> models), for PLSR, CPPLS, PLS-DA and PPLS-DA.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>models1.list</code></td>
+<td>
+<p>list of of (P)PLS-DA models generated (<code>repet*kout</code> models), for PLS-DA/LDA, PLS-DA/QDA, PPLS-DA/LDA and PPLS-DA/QDA.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>models2.list</code></td>
+<td>
+<p>list of of LDA/QDA models generated (<code>repet*kout</code> models), for PLS-DA/LDA, PLS-DA/QDA, PPLS-DA/LDA and PPLS-DA/QDA.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>RMSEP</code></td>
+<td>
+<p>RMSEP computed from the models used in the outer loops (<code>repet</code> values).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Q2</code></td>
+<td>
+<p>Q2 computed from the models used in the outer loops (<code>repet</code> values).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>NMC</code></td>
+<td>
+<p>Classification error rate computed from the models used in the outer loops (<code>repet</code> values).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>confusion</code></td>
+<td>
+<p>Confusion matrices computed from the models used in the outer loops (<code>repet</code> values).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pred.prob</code></td>
+<td>
+<p>Probability of each individual of being of each level of <code>Y</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Maxime HERVE &lt;maxime.herve@univ-rennes1.fr&gt;
+</p>
+
+
+<h3>References</h3>
+
+<p>Szymanska E, Saccenti E, Smilde AK and Westerhuis J (2012) Double-check: validation of diagnostic statistics for PLS-DA models in metabolomics studies. Metabolomics (2012) 8:S3-S16.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>predict.MVA.cmv</code>, <code>mvr</code>, <code>lda</code>, <code>qda</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">require(pls)
+require(MASS)
+
+# PLSR
+data(yarn)
+## Not run: MVA.cmv(yarn$NIR,yarn$density,model="PLSR")
+
+# PPLS-DA coupled to LDA
+data(mayonnaise)
+## Not run: MVA.cmv(mayonnaise$NIR,factor(mayonnaise$oil.type),model="PPLS-DA/LDA",crit.inn="NMC")
+</code></pre>
+
+
+</div>

@@ -1,0 +1,179 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>reclas</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Recursive Robust Median-like Location and Scale</h2>
+
+<h3>Description</h3>
+
+<p>Calculate an estimate of location, asymptotically
+equivalent to the median, and an estimate of scale
+equal to the <b>MEAN</b> absolute deviation.  Both
+done recursively.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">
+reclas(y, b = 0.2, mfn = function(n) 0.1 * n^(-0.25),
+     nstart = 30, m0 = median(y0),
+     scon=NULL, updateScale = is.null(scon))
+
+
+
+
+
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>numeric vector of i.i.d. data whose location and scale
+parameters are to be estimated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>b</code></td>
+<td>
+<p>numeric tuning parameter (default value equal to that used by
+Holst, 1987).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mfn</code></td>
+<td>
+<p>a <code>function</code> of the index of the data which
+must be positive and and tend to 0 as the index tends to infinity.
+The default function is that used by Holst, 1987.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nstart</code></td>
+<td>
+<p>number of starting values: Starting values for the
+algorithm are formed from the first <code>nstart</code> values of
+<code>y</code>.  The default value is that used in Cameron and Turner, 1993.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m0</code></td>
+<td>
+<p>value for the initial approximate median; by default, the
+<code>median</code> of the first <code>nstart</code> observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scon</code></td>
+<td>
+<p>value for the scale parameter <code>s</code>, a
+<code>function</code> or <code>NULL</code>. When <code>NULL</code>, as by
+default, the scale is initialized to the mean of the absolute
+differences between the first <code>nstart</code> y values and <code>m0</code>.
+If scon is a function, the initial scale is set to <code>scon(y0, m0)</code>,
+where <code>y0</code> is the vector of the first <code>nstart</code> y values.
+Note that <code>scon</code> also determines the default for <code>updateScale</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>updateScale</code></td>
+<td>
+<p>a logical indicating if the scale, initialized
+from <code>scon</code> should be updated in each iteration.  Otherwise, the
+the scale is held constant throughout and the algorithm becomes
+equivalent to the algorithm of Holst.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An S3 “object” of <code>class</code> <code>"reclas"</code>; simply a
+list with entries
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>locn</code></td>
+<td>
+<p>the successive recursive estimates of location.  The
+first <code>nstart - 1</code> of these are <code>NA</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>the successive recursive estimates of scale <b>if</b>
+<code>updateScale</code> is true; otherwise the constant value used for
+the scale.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>updateScale</code></td>
+<td>
+<p>the same as the function argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>the function call, i.e., <code>match.call</code>.</p>
+</td>
+</tr>
+</table>
+<p>There is a <code>plot</code> method for <code>"reclas"</code>, see the
+examples.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p><a href="mailto:r.turner@auckland.ac.nz">r.turner@auckland.ac.nz</a>
+<a href="http://www.stat.auckland.ac.nz/~rolf">http://www.stat.auckland.ac.nz/~rolf</a>
+</p>
+<p>Extensions by Martin Maechler (<code>scon</code> as function;
+<code>updateScale</code>, <code>plot()</code>).
+</p>
+
+
+<h3>References</h3>
+
+<p>Cameron, Murray A. and Turner, T. Rolf (1993).
+Recursive location and scale estimators.
+<em>Commun. Statist. — Theory Meth.</em> <b>22</b>(9) 2503–2515.
+</p>
+<p>Holst, U. (1987).
+Recursive estimators of location.
+<em>Commun. Statist. — Theory Meth.</em> <b>16</b> (8) 2201–2226.
+</p>
+
+
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">set.seed(42)
+y &lt;- rt(10000, df = 1.5) # not quite Gaussian ...
+z1 &lt;- reclas(y)
+z3 &lt;- reclas(y, scon= 1  ) # correct fixed scale
+z4 &lt;- reclas(y, scon= 100) # wrong fixed scale
+z2 &lt;- reclas(y, # a more robust initial scale:
+           scon = function(y0, m0) robustbase::Qn(y0 - m0),
+           updateScale = TRUE) # still updated
+
+## Visualizing -- using the plot() method for "reclas":
+M &lt;- median(y) ; yl &lt;- c(-1,1)* 0.5
+OP &lt;- par(mfrow=c(2,2), mar=.1+c(3,3,1,1), mgp=c(1.5, .6, 0))
+ plot(z1, M=M, ylim=yl)
+ plot(z2, M=M, ylim=yl)
+ plot(z3, M=M, ylim=yl)
+ plot(z4, M=M, ylim=yl)
+par(OP)
+</code></pre>
+
+
+</div>

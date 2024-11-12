@@ -1,0 +1,196 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>roc.curve</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>ROC and precision-recall curves for random Uniform Forests
+</h2>
+
+<h3>Description</h3>
+
+<p>plot ROC and precision-recall curves for objects of class randomUniformForest and compute F-beta score. It also works for any other model that provides predicted labels (but only for ROC curve).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">roc.curve(X, Y, classes,
+	positive = classes[2],
+	ranking.threshold = 0,
+	ranking.values = 0,
+	falseDiscoveryRate = FALSE,
+	plotting = TRUE,
+	printValues = TRUE,
+	Beta = 1)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+
+<p>a vector (or a factor) of predictions (with two classes) or an object of class randomUniformForest (with OOB option enabled).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+
+<p>a vector of numeric (integer) responses, or a factor, with two classes.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>classes</code></td>
+<td>
+
+<p>a vector (or a factor) of values that designate the class.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>positive</code></td>
+<td>
+
+<p>convention for the positive class (e.g. the minority class).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ranking.threshold</code></td>
+<td>
+
+<p>option currently implemented but not fully tested.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ranking.values</code></td>
+<td>
+
+<p>option currently implemented but not fully tested.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>falseDiscoveryRate</code></td>
+<td>
+
+<p>if TRUE, precision-recall curve is plotted. if FALSE, default value, ROC curve is plotted.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plotting</code></td>
+<td>
+
+<p>plotting the ROC curve ?
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>printValues</code></td>
+<td>
+
+<p>display values to screen ?
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Beta</code></td>
+<td>
+
+<p>'beta' value for F-beta score.
+</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Saip Ciss <a href="mailto:saip.ciss@wanadoo.fr">saip.ciss@wanadoo.fr</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>importance.randomUniformForest</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Classification : "breast cancer" data 
+# http://archive.ics.uci.edu/ml/datasets/Breast+Cancer+Wisconsin+(Diagnostic)
+
+data(breastCancer)
+breastCancer.data &lt;- breastCancer
+
+# remove ID (first column) and divide data in train and test set
+breastCancer.data = breastCancer.data[,-1]
+
+n &lt;- nrow(breastCancer.data)
+p &lt;- ncol(breastCancer.data)
+
+trainTestIdx &lt;- cut(sample(1:n, n), 2, labels= FALSE)
+
+# train examples
+breastCancer.data.train &lt;- breastCancer.data[trainTestIdx == 1, -p]
+breastCancer.class.train &lt;- as.factor(breastCancer.data[trainTestIdx == 1, p])
+
+# rename class in benign (class 2) and malignant (class 4) to have a better view
+levels(breastCancer.class.train) = c("benign", "malignant")
+
+# test data
+breastCancer.data.test &lt;- breastCancer.data[trainTestIdx == 2, -p]
+breastCancer.class.test &lt;- as.factor(breastCancer.data[trainTestIdx == 2, p])
+
+levels(breastCancer.class.test) = c("benign", "malignant")
+
+# compute model : train then test in the same function and assign class weights 
+# to better match the distribution (OOB errors and Breiman's bounds can help to choose weights)
+# Note that in this case 'recall' (or sensitivity) is the objective, 
+# e.g. match all possible cases of malignant tumours even if false positive rate increase 
+#(in this latter case, further steps will reveal the truth). If malignant tumour is not detected, 
+# then diagnosis error is, by far, more critical.
+breastCancer.ruf  &lt;- randomUniformForest(breastCancer.data.train, breastCancer.class.train, 
+xtest = breastCancer.data.test, ytest = breastCancer.class.test, 
+classwt = c(1, 3.5), threads = 2, ntree = 40, BreimanBounds = FALSE)
+
+# get a summary of model
+breastCancer.ruf
+
+## plot ROC Curve for test data
+# roc.curve(breastCancer.ruf, breastCancer.class.test, levels(breastCancer.class.test)) 
+
+## plot precision-recall curve for test data
+# roc.curve(breastCancer.ruf, breastCancer.class.test, levels(breastCancer.class.test),
+# falseDiscoveryRate = TRUE)
+
+## associate cut-off and purely random forest as an alternative to find maximum malignant cases 
+## with a low false positive rate. 
+## 'classcutoff' option is a bit tricky. Let's take the example we will use below.
+## classcutoff = c("benign", 1.25) means that number of votes for class "benign" 
+## will be weighted by 0.4 (= Cte/1.25, where Cte = 0.5) for each response.
+## Hence "benign" will never have majority unless it has 2.5 (1.25/0.5) times more votes 
+## than "malignant" class and all votes sum to total number of trees.
+# breastCancer.cutOff.ruf &lt;- randomUniformForest(breastCancer.data.train, breastCancer.class.train, 
+# xtest = breastCancer.data.test, ytest = breastCancer.class.test, classcutoff = c("benign", 1.25), 
+# randomfeature = TRUE, ntree = 50, threads = 2, BreimanBounds = FALSE)
+
+# roc.curve(breastCancer.cutOff.ruf, breastCancer.class.test, levels(breastCancer.class.test)) 
+# roc.curve(breastCancer.cutOff.ruf, breastCancer.class.test, levels(breastCancer.class.test),
+# falseDiscoveryRate = TRUE)
+
+## evaluate OOB data, when there is no test set
+# breastCancer.ruf &lt;- randomUniformForest(breastCancer.data.train, breastCancer.class.train,
+# classwt = c(1, 3.5), threads = 2)
+# roc.curve(breastCancer.ruf, breastCancer.class.train, levels(breastCancer.class.train)) 
+</code></pre>
+
+
+</div>

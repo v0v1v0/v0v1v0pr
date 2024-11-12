@@ -1,0 +1,755 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>tran.2D</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+General Two-Dimensional Advective-Diffusive Transport
+</h2>
+
+<h3>Description</h3>
+
+<p>Estimates the transport term (i.e. the rate of change of a concentration
+due to diffusion and advection) in a two-dimensional model domain.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">tran.2D (C, C.x.up = C[1,], C.x.down = C[nrow(C),],
+         C.y.up = C[,1], C.y.down = C[ ,ncol(C)],
+         flux.x.up = NULL, flux.x.down = NULL, 
+         flux.y.up = NULL, flux.y.down = NULL,
+         a.bl.x.up = NULL, a.bl.x.down = NULL, 
+         a.bl.y.up = NULL, a.bl.y.down = NULL, 
+         D.grid = NULL, D.x = NULL, D.y = D.x,
+         v.grid = NULL, v.x = 0, v.y = 0,
+         AFDW.grid = NULL, AFDW.x = 1, AFDW.y = AFDW.x,
+         VF.grid = NULL, VF.x = 1, VF.y = VF.x,
+         A.grid = NULL, A.x = 1, A.y = 1,
+         grid = NULL, dx = NULL, dy = NULL,
+         full.check = FALSE, full.output = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>C </code></td>
+<td>
+<p>concentration, expressed per unit volume, defined at the centre
+of each grid cell; Nx*Ny matrix [M/L3].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>C.x.up </code></td>
+<td>
+<p>concentration at upstream boundary in x-direction;
+vector of length Ny [M/L3].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>C.x.down </code></td>
+<td>
+<p>concentration at downstream boundary in x-direction;
+vector of length Ny [M/L3].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>C.y.up </code></td>
+<td>
+<p>concentration at upstream boundary in y-direction;
+vector of length Nx [M/L3].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>C.y.down </code></td>
+<td>
+<p>concentration at downstream boundary in y-direction;
+vector of length Nx [M/L3].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flux.x.up </code></td>
+<td>
+<p>flux across the upstream boundary in x-direction,
+positive = INTO model domain; vector of length Ny [M/L2/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flux.x.down </code></td>
+<td>
+<p>flux across the downstream boundary in x-direction,
+positive = OUT of model domain; vector of length Ny [M/L2/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flux.y.up </code></td>
+<td>
+<p>flux across the upstream boundary in y-direction,
+positive = INTO model domain; vector of length Nx [M/L2/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flux.y.down </code></td>
+<td>
+<p>flux across the downstream boundary in y-direction,
+positive = OUT of model domain; vector of length Nx [M/L2/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>a.bl.x.up </code></td>
+<td>
+<p>transfer coefficient across the upstream boundary layer.
+in x-direction;
+</p>
+<p><code>Flux=a.bl.x.up*(C.x.up-C[1,])</code>. One value [L/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>a.bl.x.down </code></td>
+<td>
+<p>transfer coefficient across the downstream boundary
+layer in x-direction;
+</p>
+<p><code>Flux=a.bl.x.down*(C[Nx,]-C.x.down)</code>.
+One value [L/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>a.bl.y.up </code></td>
+<td>
+<p>transfer coefficient across the upstream boundary layer.
+in y-direction;
+</p>
+<p><code>Flux=a.bl.y.up*(C.y.up-C[,1])</code>. One value [L/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>a.bl.y.down </code></td>
+<td>
+<p>transfer coefficient across the downstream boundary
+layer in y-direction;
+</p>
+<p><code>Flux=a.bl.y.down*(C[,Ny]-C.y.down)</code>.
+One value [L/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>D.grid </code></td>
+<td>
+<p>diffusion coefficient defined on all grid cell
+interfaces. A <code>prop.2D</code> list created by <code>setup.prop.2D</code> [L2/T].
+See last example for creating spatially-varying diffusion coefficients.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>D.x </code></td>
+<td>
+<p>diffusion coefficient in x-direction, defined on grid cell
+interfaces. One value, a vector of length (Nx+1),
+a <code>prop.1D</code> list created by <code>setup.prop.1D</code>,
+or a (Nx+1)* Ny matrix [L2/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>D.y </code></td>
+<td>
+<p>diffusion coefficient in y-direction, defined on grid cell
+interfaces. One value, a vector of length (Ny+1),
+a <code>prop.1D</code> list created by <code>setup.prop.1D</code>,
+or a Nx*(Ny+1) matrix [L2/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>v.grid </code></td>
+<td>
+<p>advective velocity defined on all grid cell
+interfaces. Can be positive (downstream flow) or negative (upstream flow).
+A <code>prop.2D</code> list created by <code>setup.prop.2D</code> [L/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>v.x </code></td>
+<td>
+<p>advective velocity in the x-direction, defined on grid cell
+interfaces. Can be positive (downstream flow) or negative (upstream flow).
+One value, a vector of length (Nx+1),
+a <code>prop.1D</code> list created by <code>setup.prop.1D</code>,
+or a (Nx+1)*Ny matrix [L/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>v.y </code></td>
+<td>
+<p>advective velocity in the y-direction, defined on grid cell
+interfaces. Can be positive (downstream flow) or negative (upstream flow).
+One value, a vector of length (Ny+1),
+a <code>prop.1D</code> list created by <code>setup.prop.1D</code>,
+or a Nx*(Ny+1) matrix [L/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>AFDW.grid </code></td>
+<td>
+<p>weight used in the finite difference scheme for advection
+in the x- and y- direction, defined on grid cell interfaces; backward = 1,
+centred = 0.5, forward = 0; default is backward.
+A <code>prop.2D</code> list created by <code>setup.prop.2D</code> [-].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>AFDW.x </code></td>
+<td>
+<p>weight used in the finite difference scheme for advection
+in the x-direction, defined on grid cell interfaces; backward = 1,
+centred = 0.5, forward = 0; default is backward.
+One value, a vector of length (Nx+1),
+a <code>prop.1D</code> list created by <code>setup.prop.1D</code>,
+or a (Nx+1)*Ny matrix [-].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>AFDW.y </code></td>
+<td>
+<p>weight used in the finite difference scheme for advection
+in the y-direction, defined on grid cell interfaces; backward = 1,
+centred = 0.5, forward = 0; default is backward.
+One value, a vector of length (Ny+1),
+a <code>prop.1D</code> list created by <code>setup.prop.1D</code>,
+or a Nx*(Ny+1) matrix [-].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>VF.grid </code></td>
+<td>
+<p>Volume fraction. A <code>prop.2D</code> list created by
+<code>setup.prop.2D</code> [-].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>VF.x </code></td>
+<td>
+<p>Volume fraction at the grid cell interfaces in the x-direction.
+One value, a vector of length (Nx+1),
+a <code>prop.1D</code> list created by <code>setup.prop.1D</code>,
+or a (Nx+1)*Ny matrix [-].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>VF.y </code></td>
+<td>
+<p>Volume fraction at the grid cell interfaces in the y-direction.
+One value, a vector of length (Ny+1),
+a <code>prop.1D</code> list created by <code>setup.prop.1D</code>,
+or a Nx*(Ny+1) matrix [-].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>A.grid </code></td>
+<td>
+<p>Interface area. A <code>prop.2D</code> list created by
+<code>setup.prop.2D</code> [L2].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>A.x </code></td>
+<td>
+<p>Interface area defined at the grid cell interfaces in
+the x-direction. One value, a vector of length (Nx+1),
+a <code>prop.1D</code> list created by <code>setup.prop.1D</code>,
+or a (Nx+1)*Ny matrix [L2].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>A.y </code></td>
+<td>
+<p>Interface area defined at the grid cell interfaces in
+the y-direction. One value, a vector of length (Ny+1),
+a <code>prop.1D</code> list created by <code>setup.prop.1D</code>,
+or a Nx*(Ny+1) matrix [L2].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dx </code></td>
+<td>
+<p>distance between adjacent cell interfaces in the x-direction
+(thickness of grid cells). One value or vector of length Nx [L].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dy </code></td>
+<td>
+<p>distance between adjacent cell interfaces in the y-direction
+(thickness of grid cells). One value or vector of length Ny [L].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grid </code></td>
+<td>
+<p>discretization grid, a list containing at least elements
+<code>dx</code>, <code>dx.aux</code>, <code>dy</code>, <code>dy.aux</code>
+(see <code>setup.grid.2D</code>) [L].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>full.check </code></td>
+<td>
+<p>logical flag enabling a full check of the consistency
+of the arguments (default = <code>FALSE</code>; <code>TRUE</code> slows down
+execution by 50 percent).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>full.output </code></td>
+<td>
+<p>logical flag enabling a full return of the output
+(default = <code>FALSE</code>; <code>TRUE</code> slows down execution by 20 percent).
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The <b>boundary conditions</b> are either
+</p>
+
+<ul>
+<li>
+<p> (1) zero-gradient
+</p>
+</li>
+<li>
+<p> (2) fixed concentration
+</p>
+</li>
+<li>
+<p> (3) convective boundary layer
+</p>
+</li>
+<li>
+<p> (4) fixed flux
+</p>
+</li>
+</ul>
+<p>This is also the order of priority. The zero gradient is the default,
+the fixed flux overrules all other.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a list containing:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>dC </code></td>
+<td>
+<p>the rate of change of the concentration C due to transport,
+defined in the centre of each grid cell, a Nx*Ny matrix. [M/L3/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>C.x.up </code></td>
+<td>
+<p>concentration at the upstream interface in x-direction.
+A vector of length Ny [M/L3]. Only when <code>full.output = TRUE</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>C.x.down </code></td>
+<td>
+<p>concentration at the downstream interface in x-direction.
+A vector of length Ny [M/L3]. Only when <code>full.output = TRUE</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>C.y.up </code></td>
+<td>
+<p>concentration at the the upstream interface in y-direction.
+A vector of length Nx [M/L3].  Only when <code>full.output = TRUE</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>C.y.down </code></td>
+<td>
+<p>concentration at the downstream interface in y-direction.
+A vector of length Nx [M/L3]. Only when <code>full.output = TRUE</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x.flux </code></td>
+<td>
+<p>flux across the interfaces in x-direction of the grid cells.
+A (Nx+1)*Ny matrix  [M/L2/T]. Only when <code>full.output = TRUE</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y.flux </code></td>
+<td>
+<p>flux across the interfaces in y-direction of the grid cells.
+A Nx*(Ny+1) matrix [M/L2/T].  Only when <code>full.output = TRUE</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flux.x.up </code></td>
+<td>
+<p>flux across the upstream boundary in x-direction,
+positive = INTO model domain. A vector of length Ny [M/L2/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flux.x.down </code></td>
+<td>
+<p>flux across the downstream boundary in x-direction,
+positive = OUT of model domain. A vector of length Ny [M/L2/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flux.y.up </code></td>
+<td>
+<p>flux across the upstream boundary in y-direction,
+positive = INTO model domain. A vector of length Nx [M/L2/T].
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flux.y.down </code></td>
+<td>
+<p>flux across the downstream boundary in y-direction,
+positive = OUT of model domain. A vector of length Nx [M/L2/T].
+</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>It is much more efficient to use the <em>grid</em> input rather than 
+vectors or single numbers. 
+</p>
+<p>Thus: to optimise the code, use setup.grid.2D to create the 
+<code>grid</code>, and use setup.prop.2D to create <code>D.grid</code>,
+<code>v.grid</code>, <code>AFDW.grid</code>, <code>VF.grid</code>, and <code>A.grid</code>,
+even if the values are 1 or remain constant.
+</p>
+<p>There is no provision (yet) to deal with <em>cross-diffusion</em>. 
+Set <code>D.x</code> and <code>D.y</code> different only if cross-diffusion effects
+are unimportant. 
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Filip Meysman &lt;filip.meysman@nioz.nl&gt;,
+Karline Soetaert &lt;karline.soetaert@nioz.nl&gt;
+</p>
+
+
+<h3>References</h3>
+
+<p>Soetaert and Herman, 2009. a practical guide to ecological modelling -
+using R as a simulation platform. Springer
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>tran.polar</code> for a discretisation of 2-D transport equations 
+in polar coordinates
+</p>
+<p><code>tran.1D</code>,   <code>tran.3D</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## =============================================================================
+## Testing the functions
+## =============================================================================
+# Parameters
+F        &lt;- 100             # input flux [micromol cm-2 yr-1]
+por      &lt;- 0.8             # constant porosity
+D        &lt;- 400             # mixing coefficient [cm2 yr-1]
+v        &lt;- 1               # advective velocity [cm yr-1]
+
+# Grid definition
+x.N &lt;- 4   # number of cells in x-direction
+y.N &lt;- 6   # number of cells in y-direction
+x.L &lt;- 8   # domain size x-direction [cm]
+y.L &lt;- 24  # domain size y-direction [cm]
+dx  &lt;- x.L/x.N             # cell size x-direction [cm]
+dy  &lt;- y.L/y.N             # cell size y-direction [cm]
+ 
+# Intial conditions 
+C &lt;- matrix(nrow = x.N, ncol = y.N, data = 0, byrow = FALSE)
+
+# Boundary conditions: fixed concentration  
+C.x.up   &lt;- rep(1, times = y.N)
+C.x.down &lt;- rep(0, times = y.N)
+C.y.up   &lt;- rep(1, times = x.N)
+C.y.down &lt;- rep(0, times = x.N)
+
+# Only diffusion 
+tran.2D(C = C, D.x = D, D.y = D, v.x = 0, v.y = 0,
+  VF.x = por, VF.y = por, dx = dx, dy = dy,
+  C.x.up = C.x.up, C.x.down = C.x.down,
+  C.y.up = C.y.up, C.y.down = C.y.down, full.output = TRUE)
+
+# Strong advection, backward (default), central and forward 
+#finite difference schemes 
+tran.2D(C = C, D.x = D, v.x = 100*v, 
+  VF.x = por, dx = dx, dy = dy,
+  C.x.up = C.x.up, C.x.down = C.x.down, 
+  C.y.up = C.y.up, C.y.down = C.y.down)
+  
+tran.2D(AFDW.x = 0.5, C = C, D.x = D, v.x = 100*v, 
+  VF.x = por, dx = dx, dy = dy,
+  C.x.up = C.x.up, C.x.down = C.x.down, 
+  C.y.up = C.y.up, C.y.down = C.y.down)
+
+tran.2D(AFDW.x = 0, C = C, D.x = D, v.x = 100*v, 
+  VF.x = por, dx = dx, dy = dy,
+  C.x.up = C.x.up, C.x.down = C.x.down, 
+  C.y.up = C.y.up, C.y.down = C.y.down)
+
+# Boundary conditions: fixed fluxes 
+
+flux.x.up &lt;- rep(200, times = y.N)
+flux.x.down &lt;- rep(-200, times = y.N)
+flux.y.up &lt;- rep(200, times = x.N)
+flux.y.down &lt;- rep(-200, times = x.N)
+tran.2D(C = C, D.x = D, v.x = 0, 
+  VF.x = por, dx = dx, dy = dy,
+  flux.x.up = flux.x.up, flux.x.down = flux.x.down,
+  flux.y.up = flux.y.up, flux.y.down = flux.y.down)
+
+# Boundary conditions: convective boundary layer on all sides
+
+a.bl &lt;- 800   # transfer coefficient
+C.x.up &lt;- rep(1, times = (y.N)) # fixed conc at boundary layer
+C.y.up &lt;- rep(1, times = (x.N)) # fixed conc at boundary layer
+tran.2D(full.output = TRUE, C = C, D.x = D, v.x = 0, 
+  VF.x = por, dx = dx, dy = dy, 
+  C.x.up   = C.x.up, a.bl.x.up = a.bl, 
+  C.x.down = C.x.up, a.bl.x.down = a.bl, 
+  C.y.up   = C.y.up, a.bl.y.up = a.bl,
+  C.y.down = C.y.up, a.bl.y.down = a.bl)
+
+# Runtime test with and without argument checking
+
+n.iterate &lt;-500
+
+test1 &lt;- function() {
+  for (i in 1:n.iterate )
+    ST &lt;- tran.2D(full.check = TRUE, C = C, D.x = D, 
+      v.x = 0, VF.x = por, dx = dx, dy = dy,
+      C.x.up = C.x.up, a.bl.x.up = a.bl, C.x.down = C.x.down)
+} 
+system.time(test1())
+
+test2 &lt;- function() {
+  for (i in 1:n.iterate )
+    ST &lt;- tran.2D(full.output = TRUE, C = C, D.x = D, 
+      v.x = 0, VF.x = por, dx = dx, dy = dy,
+      C.x.up = C.x.up, a.bl.x.up = a.bl, C.x.down = C.x.down)
+} 
+system.time(test2())
+
+test3 &lt;- function() {
+  for (i in 1:n.iterate )
+    ST &lt;- tran.2D(full.output = TRUE, full.check = TRUE, C = C,
+      D.x = D, v.x = 0, VF.x = por, dx = dx, dy = dy,
+      C.x.up = C.x.up, a.bl.x.up = a.bl, C.x.down = C.x.down)
+} 
+system.time(test3())
+
+## =============================================================================
+## A 2-D model with diffusion in x- and y direction and first-order
+## consumption - unefficient implementation
+## =============================================================================
+
+N     &lt;- 51          # number of grid cells
+XX    &lt;- 10           # total size
+dy    &lt;- dx &lt;- XX/N  # grid size
+Dy    &lt;- Dx &lt;- 0.1   # diffusion coeff, X- and Y-direction
+r     &lt;- 0.005       # consumption rate
+ini   &lt;- 1           # initial value at x=0
+
+N2  &lt;- ceiling(N/2)
+X   &lt;- seq (dx, by = dx, len = (N2-1))
+X   &lt;- c(-rev(X), 0, X)
+
+# The model equations
+
+Diff2D &lt;- function (t, y, parms)  {
+
+ CONC  &lt;- matrix(nrow = N, ncol = N, y)
+ dCONC &lt;- tran.2D(CONC, D.x = Dx, D.y = Dy, dx = dx, dy = dy)$dC + r * CONC
+
+ return (list(dCONC))
+
+}
+
+# initial condition: 0 everywhere, except in central point
+y &lt;- matrix(nrow = N, ncol = N, data = 0)
+y[N2, N2] &lt;- ini  # initial concentration in the central point...
+
+# solve for 10 time units
+times &lt;- 0:10
+out &lt;- ode.2D (y = y, func = Diff2D, t = times, parms = NULL,
+                dim = c(N,N), lrw = 160000)
+
+pm &lt;- par (mfrow = c(2, 2))
+
+# Compare solution with analytical solution...
+for (i in seq(2, 11, by = 3))  {
+  tt   &lt;- times[i]
+  mat  &lt;-  matrix(nrow = N, ncol = N, 
+                  data = subset(out, time == tt))
+  plot(X, mat[N2,], type = "l", main = paste("time=", times[i]),
+       ylab = "Conc", col = "red")
+  ana &lt;- ini*dx^2/(4*pi*Dx*tt)*exp(r*tt-X^2/(4*Dx*tt))
+  points(X, ana, pch = "+")
+}
+
+legend ("bottom", col = c("red","black"), lty = c(1, NA), 
+  pch = c(NA, "+"), c("tran.2D", "exact"))
+par("mfrow" = pm )
+
+
+
+## =============================================================================
+## A 2-D model with diffusion in x- and y direction and first-order
+## consumption - more efficient implementation, specifying ALL 2-D grids
+## =============================================================================
+
+N     &lt;- 51          # number of grid cells
+Dy    &lt;- Dx &lt;- 0.1   # diffusion coeff, X- and Y-direction
+r     &lt;- 0.005       # consumption rate
+ini   &lt;- 1           # initial value at x=0
+
+x.grid    &lt;- setup.grid.1D(x.up = -5, x.down = 5, N = N)
+y.grid    &lt;- setup.grid.1D(x.up = -5, x.down = 5, N = N)
+grid2D    &lt;- setup.grid.2D(x.grid, y.grid)
+
+D.grid    &lt;- setup.prop.2D(value = Dx, y.value = Dy, grid = grid2D)
+v.grid    &lt;- setup.prop.2D(value = 0, grid = grid2D)
+A.grid    &lt;- setup.prop.2D(value = 1, grid = grid2D)
+AFDW.grid &lt;- setup.prop.2D(value = 1, grid = grid2D)
+VF.grid   &lt;- setup.prop.2D(value = 1, grid = grid2D)
+
+# The model equations - using the grids
+
+Diff2Db &lt;- function (t, y, parms)  {
+
+   CONC  &lt;- matrix(nrow = N, ncol = N, data = y)
+
+   dCONC &lt;- tran.2D(CONC, grid = grid2D, D.grid = D.grid, 
+      A.grid = A.grid, VF.grid = VF.grid, AFDW.grid = AFDW.grid, 
+      v.grid = v.grid)$dC + r * CONC
+  
+  return (list(dCONC))
+}
+
+# initial condition: 0 everywhere, except in central point
+y &lt;- matrix(nrow = N, ncol = N, data = 0)
+y[N2,N2] &lt;- ini  # initial concentration in the central point...
+
+# solve for 8 time units
+times &lt;- 0:8
+outb &lt;- ode.2D (y = y, func = Diff2Db, t = times, parms = NULL,
+                dim = c(N, N), lrw = 160000)
+
+image(outb, ask = FALSE, mfrow = c(3, 3), main = paste("time", times))
+
+## =============================================================================
+## Same 2-D model, but now with spatially-variable diffusion coefficients
+## =============================================================================
+
+N     &lt;- 51          # number of grid cells
+r     &lt;- 0.005       # consumption rate
+ini   &lt;- 1           # initial value at x=0
+N2    &lt;- ceiling(N/2)
+
+D.grid &lt;- list()
+
+# Diffusion on x-interfaces
+D.grid$x.int &lt;- matrix(nrow = N+1, ncol = N, data = runif(N*(N+1)))
+
+# Diffusion on y-interfaces
+D.grid$y.int &lt;- matrix(nrow = N, ncol = N+1, data = runif(N*(N+1)))
+
+dx &lt;- 10/N
+dy &lt;- 10/N
+
+# The model equations
+
+Diff2Dc &lt;- function (t, y, parms)  {
+
+   CONC  &lt;- matrix(nrow = N, ncol = N, data = y)
+
+   dCONC &lt;- tran.2D(CONC, dx = dx, dy = dy, D.grid = D.grid)$dC + r * CONC
+
+  return (list(dCONC))
+}
+
+# initial condition: 0 everywhere, except in central point
+y &lt;- matrix(nrow = N, ncol = N, data = 0)
+y[N2, N2] &lt;- ini  # initial concentration in the central point...
+
+# solve for 8 time units
+times &lt;- 0:8
+outc &lt;- ode.2D (y = y, func = Diff2Dc, t = times, parms = NULL,
+                dim = c(N, N), lrw = 160000)
+
+outtimes &lt;- c(1, 3, 5, 7)
+image(outc, ask = FALSE, mfrow = c(2, 2), main = paste("time", outtimes),
+      legend = TRUE, add.contour = TRUE, subset = time %in% outtimes)
+
+</code></pre>
+
+
+</div>

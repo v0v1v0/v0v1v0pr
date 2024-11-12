@@ -1,0 +1,155 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>robustlm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Robust variable selection with exponential squared loss</h2>
+
+<h3>Description</h3>
+
+<p><code>robustlm</code> carries out robust variable selection with exponential squared loss. 
+A block coordinate gradient descent algorithm is used to minimize the loss function.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">robustlm(x, y, gamma = NULL, weight = NULL, intercept = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Input matrix, of dimension nobs * nvars; each row is an observation vector. Should be in matrix format.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Response variable. Should be a numerical vector or matrix with a single column.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gamma</code></td>
+<td>
+<p>Tuning parameter in the loss function, which controls the degree of robustness and efficiency of the regression estimators.
+The loss function is defined as </p>
+<p style="text-align: center;"><code class="reqn">1-exp(-t^2/\gamma).</code>
+</p>
+
+<p>When <code>gamma</code> is large, the estimators are similar to the least squares estimators
+in the extreme case. A smaller <code>gamma</code> would limit the influence of an outlier on the estimators, 
+although it could also reduce the sensitivity of the estimators. If <code>gamma=NULL</code>, it is selected by a
+data-driven procedure that yields both high robustness and high efficiency.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weight</code></td>
+<td>
+<p>Weight in the penalty. The penalty is given by </p>
+<p style="text-align: center;"><code class="reqn">n\sum_{j=1}^d\lambda_{n j}|\beta_{j}|.</code>
+</p>
+ <p><code>weight</code> is a vector consisting of <code class="reqn">\lambda_{n j}</code>s. If <code>weight=NULL</code> (by default),
+it is set to be <code class="reqn">(log(n))/(n|\tilde{\beta}_j|),</code>
+where <code class="reqn">\tilde{\beta}</code> is a numeric vector, which is an
+initial estimator of regression coefficients obtained by an MM procedure. The default value meets a BIC-type criterion (See Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intercept</code></td>
+<td>
+<p>Should intercepts be fitted (TRUE) or set to zero (FALSE)</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>robustlm</code> solves the following optimization problem to obtain robust estimators of regression coefficients:
+</p>
+<p style="text-align: center;"><code class="reqn">argmin_{\beta} \sum_{i=1}^n(1-exp{-(y_i-x_i^T\beta)^2/\gamma_n})+n\sum_{i=1}^d p_{\lambda_{nj}}(|\beta_j|),</code>
+</p>
+
+<p>where <code class="reqn">p_{\lambda_{n j}}(|\beta_{j}|)=\lambda_{n j}|\beta_{j}|</code> is the adaptive LASSO penalty. Block coordinate gradient descent algorithm is used to efficiently solve the optimization problem. 
+The tuning parameter <code>gamma</code> and regularization parameter <code>weight</code> are chosen adaptively by default, while they can be supplied by the user.
+Specifically, the default <code>weight</code> meets the following BIC-type criterion: 
+</p>
+<p style="text-align: center;"><code class="reqn">min_{\tau_n} \sum_{i=1}^{n}[1-exp {-(Y_i-x_i^T} {\beta})^{2} / \gamma_{n}]+n \sum_{j=1}^{d} \tau_{n j}|\beta_j| /|\tilde{\beta}_{n j}|-\sum_{j=1}^{d} \log (0.5 n \tau_{n j}) \log (n).</code>
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>An object with S3 class "robustlm", which is a <code>list</code> with the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+<p>The regression coefficients.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>The intercept.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gamma</code></td>
+<td>
+<p>The tuning parameter used in the loss.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weight</code></td>
+<td>
+<p>The regularization parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loss</code></td>
+<td>
+<p>Value of the loss function calculated on the training set.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Borui Tang, Jin Zhu, Xueqin Wang
+</p>
+
+
+<h3>References</h3>
+
+<p>Xueqin Wang, Yunlu Jiang, Mian Huang &amp; Heping Zhang (2013) Robust Variable Selection With Exponential Squared Loss, Journal of the American Statistical Association, 108:502, 632-643, DOI: 10.1080/01621459.2013.766613
+</p>
+<p>Tseng, P., Yun, S. A coordinate gradient descent method for nonsmooth separable minimization. Math. Program. 117, 387-423 (2009). https://doi.org/10.1007/s10107-007-0170-0
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(MASS)
+N &lt;- 100
+p &lt;- 8
+rho &lt;- 0.2
+mu &lt;- rep(0, p)
+Sigma &lt;- rho * outer(rep(1, p), rep(1, p)) + (1 - rho) * diag(p)
+ind &lt;- 1:p
+beta &lt;- (-1)^ind * exp(-2 * (ind - 1) / 20)
+lambda_seq &lt;- seq(0.05, 5, length.out = 100)
+X &lt;- mvrnorm(N, mu, Sigma)
+Z &lt;- rnorm(N, 0, 1)
+k &lt;- sqrt(var(X %*% beta) / (3 * var(Z)))
+Y &lt;- X %*% beta + drop(k) * Z
+robustlm(X, Y)
+</code></pre>
+
+
+</div>

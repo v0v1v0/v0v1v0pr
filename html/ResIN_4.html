@@ -1,0 +1,262 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ResIN</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>ResIN</h2>
+
+<h3>Description</h3>
+
+<p>Performs Response Item-Network (ResIN) analysis
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ResIN(
+  df,
+  node_vars = NULL,
+  left_anchor = NULL,
+  cor_method = "auto",
+  weights = NULL,
+  method_wCorr = "Polychoric",
+  poly_ncor = 2,
+  neg_offset = 0,
+  ResIN_scores = TRUE,
+  remove_negative = TRUE,
+  EBICglasso = FALSE,
+  EBICglasso_arglist = NULL,
+  remove_nonsignificant = FALSE,
+  sign_threshold = 0.05,
+  node_covars = NULL,
+  node_costats = NULL,
+  network_stats = TRUE,
+  detect_clusters = FALSE,
+  cluster_method = NULL,
+  cluster_arglist = NULL,
+  cluster_assignment = TRUE,
+  seed = NULL,
+  generate_ggplot = TRUE,
+  plot_ggplot = TRUE,
+  plot_whichstat = NULL,
+  plot_edgestat = NULL,
+  color_palette = "RdBu",
+  plot_responselabels = TRUE,
+  response_levels = NULL,
+  plot_title = NULL,
+  save_input = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>df</code></td>
+<td>
+<p>A data-frame object containing the raw data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>node_vars</code></td>
+<td>
+<p>An optional character vector detailing the attitude item columns to be selected for ResIN analysis (i.e. the subset of attitude variables in df).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>left_anchor</code></td>
+<td>
+<p>An optional character scalar indicating a particular response node which determines the spatial orientation of the ResIN latent space. If this response node does not appear on the left-hand side, the x-plane will be inverted. This ensures consistent interpretation of the latent space across multiple iterations (e.g. in bootstrapping analysis). Defaults to NULL (no adjustment to orientation is taken.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cor_method</code></td>
+<td>
+<p>Which correlation method should be used? Defaults to "auto" which applies the <code>cor_auto</code> function from the <code>qgraph</code> package. Possible arguments are <code>"auto"</code>, <code>"pearson"</code>, <code>"kendall"</code>, and <code>"spearman"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>An optional continuous vector of survey weights. Should have the same length as number of observations in df. If weights are provided, weighted correlation matrix will be estimated with the <code>weightedCorr</code> function from the <code>wCorr</code> package.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method_wCorr</code></td>
+<td>
+<p>If weights are supplied, which method for weighted correlations should be used? Defaults to <code>"Polychoric"</code>. See <code>wCorr::weightedCorr</code> for all correlation options.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>poly_ncor</code></td>
+<td>
+<p>How many CPU cores should be used to estimate polychoric correlation matrix? Only used if <code>cor_method = "polychoric"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>neg_offset</code></td>
+<td>
+<p>Should negative correlations be offset to avoid small correlation pairs disappearing? Defaults to <code>0</code>. Any positive number between 0 and 1 may be supplied instead.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ResIN_scores</code></td>
+<td>
+<p>Should spatial scores be calculated for every individual. Defaults to TRUE. Function obtains the mean positional score on the major (x-axis) and minor (y-axis). Further versions of this package will include more sophisticated scoring techniques.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>remove_negative</code></td>
+<td>
+<p>Should all negative correlations be removed? Defaults to TRUE (highly recommended). Setting to FALSE makes it impossible to estimate a force-directed network layout. Function will use igraph::layout_nicely instead.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>EBICglasso</code></td>
+<td>
+<p>Should a sparse, Gaussian-LASSO ResIN network be estimated? Defaults to FALSE. If set to TRUE, <code>EBICglasso</code> function from the <code>qgraph</code> packages performs regularization on (nearest positive-semi-definite) ResIN correlation matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>EBICglasso_arglist</code></td>
+<td>
+<p>An argument list feeding additional instructions to the <code>EBICglasso</code> function if <code>EBICglasso</code> is set to TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>remove_nonsignificant</code></td>
+<td>
+<p>Optionally, should non-significant edges be removed from the ResIN network? Defaults to FALSE. Note that this option is incompatible with EBICglasso and weighted correlations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sign_threshold</code></td>
+<td>
+<p>At what p-value threshold should non-significant edges be removed? Defaults to 0.05.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>node_covars</code></td>
+<td>
+<p>An optional character string selecting quantitative covariates that can be used to enhance ResIN analysis. Typically, these covariates provide grouped summary statistics for item response nodes. (E.g.: What is the average age or income level of respondents who selected a particular item response?) Variable names specified here should match existing columns in <code>df</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>node_costats</code></td>
+<td>
+<p>If any <code>node_covars</code> are selected, what summary statistics should be estimated from them? Argument should be a character vector and call a base-R function. (E.g. <code>"mean"</code>, <code>"median"</code>, <code>"sd"</code>). Each element specified in <code>node_costats</code> is applied to each element in <code>node_covars</code> and the out-put is stored as a node-level summary statistic in the <code>ResIN_nodeframe</code>. The extra columns in <code>ResIN_nodeframe</code> are labeled according to the following template: "covariate name"_"statistic". So for the respondents mean age, the corresponding column in <code>ResIN_nodeframe</code> would be labeled as "age_mean".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>network_stats</code></td>
+<td>
+<p>Should common node- and graph level network statistics be extracted? Calls <code>qgraph::centrality_auto</code> and <code>DirectedClustering::ClustF</code> to the ResIN graph object to extract node-level betweenness, closeness, strength centrality, as well as the mean and standard deviation of these scores at the network level. Also estimates network expected influence, average path length, and global clustering coefficients. Defaults to TRUE. Set to FALSE if estimation takes a long time.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>detect_clusters</code></td>
+<td>
+<p>Optional, should community detection be performed on item response network? Defaults to FALSE. If set to TRUE, performs a clustering method from the [igraph](https://igraph.org/r/doc/cluster_leading_eigen.html) library and stores the results in the <code>ResIN_nodeframe</code> output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cluster_method</code></td>
+<td>
+<p>A character scalar specifying the [igraph-based](https://igraph.org/r/doc/communities.html) community detection function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cluster_arglist</code></td>
+<td>
+<p>An optional list specifying additional arguments to the selected [igraph](https://igraph.org/r/doc/communities.html) clustering method.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cluster_assignment</code></td>
+<td>
+<p>Should individual (survey) respondents be assigned to different clusters? If set to TRUE, function will generate an n*c matrix of probabilities for each respondent to be assigned to one of c clusters. Furthermore, a vector of length n is generated displaying the most likely cluster respondents belong to. In case of a tie between one or more clusters, a very small amount of random noise determines assignment. Both matrix and vectors are added to the <code>aux_objects</code> list. Defaults to FALSE and will be ignored if <code>detect_clusters</code> is set to FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>Random seed for force-directed algorithm. Defaults to NULL (no seed is set.) If scalar integer is supplied, that seed will be set prior to analysis.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>generate_ggplot</code></td>
+<td>
+<p>Should a ggplot-based visualization of the ResIN network be generated? Defaults to TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot_ggplot</code></td>
+<td>
+<p>Should a basic ggplot of the ResIN network be plotted? Defaults to TRUE. If set to FALSE, the ggplot object will not be directly returned to the console. (However, if generate_ggplot=TRUE, the plot will still be generated and stored alongside the other output objects.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot_whichstat</code></td>
+<td>
+<p>Should a particular node-level metric be color-visualized in the ggplot output? For node cluster, specify "cluster". For the same Likert response choices or options, specify "choices". For a particular node-level co-variate please specify the name of the particular element in <code>node_covars</code> followed by a "_" and the specific <code>node_costats</code> you would like to visualize. For instance if you want the visualize average age at the node-level, you should specify "age_mean". To colorize by node centrality statistics, possible choices are "Strength", "Betweenness", "Closeness", and "ExpectedInfluence". Defaults to NULL. Make sure to supply appropriate choices to <code>node_covars</code>, <code>node_costats</code>, <code>detect_clusters</code>, and/or <code>network_stats</code> prior to setting this argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot_edgestat</code></td>
+<td>
+<p>Should the thickness of the edges be adjusted according to a particular co-statistic? Defaults to NULL. Possible choices are "weight" for the bi-variate correlation strength, and "edgebetweenness"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>color_palette</code></td>
+<td>
+<p>Optionally, you may specify the ggplot2 color palette to be applied to the plot. All options contained in [<code>RColorBrewer</code>](https://cran.r-project.org/web/packages/RColorBrewer/RColorBrewer.pdf) (for discrete colors such as cluster assignments) and [<code>ggplot2::scale_colour_distiller</code>](https://ggplot2.tidyverse.org/reference/scale_brewer.html) are supported. Defaults to "RdBu".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot_responselabels</code></td>
+<td>
+<p>Should response labels be plotted via <code>geom_text</code>? Defaults to TRUE. It is recommended to set to FALSE if the network possesses a lot of nodes and/or long response choice names.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>response_levels</code></td>
+<td>
+<p>An optional character vector specifying the correct order of global response levels. Only useful if all node-items follow the same convention (e.g. ranging from "strong disagreement" to "strong agreement"). The supplied vector should have the same length as the total number of response options and supply these (matching exactly) in the correct order. E.g. c("Strongly Agree", "Somewhat Agree", "Neutral", "Somewhat Disagree", "Strongly Disagree"). Defaults to NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot_title</code></td>
+<td>
+<p>Optionally, a character scalar specifying the title of the ggplot output. Defaults to "ResIN plot".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>save_input</code></td>
+<td>
+<p>Optionally, should input data and function arguments be saved (this is necessary for running ResIN_boots_prepare function). Defaults to TRUE.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An edge-list type data-frame, <code>ResIN_edgelist</code>, a node-level data-frame, <code>ResIN_nodeframe</code>, an n*2 data-frame of individual-level spatial scores along the major (x) and minor(y) axis, <code>ResIN_scores</code> a list of graph-level statistics <code>graph_stats</code> including (<code>graph_structuration</code>) and centralization (<code>graph_centralization</code>), as well as a list of auxiliary objects, <code>aux_objects</code>, including the ResIN adjacency matrix (<code>adj_matrix</code>), a numeric vector detailing which item responses belong to which item (<code>same_items</code>), and the dummy-coded item-response data-frame (<code>df_dummies</code>).
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Load the 12-item simulated Likert-type toy dataset
+data(lik_data)
+
+# Apply the ResIN function to toy Likert data:
+ResIN_obj &lt;- ResIN(lik_data, cor_method = "spearman", network_stats = TRUE, detect_clusters = TRUE)
+
+
+</code></pre>
+
+
+</div>

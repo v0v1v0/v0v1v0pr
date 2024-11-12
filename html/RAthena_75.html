@@ -1,0 +1,172 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>db_copy_to</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>S3 implementation of <code>db_copy_to</code> for Athena</h2>
+
+<h3>Description</h3>
+
+<p>This is an Athena method for dbplyr function <code>db_copy_to</code> to create an Athena table from a <code>data.frame</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">db_copy_to.AthenaConnection(
+  con,
+  table,
+  values,
+  overwrite = FALSE,
+  append = FALSE,
+  types = NULL,
+  partition = NULL,
+  s3_location = NULL,
+  file_type = c("csv", "tsv", "parquet"),
+  compress = FALSE,
+  max_batch = Inf,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>con</code></td>
+<td>
+<p>A <code>dbConnect</code> object, as returned by <code>dbConnect()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>table</code></td>
+<td>
+<p>A character string specifying a table name. Names will be
+automatically quoted so you can use any sequence of characters, not
+just any valid bare table name.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>values</code></td>
+<td>
+<p>A data.frame to write to the database.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite</code></td>
+<td>
+<p>Allows overwriting the destination table. Cannot be <code>TRUE</code> if <code>append</code> is also <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>append</code></td>
+<td>
+<p>Allow appending to the destination table. Cannot be <code>TRUE</code> if <code>overwrite</code> is also <code>TRUE</code>. Existing Athena DDL file type will be retained
+and used when uploading data to AWS Athena. If parameter <code>file.type</code> doesn't match AWS Athena DDL file type a warning message will be created 
+notifying user and <code>RAthena</code> will use the file type for the Athena DDL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>types</code></td>
+<td>
+<p>Additional field types used to override derived types.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>partition</code></td>
+<td>
+<p>Partition Athena table (needs to be a named list or vector) for example: <code>c(var1 = "2019-20-13")</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s3_location</code></td>
+<td>
+<p>s3 bucket to store Athena table, must be set as a s3 uri for example ("s3://mybucket/data/")</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>file_type</code></td>
+<td>
+<p>What file type to store data.frame on s3, RAthena currently supports ["tsv", "csv", "parquet"]. Default delimited file type is "tsv", in previous versions
+of <code>RAthena (=&lt; 1.4.0)</code> file type "csv" was used as default. The reason for the change is that columns containing <code>Array/JSON</code> format cannot be written to 
+Athena due to the separating value ",". This would cause issues with AWS Athena. 
+<strong>Note:</strong> "parquet" format is supported by the <code>arrow</code> package and it will need to be installed to utilise the "parquet" format.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>compress</code></td>
+<td>
+<p><code>FALSE | TRUE</code> To determine if to compress file.type. If file type is ["csv", "tsv"] then "gzip" compression is used, for file type "parquet" 
+"snappy" compression is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_batch</code></td>
+<td>
+<p>Split the data frame by max number of rows i.e. 100,000 so that multiple files can be uploaded into AWS S3. By default when compression
+is set to <code>TRUE</code> and file.type is "csv" or "tsv" max.batch will split data.frame into 20 batches. This is to help the 
+performance of AWS Athena when working with files compressed in "gzip" format. <code>max.batch</code> will not split the data.frame 
+when loading file in parquet format. For more information please go to <a href="https://github.com/DyfanJones/RAthena/issues/36">link</a></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>other parameters currently not supported in RAthena</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>db_copy_to returns table name
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>AthenaWriteTables</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# Note: 
+# - Require AWS Account to run below example.
+# - Different connection methods can be used please see `RAthena::dbConnect` documnentation
+
+library(DBI)
+library(dplyr)
+
+# Demo connection to Athena using profile name 
+con &lt;- dbConnect(RAthena::athena())
+
+# List existing tables in Athena
+dbListTables(con)
+
+# Write data.frame to Athena table
+copy_to(con, mtcars,
+        s3_location = "s3://mybucket/data/")
+             
+# Checking if uploaded table exists in Athena
+dbExistsTable(con, "mtcars")
+
+# Write Athena table from tbl_sql
+athena_mtcars &lt;- tbl(con, "mtcars")
+mtcars_filter &lt;- athena_mtcars %&gt;% filter(gear &gt;=4)
+
+copy_to(con, mtcars_filter)
+
+# Checking if uploaded table exists in Athena
+dbExistsTable(con, "mtcars_filter") 
+
+# Disconnect from Athena
+dbDisconnect(con)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,193 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>query</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Chat with a LLM through Ollama</h2>
+
+<h3>Description</h3>
+
+<p>Chat with a LLM through Ollama
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">query(
+  q,
+  model = NULL,
+  screen = TRUE,
+  server = NULL,
+  images = NULL,
+  model_params = NULL,
+  format = NULL,
+  template = NULL
+)
+
+chat(
+  q,
+  model = NULL,
+  screen = TRUE,
+  server = NULL,
+  images = NULL,
+  model_params = NULL,
+  template = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>q</code></td>
+<td>
+<p>the question as a character string or a conversation object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>which model(s) to use. See <a href="https://ollama.com/library">https://ollama.com/library</a> for
+options. Default is "llama3". Set option(rollama_model = "modelname") to
+change default for the current session. See pull_model for more
+details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>screen</code></td>
+<td>
+<p>Logical. Should the answer be printed to the screen.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>server</code></td>
+<td>
+<p>URL to an Ollama server (not the API). Defaults to
+"http://localhost:11434".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>images</code></td>
+<td>
+<p>path(s) to images (for multimodal models such as llava).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model_params</code></td>
+<td>
+<p>a named list of additional model parameters listed in the
+<a href="https://github.com/ollama/ollama/blob/main/docs/modelfile.md#valid-parameters-and-values">documentation for the Modelfile</a>
+such as temperature. Use a seed and set the temperature to zero to get
+reproducible results (see examples).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>format</code></td>
+<td>
+<p>the format to return a response in. Currently the only accepted
+value is <code>"json"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>template</code></td>
+<td>
+<p>the prompt template to use (overrides what is defined in the
+Modelfile).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>query</code> sends a single question to the API, without knowledge about
+previous questions (only the config message is relevant). <code>chat</code> treats new
+messages as part of the same conversation until new_chat is called.
+</p>
+
+
+<h3>Value</h3>
+
+<p>an httr2 response.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# ask a single question
+query("why is the sky blue?")
+
+# hold a conversation
+chat("why is the sky blue?")
+chat("and how do you know that?")
+
+# save the response to an object and extract the answer
+resp &lt;- query(q = "why is the sky blue?")
+answer &lt;- resp$message$content
+
+# ask question about images (to a multimodal model)
+images &lt;- c("https://avatars.githubusercontent.com/u/23524101?v=4", # remote
+            "/path/to/your/image.jpg") # or local images supported
+query(q = "describe these images",
+      model = "llava",
+      images = images)
+
+# set custom options for the model at runtime (rather than in create_model())
+query("why is the sky blue?",
+      model_params = list(
+        num_keep = 5,
+        seed = 42,
+        num_predict = 100,
+        top_k = 20,
+        top_p = 0.9,
+        tfs_z = 0.5,
+        typical_p = 0.7,
+        repeat_last_n = 33,
+        temperature = 0.8,
+        repeat_penalty = 1.2,
+        presence_penalty = 1.5,
+        frequency_penalty = 1.0,
+        mirostat = 1,
+        mirostat_tau = 0.8,
+        mirostat_eta = 0.6,
+        penalize_newline = TRUE,
+        stop = c("\n", "user:"),
+        numa = FALSE,
+        num_ctx = 1024,
+        num_batch = 2,
+        num_gqa = 1,
+        num_gpu = 1,
+        main_gpu = 0,
+        low_vram = FALSE,
+        f16_kv = TRUE,
+        vocab_only = FALSE,
+        use_mmap = TRUE,
+        use_mlock = FALSE,
+        embedding_only = FALSE,
+        rope_frequency_base = 1.1,
+        rope_frequency_scale = 0.8,
+        num_thread = 8
+      ))
+
+# use a seed and zero temperature to get reproducible results
+query("why is the sky blue?", model_params = list(seed = 42, temperature = 0)
+
+# this might be interesting if you want to turn off the GPU and load the
+# model into the system memory (slower, but most people have more RAM than
+# VRAM, which might be interesting for larger models)
+query("why is the sky blue?",
+       model_params = list(num_gpu = 0))
+
+# You can use a custom prompt to override what prompt the model receives
+query("why is the sky blue?",
+      template = "Just say I'm a llama!")
+
+# Asking the same question to multiple models is also supported
+query("why is the sky blue?", model = c("llama3", "orca-mini"))
+
+## End(Not run)
+</code></pre>
+
+
+</div>

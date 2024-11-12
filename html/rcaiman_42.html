@@ -1,0 +1,143 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>obia</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Do object-based image analysis of canopy photographs</h2>
+
+<h3>Description</h3>
+
+<p>Object-based image analysis targeting the canopy  silhouette.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">obia(r, z = NULL, a = NULL, bin, segmentation, gf_mn = 0.2, gf_mx = 0.95)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>r</code></td>
+<td>
+<p>SpatRaster. A normalized greyscale image. Typically, the
+blue channel extracted from a canopy photograph. Please see <code>read_caim()</code>
+and <code>normalize()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>z</code></td>
+<td>
+<p>SpatRaster built with <code>zenith_image()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>a</code></td>
+<td>
+<p>SpatRaster built with <code>azimuth_image()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bin</code></td>
+<td>
+<p>SpatRaster. This should be a working binarization of <code>r</code>
+without gross errors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>segmentation</code></td>
+<td>
+<p>SpatRaster built with <code>polar_qtree()</code> or
+<code>qtree()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gf_mn, gf_mx</code></td>
+<td>
+<p>Numeric vector of length one. The minimum/maximum gap
+fraction that a segment should comply with to be considered as one
+containing foliage.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This method was first presented in Díaz and Lencinas (2015).
+This version is simpler since it relies on a better working binarized image.
+The version from 2015 uses an automatic selection of samples followed by a
+<em>knn</em> classification of segments containing foliage. This version uses
+de gap fraction extracted from <code>bin</code> to classify <em>foliage</em> by defining upper
+and lower limits through the arguments <code>gf_mx</code> and <code>gf_mn</code>.
+</p>
+<p>This method produces a synthetic layer by computing the ratio of <code>r</code> to the
+maximum value of <code>r</code> at the segment level. This process is carried out only
+on the pixels covered by the classes <em>foliage</em> and <em>sky</em>. The latter is
+defined by <code>bin</code> equal to one. To avoid spurious values, the quantile <code>0.9</code>
+is computed instead of the maximum. Pixels not belonging to the class
+<em>foliage</em> return as <code>NA</code>.
+</p>
+<p>Default values of <code>z</code> and <code>a</code> allows the processing of restricted view
+photographs.
+</p>
+<p>If you use this function in your research, please cite
+Díaz and Lencinas (2015) in addition to this package
+(<code style="white-space: pre;">⁠citation("rcaiman"⁠</code>).
+</p>
+
+
+<h3>Value</h3>
+
+<p>SpatRaster.
+</p>
+
+
+<h3>References</h3>
+
+<p>Díaz GM, Lencinas JD (2015).
+“Enhanced gap fraction extraction from hemispherical photography.”
+<em>IEEE Geoscience and Remote Sensing Letters</em>, <b>12</b>(8), 1785–1789.
+<a href="https://doi.org/10.1109/lgrs.2015.2425931">doi:10.1109/lgrs.2015.2425931</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Binarization Functions: 
+<code>apply_thr()</code>,
+<code>ootb_mblt()</code>,
+<code>ootb_obia()</code>,
+<code>regional_thresholding()</code>,
+<code>thr_isodata()</code>,
+<code>thr_mblt()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+caim &lt;- read_caim() %&gt;% normalize()
+z &lt;- zenith_image(ncol(caim), lens())
+a &lt;- azimuth_image(z)
+m &lt;- !is.na(z)
+ecaim &lt;- enhance_caim(caim, m)
+bin &lt;- apply_thr(ecaim, thr_isodata(ecaim[m]))
+plot(bin)
+
+seg &lt;- polar_qtree(caim, z, a)
+synth &lt;- obia(caim$Blue, z, a, bin, seg)
+plot(synth)
+foliage &lt;- !is.na(synth)
+hist(synth[foliage])
+synth &lt;- terra::cover(synth, bin)
+plot(synth)
+hist(synth[foliage])
+
+## End(Not run)
+</code></pre>
+
+
+</div>

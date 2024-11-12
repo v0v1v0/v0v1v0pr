@@ -1,0 +1,225 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ipcw</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimation of censoring probabilities</h2>
+
+<h3>Description</h3>
+
+<p>This function is used internally to obtain
+inverse of the probability of censoring weights.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ipcw(
+  formula,
+  data,
+  method,
+  args,
+  times,
+  subject.times,
+  lag = 1,
+  what,
+  keep = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>A survival formula like, <code>Surv(time,status)~1</code>, where
+as usual status=0 means censored. The status variable is internally
+reversed for estimation of censoring rather than survival
+probabilities. Some of the available models (see argument
+<code>model</code>) will use predictors on the right hand side of the
+formula.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>The data used for fitting the censoring model</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Censoring model used for estimation of the
+(conditional) censoring distribution.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>args</code></td>
+<td>
+<p>A list of arguments which is passed to method</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>times</code></td>
+<td>
+<p>For <code>what="IPCW.times"</code> a vector of times at
+which to compute the probabilities of not being censored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subject.times</code></td>
+<td>
+<p>For <code>what="IPCW.subject.times"</code> a vector of
+individual times at which the probabilities of not being censored
+are computed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lag</code></td>
+<td>
+<p>If equal to <code>1</code> then obtain
+<code>G(T_i-|X_i)</code>, if equal to <code>0</code> estimate the conditional
+censoring distribution at the subject.times,
+i.e. (<code>G(T_i|X_i)</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>what</code></td>
+<td>
+<p>Decide about what to do: If equal to
+<code>"IPCW.times"</code> then weights are estimated at given
+<code>times</code>.  If equal to <code>"IPCW.subject.times"</code> then weights
+are estimated at individual <code>subject.times</code>.  If missing then
+produce both.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep</code></td>
+<td>
+<p>Which elements to add to the output. Any subset of the vector <code>c("times","fit","call")</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Inverse of the probability of censoring weights (IPCW) usually refer to the
+probabilities of not being censored at certain time points. These
+probabilities are also the values of the conditional survival function of
+the censoring time given covariates. The function ipcw estimates the
+conditional survival function of the censoring times and derives the
+weights.
+</p>
+<p>IMPORTANT: the data set should be ordered, <code>order(time,-status)</code> in
+order to get the values <code>IPCW.subject.times</code> in the right order for some
+choices of <code>method</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with elements depending on argument <code>keep</code>. </p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>times</code></td>
+<td>
+<p>The times at which weights are estimated</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>IPCW.times</code></td>
+<td>
+<p>Estimated weights at <code>times</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>IPCW.subject.times</code></td>
+<td>
+<p>Estimated weights at individual time values
+<code>subject.times</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>The fitted censoring model</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>The method for modelling the censoring distribution</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>The call</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Thomas A. Gerds <a href="mailto:tag@biostat.ku.dk">tag@biostat.ku.dk</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(prodlim)
+library(rms)
+dat=SimSurv(30)
+
+dat &lt;- dat[order(dat$time),]
+
+# using the marginal Kaplan-Meier for the censoring times
+
+WKM=ipcw(Hist(time,status)~X2,
+  data=dat,
+  method="marginal",
+  times=sort(unique(dat$time)),
+  subject.times=dat$time,keep=c("fit"))
+plot(WKM$fit)
+WKM$fit
+
+# using the Cox model for the censoring times given X2
+library(survival)
+WCox=ipcw(Hist(time=time,event=status)~X2,
+  data=dat,
+  method="cox",
+  times=sort(unique(dat$time)),
+  subject.times=dat$time,keep=c("fit"))
+WCox$fit
+
+plot(WKM$fit)
+lines(sort(unique(dat$time)),
+      1-WCox$IPCW.times[1,],
+      type="l",
+      col=2,
+      lty=3,
+      lwd=3)
+lines(sort(unique(dat$time)),
+      1-WCox$IPCW.times[5,],
+      type="l",
+      col=3,
+      lty=3,
+      lwd=3)
+
+# using the stratified Kaplan-Meier
+# for the censoring times given X2
+
+WKM2=ipcw(Hist(time,status)~X2,
+  data=dat,
+  method="nonpar",
+  times=sort(unique(dat$time)),
+  subject.times=dat$time,keep=c("fit"))
+plot(WKM2$fit,add=FALSE)
+
+
+</code></pre>
+
+
+</div>

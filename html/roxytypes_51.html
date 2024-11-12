@@ -1,0 +1,106 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>tags</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+<code>roxytypes</code> tags</h2>
+
+<h3>Description</h3>
+
+<p>The <code style="white-space: pre;">⁠@typed⁠</code> tag introduces a syntax for defining parameter types as a
+<code>roxygen2</code> tag.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">#' @typed &lt;var&gt;: &lt;type&gt;
+#'   &lt;description&gt;
+</code></pre>
+
+
+<h3>Details</h3>
+
+<p>Be aware that there are a few syntactic requirements:
+</p>
+
+<ul>
+<li> <p><code>:</code> delimiter between the variable name and type.
+</p>
+</li>
+<li> <p><code style="white-space: pre;">⁠\n⁠</code> after the type to separate it from the description.
+</p>
+</li>
+</ul>
+<h3>Default <code>type</code> Parsing Syntax</h3>
+
+<p>The type portion of the <code style="white-space: pre;">⁠@typed⁠</code> tag syntax will handle a bit of syntax as
+special cases.
+</p>
+
+<ul>
+<li> <p><code style="white-space: pre;">⁠[type]⁠</code>: Types wrapped in brackets, for example
+<code style="white-space: pre;">⁠[roxygen2::roxy_tags()]⁠</code> will be left as-is, without wrapping the string
+in backticks to display as inline code and preserve the native <code>roxygen2</code>
+reference link.
+</p>
+<div class="sourceCode"><pre>#' @typed arg: [package::function()]
+#'   long form description.
+</pre></div>
+</li>
+<li> <p><code>`type`</code>: Types wrapped in backticks will be kept as-is. Additional
+backticks will not be inserted.
+</p>
+<div class="sourceCode"><pre>#' @typed arg: `class`
+#'   long form description.
+</pre></div>
+</li>
+<li> <p><code>"type"</code> or <code>'type'</code>: Types wrapped in quotes (either single or double),
+will be provided as literal values, removing the surrounding quotation
+marks.
+</p>
+<div class="sourceCode"><pre>#' @typed arg: "`class_a` or `class_b`"
+#'   depending on the class of the object provided, either an `"A"`
+#'   or a `"B"`.
+</pre></div>
+</li>
+</ul>
+<h3>Custom <code>type</code> Parsing Function</h3>
+
+<p>The above defaults are meant to cover most use cases and should be sufficient
+for all but the most elaborate development practices. If you need to go
+beyond these default behaviors, you can also provide a parsing function,
+accepting the parsed roxygen tag as well as the raw contents.
+</p>
+<p>The function accepts the <code>roxygen2::roxy_tag()</code> produced when parsing the
+tag, whose <code style="white-space: pre;">⁠$val⁠</code> contains fields <code>name</code>, <code>type</code> and <code>description</code>. For
+convenience, the <code style="white-space: pre;">⁠$val⁠</code> contents is unpacked as arguments, though the
+structure of this tag is liable to change.
+</p>
+<p>To implement a <code>typescript</code>-style class union syntax,
+</p>
+<div class="sourceCode"><pre>#' @typed arg: class_a | class_b | class_c
+#'   depending on the class of the object provided, either an `"A"`
+#'   or a `"B"`.
+</pre></div>
+<p>to produce the parameter definition
+</p>
+<div class="sourceCode"><pre>(`class_a`, `class_c` or `class_b`) depending on the class of the object
+provided, either an `"A"`, `"B"` or a `"C"`.
+</pre></div>
+<p>we might define the following in <code>DESCRIPTION</code> (or in
+<code>man/roxytypes/meta.R</code>).
+</p>
+<div class="sourceCode"><pre>Config/roxytypes: list(
+  format = function(tag, ..., name, type, description) {
+    types &lt;- paste0("`", trimws(strsplit(type, "|", fixed = TRUE)[[1]]), "`")
+    types &lt;- glue::glue_collapse(types, sep = ", ", last = " or ")
+    paste0("(", types, ") ", description)
+  }
+)
+</pre></div>
+
+
+</div>

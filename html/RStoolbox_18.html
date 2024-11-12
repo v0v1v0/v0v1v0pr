@@ -1,0 +1,171 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>mesma</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Multiple Endmember Spectral Mixture Analysis (Spectral Unmixing)</h2>
+
+<h3>Description</h3>
+
+<p><code>mesma</code> performs a spectral mixture anlylsis (SMA) or multiple endmember spectral mixture analysis (MESMA) on a multiband raster image.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">mesma(
+  img,
+  em,
+  method = "NNLS",
+  iterate = 400,
+  tolerance = 1e-08,
+  n_models = 5,
+  sum_to_one = TRUE,
+  ...,
+  verbose
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>img</code></td>
+<td>
+<p>SpatRaster. Remote sensing imagery (usually hyperspectral).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>em</code></td>
+<td>
+<p>Matrix or data.frame with spectral endmembers. Columns represent the spectral bands (i.e. columns correspond to number of bands in <code>img</code>). Rows represent either a single endmember per class (SMA) or multiple endmembers per class (MESMA), if a column with name <code>class</code> is present, containing the class name each endmember belongs to, e.g. "water" or "land". See details below. Number of rows needs to be &gt; 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Character. Select an unmixing method. Currently, only "NNLS" is implemented. Default is "NNLS".
+</p>
+
+<ul><li> <p><code>NNLS:</code> applies a non-negative least squares (NNLS) regression which is using a sequential coordinate-wise algorithm (SCA) based on Franc et al. (2005).
+</p>
+</li></ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iterate</code></td>
+<td>
+<p>Integer. Set maximum iteration per pixel. Processing time could increase the more iterations are made possible. Default is 400.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tolerance</code></td>
+<td>
+<p>Numeric. Tolerance limit representing a nearly zero minimal number. Default is 1e-8.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_models</code></td>
+<td>
+<p>Logical. Only applies if <code>em</code> contains column <code>class</code>. Defines how many endmember combinations should be picked. Maximum is the minimum number of endmembers of a class. Defaults to 5.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sum_to_one</code></td>
+<td>
+<p>Logical. Defines whether a sum-to-one constraint should be applied so that probabilities of endmember classes sum to one (a constraint not covered by NNLS) to be interpretable as fractions. Defaults to <code>TRUE</code>. To get actual NNLS results, change to <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments passed to writeRaster.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Logical. Prints progress messages during execution.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Argument <code>em</code> determines whether an SMA (each row representing a single endmember per class) or a MESMA (multiple endmembers per class differentiate using the <code>class</code> column) is computed.
+If multiple endmembers per class are provided, <code>mesma</code> will compute a number of SMA (determined by argument <code>n_models</code>) for multiple endmember combinations drawn from <code>em</code> and will select the best fit per pixel based on the lowest RMSE, based on the MESMA approach proposed by Roberts et al. (1998).
+</p>
+
+
+<h3>Value</h3>
+
+<p>SpatRaster. The object will contain one band per class, with each value representing the estimated probability of the respective endmember class per pixel, and an RMSE band. If <code>sum_to_one</code> is <code>TRUE</code> (default), values of the class bands can be interpreted as fractions per endmember class (0 to 1).
+</p>
+
+
+<h3>Note</h3>
+
+<p>Depending on <code>iterate</code> and <code>tolerance</code> settings and the selected endmembers, the sum of estimated probabilities per pixel varies around 1. NNLS does not account for a sum-to-one constraint. Use <code>sum_to_one</code> to sum to one post-NNLS.
+</p>
+<p>To achieve best results, it is recommended to adjust <code>n_models</code> in accordance to the number of endemembers per class provided through <code>em</code> so that as many endmember combinations as possible (with each endmember being used once) are computed. The more models are being calculated, the more processing and memory recourses are needed.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Jakob Schwalb-Willmann
+</p>
+
+
+<h3>References</h3>
+
+<p>Franc, V., Hlaváč, V., &amp; Navara, M. (2005). Sequential coordinate-wise algorithm for the non-negative least squares problem. In: International Conference on Computer Analysis of Images and Patterns (pp. 407-414). Berlin, Heidelberg.
+</p>
+<p>Roberts, D. A., Gardner, M., Church, R., Ustin, S., Scheer, G., &amp; Green, R. O. (1998). Mapping chaparral in the Santa Monica Mountains using multiple endmember spectral mixture models. Remote sensing of environment, 65(3), 267-279.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(RStoolbox)
+library(terra)
+
+#  to perform a SMA, use a single endmember per class, row by row:
+em &lt;- data.frame(lsat[c(5294, 47916)])
+rownames(em) &lt;- c("forest", "water")
+
+# umix the lsat image
+probs &lt;- mesma(img = lsat, em = em)
+plot(probs)
+
+# to perform a MESMA, use multiple endmembers per class, differntiating them
+# by a column named 'class':
+## Not run: 
+em &lt;- rbind(
+  data.frame(lsat[c(4155, 17018, 53134, 69487, 83704)], class = "forest"),
+  data.frame(lsat[c(22742, 25946, 38617, 59632, 67313)], class = "water")
+)
+
+# unmix the lsat image
+probs &lt;- mesma(img = lsat, em = em)
+plot(probs)
+
+# MESMA can also be performed on more than two endmember classes:
+em &lt;- rbind(
+  data.frame(lsat[c(4155, 17018, 53134, 69487, 83704)], class = "forest"),
+  data.frame(lsat[c(22742, 25946, 38617, 59632, 67313)], class = "water"),
+  data.frame(lsat[c(4330, 1762, 1278, 1357, 17414)], class = "shortgrown")
+)
+
+# unmix the lsat image
+probs &lt;- mesma(img = lsat, em = em)
+plot(probs)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

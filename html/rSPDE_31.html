@@ -1,0 +1,182 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>predict.rSPDEobj</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Prediction of a fractional SPDE using a rational SPDE approximation</h2>
+
+<h3>Description</h3>
+
+<p>The function is used for computing kriging predictions based on data
+<code class="reqn">Y_i = u(s_i) + \epsilon_i</code>,
+where <code class="reqn">\epsilon</code> is mean-zero Gaussian measurement noise
+and <code class="reqn">u(s)</code> is defined by
+a fractional SPDE <code class="reqn">L^\beta u(s) = W</code>, where
+<code class="reqn">W</code> is Gaussian white noise.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'rSPDEobj'
+predict(
+  object,
+  A,
+  Aprd,
+  Y,
+  sigma.e,
+  compute.variances = FALSE,
+  posterior_samples = FALSE,
+  n_samples = 100,
+  only_latent = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>The rational SPDE approximation, computed using
+<code>fractional.operators()</code>,
+<code>matern.operators()</code>, or <code>spde.matern.operators()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>A</code></td>
+<td>
+<p>A matrix linking the measurement locations to the basis of the
+FEM approximation of the latent model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Aprd</code></td>
+<td>
+<p>A matrix linking the prediction locations to the basis of the
+FEM approximation of the latent model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>A vector with the observed data, can also be a matrix where the
+columns are observations
+of independent replicates of <code class="reqn">u</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma.e</code></td>
+<td>
+<p>The standard deviation of the Gaussian measurement noise.
+Put to zero if the model
+does not have measurement noise.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>compute.variances</code></td>
+<td>
+<p>Set to also TRUE to compute the kriging variances.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>posterior_samples</code></td>
+<td>
+<p>If <code>TRUE</code>, posterior samples will be returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_samples</code></td>
+<td>
+<p>Number of samples to be returned. Will only be used if <code>sampling</code> is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>only_latent</code></td>
+<td>
+<p>Should the posterior samples be only given to the latent model?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments passed to or from other methods.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list with elements
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>mean </code></td>
+<td>
+<p>The kriging predictor (the posterior mean of u|Y).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>variance </code></td>
+<td>
+<p>The posterior variances (if computed).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>samples </code></td>
+<td>
+<p>A matrix containing the samples if <code>sampling</code> is <code>TRUE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Sample a Gaussian Matern process on R using a rational approximation
+kappa &lt;- 10
+sigma &lt;- 1
+nu &lt;- 0.8
+sigma.e &lt;- 0.3
+range &lt;- sqrt(8*nu)/kappa
+
+# create mass and stiffness matrices for a FEM discretization
+x &lt;- seq(from = 0, to = 1, length.out = 101)
+fem &lt;- rSPDE.fem1d(x)
+
+# compute rational approximation
+op &lt;- matern.operators(
+  range = range, sigma = sigma,
+  nu = nu, loc_mesh = x, d = 1,
+  parameterization = "matern"
+)
+
+# Sample the model
+u &lt;- simulate(op)
+
+# Create some data
+obs.loc &lt;- runif(n = 10, min = 0, max = 1)
+A &lt;- rSPDE.A1d(x, obs.loc)
+Y &lt;- as.vector(A %*% u + sigma.e * rnorm(10))
+
+# compute kriging predictions at the FEM grid
+A.krig &lt;- rSPDE.A1d(x, x)
+u.krig &lt;- predict(op,
+  A = A, Aprd = A.krig, Y = Y, sigma.e = sigma.e,
+  compute.variances = TRUE
+)
+
+plot(obs.loc, Y,
+  ylab = "u(x)", xlab = "x", main = "Data and prediction",
+  ylim = c(
+    min(u.krig$mean - 2 * sqrt(u.krig$variance)),
+    max(u.krig$mean + 2 * sqrt(u.krig$variance))
+  )
+)
+lines(x, u.krig$mean)
+lines(x, u.krig$mean + 2 * sqrt(u.krig$variance), col = 2)
+lines(x, u.krig$mean - 2 * sqrt(u.krig$variance), col = 2)
+</code></pre>
+
+
+</div>

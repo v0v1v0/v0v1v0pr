@@ -1,0 +1,704 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>dfuncEstim</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate a detection function from distance-sampling data</h2>
+
+<h3>Description</h3>
+
+<p>Fit a specific detection function to off-transect 
+or off-point (radial) distances using maximum likelihood. 
+Distance functions are fitted to individual 
+distance observations, not histogram bin heights, despite plot methods 
+that draw histogram bars.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">dfuncEstim(
+  formula,
+  detectionData,
+  siteData,
+  likelihood = "halfnorm",
+  pointSurvey = FALSE,
+  w.lo = units::set_units(0, "m"),
+  w.hi = NULL,
+  expansions = 0,
+  series = "cosine",
+  x.scl = units::set_units(0, "m"),
+  g.x.scl = 1,
+  observer = "both",
+  warn = TRUE,
+  transectID = NULL,
+  pointID = "point",
+  outputUnits = NULL,
+  control = RdistanceControls()
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>A standard formula object (e.g., <code>dist ~ 1</code>, 
+<code>dist ~ covar1 + covar2</code>). The left-hand side (before <code>~</code>)
+is the name of the vector containing distances (off-transect or 
+radial).  The right-hand side (after <code>~</code>)
+contains the names of covariate vectors to fit in the detection
+function. Covariates can be either detection level and appear in <code>detectionData</code> 
+or transect level and appear in  <code>siteData</code>. Regular R scoping 
+rules apply.  
+</p>
+<p><b>Group Sizes:</b> Non-unity group sizes are specified using <code>groupsize()</code>
+in the formula. That is, when group sizes are not all 1, they must 
+be entered as a column in <code>detectionData</code> and specified 
+using <code>groupsize()</code> as part of <code>formula</code>.  For example, 
+<code>d ~ habitat + groupsize(number)</code> specifies that 
+distances appear in variable <code>d</code>, one covariate 
+named <code>habitat</code> is to be fitted, and column <code>number</code> 
+contains the number of individuals 
+associated with each detection.  If group sizes are not specified, 
+all group sizes are assumed to be 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>detectionData</code></td>
+<td>
+<p>A data frame containing detection distances 
+(either perpendicular for line-transect or radial for point-transect
+designs), with one row per detected object or group.   
+This data frame must contain at least the following 
+information: 
+</p>
+
+<ul>
+<li>
+<p> Detection Distances: A single column containing 
+detection distances must be specified on the left-hand 
+side of <code>formula</code>.  As of Rdistance version 3.0.0, 
+the detection distances must have measurement units attached. 
+Attach measurements units to distances using <code>library(units);units()&lt;-</code>.
+For example, <code>library(units)</code> followed by <code>units(df$dist) &lt;- "m"</code> or 
+<code>units(df$dist) &lt;- "ft"</code> will work. Alternatively, 
+<code>df$dist &lt;- units::set_units(df$dist, "m")</code> also works.
+</p>
+</li>
+<li>
+<p> Site IDs: The ID of the transect or point 
+(i.e., the 'site') where each object or group was detected.
+The site ID  column(s) (see arguments <code>transectID</code> and
+<code>pointID</code>) must 
+specify the site (transect or point) so that this 
+data frame can be merged with <code>siteData</code>.    
+</p>
+</li>
+<li>
+<p> In a later release, <code>Rdistance</code> will allow detection-level 
+covariates.  When that happens, detection-level 
+covariates will appear in this data frame. 
+</p>
+</li>
+</ul>
+<p>See example data set <code>sparrowDetectionData</code>.
+See also <b>Input data frames</b> below 
+for information on when <code>detectionData</code> and 
+<code>siteData</code> are required inputs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>siteData</code></td>
+<td>
+<p>A data.frame containing site (transect or point)
+IDs and any 
+<em>site level</em> covariates to include in the detection function. 
+Every unique surveyed site (transect or point) is represented on
+one row of this data set, whether or not targets were sighted 
+at the site.  See arguments <code>transectID</code> and 
+<code>pointID</code> for an explanation of the way in which distance and site 
+data frames are merged.  See 
+section <b>Relationship between data frames (transect and point ID's)</b>
+for additional details.
+</p>
+<p>See <b>Data frame requirements</b> for situations in which 
+<code>detectionData</code> only, <code>detectionData</code> and <code>siteData</code>, or 
+neither are required.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>likelihood</code></td>
+<td>
+<p>String specifying the likelihood to fit. Built-in 
+likelihoods at present are "uniform", "halfnorm", 
+"hazrate", "negexp", and "Gamma". See vignette for a way to use 
+user-define likelihoods.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pointSurvey</code></td>
+<td>
+<p>A logical scalar specifying whether input data come
+from point-transect surveys (TRUE),
+or line-transect surveys (FALSE).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w.lo</code></td>
+<td>
+<p>Lower or left-truncation limit of the distances in distance data. 
+This is the minimum possible off-transect distance. Default is 0.  If 
+<code>w.lo</code> is greater than 0, it must be assigned measurement units
+using <code>units(w.lo) &lt;- "&lt;units&gt;"</code> or 
+<code>w.lo &lt;- units::set_units(w.lo, "&lt;units&gt;")</code>. 
+See examples in the help for <code>set_units</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w.hi</code></td>
+<td>
+<p>Upper or right-truncation limit of the distances 
+in <code>dist</code>. This is the maximum off-transect distance that 
+could be observed. If unspecified (i.e., NULL), 
+right-truncation is set to the maximum of the observed 
+distances.  If <code>w.hi</code> is specified, it must have associated 
+measurement units.  Assign measurement units
+using <code>units(w.hi) &lt;- "&lt;units&gt;"</code> or 
+<code>w.hi &lt;- units::set_units(w.hi, "&lt;units&gt;")</code>. 
+See examples in the help for <code>set_units</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>expansions</code></td>
+<td>
+<p>A scalar specifying the number of terms 
+in <code>series</code> to compute. Depending on the series, 
+this could be 0 through 5.  The default of 0 equates 
+to no expansion terms of any type.  No expansion terms 
+are allowed (i.e., <code>expansions</code> is forced to 0) if 
+covariates are present in the detection function 
+(i.e., right-hand side of <code>formula</code> includes
+something other than <code>1</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>series</code></td>
+<td>
+<p>If <code>expansions</code> &gt; 0, this string 
+specifies the type of expansion to use. Valid values at 
+present are 'simple', 'hermite', and 'cosine'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x.scl</code></td>
+<td>
+<p>The x coordinate (a distance) at which to scale the 
+sightability function to <code>g.x.scl</code>, or the string "max".  
+When <code>x.scl</code> is specified (i.e., not 0 or "max"), it must have measurement 
+units assigned using either <code>library(units);units(x.scl) &lt;- '&lt;units&gt;'</code>
+or <code>x.scl &lt;- units::set_units(x.scl, &lt;units&gt;)</code>. See
+<code>units::valid_udunits()</code> for valid symbolic units. See 
+Details for more on 
+scaling the sightability function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g.x.scl</code></td>
+<td>
+<p>Height of the distance function at coordinate <em>x</em>. 
+The distance function 
+will be scaled so that g(<code>x.scl</code>) = <code>g.x.scl</code>. 
+If <code>g.x.scl</code> is not 
+a data frame, it must be a numeric value (vector of length 1) 
+between 0 and 1. 
+See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>observer</code></td>
+<td>
+<p>A numeric scalar or text string specifying whether observer 1 
+or observer 2 or both were full-time observers. 
+This parameter dictates which set of observations form the denominator 
+of a double observer system.   
+If, for example, observer 2 was a data recorder and part-time observer, 
+or if observer 2 was the pilot, set <code>observer</code> = 1.  
+If <code>observer</code> = 1, observations by observer 1 not seen 
+by observer 2 are ignored. The estimate of detection in this case is the 
+ratio of number of targets seen by both observers 
+to the number seen by both plus the number seen by just observer 2. 
+If observer = "both", the 
+computation goes both directions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>warn</code></td>
+<td>
+<p>A logical scalar specifying whether to issue 
+an R warning if the estimation did not converge or if one 
+or more parameter estimates are at their boundaries.  
+For estimation, <code>warn</code> should generally be left at
+its default value of <code>TRUE</code>.  When computing bootstrap 
+confidence intervals, setting <code>warn = FALSE</code> 
+turns off annoying warnings when an iteration does 
+not converge.  Regardless of <code>warn</code>, after 
+completion all messages about 
+convergence and boundary conditions are printed 
+by <code>print.dfunc</code>, <code>print.abund</code>, and 
+<code>plot.dfunc</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>transectID</code></td>
+<td>
+<p>A character vector naming the transect ID column(s) in
+<code>detectionData</code> and <code>siteData</code>.  If transects are 
+not identified in columns named 'siteID' (the default for both data frames), you need 
+to specify which column(s) uniquely identify transects. <code>transectID</code> can have length
+greater than 1, in which case unique transects are identified by the composite columns.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pointID</code></td>
+<td>
+<p>When point-transects are used, this is the 
+ID of points on a transect.  When <code>pointSurvey</code>=TRUE, 
+the combination of <code>transectID</code> and 
+<code>pointID</code> specify unique sampling sites.  
+See <b>Input data frames</b>.  
+</p>
+<p>If single points are surveyed, 
+meaning surveyed points were not grouped into transects, each 'transect' consists
+of one point. In this case, set <code>transectID</code> equal to 
+the point's ID and set <code>pointID</code> equal to 1 for all points.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outputUnits</code></td>
+<td>
+<p>A string giving the symbolic measurment 
+units that results should be reported in.   Any 
+distance measurement unit in <code>units::valid_udunits()</code> 
+will work.  The strings for common distance symbolic units are: 
+"m" for meters, "ft" for feet, "cm" for centimeters, "mm" for 
+millimeters, "mi" for miles, "nmile" for 
+nautical miles ("nm" is nano meters), "in" for inches, 
+"yd" for yards, "km" for kilometers, "fathom" for fathoms, 
+"chains" for chains, and "furlong" for furlongs.  
+If <code>outputUnits</code> is unspecified (NULL),
+output units are the same as distance measurements units in 
+<code>data</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>A list containing optimization control parameters such 
+as the maximum number of iterations, tolerance, the optimizer to use, 
+etc.  See the 
+<code>RdistanceControls</code> function for explanation of each value,
+the defaults, and the requirements for this list. 
+See examples below for how to change controls.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An object of class 'dfunc'.  Objects of class 'dfunc' 
+are lists containing the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>parameters</code></td>
+<td>
+<p>The vector of estimated parameter values. 
+Length of this vector for built-in likelihoods is one 
+(for the function's parameter) plus the 
+number of expansion terms plus one if the likelihood is 
+either 'hazrate' or 'uniform' (hazrate and uniform have
+two parameters). </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>varcovar</code></td>
+<td>
+<p>The variance-covariance matrix for coefficients 
+of the distance function, estimated by the inverse of the Hessian
+of the fit evaluated at the estimates.  There is no guarantee this 
+matrix is positive-definite and should be viewed with caution.  
+Error estimates derived from bootstrapping are generally 
+more reliable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loglik</code></td>
+<td>
+<p>The maximized value of the log likelihood 
+(more specifically, the minimized value of the negative 
+log likelihood).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>convergence</code></td>
+<td>
+<p>The convergence code. This code 
+is returned by <code>optim</code>.  Values other than 0 indicate suspect 
+convergence.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>like.form</code></td>
+<td>
+<p>The name of the likelihood. This is 
+the value of the argument <code>likelihood</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w.lo</code></td>
+<td>
+<p>Left-truncation value used during the fit.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w.hi</code></td>
+<td>
+<p>Right-truncation value used during the fit.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>detections</code></td>
+<td>
+<p>A data frame of detections within the strip 
+or circle used in the fit.  Column 'dist' contains the 
+observed distances. 
+Column 'groupSize' contains group sizes associated with 
+the values of 'dist'. Group 
+sizes are only used in <code>abundEstim</code>.  This data frame 
+contains only distances between <code>w.lo</code> and <code>w.hi</code>. 
+Another component of the returned object, i.e., <code>model.frame</code> 
+contains all observations in the input data, including those outside the strip.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covars</code></td>
+<td>
+<p>Either NULL if no covariates are included in the 
+detection function, or a <code>model.matrix</code> containing the covariates
+used in the fit. Factors in in the model.matrix version have been expanded
+into 0-1 indicator variables based on R contrasts in effect at the time 
+of the call. Only covariates associated with distances inside the strip 
+or circle are included. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model.frame</code></td>
+<td>
+<p>A <code>model.frame</code> object containing observed distances 
+(the 'response'), covariates specified in the formula, and group sizes if they
+were specified.  If specified, the name of the group size column is "offset(-variable-)", 
+not "groupsize(-variable-)", because internally it is easier to treat group sizes  
+as an offset in the model.  This component is a proper <code>model.frame</code> and contains
+both 'terms' and 'contrasts' attributes. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>siteID.cols</code></td>
+<td>
+<p>A vector containing the transect ID column names in <code>detectionData</code>
+and <code>siteData</code>. Transect IDs can be a composite of two or more columns and hence 
+this component can have length greater than 1. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>expansions</code></td>
+<td>
+<p>The number of expansion terms used 
+during estimation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>series</code></td>
+<td>
+<p>The type of expansion used during estimation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>The original call of this function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call.x.scl</code></td>
+<td>
+<p>The <em>input</em> or user requested 
+distance at which the distance function is scaled. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call.g.x.scl</code></td>
+<td>
+<p>The <code>input</code> value specifying the 
+height of the distance function at a distance 
+of <code>call.x.scl</code>.  </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call.observer</code></td>
+<td>
+<p>The value of input parameter <code>observer</code>.
+The input <code>observer</code> parameter is only applicable when 
+<code>g.x.scl</code> is a data frame.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>The fitted object returned by <code>optim</code>.  
+See documentation for <code>optim</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>factor.names</code></td>
+<td>
+<p>The names of any factors in <code>formula</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pointSurvey</code></td>
+<td>
+<p>The input value of <code>pointSurvey</code>. 
+This is TRUE if distances are radial from a point. FALSE 
+if distances are perpendicular off-transect. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>The formula specified for the detection function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>A list containing values of the 'control' parameters 
+set by <code>RdistanceControls</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outputUnits</code></td>
+<td>
+<p>The measurement units used for output.  All 
+distance measurements are converted to these units internally. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x.scl</code></td>
+<td>
+<p>The <em>actual</em> distance at which 
+the distance function is scaled to some value.  
+i.e., this is the actual <em>x</em> at 
+which g(<em>x</em>) = <code>g.x.scl</code>.
+Note that <code>call.x.scl</code> = <code>x.scl</code> unless 
+<code>call.x.scl</code> == "max", in which case <code>x.scl</code> is the 
+distance at which <em>g</em>() is maximized. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g.x.scl</code></td>
+<td>
+<p>The <em>actual</em> height of the distance function 
+at a distance of <code>x.scl</code>. Note that <code>g.x.scl</code> = 
+<code>call.g.x.scl</code> unless <code>call.g.x.scl</code>
+is a multiple observer data frame, in which case <code>g.x.scl</code> is the 
+actual height of the distance function at <code>x.scl</code> computed 
+from the multiple observer data frame.   </p>
+</td>
+</tr>
+</table>
+<h3>Transect types</h3>
+
+<p><code>Rdistance</code> 
+accommodates two kinds of transects: continuous and point.  
+On continuous transects detections can occur at
+any point along the route, and these are line-transects. 
+On point transects detections can only 
+occur at a series of stops (points), and these are 
+point-transects.  
+Transects are the basic sampling unit in both cases. 
+Columns named in <code>transectID</code> are  
+sufficient to specify unique line-transects. 
+The combination of <code>transectID</code> and 
+<code>pointID</code> specify unique sampling locations along point-transects.  
+See <b>Input data frames</b> below for more detail.
+</p>
+
+
+<h3>Input data frames</h3>
+
+<p>To save space and to easily specify 
+sites without detections, 
+all site ID's, regardless of whether a detection occurred there,
+and <em>site level</em> covariates are stored in 
+the <code>siteData</code> data frame.  Detection distances and group
+sizes are measured at the <em>detection level</em> and 
+are stored in the 
+<code>detectionData</code> data frame.  
+</p>
+
+
+<h4>Data frame requirements</h4>
+
+<p>The following explains  
+conditions under which various combinations of the input data frames 
+are required.
+</p>
+
+<ol>
+<li> <p><b>Detection data and site data both required:</b><br>
+Both <code>detectionData</code> and <code>siteData</code>  
+are required if <em>site level</em> covariates are 
+specified on the right-hand side of <code>formula</code>. 
+<em>Detection level</em> covariates are not currently allowed.
+Both <code>detectionData</code> and 
+<code>siteData</code> data frames are required to estimate abundance 
+later in <code>abundEstim</code>.
+</p>
+</li>
+<li> <p><b>Detection data only required:</b><br><code>detectionData</code> only is required when 
+covariates are are not included in the distance function (i.e., the right-hand side of 
+<code>formula</code> is "~1" or "~groupsize(groupSize)"). Note that <code>dfuncEstim</code>
+does not need to know transect IDs (or group sizes)  
+in order to estimate a distance function; but, group sizes and 
+transect IDs are stored and used to estimate abundance 
+in function <code>abundEstim</code>. Both the <code>detectionData</code> and 
+<code>siteData</code> data frames are required in <code>abundEstim</code>. 
+</p>
+</li>
+<li> <p><b>Neither detection data nor site data required</b><br>
+Neither <code>detectionData</code> nor <code>siteData</code>  
+are required if all variables specified in <code>formula</code> 
+are within the scope of <code>dfuncEstim</code> (e.g., in the global working
+environment) and abundance estimates are not required. 
+Regular R scoping rules apply when the call 
+to <code>dfuncEstim</code> is embedded in a function. 
+This case is will produce distance functions only.
+Abundance cannot later be estimated because transects and transect lengths cannot
+be specified outside of a data frame.  If abundance will be estimated, 
+use either case 1 or 2.  
+</p>
+</li>
+</ol>
+<h4>Relationship between data frames (transect and point ID's)</h4>
+
+<p>The input data frames, <code>detectionData</code> and <code>siteData</code>,
+must be merge-able on unique sites.  For line-transects, 
+site ID's specify transects or routes and are unique values of 
+the <code>transectID</code> column in <code>siteData</code>.  In this case,
+the following merge must work:  
+<code>merge(detectionData,siteData,by=transectID)</code>.
+</p>
+<p>For point-transects, 
+site ID's specify individual points and are unique values 
+of the combination <code>paste(transectID,pointID)</code>.
+In this case, the following merge must work:    
+<code>merge(detectionData,siteData,by=c(transectID, pointID)</code>.
+</p>
+<p>By default, <em>transects</em> are unique combinations of the
+common variables in the <code>detectionData</code> and <code>siteData</code> data frames
+if both data frames are specified (i.e., unique values of
+<code>intersect(names(detectionData), names(siteData))</code>). If <code>siteData</code>
+is not specified and <code>transectID</code> is not given, transects are assumed to 
+be identified in a column named <code>siteID</code> in <code>detectionData</code>. 
+</p>
+<p>Either way
+(i.e., either <code>transectID</code> = "siteID" or specified as something else), 
+the column(s) containing transect ID's must be correct here if abundance is to be 
+estimated later. Routine <code>abundEstim</code> requires transect ID's for bootstrapping
+because it resamples unique values of the composite transect ID column(s). <code>abundEstim</code>
+uses the value of <code>transectID</code> specified here and hence users cannot change transect ID's between 
+calls to <code>dfuncEstim</code> and <code>abundEstim</code> and all <code>transectID</code> columns 
+must be present in both data frames even though they may not be used until later.
+</p>
+<p>An error occurs if both <code>detectionData</code> and <code>siteData</code> are specified 
+but no common columns exist.  Duplicate <code>transectID</code> values are not allowed in <code>siteData</code>
+but are allowed in <code>detectionData</code> because multiple detections can occur on a single transect
+or at a single site. If the same site is surveyed in multiple years, specify another level of transect ID; 
+for example, <code>transectID</code> = <code>c("year","transectID")</code>. 
+</p>
+
+
+
+<h3>Measurement Units</h3>
+
+<p>As of <code>Rdistance</code> version 3.0.0, measurement units are 
+require on all distances.  This includes off-transect 
+distances, radial 
+distances, truncation distances (<code>w.lo</code> and <code>w.hi</code>), 
+transect lengths, and study size area. 
+In <code>dfuncEstim</code>, units are required on the following: 
+<code>detectionData$dist</code>; <code>w.lo</code> (unless it is zero); 
+<code>w.hi</code> (unless it is NULL); 
+and <code>x.scl</code>. In <code>abundEstim</code>, units are 
+required on <code>siteData$length</code> and <code>area</code>. All units are 
+1-dimensional except those on <code>area</code>, which are 2-dimensional. 
+</p>
+<p>Requiring units ensures that internal calculations and results 
+(e.g., ESW and abundance) are correct 
+and that output units are clear.   
+Input distances can have variable units. For example, 
+input distances can be in specified in "m", <code>w.hi</code> in "in", 
+and <code>w.lo</code> in "km".  Internally, all distances are 
+converted to the units specified by <code>outputUnits</code> 
+(or the units of input distances if 
+<code>outputUnits</code> is NULL), and 
+all output is reported 
+in units of <code>outputUnits</code>. 
+</p>
+<p>Measurement units can be assigned using  
+<code>units()&lt;-</code> after attaching the <code>units</code> 
+package or with <code>x &lt;- units::set_units(x, "&lt;units&gt;")</code>. 
+See <code>units::valid_udunits()</code>
+for a list of valid symbolic units. 
+</p>
+<p>If measurements are truly unit-less, or measurement units are unknown, 
+set <code>RdistanceControls(requireUnits = FALSE)</code>.  This suppresses 
+all unit checks and conversions.  Users are on their own 
+to make sure inputs are scaled correctly and that output units are known.
+</p>
+
+
+<h3>References</h3>
+
+<p>Buckland, S.T., D.R. Anderson, K.P. Burnham, J.L. Laake, D.L. Borchers,
+and L. Thomas. (2001) <em>Introduction to distance sampling: estimating
+abundance of biological populations</em>. Oxford University Press, Oxford, UK.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>abundEstim</code>, <code>autoDistSamp</code>.
+Likelihood-specific help files (e.g., <code>halfnorm.like</code>). 
+See package vignettes for additional options.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Load example sparrow data (line transect survey type)
+data(sparrowDetectionData)
+
+dfunc &lt;- dfuncEstim(formula = dist ~ 1
+                  , detectionData = sparrowDetectionData)
+dfunc
+plot(dfunc)                   
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,104 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>gcs_to_ee_image</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Move a GeoTIFF image from GCS to their EE assets</h2>
+
+<h3>Description</h3>
+
+<p>Move a GeoTIFF image from GCS to their EE assets
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">gcs_to_ee_image(
+  manifest,
+  overwrite = FALSE,
+  command_line_tool_path = NULL,
+  quiet = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>manifest</code></td>
+<td>
+<p>Character. Manifest upload file. See <code>ee_utils_create_manifest_image</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite</code></td>
+<td>
+<p>Logical. If TRUE, the assetId will be overwritten if
+it exists.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>command_line_tool_path</code></td>
+<td>
+<p>Character. Path to the Earth Engine command line
+tool (CLT). If NULL, rgee assumes that CLT is set in the system PATH.
+(ignore if <code>via</code> is not defined as "gcs_to_asset").</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quiet</code></td>
+<td>
+<p>Logical. Suppress info message.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Character. The Earth Engine asset ID.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+library(rgee)
+library(stars)
+ee_Initialize("csaybar", gcs = TRUE)
+
+# 1. Read GeoTIFF file and create a output filename
+tif &lt;- system.file("tif/L7_ETMs.tif", package = "stars")
+x &lt;- read_stars(tif)
+assetId &lt;- sprintf("%s/%s",ee_get_assethome(),'stars_l7')
+
+# 2. From local to gcs
+gs_uri &lt;- local_to_gcs(
+  x = tif,
+  bucket = 'rgee_dev' # Insert your own bucket here!
+)
+
+# 3. Create an Image Manifest
+manifest &lt;- ee_utils_create_manifest_image(gs_uri, assetId)
+
+# 4. From GCS to Earth Engine
+gcs_to_ee_image(
+  manifest = manifest,
+  overwrite = TRUE
+)
+
+# OPTIONAL: Monitoring progress
+ee_monitoring()
+
+# OPTIONAL: Display results
+ee_stars_01 &lt;- ee$Image(assetId)
+ee_stars_01$bandNames()$getInfo()
+
+Map$centerObject(ee_stars_01)
+Map$addLayer(ee_stars_01, list(min = 0, max = 255, bands = c("b3", "b2", "b1")))
+
+## End(Not run)
+</code></pre>
+
+
+</div>

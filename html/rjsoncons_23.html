@@ -1,0 +1,268 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>j_patch_apply</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Patch or compute the difference between two JSON documents</h2>
+
+<h3>Description</h3>
+
+<p><code>j_patch_apply()</code> uses JSON Patch
+<a href="https://jsonpatch.com">https://jsonpatch.com</a> to transform JSON 'data' according the
+rules in JSON 'patch'.
+</p>
+<p><code>j_patch_from()</code> computes a JSON patch describing the
+difference between two JSON documents.
+</p>
+<p><code>j_patch_op()</code> translates <em>R</em> arguments to the JSON
+representation of a patch, validating and 'unboxing' arguments
+as necessary.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">j_patch_apply(data, patch, as = "string", ...)
+
+j_patch_from(data_x, data_y, as = "string", ...)
+
+j_patch_op(op, path, ...)
+
+## Default S3 method:
+j_patch_op(op, path, ..., from = NULL, value = NULL)
+
+## S3 method for class 'j_patch_op'
+j_patch_op(op, ...)
+
+## S3 method for class 'j_patch_op'
+c(..., recursive = FALSE)
+
+## S3 method for class 'j_patch_op'
+print(x, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>JSON character vector, file, URL, or an <em>R</em> object to
+be converted to JSON using <code>jsonline::fromJSON(data, ...)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>patch</code></td>
+<td>
+<p>JSON 'patch' as character vector, file, URL, <em>R</em>
+object, or the result of <code>j_patch_op()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>as</code></td>
+<td>
+<p>character(1) return type; <code>"string"</code> returns a JSON
+string, <code>"R"</code> returns an <em>R</em> object using the rules in
+<code>as_r()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>For <code>j_patch_apply()</code> and <code>j_patch_diff()</code>, arguments passed to
+<code>jsonlite::toJSON</code> when <code>data</code>, <code>patch</code>, <code>data_x</code>, and / or
+<code>data_y</code> is an <em>R</em> object.  It is appropriate to add the
+<code>jsonlite::toJSON()</code> argument <code>auto_unbox = TRUE</code> when <code>patch</code> is
+an <em>R</em> object and any 'value' fields are JSON scalars; for more
+complicated scenarios 'value' fields should be marked with
+<code>jsonlite::unbox()</code> before being passed to <code style="white-space: pre;">⁠j_patch_*()⁠</code>.
+</p>
+<p>For <code>j_patch_op()</code> the <code>...</code> are additional arguments to the patch
+operation, e.g., <code style="white-space: pre;">⁠path = ', ⁠</code>value = '.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data_x</code></td>
+<td>
+<p>As for <code>data</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data_y</code></td>
+<td>
+<p>As for <code>data</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>op</code></td>
+<td>
+<p>A patch operation (<code>"add"</code>, <code>"remove"</code>, <code>"replace"</code>,
+<code>"copy"</code>, <code>"move"</code>, <code>"test"</code>), or when 'piping' an object
+created by <code>j_patch_op()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>path</code></td>
+<td>
+<p>A character(1) JSONPointer path to the location being patched.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>from</code></td>
+<td>
+<p>A character(1) JSONPointer path to the location an
+object will be copied or moved from.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>value</code></td>
+<td>
+<p>An <em>R</em> object to be translated into JSON and used during
+add, replace, or test.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>recursive</code></td>
+<td>
+<p>Ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>An object produced by <code>j_patch_op()</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For <code>j_patch_apply()</code>, 'patch' is a JSON array of objects. Each
+object describes how the patch is to be applied. Simple examples
+are available at <a href="https://jsonpatch.com">https://jsonpatch.com</a>, with verbs 'add',
+'remove', 'replace', 'copy' and 'test'. The 'path' element of each
+operation is a JSON pointer; remember that JSON arrays are 0-based.
+</p>
+
+<ul>
+<li> <p><code>add</code> – add elements to an existing document.
+</p>
+<div class="sourceCode"><pre>{"op": "add", "path": "/biscuits/1", "value": {"name": "Ginger Nut"}}
+</pre></div>
+</li>
+<li> <p><code>remove</code> – remove elements from a document.
+</p>
+<div class="sourceCode"><pre>{"op": "remove", "path": "/biscuits/0"}
+</pre></div>
+</li>
+<li> <p><code>replace</code> – replace one element with another
+</p>
+<div class="sourceCode"><pre>{
+    "op": "replace", "path": "/biscuits/0/name",
+    "value": "Chocolate Digestive"
+}
+</pre></div>
+</li>
+<li> <p><code>copy</code> – copy a path to another location.
+</p>
+<div class="sourceCode"><pre>{"op": "copy", "path": "/best_biscuit", "from": "/biscuits/0"}
+</pre></div>
+</li>
+<li> <p><code>move</code> – move a path to another location.
+</p>
+<div class="sourceCode"><pre>{"op": "move", "path": "/cookies", "from": "/biscuits"}
+</pre></div>
+</li>
+<li> <p><code>test</code> – test for the existence of a path; if the path does not
+exist, do not apply any of the patch.
+</p>
+<div class="sourceCode"><pre>{"op": "test", "path": "/best_biscuit/name", "value": "Choco Leibniz"}
+</pre></div>
+</li>
+</ul>
+<p>The examples below illustrate a patch with one (a JSON array with a
+single object) or several (a JSON array with several arguments)
+operations. <code>j_patch_apply()</code> fits naturally into a pipeline
+composed with <code style="white-space: pre;">⁠|&gt;⁠</code> to transform JSON between representations.
+</p>
+<p>The <code>j_patch_op()</code> function takes care to ensure that <code>op</code>, <code>path</code>,
+and <code>from</code> arguments are 'unboxed' (represented as JSON scalars
+rather than arrays). The user must ensure that <code>value</code> is
+represented correctly by applying <code>jsonlite::unbox()</code> to individual
+elements or adding <code>auto_unbox = TRUE</code> to <code>...</code>. Examples
+illustrate these different scenarios.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>j_patch_apply()</code> returns a JSON string or <em>R</em> object
+representing 'data' patched according to 'patch'.
+</p>
+<p><code>j_patch_from()</code> returns a JSON string or <em>R</em> object
+representing the difference between 'data_x' and 'data_y'.
+</p>
+<p><code>j_patch_op()</code> returns a character vector subclass that can
+be used in <code>j_patch_apply()</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data_file &lt;-
+    system.file(package = "rjsoncons", "extdata", "patch_data.json")
+
+## add a biscuit
+patch &lt;- '[
+    {"op": "add", "path": "/biscuits/1", "value": {"name": "Ginger Nut"}}
+]'
+j_patch_apply(data_file, patch, as = "R") |&gt; str()
+
+## add a biscuit and choose a favorite
+patch &lt;- '[
+    {"op": "add", "path": "/biscuits/1", "value": {"name": "Ginger Nut"}},
+    {"op": "copy", "path": "/best_biscuit", "from": "/biscuits/2"}
+]'
+biscuits &lt;- j_patch_apply(data_file, patch)
+as_r(biscuits) |&gt; str()
+
+j_patch_from(biscuits, data_file, as = "R") |&gt; str()
+
+if (requireNamespace("jsonlite", quietly = TRUE)) {
+## helper for constructing patch operations from R objects
+j_patch_op(
+    "add", path = "/biscuits/1", value = list(name = "Ginger Nut"),
+    ## 'Ginger Nut' is a JSON scalar, so auto-unbox the 'value' argument
+    auto_unbox = TRUE
+)
+j_patch_op("remove", "/biscuits/0")
+j_patch_op(
+    "replace", "/biscuits/0/name",
+    ## also possible to unbox arguments explicitly
+    value = jsonlite::unbox("Chocolate Digestive")
+)
+j_patch_op("copy", "/best_biscuit", from = "/biscuits/0")
+j_patch_op("move", "/cookies", from = "/biscuits")
+j_patch_op(
+    "test", "/best_biscuit/name", value = "Choco Leibniz",
+    auto_unbox = TRUE
+)
+
+## several operations
+value &lt;- list(name = jsonlite::unbox("Ginger Nut"))
+ops &lt;- c(
+    j_patch_op("add", "/biscuits/1", value = value),
+    j_patch_op("copy", path = "/best_biscuit", from = "/biscuits/0")
+)
+ops
+
+ops &lt;-
+    j_patch_op("add", "/biscuits/1", value = value) |&gt;
+    j_patch_op("copy", path = "/best_biscuit", from = "/biscuits/0")
+ops
+}
+</code></pre>
+
+
+</div>

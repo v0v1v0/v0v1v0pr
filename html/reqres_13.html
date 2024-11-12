@@ -1,0 +1,615 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Request</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>HTTP Request Handling</h2>
+
+<h3>Description</h3>
+
+<p>This class wraps all functionality related to extracting information from a
+http request. Much of the functionality is inspired by the Request class in
+Express.js, so <a href="https://expressjs.com/en/4x/api.html#req">the documentation</a>
+for this will complement this document. As <code>reqres</code> is build on top of the
+<a href="https://github.com/jeffreyhorner/Rook/blob/a5e45f751/README.md">Rook specifications</a>
+the <code>Request</code> object is initialized from a Rook-compliant object. This will
+often be the request object provided by the <code>httpuv</code> framework. While it
+shouldn't be needed, the original Rook object is always accessible and can be
+modified, though any modifications will not propagate to derived values in
+the <code>Request</code> object (e.g. changing the <code>HTTP_HOST</code> element of the Rook
+object will not change the <code>host</code> field of the <code>Request</code> object). Because of
+this, direct manipulation of the Rook object is generally discouraged.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">as.Request(x, ...)
+
+is.Request(x)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>An object coercible to a <code>Request</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Parameters passed on to <code>Request$new()</code></p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A <code>Request</code> object (for <code>as.Request()</code>) or a logical indicating whether
+the object is a <code>Request</code> (for <code>is.Request()</code>)
+</p>
+
+
+<h3>Initialization</h3>
+
+<p>A new 'Request'-object is initialized using the <code>new()</code> method on the
+generator:
+</p>
+<p><strong>Usage</strong>
+</p>
+
+<table><tr>
+<td style="text-align: left;">
+<code>req &lt;- Request$new(rook, trust = FALSE)</code>
+</td>
+</tr></table>
+<p><strong>Arguments</strong>
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+<code>rook</code> </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;"> The rook request that the new object should wrap</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>trust</code> </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;"> Is this request trusted blindly. If <code>TRUE</code> <code style="white-space: pre;">⁠X-Forwarded-*⁠</code> headers will be returned when querying host, ip, and protocol
+</td>
+</tr>
+</table>
+<h3>Fields</h3>
+
+<p>The following fields are accessible in a <code>Request</code> object:
+</p>
+
+<dl>
+<dt><code>trust</code></dt>
+<dd>
+<p>A logical indicating whether the request is trusted. <em>Mutable</em></p>
+</dd>
+<dt><code>method</code></dt>
+<dd>
+<p>A string indicating the request method (in lower case, e.g.
+'get', 'put', etc.). <em>Immutable</em></p>
+</dd>
+<dt><code>body</code></dt>
+<dd>
+<p>An object holding the body of the request. This is an empty
+string by default and needs to be populated using the <code>set_body()</code> method
+(this is often done using a body parser that accesses the Rook$input
+stream). <em>Immutable</em></p>
+</dd>
+<dt><code>cookies</code></dt>
+<dd>
+<p>Access a named list of all cookies in the request. These
+have been URI decoded. <em>Immutable</em></p>
+</dd>
+<dt><code>headers</code></dt>
+<dd>
+<p>Access a named list of all headers in the request. In order
+to follow R variable naming standards <code>-</code> have been substituted with <code style="white-space: pre;">⁠_⁠</code>.
+Use the <code>get_header()</code> method to lookup based on the correct header name.
+<em>Immutable</em></p>
+</dd>
+<dt><code>host</code></dt>
+<dd>
+<p>Return the domain of the server given by the "Host" header if
+<code>trust == FALSE</code>. If <code>trust == true</code> returns the <code>X-Forwarded-Host</code> instead.</p>
+</dd>
+<dt><code>ip</code></dt>
+<dd>
+<p>Returns the remote address of the request if <code>trust == FALSE</code>.
+if <code>trust == TRUE</code> it will instead return the first value of the
+<code>X-Forwarded-For</code> header. <em>Immutable</em></p>
+</dd>
+<dt><code>ips</code></dt>
+<dd>
+<p>If <code>trust == TRUE</code> it will return the full list of ips in the
+<code>X-Forwarded-For</code> header. If <code>trust == FALSE</code> it will return an empty
+vector. <em>Immutable</em></p>
+</dd>
+<dt><code>protocol</code></dt>
+<dd>
+<p>Returns the protocol (e.g. 'http') used for the request.
+If <code>trust == TRUE</code> it will use the value of the <code>X-Forwarded-Proto</code> header.
+<em>Immutable</em></p>
+</dd>
+<dt><code>root</code></dt>
+<dd>
+<p>The mount point of the application receiving this request. Can
+be empty if the application is mounted on the server root. <em>Immutable</em></p>
+</dd>
+<dt><code>path</code></dt>
+<dd>
+<p>The part of the url following the root. Defines the local
+target of the request (independent of where it is mounted). <em>Immutable</em></p>
+</dd>
+<dt><code>url</code></dt>
+<dd>
+<p>The full URL of the request. <em>Immutable</em></p>
+</dd>
+<dt><code>query</code></dt>
+<dd>
+<p>The query string of the request (anything following "?" in
+the URL) parsed into a named list. The query has been url decoded and "+"
+has been substituted with space. Multiple queries are expected to be
+separated by either "&amp;" or "|". <em>Immutable</em></p>
+</dd>
+<dt><code>querystring</code></dt>
+<dd>
+<p>The unparsed query string of the request, including
+"?". If no query string exists it will be <code>""</code> rather than <code>"?"</code></p>
+</dd>
+<dt><code>xhr</code></dt>
+<dd>
+<p>A logical indicating whether the <code>X-Requested-With</code> header
+equals <code>XMLHttpRequest</code> thus indicating that the request was performed using
+a JavaScript library such as jQuery. <em>Immutable</em></p>
+</dd>
+<dt><code>secure</code></dt>
+<dd>
+<p>A logical indicating whether the request was performed using
+a secure connection, i.e. <code>protocol == 'https'</code>. <em>Immutable</em></p>
+</dd>
+<dt><code>origin</code></dt>
+<dd>
+<p>The original object used to create the <code>Request</code> object. As
+<code>reqres</code> currently only works with rook this will always return the original
+rook object. <em>Immutable</em>, though the content of the rook object itself might
+be manipulated as it is an environment.</p>
+</dd>
+<dt><code>response</code></dt>
+<dd>
+<p>If a <code>Response</code> object has been created for this request
+it is accessible through this field. <em>Immutable</em></p>
+</dd>
+</dl>
+<h3>Methods</h3>
+
+<p>The following methods are available in a <code>Request</code> object:
+</p>
+
+<dl>
+<dt><code>set_body(content)</code></dt>
+<dd>
+<p>Sets the content of the request body. This method
+should mainly be used in concert with a body parser that reads the
+<code>rook$input</code> stream</p>
+</dd>
+<dt><code>set_cookies(cookies)</code></dt>
+<dd>
+<p>Sets the cookies of the request. The cookies
+are automatically parsed and populated, so this method is mainly available
+to facilitate cookie signing and encryption</p>
+</dd>
+<dt><code>get_header(name)</code></dt>
+<dd>
+<p>Get the header of the specified name.</p>
+</dd>
+<dt><code>accepts(types)</code></dt>
+<dd>
+<p>Given a vector of response content types it returns
+the preferred one based on the <code>Accept</code> header.</p>
+</dd>
+<dt><code>accepts_charsets(charsets)</code></dt>
+<dd>
+<p>Given a vector of possible character
+encodings it returns the preferred one based on the <code>Accept-Charset</code>
+header.</p>
+</dd>
+<dt><code>accepts_encoding(encoding)</code></dt>
+<dd>
+<p>Given a vector of possible content
+encodings (usually compression algorithms) it selects the preferred one
+based on the <code>Accept-Encoding</code> header. If there is no match it will return
+<code>"identity"</code> signaling no compression.</p>
+</dd>
+<dt><code>accepts_language(language)</code></dt>
+<dd>
+<p>Given a vector of possible content
+languages it selects the best one based on the <code>Accept-Language</code> header.</p>
+</dd>
+<dt><code>is(type)</code></dt>
+<dd>
+<p>Queries whether the body of the request is in a given
+format by looking at the <code>Content-Type</code> header. Used for selecting the best
+parsing method.</p>
+</dd>
+<dt><code>respond()</code></dt>
+<dd>
+<p>Creates a new <code>Response</code> object from the request</p>
+</dd>
+<dt><code>parse(..., autofail = TRUE)</code></dt>
+<dd>
+<p>Based on provided parsers it selects
+the appropriate one by looking at the <code>Content-Type</code> header and assigns the
+result to the request body. A parser is a function accepting a raw vector,
+and a named list of additional directives,
+and returns an R object of any kind (if the parser knows the input to be
+plain text, simply wrap it in <code>rawToChar()</code>). If the body is compressed, it
+will be decompressed based on the <code>Content-Encoding</code> header prior to passing
+it on to the parser. See parsers for a list of pre-supplied parsers.
+Parsers are either supplied in a named list or as named arguments to the
+parse method. The names should correspond to mime types or known file
+extensions. If <code>autofail = TRUE</code> the response will be set with the correct
+error code if parsing fails. <code>parse()</code> returns <code>TRUE</code> if parsing was
+successful and <code>FALSE</code> if not</p>
+</dd>
+<dt><code>parse_raw(autofail = TRUE)</code></dt>
+<dd>
+<p>This is a simpler version of the
+<code>parse()</code> method. It will attempt to decompress the body and set the <code>body</code>
+field to the resulting raw vector. It is then up to the server to decide how
+to handle the payload. It returns <code>TRUE</code> if successful and <code>FALSE</code>
+otherwise.</p>
+</dd>
+<dt><code>as_message()</code></dt>
+<dd>
+<p>Prints a HTTP representation of the request to the
+output stream.</p>
+</dd>
+</dl>
+<h3>Methods</h3>
+
+
+
+<h4>Public methods</h4>
+
+
+<ul>
+<li> <p><a href="#method-Request-new"><code>Request$new()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Request-print"><code>Request$print()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Request-set_body"><code>Request$set_body()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Request-set_cookies"><code>Request$set_cookies()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Request-accepts"><code>Request$accepts()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Request-accepts_charsets"><code>Request$accepts_charsets()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Request-accepts_encoding"><code>Request$accepts_encoding()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Request-accepts_language"><code>Request$accepts_language()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Request-is"><code>Request$is()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Request-get_header"><code>Request$get_header()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Request-respond"><code>Request$respond()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Request-parse"><code>Request$parse()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Request-parse_raw"><code>Request$parse_raw()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Request-as_message"><code>Request$as_message()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Request-clone"><code>Request$clone()</code></a>
+</p>
+</li>
+</ul>
+<hr>
+<a id="method-Request-new"></a>
+
+
+
+<h4>Method <code>new()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Request$new(rook, trust = FALSE)</pre></div>
+
+
+<hr>
+<a id="method-Request-print"></a>
+
+
+
+<h4>Method <code>print()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Request$print(...)</pre></div>
+
+
+<hr>
+<a id="method-Request-set_body"></a>
+
+
+
+<h4>Method <code>set_body()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Request$set_body(content)</pre></div>
+
+
+<hr>
+<a id="method-Request-set_cookies"></a>
+
+
+
+<h4>Method <code>set_cookies()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Request$set_cookies(cookies)</pre></div>
+
+
+<hr>
+<a id="method-Request-accepts"></a>
+
+
+
+<h4>Method <code>accepts()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Request$accepts(types)</pre></div>
+
+
+<hr>
+<a id="method-Request-accepts_charsets"></a>
+
+
+
+<h4>Method <code>accepts_charsets()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Request$accepts_charsets(charsets)</pre></div>
+
+
+<hr>
+<a id="method-Request-accepts_encoding"></a>
+
+
+
+<h4>Method <code>accepts_encoding()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Request$accepts_encoding(encoding)</pre></div>
+
+
+<hr>
+<a id="method-Request-accepts_language"></a>
+
+
+
+<h4>Method <code>accepts_language()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Request$accepts_language(language)</pre></div>
+
+
+<hr>
+<a id="method-Request-is"></a>
+
+
+
+<h4>Method <code>is()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Request$is(type)</pre></div>
+
+
+<hr>
+<a id="method-Request-get_header"></a>
+
+
+
+<h4>Method <code>get_header()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Request$get_header(name)</pre></div>
+
+
+<hr>
+<a id="method-Request-respond"></a>
+
+
+
+<h4>Method <code>respond()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Request$respond()</pre></div>
+
+
+<hr>
+<a id="method-Request-parse"></a>
+
+
+
+<h4>Method <code>parse()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Request$parse(..., autofail = TRUE)</pre></div>
+
+
+<hr>
+<a id="method-Request-parse_raw"></a>
+
+
+
+<h4>Method <code>parse_raw()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Request$parse_raw(autofail = TRUE)</pre></div>
+
+
+<hr>
+<a id="method-Request-as_message"></a>
+
+
+
+<h4>Method <code>as_message()</code>
+</h4>
+
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Request$as_message()</pre></div>
+
+
+<hr>
+<a id="method-Request-clone"></a>
+
+
+
+<h4>Method <code>clone()</code>
+</h4>
+
+<p>The objects of this class are cloneable with this method.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Request$clone(deep = FALSE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>deep</code></dt>
+<dd>
+<p>Whether to make a deep clone.</p>
+</dd>
+</dl>
+</div>
+
+
+
+
+<h3>See Also</h3>
+
+<p><code>Response</code> for handling http responses
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">fake_rook &lt;- fiery::fake_request(
+  'http://example.com/test?id=34632&amp;question=who+is+hadley',
+  content = 'This is an elaborate ruse',
+  headers = list(
+    Accept = 'application/json; text/*',
+    Content_Type = 'text/plain'
+  )
+)
+
+req &lt;- Request$new(fake_rook)
+
+# Get full URL
+req$url
+
+# Get list of query parameters
+req$query
+
+# Test if content is text
+req$is('txt')
+
+# Perform content negotiation for the response
+req$accepts(c('html', 'json', 'txt'))
+
+# Cleaning up connections
+rm(fake_rook, req)
+gc()
+
+</code></pre>
+
+
+</div>

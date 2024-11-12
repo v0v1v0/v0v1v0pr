@@ -1,0 +1,98 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>inspect_join_plan</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>check that a join plan is consistent with table descriptions.</h2>
+
+<h3>Description</h3>
+
+<p>Please see <code>vignette('DependencySorting', package = 'rquery')</code> and <code>vignette('joinController', package= 'rquery')</code> for more details.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">inspect_join_plan(tDesc, columnJoinPlan, ..., checkColClasses = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>tDesc</code></td>
+<td>
+<p>description of tables, from <code>describe_tables</code> (and likely altered by user).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>columnJoinPlan</code></td>
+<td>
+<p>columns to join, from <code>build_join_plan</code> (and likely altered by user). Note: no column names must intersect with names of the form <code>table_CLEANEDTABNAME_present</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>force later arguments to bind by name.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>checkColClasses</code></td>
+<td>
+<p>logical if true check for exact class name matches</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>NULL if okay, else a string
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>describe_tables</code>, <code>build_join_plan</code>, <code>graph_join_plan</code>, <code>actualize_join_plan</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+if (requireNamespace("DBI", quietly = TRUE) &amp;&amp; requireNamespace("RSQLite", quietly = TRUE)) {
+  my_db &lt;- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+  # example data
+  DBI::dbWriteTable(my_db,
+                    "d1",
+                    data.frame(id= 1:3,
+                               weight= c(200, 140, 98),
+                               height= c(60, 24, 12)))
+  DBI::dbWriteTable(my_db,
+                    "d2",
+                    data.frame(pid= 2:3,
+                               weight= c(130, 110),
+                               width= 1))
+  # get the initial description of table defs
+  tDesc &lt;- describe_tables(my_db, qc(d1, d2))
+  # declare keys (and give them consistent names)
+  tDesc$keys[[1]] &lt;- list(PrimaryKey= 'id')
+  tDesc$keys[[2]] &lt;- list(PrimaryKey= 'pid')
+  # build the join plan
+  columnJoinPlan &lt;- build_join_plan(tDesc)
+  # confirm the plan
+  print(inspect_join_plan(tDesc, columnJoinPlan,
+                          checkColClasses= TRUE))
+  # damage the plan
+  columnJoinPlan$sourceColumn[columnJoinPlan$sourceColumn=='width'] &lt;- 'wd'
+  # find a problem
+  print(inspect_join_plan(tDesc, columnJoinPlan,
+                          checkColClasses= TRUE))
+  DBI::dbDisconnect(my_db)
+}
+
+</code></pre>
+
+
+</div>

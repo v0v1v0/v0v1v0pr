@@ -1,0 +1,286 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>new_cncpt</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Data Concepts</h2>
+
+<h3>Description</h3>
+
+<p>Concept objects are used in <code>ricu</code> as a way to specify how a clinical
+concept, such as heart rate can be loaded from a data source and are mainly
+consumed by <code>load_concepts()</code>. Several functions are available for
+constructing <code>concept</code> (and related auxiliary) objects either from code or
+by parsing a JSON formatted concept dictionary using <code>load_dictionary()</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">new_cncpt(
+  name,
+  items,
+  description = name,
+  omopid = NA_integer_,
+  category = NA_character_,
+  aggregate = NULL,
+  ...,
+  target = "ts_tbl",
+  class = "num_cncpt"
+)
+
+is_cncpt(x)
+
+init_cncpt(x, ...)
+
+## S3 method for class 'num_cncpt'
+init_cncpt(x, unit = NULL, min = NULL, max = NULL, ...)
+
+## S3 method for class 'unt_cncpt'
+init_cncpt(x, unit = NULL, min = NULL, max = NULL, ...)
+
+## S3 method for class 'fct_cncpt'
+init_cncpt(x, levels, ...)
+
+## S3 method for class 'cncpt'
+init_cncpt(x, ...)
+
+## S3 method for class 'rec_cncpt'
+init_cncpt(
+  x,
+  callback = paste0("rename_data_var('", x[["name"]], "')"),
+  interval = NULL,
+  ...
+)
+
+new_concept(x)
+
+concept(...)
+
+is_concept(x)
+
+as_concept(x)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p>The name of the concept</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>items</code></td>
+<td>
+<p>Zero or more <code>itm</code> objects</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>description</code></td>
+<td>
+<p>String-valued concept description</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>omopid</code></td>
+<td>
+<p>OMOP identifier</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>category</code></td>
+<td>
+<p>String-valued category</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aggregate</code></td>
+<td>
+<p>NULL or a string denoting a function used to aggregate per
+id and if applicable per time step</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further specification of the <code>cncpt</code> object (passed to
+<code>init_cncpt()</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target</code></td>
+<td>
+<p>The target object yielded by loading</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>class</code></td>
+<td>
+<p><code>NULL</code> or a string-valued sub-class name used for customizing
+concept behavior</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Object to query/dispatch on</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>unit</code></td>
+<td>
+<p>A string, specifying the measurement unit of the concept (can
+be <code>NULL</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min, max</code></td>
+<td>
+<p>Scalar valued; defines a range of plausible values for a
+numeric concept</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>levels</code></td>
+<td>
+<p>A vector of possible values a categorical concept may take on</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>callback</code></td>
+<td>
+<p>Name of a function to be called on the returned data used
+for data cleanup operations</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interval</code></td>
+<td>
+<p>Time interval used for data loading; if NULL, the respective
+interval passed as argument to <code>load_concepts()</code> is taken</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>In order to allow for a large degree of flexibility (and extensibility),
+which is much needed owing to considerable heterogeneity presented by
+different data sources, several nested S3 classes are involved in
+representing a concept. An outline of this hierarchy can be described as
+</p>
+
+<ul>
+<li> <p><code>concept</code>: contains many <code>cncpt</code> objects (of potentially differing
+sub-types), each comprising of some meta-data and an <code>item</code> object
+</p>
+</li>
+<li> <p><code>item</code>: contains many <code>itm</code> objects (of potentially differing
+sub-types), each encoding how to retrieve a data item.
+</p>
+</li>
+</ul>
+<p>The design choice for wrapping a vector of <code>cncpt</code> objects with a container
+class <code>concept</code> is motivated by the requirement of having several different
+sub-types of <code>cncpt</code> objects (all inheriting from the parent type <code>cncpt</code>),
+while retaining control over how this homogeneous w.r.t. parent type, but
+heterogeneous w.r.t. sub-type vector of objects behaves in terms of S3
+generic functions.
+</p>
+<p>Each individual <code>cncpt</code> object contains the following information: a string-
+valued name, an <code>item</code> vector containing <code>itm</code>
+objects, a string-valued description (can be missing), a string-valued
+category designation (can be missing), a character vector-valued
+specification for an aggregation function and a target class specification
+(e.g. <code>id_tbl</code> or <code>ts_tbl</code>). Additionally, a sub-
+class to <code>cncpt</code> has to be specified, each representing a different
+data-scenario and holding further class-specific information. The following
+sub-classes to <code>cncpt</code> are available:
+</p>
+
+<ul>
+<li> <p><code>num_cncpt</code>: The most widely used concept type is indented for concepts
+representing numerical measurements. Additional information that can be
+specified includes a string-valued unit specification, alongside a
+plausible range which can be used during data loading.
+</p>
+</li>
+<li> <p><code>fct_cncpt</code>: In case of categorical concepts, such as <code>sex</code>, a set of
+factor levels can be specified, against which the loaded data is checked.
+</p>
+</li>
+<li> <p><code>lgl_cncpt</code>: A special case of <code>fct_cncpt</code>, this allows only for logical
+values (<code>TRUE</code>, <code>FALSE</code> and <code>NA</code>).
+</p>
+</li>
+<li> <p><code>rec_cncpt</code>: More involved concepts, such as a SOFA score
+can pull in other concepts. Recursive concepts can build on other
+recursive concepts up to arbitrary recursion depth. Owing to the more
+complicated nature of such concepts, a <code>callback</code> function can be
+specified which is used in data loading for concept-specific post-
+processing steps.
+</p>
+</li>
+<li> <p><code>unt_cncpt</code>: A recent (experimental) addition which inherits from
+<code>num_cncpt</code> but instead of manual unit conversion, leverages
+</p>
+</li>
+</ul>
+<p>Class instantiation is organized in the same fashion as for
+<code>item</code> objects: <code>concept()</code> maps vector-valued arguments
+to <code>new_cncpt()</code>, which internally calls the S3 generic function
+<code>init_cncpt()</code>, while <code>new_concept()</code> instantiates a <code>concept</code> object from
+a list of <code>cncpt</code> objects (created by calls to <code>new_cncpt()</code>). Coercion is
+only possible from <code>list</code> and <code>cncpt</code>, by calling <code>as_concept()</code> and
+inheritance can be checked using <code>is_concept()</code> or <code>is_cncpt()</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Constructors and coercion functions return <code>cncpt</code> and <code>concept</code>
+objects, while inheritance tester functions return logical flags.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">if (require(mimic.demo)) {
+gluc &lt;- concept("glu",
+  item("mimic_demo", "labevents", "itemid", list(c(50809L, 50931L))),
+  description = "glucose", category = "chemistry",
+  unit = "mg/dL", min = 0, max = 1000
+)
+
+is_concept(gluc)
+
+identical(gluc, load_dictionary("mimic_demo", "glu"))
+
+gl1 &lt;- new_cncpt("glu",
+  item("mimic_demo", "labevents", "itemid", list(c(50809L, 50931L))),
+  description = "glucose"
+)
+
+is_cncpt(gl1)
+is_concept(gl1)
+
+conc &lt;- concept(c("glu", "lact"),
+  list(
+    item("mimic_demo", "labevents", "itemid", list(c(50809L, 50931L))),
+    item("mimic_demo", "labevents", "itemid", 50813L)
+  ),
+  description = c("glucose", "lactate")
+)
+
+conc
+
+identical(as_concept(gl1), conc[1L])
+}
+
+</code></pre>
+
+
+</div>

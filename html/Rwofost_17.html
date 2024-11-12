@@ -1,0 +1,200 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>wofost</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+WOFOST crop growth model
+</h2>
+
+<h3>Description</h3>
+
+<p>Run the WOFOST crop growth model. Through this interface, you provide weather data, and crop, soil and control parameters to run the model once. For multiple runs it might be preferable to use <code>wofost_model</code> instead.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">wofost(crop, weather, soil, control)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>crop</code></td>
+<td>
+<p>list. Crop parameters</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weather</code></td>
+<td>
+<p>data.frame with weather data</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>soil</code></td>
+<td>
+<p>list. Soil parameters</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>list. Model control options</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The weather data must be passed as a data.frame with the following variables and units.
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+	</td>
+<td style="text-align: left;"> <b>variable</b> </td>
+<td style="text-align: left;"> <b>description</b> </td>
+<td style="text-align: left;"> <b>class / unit</b> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+	</td>
+<td style="text-align: left;"> <code>date</code> </td>
+<td style="text-align: left;"> "Date" class variable </td>
+<td style="text-align: left;"> - </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+	</td>
+<td style="text-align: left;"> <code>srad</code> </td>
+<td style="text-align: left;"> Solar radiation  </td>
+<td style="text-align: left;"> kJ m-2 day-1 </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+	</td>
+<td style="text-align: left;"> <code>tmin</code> </td>
+<td style="text-align: left;"> Minimum temperature </td>
+<td style="text-align: left;"> degrees C </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+	</td>
+<td style="text-align: left;"> <code>tmax</code> </td>
+<td style="text-align: left;"> Maximum temperature </td>
+<td style="text-align: left;"> degrees C </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+	</td>
+<td style="text-align: left;"> <code>vapr</code> </td>
+<td style="text-align: left;"> Vapor pressure </td>
+<td style="text-align: left;"> kPa </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+	</td>
+<td style="text-align: left;"> <code>wind</code> </td>
+<td style="text-align: left;"> Wind speed </td>
+<td style="text-align: left;"> m s-1 </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+	</td>
+<td style="text-align: left;"> <code>prec</code> </td>
+<td style="text-align: left;"> Precipitation </td>
+<td style="text-align: left;"> mm day-1 </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<p>Note that there should not be any time gaps between the days in the data.frame 
+</p>
+
+
+<h3>Value</h3>
+
+<p>matrix
+</p>
+
+
+<h3>References</h3>
+
+<p>Van Diepen, C.A., J. Wolf, and H van Keulen, 1989. WOFOST: a simulation model of crop production. Soil Use and Management, 5: 16-24
+</p>
+<p>Van Keulen, H. and J. Wolf, 1986. Modelling of agricultural production : weather, soils and crops. <a href="http://edepot.wur.nl/168025">http://edepot.wur.nl/168025</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>wofost_model</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# weather data
+f &lt;- system.file("extdata/Netherlands_Swifterbant.csv", package="meteor")
+w &lt;- read.csv(f)
+w$date &lt;- as.Date(w$date)
+head(w)
+
+# crop and soil parameters
+crop &lt;- wofost_crop("barley")
+soil &lt;- wofost_soil("ec1")
+
+# "control" parameters
+contr &lt;- wofost_control()
+contr$modelstart &lt;- as.Date("1980-02-06")
+contr$latitude=52.57
+contr$elevation=50
+
+
+# run model
+d &lt;- wofost(crop, w, soil, contr)
+
+# output
+head(d)
+tail(d)
+plot(d[,"step"], d[, "LAI"])
+
+
+## Another example
+crop &lt;- wofost_crop("rapeseed_1001")
+soil &lt;- wofost_soil("soil_5")
+contr$modelstart &lt;- as.Date("1977-01-01")
+
+rp &lt;- wofost(crop, w, soil, contr)
+plot(rp[,"step"], rp[, "LAI"])
+
+# yield
+plot(rp[, 1], rp[,"WSO"])
+
+
+## water limited
+contr$water_limited &lt;- TRUE
+contr$modelstart &lt;- as.Date("1985-01-01")
+
+crop &lt;- wofost_crop("maize_1")
+f &lt;- system.file("extdata/Philippines_IRRI.csv", package="meteor")
+wth &lt;- read.csv(f)
+wth$date &lt;- as.Date(wth$date)
+contr$elevation &lt;- 21
+contr$latitude &lt;- 14.18
+
+ma &lt;- wofost(crop, wth, soil, contr)
+plot(ma[,"step"], ma[, "LAI"])
+
+</code></pre>
+
+
+</div>

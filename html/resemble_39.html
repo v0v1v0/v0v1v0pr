@@ -1,0 +1,191 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>mbl_control</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>A function that controls some few aspects of the memory-based learning
+process in the <code>mbl</code> function</h2>
+
+<h3>Description</h3>
+
+<a href="https://www.tidyverse.org/lifecycle/#experimental"><img src="figures/lifecycle-maturing.svg" alt="Experimental lifecycle"></a>
+<script id="MathJax-script" async src="../../mathjaxr/doc/mathjax/es5/tex-chtml-full.js"></script><p>This function is used to further control some aspects of the memory-based
+learning process in the <code>mbl</code> function.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">mbl_control(return_dissimilarity = FALSE,
+            validation_type = c("NNv", "local_cv"),
+            tune_locally = TRUE,
+            number = 10,
+            p = 0.75,
+            range_prediction_limits = TRUE,
+            progress = TRUE,
+            allow_parallel = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>return_dissimilarity</code></td>
+<td>
+<p>a logical indicating if the dissimilarity matrix
+between <code>Xr</code> and <code>Xu</code> must be returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>validation_type</code></td>
+<td>
+<p>a character vector which indicates the (internal) validation
+method(s) to be used for assessing the global performance of the local models.
+Possible options are: <code>"NNv"</code> and <code>"local_cv"</code>. Alternatively
+<code>"none"</code> can be used when cross-validation is not required (see details
+below).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tune_locally</code></td>
+<td>
+<p>a logical. It only applies when
+<code>validation_type = "local_cv"</code> and "pls" or "wapls" fitting algorithms are
+used.  If <code>TRUE</code>, the the parameters of the local pls-based models
+(i.e. pls factors for the "pls" method and minimum and maximum pls factors
+for the "wapls" method). Default is #' <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>number</code></td>
+<td>
+<p>an integer indicating the number of sampling iterations at
+each local segment when <code>"local_cv"</code> is selected in the
+<code>validation_type</code> argument. Default is 10.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>a numeric value indicating the percentage of observations to be retained
+at each sampling iteration at each local segment when <code>"local_cv"</code>
+is selected in the <code>validation_type</code> argument. Default is 0.75 %.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>range_prediction_limits</code></td>
+<td>
+<p>a logical. It indicates whether the prediction
+limits at each local regression are determined by the range of the response
+variable within each neighborhood. When the predicted value is outside
+this range, it will be automatically replaced with the value of the nearest
+range value. If <code>FALSE</code>, no prediction limits are imposed.
+Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>progress</code></td>
+<td>
+<p>a logical indicating whether or not to print a progress bar
+for each observation to be predicted. Default is <code>TRUE</code>. Note: In case
+parallel processing is used, these progress bars will not be printed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>allow_parallel</code></td>
+<td>
+<p>a logical indicating if parallel execution is allowed.
+If <code>TRUE</code>, this parallelism is applied to the loop in <code>mbl</code>
+in which each iteration takes care of a single observation in <code>Xu</code>. The
+parallelization of this for loop is implemented using the
+foreach function of the <code>foreach</code> package.
+Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The validation methods available for assessing the predictive performance of
+the memory-based learning method used are described as follows:
+</p>
+
+<ul>
+<li>
+<p>Leave-nearest-neighbor-out cross-validation (<code>"NNv"</code>): From
+the group of neighbors of each observation to be predicted, the nearest observation
+(i.e. the most similar observation) is excluded and then a local model is fitted
+using the remaining neighbors. This model is then used to predict the value
+of the target response variable of the nearest observation. These predicted
+values are finally cross validated with the actual values (See Ramirez-Lopez
+et al. (2013a) for additional details). This method is faster than
+<code>"local_cv"</code>.
+</p>
+</li>
+<li>
+<p>Local leave-group-out cross-validation (<code>"local_cv"</code>): The
+group of neighbors of each observation to be predicted is partitioned into
+different equal size subsets. Each partition is selected based on a
+stratified random sampling which takes into account the values of the
+response variable of the corresponding set of neighbors. The selected
+local subset is used as local validation subset and the remaining observations
+are used for fitting a model. This model is used to predict the target
+response variable values of the local validation subset and the local root
+mean square error is computed. This process is repeated \(m\) times and
+the final local error is computed as the average of the local root mean
+square error of all the \(m\) iterations. In the <code>mbl</code> function
+\(m\) is controlled by the <code>number</code> argument and the size of the
+subsets is controlled by the <code>p</code> argument which indicates the
+percentage of observations to be selected from the subset of nearest neighbours.
+The global error of the predictions is computed as the average of the local
+root mean square errors.
+</p>
+</li>
+<li>
+<p>No validation (<code>"none"</code>): No validation is carried out.
+If <code>"none"</code> is seleceted along with <code>"NNv"</code> and/or
+<code>"local_cv"</code>, then it will be ignored and the respective
+validation(s) will be carried out.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>a <code>list</code> mirroring the specified parameters
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Leonardo Ramirez-Lopez and Antoine Stevens
+</p>
+
+
+<h3>References</h3>
+
+<p>Ramirez-Lopez, L., Behrens, T., Schmidt, K., Stevens, A., Dematte, J.A.M.,
+Scholten, T. 2013a. The spectrum-based learner: A new local approach for
+modeling soil vis-NIR spectra of complex data sets. Geoderma 195-196, 268-279.
+</p>
+<p>Ramirez-Lopez, L., Behrens, T., Schmidt, K., Viscarra Rossel, R., Dematte,
+J. A. M.,  Scholten, T. 2013b. Distance and similarity-search metrics for
+use with soil vis-NIR spectra. Geoderma 199, 43-53.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>f_diss</code>, <code>cor_diss</code>, <code>sid</code>,
+<code>ortho_diss</code>, <code>mbl</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># A control list with the default parameters
+mbl_control()
+</code></pre>
+
+
+</div>

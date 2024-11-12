@@ -1,0 +1,246 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>vr_vec</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Derive stage-specific vital rates from a matrix population model</h2>
+
+<h3>Description</h3>
+
+<p>Derive a vector of stage-specific vital rates of survival, growth, shrinkage,
+stasis, dormancy, or reproduction from a matrix population model. These
+functions include optional arguments for excluding certain stage classes from
+the calculation (see <em>Excluding stages</em>), and defining the set of
+biologically-possible transitions (see <em>Possible transitions</em>).
+</p>
+<p>This decomposition assume that all transition rates are products of a
+stage-specific survival term (column sums of <code>matU</code>) and a lower level
+vital rate that is conditional on survival (growth, shrinkage, stasis,
+dormancy, or reproduction). Reproductive vital rates that are not conditional
+on survival (i.e., within a stage class from which there is no survival) are
+also allowed.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">vr_vec_survival(matU, posU = matU &gt; 0, exclude_col = NULL)
+
+vr_vec_growth(
+  matU,
+  posU = matU &gt; 0,
+  exclude = NULL,
+  exclude_row = NULL,
+  exclude_col = NULL,
+  surv_only_na = TRUE
+)
+
+vr_vec_shrinkage(
+  matU,
+  posU = matU &gt; 0,
+  exclude = NULL,
+  exclude_row = NULL,
+  exclude_col = NULL,
+  surv_only_na = TRUE
+)
+
+vr_vec_stasis(matU, posU = matU &gt; 0, exclude = NULL, surv_only_na = TRUE)
+
+vr_vec_dorm_enter(matU, posU = matU &gt; 0, dorm_stages)
+
+vr_vec_dorm_exit(matU, posU = matU &gt; 0, dorm_stages)
+
+vr_vec_reproduction(
+  matU,
+  matR,
+  posR = matR &gt; 0,
+  exclude_col = NULL,
+  weights_row = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>matU</code></td>
+<td>
+<p>The survival component of a matrix population model (i.e., a
+square projection matrix only containing survival-related transitions;
+progression, stasis, and retrogression).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>posU</code></td>
+<td>
+<p>A logical matrix of the same dimension as <code>matU</code>, with
+elements indicating whether a given <code>matU</code> transition is possible
+(<code>TRUE</code>) or not (<code>FALSE</code>). Defaults to <code>matU &gt; 0</code> (see
+Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exclude_col</code></td>
+<td>
+<p>Integer, character or logical vector indicating stages for
+which transitions both <em>to</em> and <em>from</em> the stage should be
+excluded from the calculation of vital rates. See section
+<em>Excluding stages</em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exclude</code></td>
+<td>
+<p>Integer, character or logical vector indicating stages for
+which transitions both <em>to</em> and <em>from</em> the stage should be
+excluded from the calculation of vital rates. See section
+<em>Excluding stages</em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exclude_row</code></td>
+<td>
+<p>Integer, character or logical vector indicating stages for
+which transitions both <em>to</em> and <em>from</em> the stage should be
+excluded from the calculation of vital rates. See section
+<em>Excluding stages</em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>surv_only_na</code></td>
+<td>
+<p>If there is only one possible <code>matU</code> transition in a
+given column, should that transition be attributed exclusively to survival?
+If <code>TRUE</code>, the vital rate of growth/stasis/shrinkage in that column
+will be coerced to <code>NA</code>. If <code>FALSE</code>, dividing the single
+transition by the stage-specific survival probability will always yield a
+value of <code>1</code>. Defaults to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dorm_stages</code></td>
+<td>
+<p>Integer or character vector indicating dormant stage
+classes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>matR</code></td>
+<td>
+<p>The reproductive component of a matrix population model (i.e., a
+square projection matrix only reflecting transitions due to reproduction;
+either sexual, clonal, or both).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>posR</code></td>
+<td>
+<p>A logical matrix of the same dimension as <code>matR</code>, with
+elements indicating whether a given <code>matR</code> transition is possible
+(<code>TRUE</code>) or not (<code>FALSE</code>). Defaults to <code>matR &gt; 0</code> (see
+Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights_row</code></td>
+<td>
+<p>Vector of stage-specific weights to apply while summing
+vital rates across rows within columns (e.g., reproductive value vector).</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Vector of vital rates. Vital rates corresponding to impossible
+transitions are coerced to <code>NA</code> (see <em>Possible transitions</em>).
+</p>
+
+
+<h3>Possible transitions</h3>
+
+<p>A transition rate of <code>0</code> within a matrix population model may indicate
+that the transition is not possible in the given life cycle (e.g., tadpoles
+never revert to eggs), or that the transition rate is possible but was
+estimated to be <code>0</code> in the relevant population and time period. If vital
+rates are to be averaged across multiple stage classes, or compared across
+populations, it may be important to distinguish between these two types of
+zeros.
+</p>
+<p>By default, the <code>vitals_</code> functions assume that a transition rate of
+<code>0</code> indicates an impossible transition, in which case a value of
+<code>NA</code> will be used in relevant calculations. Specifically, the arguments
+<code>posU</code> and <code>posR</code> are specified by the logical expressions
+<code>(matU &gt; 0)</code> and <code>(matR &gt; 0)</code>, respectively. If the matrix
+population model includes transitions that are estimated to be <code>0</code> but
+still in fact possible, one should specify the <code>posU</code> and/or <code>posR</code>
+arguments manually.
+</p>
+
+
+<h3>Excluding stages</h3>
+
+<p>It may be desirable to exclude one or more stages from the calculation of
+certain vital rates. For instance, a user might not believe that 'growth' to
+a dormant stage class really reflects biological growth, in which case the
+user could exclude transitions <em>to</em> the dormant stage class using the
+argument <code>exclude_row</code>. The user may or may not want to ignore 'growth'
+transitions <em>from</em> the dormant stage class, which can be done using
+<code>exclude_col</code>. The argument <code>exclude_col</code> effectively just coerces
+the respective vital rate to <code>NA</code>, to prevent it from getting used in
+subsequent calculations. To exclude transitions both <em>to and from</em> a
+given set of stages, use argument <code>exclude</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Patrick Barks &lt;patrick.barks@gmail.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other vital rates: 
+<code>vital_rates()</code>,
+<code>vr_mat</code>,
+<code>vr</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># create example MPM (stage 4 is dormant)
+matU &lt;- rbind(
+  c(0.1, 0, 0, 0),
+  c(0.5, 0.2, 0.1, 0.1),
+  c(0, 0.3, 0.3, 0.1),
+  c(0, 0, 0.5, 0.4)
+)
+
+matR &lt;- rbind(
+  c(0, 0.7, 1.1, 0),
+  c(0, 0.3, 0.8, 0),
+  c(0, 0, 0, 0),
+  c(0, 0, 0, 0)
+)
+
+vr_vec_survival(matU, exclude_col = 4)
+vr_vec_growth(matU, exclude = 4)
+
+# `exclude*` and `*_stages` arguments can accept stage names
+matU &lt;- name_stages(matU)
+matR &lt;- name_stages(matR)
+vr_vec_shrinkage(matU, exclude = 4)
+vr_vec_stasis(matU, exclude = "stage_4")
+
+vr_vec_dorm_enter(matU, dorm_stages = 4)
+vr_vec_dorm_exit(name_stages(matU), dorm_stages = "stage_4")
+
+vr_vec_reproduction(matU, matR, exclude_col = "stage_4")
+
+</code></pre>
+
+
+</div>

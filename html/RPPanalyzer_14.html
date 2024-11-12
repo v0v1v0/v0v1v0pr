@@ -1,0 +1,140 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>dataPreproc</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Data preprocessing
+</h2>
+
+<h3>Description</h3>
+
+<p>Function for import, normalization and quality checks of data prior to the actual analysis.
+The preprocessing steps include subtraction of dilution series intercepts and FCF normalization.
+Additionally plots for quality checks are generated including dilutions and BLANK measurements.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">  dataPreproc(dataDir=getwd(), blocks=12, spot="aushon",
+  exportNo=3, correct="both", remove_flagged=NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>dataDir</code></td>
+<td>
+<p>directory of gpr files, slidedescription.txt and sampledescription.txt, default is the current working directory</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>blocks</code></td>
+<td>
+<p>see <code>blocksperarray</code> in <code>read.Data</code>, default is 12</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>spot</code></td>
+<td>
+<p>see <code>spotter</code> in <code>read.Data</code>, default is "aushon"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exportNo</code></td>
+<td>
+<p>see <code>exportNo</code> in <code>correctDilinterc</code>, integer of 1-4 defining the linear fit to be used (1: constant, 2: antibody, 3: antibody + slide, 4: antibody + slide + sample), default is 3</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>correct</code></td>
+<td>
+<p>"both" applies <code>correctDilinterc</code> to all measurements, including FCF. "none" does not use this BG correction at all. "noFCF" applies <code>correctDilinterc</code> to all but not FCF measurements. The default is "both".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>remove_flagged</code></td>
+<td>
+<p>Either NULL or an integer. If an integer, looks into column <code>Flags</code> of the gpr file and removes samples with flag value less than or equal <code>-remove_flagged</code> from the data tables.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list of 4 elements is returned.
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>rawdat</code></td>
+<td>
+<p>list of 4 raw data elements (<code>expression</code> and <code>background</code> matrices, <code>arraydescription</code> and <code>sampledescription</code> data frames) according to <code>read.Data</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cordat</code></td>
+<td>
+<p>list of 4 elements like <code>rawdat</code> with <code>expression</code> data corrected to dilution intercepts, in case of resulting negative values the absoulte minimum + 1 is added, <code>expression</code> data is without NAs and is reduced to the <code>measurement</code> sample type, <code>background</code> is not corrected to intercepts, as it is not used here. If <code>correct</code> is "noFCF", the FCF measurements stay as in rawdat. If <code>correct</code> is "none", the measurements stay as in rawdat.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>normdat</code></td>
+<td>
+<p>list of 4 elements like <code>cordat</code> with <code>expression</code> as dilution intercept (<code>correct</code> "both" or "noFCF") and FCF normalized foreground data, the neglected background data are renamed here to <code>dummy</code> and should not be used</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>DIR</code></td>
+<td>
+<p>directory for storing the generated outputs</p>
+</td>
+</tr>
+</table>
+<p>All output files are stored in an analysis folder labeled by the date of analysis.
+The txt files <code>Dataexpression</code> and <code>Databackground</code> result from <code>write.Data</code> and store the raw data.
+The pdf files <code>getIntercepts_Output</code> and <code>anovaIntercepts_Output</code> result from <code>correctDilinterc</code>.  
+<code>getIntercepts_Output</code> shows the derived intercepts and smoothing splines of dilution series in dependence of the <code>dilSeriesID</code> column in sampledescription.txt and the slide/pad/incubationRun/spottingRun columns of the <code>arraydescription</code> matrix.
+<code>anovaIntercepts_Output.pdf</code> results from the ANOVA in <code>correctDilinterc</code>, comparing different linear models of the dilution series intercepts. The barplot displays the residual sum of squares (RSS) of the individual model fits. It helps to choose the appropriate <code>exportNo</code> parameter. As RSS decreases, the model fits better.
+Finally, three pdf files for quality checking are returned. 
+<code>QC_dilutioncurve_raw.pdf</code> plots target and blank (2nd antibody only) signals from serially diluted control samples of the raw RPPA data set, see <code>plotQC</code>.
+<code>QC_targetVSblank_normed.pdf</code> plots blank signals vs. target specific signals of dilution intercept corrected and FCF normalized RPPA data, see <code>plotMeasurementsQC</code>.
+<code>QC_qqPlot_normed.pdf</code> contains qq-plots of dilution intercept corrected and FCF normalized RPPA data, see <code>plotqq</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Silvia von der Heyde
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+library(RPPanalyzer)
+
+
+
+# get output list 
+dataDir&lt;-system.file("extdata",package="RPPanalyzer")
+res&lt;-dataPreproc(dataDir=dataDir,blocks=12,spot="aushon",exportNo=4,correct="both")
+
+# get individual elements
+# raw data
+rawdat&lt;-res$rawdat
+# dilution intercept corrected data
+cordat&lt;-res$cordat
+# dilution intercept corrected and FCF normalized data
+normdat&lt;-res$normdat
+# output directory
+DIR&lt;-res$DIR
+
+
+## End(Not run)
+</code></pre>
+
+
+</div>

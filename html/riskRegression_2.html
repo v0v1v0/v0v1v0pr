@@ -1,0 +1,191 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>anova.ate</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Risk Comparison Over Time</h2>
+
+<h3>Description</h3>
+
+<p>Comparison of risk differences or risk ratios over all timepoints.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'ate'
+anova(
+  object,
+  allContrast = NULL,
+  type = "diff",
+  estimator = object$estimator[1],
+  test = "CvM",
+  transform = NULL,
+  alternative = "two.sided",
+  n.sim = 10000,
+  print = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>A <code>ate</code> object, i.e. output of the <code>ate</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>allContrast</code></td>
+<td>
+<p>[matrix] contrast for which the risks should be compared.
+Matrix with two rows, the first being the sequence of reference treatments and the second the sequence of alternative treatments.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>[character vector] the functionnal used to compare the risks: <code>"diffRisk"</code> or <code>"ratioRisk"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estimator</code></td>
+<td>
+<p>[character] The type of estimator relative to which the comparison should be performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test</code></td>
+<td>
+<p>[character] The type of statistic used to compare the risks over times:
+<code>"KM"</code> (extremum risk), <code>"CvM"</code> (sum of squares of the risk), or <code>"sum"</code> (sum of the risks).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>transform</code></td>
+<td>
+<p>[character] Should a transformation be used, e.g. the test is performed after log-transformation of the estimate, standard error, and influence function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alternative</code></td>
+<td>
+<p>[character] a character string specifying the alternative hypothesis, must be one of <code>"two.sided"</code>, <code>"greater"</code> or <code>"less"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.sim</code></td>
+<td>
+<p>[integer, &gt;0] the number of simulations used to compute the p-values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>print</code></td>
+<td>
+<p>[logical] should the results be displayed?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Not used.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Experimental!!!
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(survival)
+library(data.table)
+
+## Not run: 
+## simulate data
+set.seed(12)
+n &lt;- 200
+dtS &lt;- sampleData(n,outcome="survival")
+dtS$X12 &lt;- LETTERS[as.numeric(as.factor(paste0(dtS$X1,dtS$X2)))]
+dtS &lt;- dtS[dtS$X12!="D"]
+
+## model fit
+fit &lt;- cph(formula = Surv(time,event)~ X1+X6,data=dtS,y=TRUE,x=TRUE)
+seqTime &lt;- 1:10
+ateFit &lt;- ate(fit, data = dtS, treatment = "X1", contrasts = NULL,
+              times = seqTime, B = 0, iid = TRUE, se = TRUE, verbose = TRUE, band = TRUE)
+
+## display
+autoplot(ateFit)
+
+## inference (two sided)
+statistic &lt;- ateFit$diffRisk$estimate/ateFit$diffRisk$se
+confint(ateFit, p.value = TRUE, method.band = "bonferroni")$diffRisk
+confint(ateFit, p.value = TRUE, method.band = "maxT-simulation")$diffRisk
+
+anova(ateFit, test = "KS")
+anova(ateFit, test = "CvM")
+anova(ateFit, test = "sum")
+
+## manual calculation (one sided)
+n.sim &lt;- 1e4
+statistic &lt;- ateFit$diffRisk[, estimate/se]
+iid.norm &lt;- scale(ateFit$iid$GFORMULA[["1"]]-ateFit$iid$GFORMULA[["0"]],
+                  scale = ateFit$diffRisk$se)
+
+ls.out &lt;- lapply(1:n.sim, function(iSim){
+iG &lt;- rnorm(NROW(iid.norm))
+iCurve &lt;- t(iid.norm) %*% iG
+data.table(max = max(iCurve), L2 = sum(iCurve^2), sum = sum(iCurve),
+maxC = max(iCurve) - max(statistic),
+L2C = sum(iCurve^2) - sum(statistic^2),
+sumC = sum(iCurve) - sum(statistic),
+sim = iSim)
+})
+
+dt.out &lt;- do.call(rbind,ls.out)
+dt.out[,.(max = mean(.SD$maxC&gt;=0),
+          L2 = mean(.SD$L2C&gt;=0),
+          sum = mean(.SD$sumC&gt;=0))]
+
+## permutation
+n.sim &lt;- 250
+stats.perm &lt;- vector(mode = "list", length = n.sim)
+pb &lt;- txtProgressBar(max = n.sim, style=3)
+treatVar &lt;- ateFit$variables["treatment"]
+
+for(iSim in 1:n.sim){ ## iSim &lt;- 1
+iData &lt;- copy(dtS)
+iIndex &lt;- sample.int(NROW(iData), replace = FALSE)
+iData[, c(treatVar) := .SD[[treatVar]][iIndex]]
+
+iFit &lt;- update(fit, data = iData)
+iAteSim &lt;- ate(iFit, data = iData, treatment = treatVar,
+               times = seqTime, verbose = FALSE)
+iStatistic &lt;- iAteSim$diffRisk[,estimate/se]
+stats.perm[[iSim]] &lt;- cbind(iAteSim$diffRisk[,.(max = max(iStatistic),
+                                                L2 = sum(iStatistic^2),
+                                                sum = sum(iStatistic))],
+                            sim = iSim)
+stats.perm[[iSim]]$maxC &lt;- stats.perm[[iSim]]$max - max(statistic)
+stats.perm[[iSim]]$L2C &lt;- stats.perm[[iSim]]$L2 - sum(statistic^2)
+stats.perm[[iSim]]$sumC &lt;- stats.perm[[iSim]]$sum - sum(statistic)
+setTxtProgressBar(pb, iSim)
+}
+
+dtstats.perm &lt;- do.call(rbind,stats.perm)
+dtstats.perm[,.(max = mean(.SD$maxC&gt;=0),
+                L2 = mean(.SD$L2C&gt;=0),
+                sum = mean(.SD$sumC&gt;=0))]
+
+## End(Not run)
+</code></pre>
+
+
+</div>

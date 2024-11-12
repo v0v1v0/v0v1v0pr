@@ -1,0 +1,180 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>TextStatusBar</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>A status bar at the R prompt that can be updated</h2>
+
+<h3>Description</h3>
+
+<p>Package:  R.utils <br><b>Class TextStatusBar</b><br></p>
+<p><code>Object</code><br><code>~~|</code><br><code>~~+--</code><code>TextStatusBar</code><br></p>
+<p><b>Directly known subclasses:</b><br><br></p>
+<p>public static class <b>TextStatusBar</b><br>
+extends Object<br></p>
+<p>A status bar at the R prompt that can be updated.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">TextStatusBar(fmt=paste("%-", getOption("width") - 1, "s", sep = ""), ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>fmt</code></td>
+<td>
+<p>A <code>character</code> format string to be used by <code>sprintf</code>().
+Default is a left-aligned string of full width.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Named arguments to be passed to <code>sprintf</code>() together
+with the format string.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>A label with name <code>hfill</code> can be used for automatic horizontal
+filling.  It must be <code>numeric</code> and be immediate before a string
+label such that a <code>hfill</code> label and the following string label
+together specifies an sprintf format such as <code>"%*-s"</code>.
+The value of <code>hfill</code> will be set such that the resulting status
+bar has width equal to <code>getOption("width")-1</code> (the reason for the
+-1 is to prevent the text status bar from writing into the next line).
+If more than one <code>hfill</code> label is used their widths will be
+uniformly distributed.  Left over spaces will be distributed between
+<code>hfill</code> labels with initial values of one.
+</p>
+
+
+<h3>Fields and Methods</h3>
+
+<p><b>Methods:</b><br></p>
+
+<table>
+<tr>
+<td style="text-align: right;">
+ </td>
+<td style="text-align: left;"> <code>flush</code> </td>
+<td style="text-align: left;">  -</td>
+</tr>
+<tr>
+<td style="text-align: right;">
+ </td>
+<td style="text-align: left;"> <code>getLabel</code> </td>
+<td style="text-align: left;">  -</td>
+</tr>
+<tr>
+<td style="text-align: right;">
+ </td>
+<td style="text-align: left;"> <code>newline</code> </td>
+<td style="text-align: left;">  -</td>
+</tr>
+<tr>
+<td style="text-align: right;">
+ </td>
+<td style="text-align: left;"> <code>popMessage</code> </td>
+<td style="text-align: left;">  -</td>
+</tr>
+<tr>
+<td style="text-align: right;">
+ </td>
+<td style="text-align: left;"> <code>setLabel</code> </td>
+<td style="text-align: left;">  -</td>
+</tr>
+<tr>
+<td style="text-align: right;">
+ </td>
+<td style="text-align: left;"> <code>setLabels</code> </td>
+<td style="text-align: left;">  -</td>
+</tr>
+<tr>
+<td style="text-align: right;">
+ </td>
+<td style="text-align: left;"> <code>update</code> </td>
+<td style="text-align: left;">  -</td>
+</tr>
+<tr>
+<td style="text-align: right;">
+ </td>
+<td style="text-align: left;"> <code>updateLabels</code> </td>
+<td style="text-align: left;">  -</td>
+</tr>
+<tr>
+<td style="text-align: right;">
+</td>
+</tr>
+</table>
+<p><b>Methods inherited from Object</b>:<br>
+$, $&lt;-, [[, [[&lt;-, as.character, attach, attachLocally, clearCache, clearLookupCache, clone, detach, equals, extend, finalize, getEnvironment, getFieldModifier, getFieldModifiers, getFields, getInstantiationTime, getStaticInstance, hasField, hashCode, ll, load, names, objectSize, print, save
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Henrik Bengtsson</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Read all HTML files in the base package
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+path &lt;- system.file(package="base")
+files &lt;- list.files(path, recursive=TRUE, full.names=TRUE)
+files &lt;- files[sapply(files, FUN=isFile)]
+nfiles &lt;- length(files)
+
+cat(sprintf("Reading %d files in %s:\n", nfiles, path))
+
+# Create a status bar with four labels
+sb &lt;- TextStatusBar("File: %-*s [%3.0f%% %7.0f bytes %-8s]",
+                hfill=1, file="", progress=0, nbytes=0L, time="")
+
+nbytes &lt;- 0L
+for (kk in seq_len(nfiles)) {
+  file &lt;- files[kk]
+
+  # Update the status bar
+  if (sb) {
+    setLabel(sb, "progress", 100*kk/nfiles)
+    if (kk %% 10 == 1 || kk == nfiles)
+      setLabel(sb, "file", substr(basename(file), 1, 44))
+
+    size &lt;- file.info(file)$size
+    # popMessage() calls update() too
+    popMessage(sb, sprintf("Processing %s (%.2fkB)",
+                                       basename(file), size/1024))
+    flush(sb)
+  }
+
+  # Read the file
+  bfr &lt;- readBin(file, what="raw", n=size)
+  nbytes &lt;- nbytes + size
+
+  # Emulate a slow process
+  if (interactive()) Sys.sleep(rexp(1, rate=60))
+
+  # Update the status bar
+  if (sb) {
+    setLabel(sb, "nbytes", nbytes)
+    setLabel(sb, "time", format(Sys.time(), "%H:%M:%S"))
+    update(sb)
+  }
+}
+setLabel(sb, "file", "&lt;done&gt;")
+update(sb)
+cat("\n")
+</code></pre>
+
+
+</div>

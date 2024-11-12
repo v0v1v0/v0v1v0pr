@@ -1,0 +1,140 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>read.biom</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Extracts counts, metadata, taxonomy, and phylogeny from a biom file.</h2>
+
+<h3>Description</h3>
+
+<p>Extracts counts, metadata, taxonomy, and phylogeny from a biom file.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">read.biom(src, tree = "auto", prune = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>src</code></td>
+<td>
+<p>Input data as either a file path, URL, or JSON string.
+<code>read.biom</code> can read BIOM files formatted according to both the
+version 1.0 (JSON) and 2.1 (HDF5)
+<a href="http://biom-format.org/documentation/">specifications</a> as well as
+classical tabular format. URLs must begin with <kbd>http://</kbd>,
+<kbd>https://</kbd>, <kbd>ftp://</kbd>, or <kbd>ftps://</kbd>. JSON files must have
+<code>{</code> as their first non-whitespace character. Compressed (gzip or
+bzip2) BIOM files are also supported. NOTE: to read HDF5 formatted BIOM
+files, the BioConductor R package <code>rhdf5</code> must be installed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tree</code></td>
+<td>
+<p>The default value of <code>auto</code> will read the tree from the 
+BIOM file specified in <code>src</code>, if present. The value <code>TRUE</code> 
+will do the same, but will generate an error message if a tree is not 
+present. Setting <code>tree=FALSE</code> will return a <code>BIOM</code> object 
+without any tree data. You may also provide a file path, URL, or Newick
+string to load that tree data into the final <code>BIOM</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prune</code></td>
+<td>
+<p>Should samples and taxa with zero observations be discarded?</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A <code>BIOM</code> class object containing the parsed data. This object
+can be treated as a list with the following named elements:
+</p>
+
+<dl>
+<dt>counts</dt>
+<dd>
+<p>A numeric <code>slam</code> sparse matrix of observation
+counts. Taxa (OTUs) as rows and samples as columns.</p>
+</dd>
+<dt>metadata</dt>
+<dd>
+<p>A data frame containing any embedded metadata.
+Row names are sample IDs.</p>
+</dd>
+<dt>taxonomy</dt>
+<dd>
+<p>Character matrix of taxonomic names, if given.
+Row names are taxa (OTU) IDs. Column rows are named Kingdom,
+Phylum, Class, Order, Family, Genus, Species, and Strain, or
+TaxLvl.1, TaxLvl.2, ... , TaxLvl.N when more than 8 levels of
+taxonomy are encoded in the biom file.</p>
+</dd>
+<dt>phylogeny</dt>
+<dd>
+<p>An object of class <code>phylo</code> defining the
+phylogenetic relationships between the taxa. Although the
+official specification for BIOM only includes phylogenetic trees
+in BIOM version 2.1, if a BIOM version 1.0 file includes a
+<code>phylogeny</code> entry with newick data, then it will be loaded
+here as well. The <span class="pkg">ape</span> package has additional functions
+for working with <code>phylo</code> objects.</p>
+</dd>
+<dt>sequences</dt>
+<dd>
+<p>A named character vector, where the names are
+taxonomic identifiers and the values are the sequences they
+represent. These values are not part of the official BIOM
+specification, but will be read and written when defined.</p>
+</dd>
+<dt>info</dt>
+<dd>
+<p>A list of other attributes defined in the BIOM file,
+such as <code>id</code>, <code>type</code>, <code>format</code>, <code>format_url</code>,
+<code>generated_by</code>, <code>date</code>, <code>matrix_type</code>,
+<code>matrix_element_type</code>, <code>Comment</code>, and <code>shape</code></p>
+</dd>
+</dl>
+<p><code>metadata</code>, <code>taxonomy</code>, and <code>phylogeny</code> are optional
+components of the BIOM file specification and therefore will be empty
+in the returned object when they are not provided by the BIOM file.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">    library(rbiom)
+
+    infile &lt;- system.file("extdata", "hmp50.bz2", package = "rbiom")
+    biom &lt;- read.biom(infile)
+
+    summary(biom)
+
+    # Taxa Abundances
+    as.matrix(biom$counts[1:4,1:4])
+
+    top5 &lt;- names(head(rev(sort(slam::row_sums(biom$counts))), 5))
+    biom$taxonomy[top5,c('Family', 'Genus')]
+    as.matrix(biom$counts[top5, 1:6])
+
+    # Metadata
+    table(biom$metadata$Sex, biom$metadata$`Body Site`)
+    sprintf("Mean age: %.1f", mean(biom$metadata$Age))
+
+    # Phylogenetic tree
+    tree &lt;- biom$phylogeny
+    top5.tree &lt;- rbiom::subtree(tree, top5)
+    ape::plot.phylo(top5.tree)
+
+</code></pre>
+
+
+</div>

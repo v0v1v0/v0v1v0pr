@@ -1,0 +1,190 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>runDEAnalysis</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Differential expression analysis</h2>
+
+<h3>Description</h3>
+
+<p>This function performs differential expression analysis using either limma, DESeq2 or edgeR.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">runDEAnalysis(
+  summarizedExperiment,
+  method = c("limma", "DESeq2", "edgeR"),
+  design,
+  contrast,
+  annotation = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>summarizedExperiment</code></td>
+<td>
+<p>SummarizedExperiment object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Method to use for differential expression analysis. Can be "limma", "DESeq2" or "edgeR".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>design</code></td>
+<td>
+<p>A design model output by model.matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>contrast</code></td>
+<td>
+<p>A contrast matrix. See limma::makeContrasts.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>annotation</code></td>
+<td>
+<p>A data frame mapping between probe IDs and entrez gene IDs.
+If not provided, the function will try to get the mapping from the platform annotation in the SummarizedExperiment object.
+If the annotation is not available, the function will return the probe IDs.
+Regardless of the type of annotation, it must contains two columns: FROM and TO,
+where FROM is the probe ID and TO is the entrez gene ID.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A SummarizedExperiment object with DE analysis results appended to the rowData slot with the following columns:
+</p>
+
+<ul>
+<li>
+<p>ID: gene ID. If annotation is provided, this will be the entrez gene ID. Otherwise, it will be the probe ID.
+</p>
+</li>
+<li>
+<p>logFC: log2 fold change
+</p>
+</li>
+<li>
+<p>p.value: p-value from the DE analysis using the specified method
+</p>
+</li>
+<li>
+<p>pFDR: p-value adjusted for multiple testing using Benjamini-Hochberg method
+</p>
+</li>
+<li>
+<p>statistic: statistic from the DE analysis using the specified method.
+For limma, this is the t-statistic.
+For DESeq2, this is the Wald statistic.
+For edgeR, this is the log fold change.
+</p>
+</li>
+<li>
+<p>avgExpr: 
+For limma, it is the average expression.
+For DESeq2, it is the log base mean.
+For edgeR, it is the log CPM.
+
+</p>
+</li>
+<li>
+<p>logFCSE: standard error of the log fold change.
+</p>
+</li>
+<li>
+<p>sampleSize: sample size used for DE analysis.
+</p>
+</li>
+</ul>
+<p>The assay slot will contain the input expression/count matrix,
+and the rownames will be mapped to the gene IDs if annotation is found in the input SummarizedExperiment object
+or in the annotation parameter.
+Other slots will be the same as in the input SummarizedExperiment object.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(RCPA)
+library(SummarizedExperiment)
+
+# GSE5281
+affyDataset &lt;- loadData("affyDataset")
+affyDesign &lt;- model.matrix(~0 + condition + region + condition:region, 
+                             data = colData(affyDataset))
+colnames(affyDesign) &lt;- make.names(colnames(affyDesign))
+affyContrast &lt;- limma::makeContrasts(conditionalzheimer-conditionnormal, 
+                                     levels=affyDesign)
+
+if (require("hgu133plus2.db", quietly = TRUE)){
+affyDEExperiment &lt;- RCPA::runDEAnalysis(affyDataset, method = "limma", 
+                                        design = affyDesign,
+                                        contrast = affyContrast, 
+                                        annotation = "GPL570")
+                                        
+# check the DE analysis results
+
+print(head(rowData(affyDEExperiment)))
+}
+
+
+
+# GSE61196
+agilDataset &lt;- loadData("agilDataset")
+agilDesign &lt;- model.matrix(~0 + condition, 
+                            data = colData(agilDataset))
+agilContrast &lt;- limma::makeContrasts(conditionalzheimer-conditionnormal, 
+                                     levels=agilDesign)
+
+# Create Probe mapping
+GPL4133Anno &lt;- GEOquery::dataTable(GEOquery::getGEO("GPL4133"))@table
+GPL4133GeneMapping &lt;- data.frame(FROM = GPL4133Anno$SPOT_ID, 
+                                 TO = as.character(GPL4133Anno$GENE),
+                                 stringsAsFactors = FALSE)
+GPL4133GeneMapping &lt;- GPL4133GeneMapping[!is.na(GPL4133GeneMapping$TO), ]
+
+agilDEExperiment &lt;- RCPA::runDEAnalysis(agilDataset, method = "limma", 
+                                        design = agilDesign,
+                                        contrast = agilContrast, 
+                                        annotation = GPL4133GeneMapping)
+print(head(rowData(agilDEExperiment)))
+
+# GSE153873
+RNASeqDataset &lt;- loadData("RNASeqDataset")
+RNASeqDesign &lt;- model.matrix(~0 + condition, data = colData(RNASeqDataset))
+RNASeqContrast &lt;- limma::makeContrasts(conditionalzheimer-conditionnormal, 
+                                      levels=RNASeqDesign)
+
+
+if (require("org.Hs.eg.db", quietly = TRUE)){
+    GeneSymbolMapping &lt;- AnnotationDbi::select(org.Hs.eg.db, 
+                                            keys = rownames(RNASeqDataset),
+                                            columns = c("SYMBOL", "ENTREZID"), 
+                                            keytype = "SYMBOL")
+    colnames(GeneSymbolMapping) &lt;- c("FROM", "TO")
+
+    RNASeqDEExperiment &lt;- RCPA::runDEAnalysis(RNASeqDataset,
+                           method = "DESeq2",
+                           design = RNASeqDesign,
+                           contrast = RNASeqContrast,
+                           annotation = GeneSymbolMapping)
+    print(head(rowData(RNASeqDEExperiment)))
+}
+
+</code></pre>
+
+
+</div>

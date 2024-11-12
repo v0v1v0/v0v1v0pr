@@ -1,0 +1,212 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>o311_requests</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Get civic service request data</h2>
+
+<h3>Description</h3>
+
+<p>Get civic service request data from a registered open311 endpoint.
+<code>o311_request</code> queries a single service request by ID.
+<code>o311_requests</code> queries a single page of service requests.
+<code>o311_request_all</code> tries to iterate through all pages of an endpoint
+to return a complete dataset of service requests.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">o311_requests(
+  service_code = NULL,
+  start_date = NULL,
+  end_date = NULL,
+  status = NULL,
+  page = NULL,
+  ...
+)
+
+o311_request(service_request_id, ...)
+
+o311_request_all(
+  service_code = NULL,
+  start_date = NULL,
+  end_date = NULL,
+  status = NULL,
+  ...,
+  max_pages = Inf,
+  progress = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>service_code</code></td>
+<td>
+<p><code>[character]</code>
+</p>
+<p>IDs of the service types to be queried. Defaults to all available codes of
+an endpoint. A list of all available service codes can be retrieved using
+<code>o311_services</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start_date, end_date</code></td>
+<td>
+<p><code>[POSIXt]</code>
+</p>
+<p>Start date and end date of the query results. Must be date-time objects.
+If not specified, defaults to the last 90 days.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>status</code></td>
+<td>
+<p><code>[character]</code>
+</p>
+<p>Status of the public service ticket. Can be one of <code>"open"</code> or
+<code>"closed"</code>. If <code>NULL</code>, returns all types of tickets.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>page</code></td>
+<td>
+<p><code>[integer]</code>
+</p>
+<p>Page of the response. Most endpoints paginate their responses in a way
+that only a limited number of tickets are returned with each query.
+To retrieve all data, consider using <code>o311_request_all</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further endpoint-specific parameters as documented in the
+respective endpoint reference.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>service_request_id</code></td>
+<td>
+<p><code>[character]</code>
+</p>
+<p>Identifier of a single service request. Request IDs can usually be retrieved
+from <code>o311_requests</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_pages</code></td>
+<td>
+<p><code>[integer]</code>
+</p>
+<p>Number of pages to search until the result is returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>progress</code></td>
+<td>
+<p><code>[logical]</code>
+</p>
+<p>Whether to show a waiter indicating the current page iteration.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>o311_request_all</code> applies a number of checks to determine when to
+stop searching. First, many endpoints return an error if the last page
+is exceeded. Thus, if the last page request failed, break.
+Second, if exceeding the pagination limit does not return an error, the
+response is compared with the previous response. If identical, the
+response is discarded and all previous responses returned. Finally,
+if the page exceeds <code>max_pages</code>, the responses up to this point are
+returned.
+</p>
+<p>open311 leaves space for endpoints to implement their own request
+parameters. These parameters can be provided using dot arguments.
+These arguments are not validated or pre-processed. Date-time objects
+must be formatted according to the
+<a href="https://www.w3.org/TR/NOTE-datetime">w3c</a> standard.
+Some more common parameters include:
+</p>
+
+<ul>
+<li>
+<p><code>q</code>: Perform a text search across all requests.
+</p>
+</li>
+<li>
+<p><code>update_after</code>/<code>updated_before</code>: Limit request according
+to request update dates.
+</p>
+</li>
+<li>
+<p><code>per_page</code>: Specifiy the maximum number of requests per page.
+</p>
+</li>
+<li>
+<p><code>extensions</code>: Adds a nested attribute
+<code>"extended_attributes"</code> to the response.
+</p>
+</li>
+<li>
+<p><code>long</code>/<code>lat</code>/<code>radius</code>: Searches for requests in a fixed radius
+around a coordinate.
+</p>
+</li>
+</ul>
+<p>As dot arguments deviate from the open311 standard, they are not guaranteed
+to be available for every endpoint and might be removed without further
+notice. Refer to the endpoint docs to learn more about custom parameters
+(<code>o311_endpoints()$docs</code>).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A dataframe containing data on civic service requests. The
+dataframe can contain varying columns depending on the open311
+implementation.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>o311_api</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">o311_api("zurich")
+
+if (o311_ok()) {
+  # retrieve requests from the last two days
+  now &lt;- Sys.time()
+  two_days &lt;- 60 * 60 * 24 * 2
+  o311_requests(end_date = now, start_date = now - two_days)
+
+  # retrieve only open tickets
+  tickets &lt;- o311_requests(status = "open")
+
+  # request the first ticket of the previous response
+  rid &lt;- as.character(tickets$service_request_id[1])
+  o311_request(rid)
+
+  if (interactive()) {
+    # request all data
+    o311_request_all()
+  }
+
+  # request data of the first 5 pages
+  o311_request_all(max_pages = 5)
+}
+
+</code></pre>
+
+
+</div>

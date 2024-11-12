@@ -1,0 +1,198 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ODE-class</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>ODE class</h2>
+
+<h3>Description</h3>
+
+<p>Defines an ODE object for any solver
+</p>
+<p>ODE constructor
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ODE()
+
+## S4 method for signature 'ODE'
+getState(object, ...)
+
+## S4 method for signature 'ODE'
+getRate(object, state, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>a class object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional parameters</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>state</code></td>
+<td>
+<p>current state</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R"># ++++++++++++++++++++++++++++++++++++++++++++++++++      example: PendulumApp.R
+# Simulation of a pendulum using the EulerRichardson ODE solver
+
+suppressPackageStartupMessages(library(ggplot2))
+
+importFromExamples("Pendulum.R")      # source the class
+
+PendulumApp &lt;- function(verbose = FALSE) {
+    # initial values
+    theta &lt;- 0.2
+    thetaDot &lt;- 0
+    dt &lt;- 0.1
+    pendulum &lt;- Pendulum()
+    # pendulum@state[3] &lt;- 0      # set time to zero, t = 0
+    pendulum &lt;- setState(pendulum, theta, thetaDot)
+    pendulum &lt;- setStepSize(pendulum, dt = dt) # using stepSize in RK4
+    pendulum@odeSolver &lt;- setStepSize(pendulum@odeSolver, dt) # set new step size
+    rowvec &lt;- vector("list")
+    i &lt;- 1
+    while (getState(pendulum)[3] &lt;= 40)    {
+        rowvec[[i]] &lt;- list(t        = getState(pendulum)[3],    # time
+                            theta    = getState(pendulum)[1], # angle
+                            thetadot = getState(pendulum)[2]) # derivative of angle
+        pendulum &lt;- step(pendulum)
+        i &lt;- i + 1
+    }
+    DT &lt;- data.table::rbindlist(rowvec)
+    return(DT)
+}
+# show solution
+solution &lt;- PendulumApp()
+plot(solution)
+# +++++++++++++++++++++++++++++++++++++++++++++++++  example: PendulumEulerApp.R
+# Pendulum simulation with the Euler ODE solver
+# Notice how Euler is not applicable in this case as it diverges very quickly
+# even when it is using a very small `delta t``?ODE
+
+importFromExamples("PendulumEuler.R")      # source the class
+
+PendulumEulerApp &lt;- function(verbose = FALSE) {
+    # initial values
+    theta &lt;- 0.2
+    thetaDot &lt;- 0
+    dt &lt;- 0.01
+    pendulum &lt;- PendulumEuler()
+    pendulum@state[3] &lt;- 0      # set time to zero, t = 0
+    pendulum &lt;- setState(pendulum, theta, thetaDot)
+    stepSize &lt;- dt
+    pendulum &lt;- setStepSize(pendulum, stepSize)
+    pendulum@odeSolver &lt;- setStepSize(pendulum@odeSolver, dt) # set new step size
+    rowvec &lt;- vector("list")
+    i &lt;- 1
+    while (getState(pendulum)[3] &lt;= 50)    {
+        rowvec[[i]] &lt;- list(t        = getState(pendulum)[3],
+                            theta    = getState(pendulum)[1],
+                            thetaDot = getState(pendulum)[2])
+        pendulum &lt;- step(pendulum)
+        i &lt;- i + 1
+    }
+    DT &lt;- data.table::rbindlist(rowvec)
+    return(DT)
+}
+
+solution &lt;- PendulumEulerApp()
+plot(solution)
+#  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++ example KeplerApp.R
+#  KeplerApp solves an inverse-square law model (Kepler model) using an adaptive
+#  stepsize algorithm.
+#  Application showing two planet orbiting
+#  File in examples: KeplerApp.R
+
+importFromExamples("Kepler.R") # source the class Kepler
+
+KeplerApp &lt;- function(verbose = FALSE) {
+
+    # set the orbit into a predefined state.
+    r &lt;- c(2, 0)                                   # orbit radius
+    v &lt;- c(0, 0.25)                                # velocity
+    dt &lt;- 0.1
+    planet &lt;- Kepler(r, v)                         # make up an ODE object
+    solver &lt;- RK45(planet)
+    rowVector &lt;- vector("list")
+    i &lt;- 1
+    while (getState(planet)[5] &lt;= 10) {
+        rowVector[[i]] &lt;- list(t  = planet@state[5],
+                               planet1.r = getState(planet)[1],
+                               p1anet1.v = getState(planet)[2],
+                               planet2.r = getState(planet)[3],
+                               p1anet2.v = getState(planet)[4])
+        solver &lt;- step(solver)
+        planet &lt;- getODE(solver)
+        i &lt;-  i + 1
+    }
+    DT &lt;- data.table::rbindlist(rowVector)
+
+    return(DT)
+}
+
+solution &lt;- KeplerApp()
+plot(solution)
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ base class: FallingParticleODE.R
+# Class definition for application FallingParticleODEApp.R
+
+setClass("FallingParticleODE", slots = c(
+        g = "numeric"
+        ),
+        prototype = prototype(
+            g = 9.8
+        ),
+        contains = c("ODE")
+        )
+
+
+setMethod("initialize", "FallingParticleODE", function(.Object, ...) {
+    .Object@state &lt;- vector("numeric", 3)
+    return(.Object)
+})
+
+setMethod("getState", "FallingParticleODE", function(object, ...) {
+    # Gets the state variables.
+    return(object@state)
+})
+
+setMethod("getRate", "FallingParticleODE", function(object, state, ...) {
+    # Gets the rate of change using the argument's state variables.
+    object@rate[1] &lt;- state[2]
+    object@rate[2] &lt;- - object@g
+    object@rate[3] &lt;- 1
+
+    object@rate
+})
+
+# constructor
+FallingParticleODE &lt;- function(y, v) {
+    .FallingParticleODE &lt;- new("FallingParticleODE")
+    .FallingParticleODE@state[1] &lt;- y
+    .FallingParticleODE@state[2] &lt;- v
+    .FallingParticleODE@state[3] &lt;- 0
+    .FallingParticleODE
+}
+</code></pre>
+
+
+</div>

@@ -1,0 +1,177 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>calcVDJcounts</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate repertoire counts</h2>
+
+<h3>Description</h3>
+
+<p>Create count matrices for a set of repertoires
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">calcVDJcounts(genes, seqAnnot, select = NULL, combine = NULL,
+  vdjDrop = NULL, splitBy = NULL, simplifyNames = TRUE,
+  splitCommas = FALSE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>genes</code></td>
+<td>
+<p>vector (or matrix) containing the gene calls for each sequence.
+If genes is a matrix, counts will be calculated for each 
+column of 'genes', and the resulting count matrices will be
+concatenated. See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seqAnnot</code></td>
+<td>
+<p>matrix containing repertoire annotations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>select</code></td>
+<td>
+<p>a list containing definitions of which repertoires to use. 
+See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>combine</code></td>
+<td>
+<p>a list defining repertoires that should be grouped together.
+See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vdjDrop</code></td>
+<td>
+<p>a list specifying specific genes to exclude from analysis.
+See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>splitBy</code></td>
+<td>
+<p>the columns in seqAnnot to use for splitting repertoires. 
+Default is to use all columns in seqAnnot.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>simplifyNames</code></td>
+<td>
+<p>logical; if true, any columns of seqAnnot where all selected
+(and collapsed) sequences share the same value will not be 
+used to make the names of sequenceCodes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>splitCommas</code></td>
+<td>
+<p>logical; if true, seqAnnot is assumed to contain.
+comma-separated lists of sequence annotations, which will be 
+split up before generating sequence codes. Note: setting this 
+to TRUE will make processing much slower.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional parameters; these are ignored by this function.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>In most cases, <code>genes</code> will be a single vector or one-column matrix. However, 
+there are some cases where a row of <code>seqAnnot</code> corresponds to two (or more) genes
+(e.g. the V and J gene segments of a single immune sequence). Rather than make multiple
+rows for each gene, the <code>calcVDJcounts</code> function provides the option to provide 
+a multi-column matrix for <code>genes</code>. The counts for each column will be tallied 
+separately, and are then concatenated.
+</p>
+<p>To ensure equal variance across all repertoires, the default RDI metric uses 
+subsampling to ensure that all repertoires have the same number of sequences. The 
+default RDI metric subsamples all repertoires to the size of the smallest repertoire, 
+which may result in a loss of power for comparisons between larger repertoires.
+In order to increase power for various tests, it is often useful to only calculate 
+the repertoire counts for a subset of the repertoires in seqAnnot. This can be done by
+using the <code>select</code> and <code>combine</code> parameters to specify which 
+repertoires to include in the analysis.
+</p>
+<p>Both parameters are lists containing entries
+with the same name as one of the columns of seqAnnot. For <code>select</code>, each entry is 
+a vector defining which values to include (e.g., to include only Visit 1 and 3, you 
+might specify <code>select=list(visit=c("V1","V3"))</code>, where the <code>'visit'</code> column 
+in seqAnnot contains the values <code>"V1"</code>,<code>"V2"</code>, and <code>"V3"</code>). In this 
+case, any rows of <code>genes</code> and <code>seqAnnot</code> that come from a repertoire not 
+specified in <code>select</code> will be discarded. By default, if a <code>select</code> code is 
+not specified for a column in <code>seqAnnot</code>, all values from that column will be 
+included.
+</p>
+<p>The <code>combine</code> parameter works in a similar fashion, but instead of a vector
+describing which parameters to include, you can specify a vector of regular 
+expressions, and any values of the <code>seqAnnot</code> column that match the regular
+expression will be combined into a single repertoire (e.g. to combine visits 1 and 3 
+into a single repertoire, you might specify <code>combine=list(visit="V[13]")</code>). 
+</p>
+<p>The <code>vdjDrop</code> parameter is also useful for limiting sequences. Like 
+<code>select</code> and <code>combine</code>, this is a named list, with entries corresponding to 
+the columns of <code>genes</code>. Each entry of <code>vdjDrop</code> is a vector of gene segment
+names to remove from the analysis. All sequences containing those genes are removed 
+from the analysis before subsampling.
+</p>
+<p>Once unwanted rows have been removed, the columns of <code>seqAnnot</code> are concatenated 
+to generate "repertoire" labels for each row. The repertoire labels are then used
+to split the rows of <code>genes</code>, and gene prevalence is tallied within a repertoire.
+By default, columns of <code>seqAnnot</code> that are constant after subsetting will not be
+included in the label. However, this can be controlled by the <code>simplifyNames</code> 
+parameter. If <code>simplifyNames</code> is FALSE, all columns of  <code>seqAnnot</code> are 
+included when generating labels.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A matrix where each row represents a gene, and each column represents a 
+repertoire.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+#create genes
+genes = sample(letters, 10000, replace=TRUE)
+
+#create sequence annotations
+seqAnnot = data.frame(donor = sample(1:4, 10000, replace=TRUE),
+                      visit = sample(c("V1","V2","V3"), 10000, replace=TRUE),
+                      cellType = sample(c("B","T"), 10000, replace=TRUE)
+                     )
+                     
+##generate repertoire counts for all repertoires
+cts = calcVDJcounts(genes,seqAnnot) 
+
+##Only include visit 1
+cts = calcVDJcounts(genes,seqAnnot, select=list(visit="V1"))
+
+
+## Just T cell repertoires, combining visit 1 and 3 together, and dropping visit 2
+cts = calcVDJcounts(genes,seqAnnot, 
+                    select=list(cellType="T", visit=c("V1","V3")), 
+                    combine=list(visit="V[13]")) 
+
+</code></pre>
+
+
+</div>

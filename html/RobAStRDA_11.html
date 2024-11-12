@@ -1,0 +1,431 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>internal_interpolate_helpers</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Internal helper functions for generating interpolation grids for
+speed up in package RobAStRDA</h2>
+
+<h3>Description</h3>
+
+<p>These functions are used internally to generate interpolation grids,
+for Lagrange multipliers or LDEstimators in package <span class="pkg">RobAStRDA</span>,
+to be stored in the respective ‘<span class="file">sysdata.rda</span>’ file. </p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">.versionSuff(name)
+
+.MakeSmoothGridList(thGrid, Y, df = NULL, gridRestrForSmooth = NULL)
+
+.readGridFromCSV(fromFileCSV)
+
+.generateInterpolators(Grid, approxOrspline = "spline", extrapol = c(NA,NA))
+
+.saveGridToRda(fromFileCSV, toFileRDA = "sysdata.rda", withMerge = FALSE,
+               withPrint = TRUE, withSmooth = TRUE, df = NULL,
+               gridRestrForSmooth = NULL)
+
+.mergeGrid(Grid1, Grid2)
+
+.computeInterpolators(sysdataFiles, toFileRDA = "sysdata.rda",
+      includeGrids = NULL, includeNams = NULL,
+      excludeGrids = NULL, excludeNams = NULL,
+      withPrint = TRUE, withSmoothFct = FALSE,
+      approxOrspline = "spline", extrapol = c(NA,NA))
+
+.mergeF(file,envir, includeGrids = NULL, includeNams = NULL,
+        excludeGrids = NULL, excludeNams = NULL)
+
+.copy_smoothGrid(gridEntry = NULL, rdafileOld, gridnamOld, FamnamOld, rdafileNew,
+                 gridnamNew, FamnamNew, withSmooth = FALSE, df = NULL,
+                 gridRestrForSmooth = NULL)
+
+.renameGridName(rdafileOld, gridnamOld, FamnamOld, rdafileNew, gridnamNew,
+                FamnamNew)
+
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p>Grid name to append a suffix according to the R-version. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thGrid</code></td>
+<td>
+<p>numeric; grid values. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>in case <code>.MakeGridList</code>: array or matrix; in case
+<code>.saveInterpGrid</code> array or <code>NULL</code>; if non-null,
+contains precomputed y-values, so that call to <code>getFun</code>
+resp. <code>optFct</code> can be omitted. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>df</code></td>
+<td>
+<p>argument <code>df</code> of <code>smooth.spline</code>; if <code>NULL</code>
+(default) it is omitted (and the default of
+<code>smooth.spline</code> used); controls the degree to which
+we smooth; can be vectorized; to allow for <code>NULL</code>-entries
+in some (of the 13) LMs, it can also be a list of length 13,
+some entries being <code>NULL</code>, some numeric. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gridRestrForSmooth</code></td>
+<td>
+<p>an expression that can be used as index in
+<code>theta[gridRestrForSmooth]</code> to restrict the grid-values to
+be smoothed; the excluded grid values are left unchanged. If the argument
+is <code>NULL</code> no restriction is used. Can be a matrix of same dimension
+as the <code>Y</code>-grid to allow for column-individual restrictions,
+or a list of same length as number of columns of <code>Y</code>
+with columnwise restrictions of <code>Y</code> (and <code>NULL</code> entries
+are interpreted as no restriction). </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fromFileCSV</code></td>
+<td>
+<p>character; names of the csv files from which the grids are
+read. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Grid, gridEntry</code></td>
+<td>
+<p>matrix; grid to be used. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>approxOrspline</code></td>
+<td>
+<p>character; if <code>approxOrspline=="spline"</code> (default),
+<code>splinefun</code> is used for generating the interpolators, otherwise
+we use <code>approxfun</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extrapol</code></td>
+<td>
+<p>numeric of length 2; lower and upper bound, upto which
+extrapolation is done; beyond, the interpolator returns <code>NA</code>;
+if one (or both) entries of <code>extrapol</code> are <code>NA</code>, we extrapolate
+beyond limit. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>toFileRDA</code></td>
+<td>
+<p>character; the ‘<span class="file">.rda</span>’-file to which the interpolators
+are saved. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>withMerge</code></td>
+<td>
+<p>logical of length 1: in case a respective grid already
+exists, shall we merge the new contents into it, or overwrite
+the object (default)?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>withPrint</code></td>
+<td>
+<p>logical of length 1: shall we issue diagnostic prints?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>withSmooth</code></td>
+<td>
+<p>logical of length 1: shall a smoothing spline be used?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Grid1, Grid2</code></td>
+<td>
+<p>matrices; grids to be merged. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sysdataFiles</code></td>
+<td>
+<p>character; filenames of ‘<span class="file">sysdata.rda</span>’ files from
+where to extract the interpolation grids. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>includeGrids</code></td>
+<td>
+<p>character (or <code>NULL</code>); if non-<code>NULL</code>, explicit
+restriction to grids used for computation of interpolators. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>includeNams</code></td>
+<td>
+<p>character (or <code>NULL</code>); if non-<code>NULL</code>, explicit
+restriction to families used for computation of interpolators. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>excludeGrids</code></td>
+<td>
+<p>character (or <code>NULL</code>); grids to be excluded
+from computation of interpolators. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>excludeNams</code></td>
+<td>
+<p>character (or <code>NULL</code>); families to be excluded
+from computation of interpolators. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>withSmoothFct</code></td>
+<td>
+<p>logical of length 1: shall a smoothed grid be used for
+interpolators? </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>file</code></td>
+<td>
+<p>character; the name of a file to be read out. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>envir</code></td>
+<td>
+<p>an environment. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gridnamOld</code></td>
+<td>
+<p>character; name of the grid to be renamed (from). </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>FamnamOld</code></td>
+<td>
+<p>character; name of the parametric family to be renamed (from). </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rdafileOld</code></td>
+<td>
+<p>character; filename of the ‘<span class="file">sysdata.rda</span>’-type file
+to be read out. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gridnamNew</code></td>
+<td>
+<p>character; name of the grid to be renamed (to). If missing,
+it is set to <code>gridnamOld</code> internally. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>FamnamNew</code></td>
+<td>
+<p>character; name of the parametric family to be renamed (to).
+If missing, it is set to <code>FamnamOld</code> internally. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rdafileNew</code></td>
+<td>
+<p>character; filename of the ‘<span class="file">sysdata.rda</span>’-type file
+to be written on. If missing, it is set to <code>rdafileOld</code> internally. </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>.versionSuff</code>, according to the current R-version, appends a suffix
+".O" for R&lt;2.16 and ".N" otherwise to argument <code>name</code>. Needed as
+the return values of <code>splinefun</code> and <code>approxfun</code> are incompatible
+in these two situations: i.e., a function with body of type
+<code>.C("R_splinefun", as.double(x),....</code>) respectively
+a function with body of type <code>.splinefun(....))</code>);
+a similar case happens with <code>approxfun</code>.
+</p>
+<p><code>.MakeSmoothGridList</code> smoothes out a given grid (x is contained in
+<code>thGrid</code>, y in <code>Y</code>) by <code>smooth.spline</code>; the degree
+of smoothing is controlled by <code>df</code>.
+</p>
+<p><code>.readGridFromCSV</code> reads in a grid from a csv file together with the
+information given in the corresponding ‘<span class="file">.txt</span>’ file. More specifically,
+when generating a ‘<span class="file">.csv</span>’ file in e.g.\ <span class="pkg">RobExtremes</span> by
+<code>.writeGridToCSV</code>, in addition to writing the interpolation grid
+to the ‘<span class="file">.csv</span>’ file, a corresponding ‘<span class="file">.txt</span>’ file is created
+containing information on the parametric family and the grid name.
+This information is read in again as well here.
+</p>
+<p><code>.generateInterpolators</code> for a given grid according to argument
+<code>approxOrspline</code> produces a list of interpolators by calls to either
+<code>splinefun</code> or <code>approxfun</code> (i.e., one function per y-column).
+In addition, in case of (x-)values outside the range of the grid, in the
+interpolators, we use linear extrapolation.
+</p>
+<p><code>.saveGridToRda</code> for a vector of files in argument <code>fromFileCSV</code>
+reads in the grids and writes them to a ‘<span class="file">sysdata.rda</span>’ file.
+If ‘<span class="file">sysdata.rda</span>’ already exists and corresponding grids already exist
+in ‘<span class="file">sysdata.rda</span>’, argument <code>withMerge</code> controls whether the
+grids are merged or overwritten. In addition, by argument <code>withSmooth</code>,
+one may generate smoothed out grids as well. So in the end,
+the ‘<span class="file">sysdata.rda</span>’ file contains grid objects with names by default
+starting with a dot, say <code>.Sn</code> or <code>.OMSE</code>. These are lists
+with parametric families as items (with the names of the parametric
+families as names of the list items). Each family item is again a list
+with (possible) entries <code>grid</code> (the original grid read out from
+the ‘<span class="file">.csv</span>’-file), <code>gridS</code> (the smoothed out grid), <code>fct.O</code>,
+the interpolator generated in R&lt;2.16, <code>fct.N</code>, the interpolator
+generated in R&gt;2.16. <code>.saveGridToRda</code> only generates the grid entries,
+whereas the interpolators are created in <code>.computeInterpolators</code>.
+</p>
+<p><code>.mergeGrid</code> merges two grids according to the respective rows of the
+matrices.
+</p>
+<p><code>.computeInterpolators</code> for a vector of input ‘<span class="file">sysdata.rda</span>’ files
+contained in argument <code>sysdataFiles</code> goes through the contained
+grids and produces respective interpolators by calls to
+<code>.generateInterpolators</code>. If <code>withSmoothFct == TRUE</code> (and
+a respective <code>gridS</code> entry exists in the current grid-family
+combination) it uses the <code>gridS</code> entry, otherwise the <code>grid</code>
+entry. By means of optional arguments <code>includeGrids</code>,
+<code>includeNams</code>, <code>excludeGrids</code>, <code>excludeNams</code> one may
+explicitely restrict the grid-family combinations for which the
+interpolators are generated.
+</p>
+<p><code>.mergeF</code> merges the contents of file <code>file</code> into environment
+<code>envir</code> in the sense, that if both  <code>file</code> and <code>envir</code>
+contain a list object <code>a</code> also the items of <code>a</code> are merged,
+where—as for objects themselves— contents of <code>file</code> overwrite
+contents of <code>envir</code>. By means of optional arguments <code>includeGrids</code>,
+<code>includeNams</code>, <code>excludeGrids</code>, <code>excludeNams</code> one may
+explicitely restrict the grid-family combinations for which the
+interpolators are generated.
+</p>
+<p><code>.copy_smoothGrid</code> can be used to modify single <code>grid</code> /
+<code>gridS</code> entries in an existing grid-family combination in an existing
+‘<span class="file">sysdata.rda</span>’-file; in particular <code>grid</code> entries can be replaced
+and <code>gridS</code> entries can be created (or overwritten). To this end,
+<code>.copy_smoothGrid</code> takes out a respective item <code>FamnamOld</code>
+(i.e., a parametric family) of grid <code>gridnamOld</code> from file
+<code>rdafileOld</code>. If argument <code>gridEntry</code> is non-<code>NULL</code>, it
+replaces the respective <code>grid</code>-entry by <code>gridEntry</code>, otherwise
+it uses the one present in combination <code>gridnamOld</code>-<code>FamnamOld</code>.
+If argument <code>withSmooth == TRUE</code>, it also creates a <code>gridS</code>
+entry, smoothing out the entries of the <code>grid</code>-entry.
+The results are copies it to a new grid-family combination
+<code>gridnamNew</code>-<code>FamnamNew</code> which is saved to file
+<code>rdafileNew</code>.
+</p>
+<p><code>.renameGridName</code> is a utility to rename grids and items from a grid.
+It takes grid <code>gridnamOld</code> from file <code>rdafileOld</code> and takes
+the name <code>FamnamOld</code> of a respective item (i.e., a parametric family),
+renames the grid-family combination to <code>gridnamNew</code>,
+<code>FamnamNew</code> and writes the result back to file <code>rdafileNew</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>.versionSuff</code></td>
+<td>
+<p>A character with appended suffix. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.MakeSmoothGridList</code></td>
+<td>
+<p>the grid, i.e.; a matrix with x and y values .</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.readGridFromCSV</code></td>
+<td>
+<p> a list with the read-in items, i.e.,
+an item <code>Grid</code> with the grid, an item <code>namPFam</code> with the name of
+the parametric family, and <code>namInSysdata</code>, the name of the read in grid. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.generateInterpolators</code></td>
+<td>
+<p> a list with items <code>grid</code> (the grid,
+i.e.; a matrix with x and y values), and <code>fct</code> (the list of interpolators,
+i.e.; a list of functions). </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.saveGridToRda</code></td>
+<td>
+<p><code>invisible(NULL)</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.mergeGrid</code></td>
+<td>
+<p> the merged grid, i.e.; a matrix. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.computeInterpolators</code></td>
+<td>
+<p><code>invisible(NULL)</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.mergeF</code></td>
+<td>
+<p><code>invisible(NULL)</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.copy_smoothGrid</code></td>
+<td>
+<p><code>invisible(NULL)</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.renameGridName</code></td>
+<td>
+<p><code>invisible(NULL)</code>. </p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>These functions are only meant for the developers of package
+<span class="pkg">ROptEst</span> (or respective packages).
+They can be used to speed up things by interpolation.
+Our use case is a speed up for further scale-shape families (or enhance
+existing speed-ups) such that the respective grids are stored in
+a  ‘<span class="file">sysdata.rda</span>’ file of the present package <span class="pkg">RobAStRDA</span>
+—see mail exchange P.Ruckdeschel - U.Ligges on R-devel—
+<a href="https://stat.ethz.ch/pipermail/r-devel/2013-February/065794.html">https://stat.ethz.ch/pipermail/r-devel/2013-February/065794.html</a>.
+Special attention has to be paid for R-versions pre and post R-2.16
+which is why we use <code>.versionSuff</code>.
+</p>
+
+
+</div>

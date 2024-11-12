@@ -1,0 +1,566 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>recordsTypedMethods</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Export Records or Reports From a Project</h2>
+
+<h3>Description</h3>
+
+<p>These methods enable the user to export records from a
+database or from a report. These methods have more control for casting
+fields to R objects than <code>exportRecords</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">exportRecordsTyped(
+  rcon,
+  fields = NULL,
+  drop_fields = NULL,
+  forms = NULL,
+  records = NULL,
+  events = NULL,
+  ...
+)
+
+exportReportsTyped(rcon, report_id, ...)
+
+## S3 method for class 'redcapApiConnection'
+exportRecordsTyped(
+  rcon,
+  fields = NULL,
+  drop_fields = NULL,
+  forms = NULL,
+  records = NULL,
+  events = NULL,
+  survey = TRUE,
+  dag = FALSE,
+  date_begin = NULL,
+  date_end = NULL,
+  na = list(),
+  validation = list(),
+  cast = list(),
+  assignment = list(label = stripHTMLandUnicode, units = unitsFieldAnnotation),
+  filter_empty_rows = TRUE,
+  warn_zero_coded = TRUE,
+  ...,
+  config = list(),
+  api_param = list(),
+  csv_delimiter = ",",
+  batch_size = NULL,
+  error_handling = getOption("redcap_error_handling")
+)
+
+## S3 method for class 'redcapOfflineConnection'
+exportRecordsTyped(
+  rcon,
+  fields = NULL,
+  drop_fields = NULL,
+  forms = NULL,
+  records = NULL,
+  events = NULL,
+  na = list(),
+  validation = list(),
+  cast = list(),
+  assignment = list(label = stripHTMLandUnicode, units = unitsFieldAnnotation),
+  warn_zero_coded = TRUE,
+  ...
+)
+
+## S3 method for class 'redcapApiConnection'
+exportReportsTyped(
+  rcon,
+  report_id,
+  drop_fields = NULL,
+  na = list(),
+  validation = list(),
+  cast = list(),
+  assignment = list(label = stripHTMLandUnicode, units = unitsFieldAnnotation),
+  warn_zero_coded = TRUE,
+  ...,
+  config = list(),
+  api_param = list(),
+  csv_delimiter = ","
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>rcon</code></td>
+<td>
+<p>A <code>redcapConnection</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>report_id</code></td>
+<td>
+<p><code>integerish(1)</code>. The ID number of the report to be exported.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fields</code></td>
+<td>
+<p><code>character</code> or <code>NULL</code>. Vector of fields to be returned.  If <code>NULL</code>,
+all fields are returned (unless <code>forms</code> is specified).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drop_fields</code></td>
+<td>
+<p><code>character</code> or <code>NULL</code>. A vector of field names to remove from
+the export.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>forms</code></td>
+<td>
+<p><code>character</code> or <code>NULL</code>. Vector of forms to be returned.  If <code>NULL</code>,
+all forms are returned (unless <code>fields</code> is specified.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>records</code></td>
+<td>
+<p><code>character</code> or <code>integerish</code>. A vector of study ID's
+to be returned.  If <code>NULL</code>, all subjects are returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>events</code></td>
+<td>
+<p>A <code>character</code> vector of events to be returned from a
+longitudinal database.  If <code>NULL</code>, all events are returned. When
+using a <code>redcapOfflineConnection</code> object, this argument is unvalidated,
+and only rows that match one of the values given are returned;
+misspellings may result in unexpected results.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>survey</code></td>
+<td>
+<p><code>logical(1)</code>. When <code>TRUE</code>, the survey identifier field
+(e.g., <code>redcap_survey_identifier</code>) and survey timestamp fields
+(e.g., <code style="white-space: pre;">⁠[form_name]_timestamp⁠</code>) will be exported
+(relevant only when surveys are utilized in the project).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dag</code></td>
+<td>
+<p><code>logical(1)</code>. When <code>TRUE</code> the
+<code>redcap_data_access_group</code> field will be included in the export \
+when data access groups are utilized in the project.
+This flag is only viable if the user whose token is
+being used to make the API request is not in a data access group.
+If the user is in a group, then this flag will revert to its default value.
+Data Access Groups privilege is required when creating/renaming/deleting
+DAGs and when importing/exporting user-DAG assignments. Therefore, the
+default for this flag is FALSE. To export DAG information set this flag to TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>date_begin</code></td>
+<td>
+<p><code>POSIXct(1)</code> or <code>NULL</code>. Ignored if <code>NULL</code> (default).
+Otherwise, records created or modified after this date will be returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>date_end</code></td>
+<td>
+<p><code>POSIXct(1)</code> or <code>NULL</code>. Ignored if <code>NULL</code> (default).
+Otherwise, records created or modified before this date will be returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na</code></td>
+<td>
+<p>A named <code>list</code> of user specified functions to determine if the
+data is NA. This is useful when data is loaded that has coding for NA, e.g.
+-5 is NA. Keys must correspond to a truncated REDCap field type, i.e.
+date_, datetime_, datetime_seconds_, time_mm_ss, time_hh_mm_ss, time, float,
+number, calc, int, integer, select, radio, dropdown, yesno, truefalse,
+checkbox, form_complete, sql, system. The function will be provided the
+variables (x, field_name, coding). The function must return a vector of
+logicals matching the input. It defaults to <code>isNAorBlank()</code> for all
+entries.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>validation</code></td>
+<td>
+<p>A named <code>list</code> of user specified validation functions. The
+same named keys are supported as the na argument. The function will be
+provided the variables (x, field_name, coding). The function must return a
+vector of logical matching the input length. Helper functions to construct
+these are <code>valRx()</code> and <code>valChoice()</code>. Only fields that
+are not identified as NA will be passed to validation functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cast</code></td>
+<td>
+<p>A named <code>list</code> of user specified class casting functions. The
+same named keys are supported as the na argument. The function will be
+provided the variables (x, field_name, coding). The function must return a
+vector of logical matching the input length. The cast should match the validation,
+if one is using <code>raw_cast</code>, then <code>validation=skip_validation</code> is likely
+the desired intent. See <code>fieldValidationAndCasting()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>assignment</code></td>
+<td>
+<p>A named <code>list</code> of functions. These functions are provided, field_name,
+label, description and field_type and return a list of attributes to assign
+to the column. Defaults to creating a label attribute from the stripped
+HTML and UNICODE raw label and scanning for units={"UNITS"} in description</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>filter_empty_rows</code></td>
+<td>
+<p><code>logical(1)</code>. Filter out empty rows post retrieval.
+Defaults to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>csv_delimiter</code></td>
+<td>
+<p><code>character</code>. One of <code>c(",", "\t", ";", "|", "^")</code>. Designates the
+delimiter for the CSV file received from the API.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>batch_size</code></td>
+<td>
+<p><code>integerish(1)</code> or <code>NULL</code>. When <code>NULL</code>,
+all records are pulled. Otherwise, the records all pulled in batches of this size.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>warn_zero_coded</code></td>
+<td>
+<p><code>logical(1)</code>. Turn on or off warnings about
+potentially problematic zero coded fields. Defaults to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Arguments to pass to other methods</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>error_handling</code></td>
+<td>
+<p><code>character(1)</code>. One of <code>c("error", "null")</code>.
+An option for how to handle errors returned by the API.
+see <code>redcapError()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>config</code></td>
+<td>
+<p>A named <code>list</code>. Additional configuration parameters to pass to
+<code>httr::POST()</code>. These are appended to any parameters in
+<code>rcon$config</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>api_param</code></td>
+<td>
+<p>A named <code>list</code>. Additional API parameters to pass into the
+body of the API call. This provides users to execute calls with options
+that may not otherwise be supported by <code>redcapAPI</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The 'offline' method operates on the raw (unlabeled) data
+file downloaded from REDCap along with the data dictionary.
+This is made available for instances where the API cannot be accessed for
+some reason (such as waiting for API approval from the REDCap administrator).
+</p>
+<p>When validating data for <code>offlineRedcapConnection</code> objects,
+links to invalid data forms will not work if the user does not provide
+the <code>url</code>, <code>version</code>, <code>project_info</code>, and <code>events</code> arguments (if the
+project is longitudinal). For the <code>project_info</code>, the values <code>project_id</code>
+and <code>is_longitudinal</code> are required. The user may be able to provide
+as little as <code style="white-space: pre;">⁠project_info = data.frame(project_id = [id], is_longitudinal = [0/1])⁠</code>.
+The user should be aware that the REDCap User Interface download for
+events does not include the event ID. To include the event ID, the user
+must construct a data frame to pass to <code>offlineConnection</code>.
+</p>
+
+
+<h4>Record Identifier (System) Fields</h4>
+
+<p>In all calls, the project's ID fields will be included–there is no option
+provided to prevent this. Additionally, if the project has a secondary
+unique field specified, it will also be included. Inclusion of these fields
+is necessary to support some post-processing functions.
+</p>
+<p>By default, the system fields <code>redcap_event_name</code>,
+<code>redcap_repeat_instrument</code>, and <code>redcap_repeat_instance</code> are
+exported (when they are appropriate to the project). These are automatically
+included by the API. However, if the user omits any of these in <code>fields</code>
+or designates one in <code>drop_fields</code>, the final result will honor those
+conditions. Excluding any of these identifiers may cause problems with
+some post-processing functions that operate on repeating instrument data.
+</p>
+<p>The combination of the project ID field, secondary unique field, and the
+system fields are what uniquely identify an experimental unit. In nearly
+all cases, it is desirable to have them all included.
+</p>
+<p>System fields are cast to labelled values by default. They may be cast
+to their coded values using the override <code>cast = list(system = castRaw)</code>.
+The fields affected by the <code>system</code> override are <code>redcap_event_name</code>,
+<code>redcap_repeat_instrument</code>, and <code>redcap_data_access_group</code>.
+</p>
+
+
+
+<h4>BioPortal Fields</h4>
+
+<p>Text fields that are validation enabled using the BioPortal Ontology service
+may be cast to labeled values so long as the labels have been cached on the
+REDCap server. Caching is performed when the field is viewed in a form on
+the web interface. However, labels are not cached when data are imported
+via the API. In cases where labels are not cached, the coded value is
+treated as both the code and the label.
+</p>
+
+
+
+<h4>Record Batching</h4>
+
+<p>A 'batched' export is one where the export is performed over a series of
+API calls rather than one large call.  For large projects on small servers,
+this may prevent a single user from tying up the server and forcing others
+to wait on a larger job.  The batched export is performed by first
+calling the API to export the subject identifier field (the first field
+in the meta data).  The unique ID's are then assigned a batch number with
+no more than <code>batch_size</code> ID's in any single batch.  The batches are
+exported from the API and stacked together.
+</p>
+<p>In longitudinal projects, <code>batch_size</code> may not necessarily be the
+number of records exported in each batch.  If <code>batch_size</code> is ten and
+there are four records per patient, each batch will consist of 40 records.
+Thus, if the user is concerned about tying up the server with a large,
+longitudinal project, it would be prudent to use a smaller batch size.
+</p>
+
+
+
+<h4>Inversion of Control</h4>
+
+<p>The final product of calling this is a <code>data.frame</code> with columns
+that have been type cast to most commonly used analysis class (e.g. factor).
+This version allows the user to override any step of this process by
+specifying a different function for each of the stages of the type casting.
+The algorithm is as follows:
+</p>
+
+<ol>
+<li>
+<p> Detect NAs in returned data (<code>na</code> argument).
+</p>
+</li>
+<li>
+<p> Run <code>validate</code> functions for the field_types.
+</p>
+</li>
+<li>
+<p> On the fields that are not NA and pass validate do the specified cast.
+</p>
+</li>
+</ol>
+<p>It is expected that the <code>na</code> and <code>validate</code> overrides should
+rarely be used. Their exposure via the function parameters is to future
+proof against possible bugs in the defaults, and allows for things that
+higher versions of REDCap add as possible field types. I.e., the overrides
+are for use to continue using the library when errors or changes to REDCap
+occur.
+</p>
+<p>The cast override is one where users can specify things that were controlled
+by an ever increasing set of flags before. E.g., <code>dates=as.Date</code> was
+an addition to allow dates in the previous version to be overridden if the
+user wanted to use the Date class. In this version, it would appear called
+as <code style="white-space: pre;">⁠cast=list(_date=as.Date))⁠</code>. See <code>fieldValidationAndCasting()</code>
+for a full listing of package provided cast functions.
+</p>
+
+
+
+<h3>Value</h3>
+
+<p><code>exportRecordsTyped</code> returns a data frame with the formatted data.
+</p>
+<p><code>exportReportsTyped</code> returns a data frame with the formatted data.
+</p>
+
+
+<h3>Functions</h3>
+
+
+<ul>
+<li> <p><code>exportRecordsTyped()</code>: Export records with type casting.
+</p>
+</li>
+<li> <p><code>exportReportsTyped()</code>: Export reports with type casting.
+</p>
+</li>
+<li> <p><code>exportRecordsTyped(redcapOfflineConnection)</code>: Export records without API access.
+</p>
+</li>
+</ul>
+<h3>Zero-Coded Check Fields</h3>
+
+<p>A zero-coded check field is a field of the REDCap type <code>checkbox</code> that has
+a coding definition of <code style="white-space: pre;">⁠0, [label]⁠</code>. When exported, the field names for
+these fields is <code style="white-space: pre;">⁠[field_name]___0⁠</code>. As in other checkbox fields, the
+raw data output returns binary values where 0 represent an unchecked
+box and 1 represents a checked box. For zero-coded checkboxes, then, a
+value of 1 indicates that 0 was selected.
+</p>
+<p>This coding rarely presents a problem when casting from raw values
+(as is done in <code>exportRecordsTyped</code>). However, casting from coded or
+labeled values can be problematic. In this case, it becomes
+indeterminate from context if the intent of <code>0</code> is 'false' or the coded
+value '0' ('true') ...
+</p>
+<p>The situations in which casting may fail to produce the desired results are</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+   Code </td>
+<td style="text-align: left;"> Label </td>
+<td style="text-align: left;"> Result </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   0 </td>
+<td style="text-align: left;"> anything other than "0" </td>
+<td style="text-align: left;"> Likely to fail when casting from coded values </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   0 </td>
+<td style="text-align: left;"> 0 </td>
+<td style="text-align: left;"> Likely to fail when casting from coded or labeled values </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<p>Because of the potential for miscast data, casting functions will issue
+a warning anytime a zero-coded check field is encountered. A separate
+warning is issued when a field is cast from coded or labeled values.
+</p>
+<p>When casting from coded or labeled values, it is strongly recommended that
+the function <code>castCheckForImport()</code> be used. This function permits the
+user to state explicitly which values should be recognized as checked,
+avoiding the ambiguity resulting from the coding.
+</p>
+
+
+<h3>See Also</h3>
+
+
+
+<h4>Other records exporting functions</h4>
+
+<p><code>exportRecords()</code>, <br><code>exportReports()</code>, <br><code>exportBulkRecords()</code>
+</p>
+
+
+
+<h4>Field validations and casting</h4>
+
+<p><code>fieldValidationAndCasting()</code>, <br><code>reviewInvalidRecords()</code>
+</p>
+
+
+
+<h4>Post-processing functionality</h4>
+
+<p><code>recastRecords()</code>, <br><code>guessCast()</code>, <br><code>guessDate()</code>, <br><code>castForImport()</code>, <br><code>mChoiceCast()</code>, <br><code>splitForms()</code>, <br><code>widerRepeated()</code>
+</p>
+
+
+
+<h4>Vignettes</h4>
+
+<p><code>vignette("redcapAPI-offline-connection")</code><br><code>vignette("redcapAPI-casting-data")</code><br><code>vignette("redcapAPI-missing-data-detection")</code><br><code style="white-space: pre;">⁠vignette("redcapAPI-data-validation)⁠</code><br><code style="white-space: pre;">⁠vignette("redcapAPI-faq)⁠</code>
+</p>
+
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+unlockREDCap(connections = c(rcon = "project_alias"), 
+             url = "your_redcap_url", 
+             keyring = "API_KEYs", 
+             envir = globalenv())
+             
+# Export records with default settings
+exportRecordsTyped(rcon)
+
+# Export records with no factors
+exportRecordsTyped(rcon, 
+                   cast = default_cast_character)
+                   
+# Export records for specific records
+exportRecordsTyped(rcon, 
+                   records = 1:3)
+                   
+# Export records for specific instruments
+exportRecordsTyped(rcon, 
+                   forms = c("registration", "visit_1", "medications"))
+                   
+# Export records using filterLogic, an API parameter not provided
+# in the exportRecordsTyped function signature
+exportRecordsTyped(
+  rcon, 
+  records = 1:3, 
+  api_param = list(filterLogic = "[age_at_enrollment] &gt; 25")
+)
+                   
+                   
+                   
+# Export a report 
+exportReports(rcon, 
+              report_id = 12345)
+              
+              
+# Export records using files downloaded from the user interface
+rcon_off &lt;- 
+  offlineConnection(
+    meta_data = 
+      system.file(file.path("extdata/offlineConnectionFiles", 
+                            "TestRedcapAPI_DataDictionary.csv"), 
+                  package = "redcapAPI"), 
+    records = 
+      system.file(file.path("extdata/offlineConnectionFiles",
+                            "TestRedcapAPI_Records.csv"), 
+                  package = "redcapAPI"))
+
+exportRecordsTyped(rcon_off)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,264 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>w_naive_bayes</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Naive Bayes algorithm with case weights</h2>
+
+<h3>Description</h3>
+
+<p>Function for Naive Bayes algorithm classification with case weights.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">w_naive_bayes(x_train, y_train, w = NULL, discretize = TRUE, breaks = 3)
+
+w_gaussian_naive_bayes(x_train, y_train, w = NULL)
+
+w_discrete_naive_bayes(x_train, y_train, breaks = 3, w = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x_train</code></td>
+<td>
+<p>explanatory variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y_train</code></td>
+<td>
+<p>a factor class variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w</code></td>
+<td>
+<p>a vector of case weights.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>discretize</code></td>
+<td>
+<p>If <code>TRUE</code> numerical variables are discretized and discrete naive bayes is applied,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>breaks</code></td>
+<td>
+<p>number of break points for discretization. Ignored if <code>discretize = TRUE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>w_naive_bayes</code> calls <code>w_gaussian_naive_bayes</code> or <code>w_discrete_naive_bayes</code>.
+</p>
+<p>if <code>discrete = FALSE</code>, <code>w_gaussian_naive_bayes</code> is called. It uses Gaussian densities with case weights and allows
+multiclass classification.
+</p>
+<p>if <code>discrete = TRUE</code>, <code>w_discrete_naive_bayes</code> is called. It uses conditional probabilities for each category with
+laplace smoothing and allows multiclass classification.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a <code>w_naive_bayes</code> object with below components.
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>n_train</code></td>
+<td>
+<p>Number of cases in the input dataset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>Number of explanatory variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x_classes</code></td>
+<td>
+<p>A list of datasets, which are <code>x_train</code> separated
+for each class.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_classes</code></td>
+<td>
+<p>Number of cases for each class in input dataset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k_classes</code></td>
+<td>
+<p>Number of classes in class variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>priors</code></td>
+<td>
+<p>Prior probabilities.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>class_names</code></td>
+<td>
+<p>Names of classes in class variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>means</code></td>
+<td>
+<p>Weighted mean estimations for each variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stds</code></td>
+<td>
+<p>Weighted standart deviation estimations for each variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>categories</code></td>
+<td>
+<p>Labels for discretized variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>boundaries</code></td>
+<td>
+<p>Upper and lower boundaries for discretization.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ps</code></td>
+<td>
+<p>probabilities for each variable categories.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(rbooster)
+## short functions for cross-validation and data simulation
+cv_sampler &lt;- function(y, train_proportion) {
+ unlist(lapply(unique(y), function(m) sample(which(y==m), round(sum(y==m))*train_proportion)))
+}
+
+data_simulation &lt;- function(n, p, k, train_proportion){
+ means &lt;- seq(0, k*1.5, length.out = k)
+ x &lt;- do.call(rbind, lapply(means,
+                            function(m) matrix(data = rnorm(n = round(n/k)*p,
+                                                            mean = m,
+                                                            sd = 2),
+                                               nrow = round(n/k))))
+ y &lt;- factor(rep(letters[1:k], each = round(n/k)))
+ train_i &lt;- cv_sampler(y, train_proportion)
+
+ data &lt;- data.frame(x, y = y)
+ data_train &lt;- data[train_i,]
+ data_test &lt;- data[-train_i,]
+ return(list(data = data,
+             data_train = data_train,
+             data_test = data_test))
+}
+
+### binary classification example
+n &lt;- 500
+p &lt;- 10
+k &lt;- 2
+dat &lt;- data_simulation(n = n, p = p, k = k, train_proportion = 0.8)
+x &lt;- dat$data[,1:p]
+y &lt;- dat$data[,p+1]
+
+x_train &lt;- dat$data_train[,1:p]
+y_train &lt;- dat$data_train[,p+1]
+
+x_test &lt;- dat$data_test[,1:p]
+y_test &lt;- dat$data_test[,p+1]
+
+## discretized Naive Bayes classification
+mm1 &lt;- w_naive_bayes(x_train = x_train, y_train = y_train, discretize = TRUE, breaks = 4)
+preds1 &lt;- predict(object = mm1, newdata = x_test, type = "pred")
+table(y_test, preds1)
+# or
+mm2 &lt;- w_discrete_naive_bayes(x_train = x_train, y_train = y_train, breaks = 4)
+preds2 &lt;- predict(object = mm2, newdata = x_test, type = "pred")
+table(y_test, preds2)
+
+## Gaussian Naive Bayes classification
+mm3 &lt;- w_naive_bayes(x_train = x_train, y_train = y_train, discretize = FALSE)
+preds3 &lt;- predict(object = mm3, newdata = x_test, type = "pred")
+table(y_test, preds3)
+
+#or
+mm4 &lt;- w_gaussian_naive_bayes(x_train = x_train, y_train = y_train)
+preds4 &lt;- predict(object = mm4, newdata = x_test, type = "pred")
+table(y_test, preds4)
+
+## multiclass example
+n &lt;- 500
+p &lt;- 10
+k &lt;- 5
+dat &lt;- data_simulation(n = n, p = p, k = k, train_proportion = 0.8)
+x &lt;- dat$data[,1:p]
+y &lt;- dat$data[,p+1]
+
+x_train &lt;- dat$data_train[,1:p]
+y_train &lt;- dat$data_train[,p+1]
+
+x_test &lt;- dat$data_test[,1:p]
+y_test &lt;- dat$data_test[,p+1]
+
+# discretized
+mm5 &lt;- w_discrete_naive_bayes(x_train = x_train, y_train = y_train, breaks = 4)
+preds5 &lt;- predict(object = mm5, newdata = x_test, type = "pred")
+table(y_test, preds5)
+
+# gaussian
+mm6 &lt;- w_gaussian_naive_bayes(x_train = x_train, y_train = y_train)
+preds6 &lt;- predict(object = mm6, newdata = x_test, type = "pred")
+table(y_test, preds6)
+
+## example for case weights
+n &lt;- 500
+p &lt;- 10
+k &lt;- 5
+dat &lt;- data_simulation(n = n, p = p, k = k, train_proportion = 0.8)
+x &lt;- dat$data[,1:p]
+y &lt;- dat$data[,p+1]
+
+x_train &lt;- dat$data_train[,1:p]
+y_train &lt;- dat$data_train[,p+1]
+
+# discretized
+weights &lt;- ifelse(y_train == "a" | y_train == "c", 1, 0.01)
+
+mm7 &lt;- w_discrete_naive_bayes(x_train = x_train, y_train = y_train, breaks = 4, w = weights)
+
+preds7 &lt;- predict(object = mm7, newdata = x_test, type = "pred")
+table(y_test, preds7)
+
+# gaussian
+weights &lt;- ifelse(y_train == "b" | y_train == "d", 1, 0.01)
+
+mm8 &lt;- w_gaussian_naive_bayes(x_train = x_train, y_train = y_train, w = weights)
+
+preds8 &lt;- predict(object = mm8, newdata = x_test, type = "pred")
+table(y_test, preds8)
+
+</code></pre>
+
+
+</div>

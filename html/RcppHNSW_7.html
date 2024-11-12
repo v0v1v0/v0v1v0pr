@@ -1,0 +1,215 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>hnsw_knn</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Find Nearest Neighbors and Distances</h2>
+
+<h3>Description</h3>
+
+<p>A k-nearest neighbor algorithm using the hnswlib library
+(<a href="https://github.com/nmslib/hnswlib">https://github.com/nmslib/hnswlib</a>).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">hnsw_knn(
+  X,
+  k = 10,
+  distance = "euclidean",
+  M = 16,
+  ef_construction = 200,
+  ef = 10,
+  verbose = FALSE,
+  progress = "bar",
+  n_threads = 0,
+  grain_size = 1,
+  byrow = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>A numeric matrix of <code>n</code> items to search for neighbors. If
+<code>byrow = TRUE</code> (the default) then each row of <code>X</code> stores an item to be
+searched. Otherwise, each item should be stored in the columns of <code>X</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>Number of neighbors to return.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>distance</code></td>
+<td>
+<p>Type of distance to calculate. One of:
+</p>
+
+<ul>
+<li> <p><code>"l2"</code> Squared L2, i.e. squared Euclidean.
+</p>
+</li>
+<li> <p><code>"euclidean"</code> Euclidean.
+</p>
+</li>
+<li> <p><code>"cosine"</code> Cosine.
+</p>
+</li>
+<li> <p><code>"ip"</code> Inner product: 1 - sum(ai * bi), i.e. the cosine distance
+where the vectors are not normalized. This can lead to negative distances
+and other non-metric behavior.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>M</code></td>
+<td>
+<p>Controls the number of bi-directional links created for each element
+during index construction. Higher values lead to better results at the
+expense of memory consumption. Typical values are <code>2 - 100</code>, but
+for most datasets a range of <code>12 - 48</code> is suitable. Can't be smaller
+than 2.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ef_construction</code></td>
+<td>
+<p>Size of the dynamic list used during construction.
+A larger value means a better quality index, but increases build time.
+Should be an integer value between 1 and the size of the dataset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ef</code></td>
+<td>
+<p>Size of the dynamic list used during search. Higher values lead
+to improved recall at the expense of longer search time. Can take values
+between <code>k</code> and the size of the dataset and may be greater or smaller
+than <code>ef_construction</code>. Typical values are <code>100 - 2000</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>If <code>TRUE</code>, log messages to the console.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>progress</code></td>
+<td>
+<p>defunct and has no effect.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_threads</code></td>
+<td>
+<p>Maximum number of threads to use. The exact number is
+determined by <code>grain_size</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grain_size</code></td>
+<td>
+<p>Minimum amount of work to do (rows in <code>X</code> to add or
+search for) per thread. If the number of rows in <code>X</code> isn't sufficient,
+then fewer than <code>n_threads</code> will be used. This is useful in cases
+where the overhead of context switching with too many threads outweighs
+the gains due to parallelism.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>byrow</code></td>
+<td>
+<p>if <code>TRUE</code> (the default), this indicates that the items to be
+processed in <code>X</code> are stored in each row of <code>X</code>. Otherwise, the items are
+stored in the columns of <code>X</code>. Storing items in each column reduces the
+overhead of copying data to a form that can be used by the <code>hnsw</code>
+library. Note that if <code>byrow = FALSE</code>, any matrices returned from this
+function will also store the items by column.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>a list containing:
+</p>
+
+<ul>
+<li> <p><code>idx</code> a matrix containing the nearest neighbor indices.
+</p>
+</li>
+<li> <p><code>dist</code> a matrix containing the nearest neighbor distances.
+</p>
+</li>
+</ul>
+<p>The dimensions of the matrices respect the storage (row or column-based) of
+<code>X</code> as indicated by the <code>byrow</code> parameter. If <code>byrow = TRUE</code> (the default)
+each row of <code>idx</code> and <code>dist</code> contain the neighbor information for the item
+passed in the equivalent row of <code>X</code>, i.e. the dimensions are <code style="white-space: pre;">⁠n x k⁠</code> where
+<code>n</code> is the number of items in <code>X</code>. If <code>byrow = FALSE</code>, then each column of
+<code>idx</code> and <code>dist</code> contain the neighbor  information for the item passed in
+the equivalent column of <code>X</code>, i.e. the dimensions are <code style="white-space: pre;">⁠k x n⁠</code>.
+</p>
+<p>Every item in the dataset is considered to be a neighbor of itself, so the
+first neighbor of item <code>i</code> should always be <code>i</code> itself. If that isn't the
+case, then any of <code>M</code>, <code>ef_construction</code> or <code>ef</code> may need increasing.
+</p>
+
+
+<h3>Hnswlib Parameters</h3>
+
+<p>Some details on the parameters used for index construction and search, based
+on <a href="https://github.com/nmslib/hnswlib/blob/master/ALGO_PARAMS.md">https://github.com/nmslib/hnswlib/blob/master/ALGO_PARAMS.md</a>:
+</p>
+
+<ul>
+<li> <p><code>M</code> Controls the number of bi-directional links created for each
+element during index construction. Higher values lead to better results at
+the expense of memory consumption, which is around <code>M * 8-10</code> bytes
+per bytes per stored element. High intrinsic dimensionalities will require
+higher values of <code>M</code>. A range of <code>2 - 100</code> is typical, but
+<code>12 - 48</code> is ok for most use cases.
+</p>
+</li>
+<li> <p><code>ef_construction</code> Size of the dynamic list used during
+construction. A larger value means a better quality index, but increases
+build time. Should be an integer value between 1 and the size of the
+dataset. A typical range is <code>100 - 2000</code>. Beyond a certain point,
+increasing <code>ef_construction</code> has no effect. A sufficient value of
+<code>ef_construction</code> can be determined by searching with <code>ef = ef_construction</code>, and ensuring that the recall is at least 0.9.
+</p>
+</li>
+<li> <p><code>ef</code> Size of the dynamic list used during index search. Can
+differ from <code>ef_construction</code> and be any value between <code>k</code> (the
+number of neighbors sought) and the number of elements in the index being
+searched.
+</p>
+</li>
+</ul>
+<h3>References</h3>
+
+<p>Malkov, Y. A., &amp; Yashunin, D. A. (2016).
+Efficient and robust approximate nearest neighbor search using Hierarchical
+Navigable Small World graphs.
+<em>arXiv preprint</em> <em>arXiv:1603.09320</em>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">iris_nn_data &lt;- hnsw_knn(as.matrix(iris[, -5]), k = 10)
+</code></pre>
+
+
+</div>

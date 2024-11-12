@@ -1,0 +1,142 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>cloudMask</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Simple Cloud Detection</h2>
+
+<h3>Description</h3>
+
+<p>Developed for use with Landsat data <code>cloudMask</code> relies on the distinctive difference between the blue (or any other short-wave band) 
+and thermal band for semi-automated creation of a cloud mask. Since it relies on thermal information it doesn't work well for sensors without
+thermal bands.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">cloudMask(
+  x,
+  threshold = 0.2,
+  blue = "B1_sre",
+  tir = "B6_sre",
+  buffer = NULL,
+  plot = FALSE,
+  verbose
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>SpatRaster with reflectance and brightness temperature OR the mask of a previous run of <code>cloudMask</code> with <code>returnDiffLayer=TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threshold</code></td>
+<td>
+<p>Numeric. cloud detection threshold. If not provided it will be guessed. Everything *below* this threshold will be considered a cloud pixel (unless it is removed by filtering afterwards).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>blue</code></td>
+<td>
+<p>Character or integer. Bandname or number for the blue band</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tir</code></td>
+<td>
+<p>Character or integer. Bandname or number for the thermal band</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>buffer</code></td>
+<td>
+<p>Integer. Number of pixels to use as a buffer that will be added to the identified cloud centers.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>Logical. Plots of the cloud mask for all sub-steps (sanitizing etc.) Helpful to find proper parametrization.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Logical. Print messages or suppress.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Returns a SpatRaster with two layers: CMASK contains the binary cloud mask (1 = cloud, NA = not-cloud) and NDTCI contains the cloud index.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Typically clouds are cold in the thermal region and have high reflectance in short wavelengths (blue). By calculating a normalized difference index between the two bands and thresholding a rough cloud mask can be obtained.
+Before calculating the spectral cloud index (let's call it Normalized Difference Thermal Cloud Index (NDTCI)) the thermal band will be matched to the same value range as the blue band. Therefore, it doesn't matter whether you
+provide DN, radiance or brightness temperature.
+</p>
+<p>This approach to cloud masking is very simplistic. And aims only at rough removal of potentially clouded areas. Nevertheless, it is able to provide satisfactory results. 
+More sophisticated approaches, including cloud cast shadow detection can be found elsewhere, e.g. <a href="https://code.google.com/archive/p/fmask">fmask</a>.
+</p>
+<p>It can make sense to find a suitable threshold on a cropped version of the scene. Also make sure you make use of the <code>returnDiffLayer</code> argument to save yourself one processing step.
+Buffering should be seen as final polishing, i.e. as long as the pure cloud centers are not detected properly, you might want to turn it off. since it takes some time to calculate.
+Once your mask detects obvious cloud pixels properly re-enable buffering for fine tuning if desired. Finally, once a suitable threshold is established re-run cloudMask on the whole scene with this threshold and go get a coffee.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>cloudShadowMask</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(ggplot2)
+## Import Landsat example subset
+## We have two tiny clouds in the east
+ggRGB(lsat, stretch = "lin")
+
+## Calculate cloud index
+cldmsk    &lt;- cloudMask(lsat, blue = 1, tir = 6)
+ggR(cldmsk, 2, geom_raster = TRUE) 
+
+## Define threshold (re-use the previously calculated index)
+## Everything above the threshold is masked
+## In addition we apply a region-growing around the core cloud pixels
+cldmsk_final &lt;- cloudMask(cldmsk, threshold = 0.1, buffer = 5) 
+
+## Plot cloudmask 
+ggRGB(lsat, stretch = "lin") +
+   ggR(cldmsk_final[[1]], ggLayer = TRUE, forceCat = TRUE, geom_raster = TRUE) +
+   scale_fill_manual(values = c("red"), na.value = NA)
+
+#' ## Estimate cloud shadow displacement
+## Interactively (click on cloud pixels and the corresponding shadow pixels)
+## Not run:  shadow &lt;- cloudShadowMask(lsat, cldmsk_final, nc = 2) 
+
+## Non-interactively. Pre-defined shadow displacement estimate (shiftEstimate)
+shadow &lt;- cloudShadowMask(lsat, cldmsk_final, shiftEstimate = c(-16,-6))
+
+## Plot
+csmask &lt;- terra::merge(cldmsk_final[[1]], shadow)
+ggRGB(lsat, stretch = "lin") +
+        ggR(csmask, ggLayer = TRUE, forceCat = TRUE, geom_raster = TRUE) +
+        scale_fill_manual(values = c("blue", "yellow"), 
+        labels = c("shadow", "cloud"), na.value = NA)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,346 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>process.data</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Process encounter history dataframe for MARK analysis</h2>
+
+<h3>Description</h3>
+
+<p>Prior to analyzing the data, this function initializes several variables
+(e.g., number of capture occasions, time intervals) that are often specific
+to the capture-recapture model being fitted to the data.  It also is used to
+1) define groups in the data that represent different levels of one or more
+factor covariates (e.g., sex), 2) define time intervals between capture
+occasions (if not 1), and 3) create an age structure for the data, if any.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">process.data(
+  data,
+  begin.time = 1,
+  model = "CJS",
+  mixtures = 1,
+  groups = NULL,
+  allgroups = FALSE,
+  age.var = NULL,
+  initial.ages = c(0),
+  age.unit = 1,
+  time.intervals = NULL,
+  nocc = NULL,
+  strata.labels = NULL,
+  counts = NULL,
+  reverse = FALSE,
+  areas = NULL,
+  events = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame with at least one field named <code>ch</code> which is
+the capture (encounter) history stored as a character string. <code>data</code>
+can also have a field <code>freq</code> which is the number of animals with that
+capture history. The default structure is freq=1 and it need not be included
+in the dataframe. <code>data</code> can also contain an arbitrary number of
+covariates specific to animals with that capture history.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>begin.time</code></td>
+<td>
+<p>Time of first capture occasion or vector of times if
+different for each group</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>Type of analysis model. See <code>mark</code> for a list of
+possible values for <code>model</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mixtures</code></td>
+<td>
+<p>Number of mixtures in closed capture models with
+heterogeneity or number of secondary samples for MultScalOcc/RDMultScalOcc model</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>groups</code></td>
+<td>
+<p>Vector of factor variable names (in double quotes) in
+<code>data</code> that will be used to create groups in the data. A group is
+created for each unique combination of the levels of the factor variables in
+the list.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>allgroups</code></td>
+<td>
+<p>Logical variable; if TRUE, all groups are created from
+factors defined in <code>groups</code> even if there are no observations in the
+group</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>age.var</code></td>
+<td>
+<p>An index in vector <code>groups</code> for a variable (if any) for
+age</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>initial.ages</code></td>
+<td>
+<p>A vector of initial ages that contains a value for each
+level of the age variable <code>groups[age.var]</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>age.unit</code></td>
+<td>
+<p>Increment of age for each increment of time as defined by
+<code>time.intervals</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time.intervals</code></td>
+<td>
+<p>Vector of lengths of time between capture occasions</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nocc</code></td>
+<td>
+<p>number of occasions for Nest type; either nocc or time.intervals
+must be specified</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>strata.labels</code></td>
+<td>
+<p>vector of single character values used in capture
+history(ch) for ORDMS, CRDMS, RDMSOccRepro, HidMarkov models; it can contain more values beyond what is
+in ch for unobservable states except for RDMSOccRepro which is used to specify strata ordering (eg 0 not-occupied, 1 occupied no repro, 2 occupied with repro.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>counts</code></td>
+<td>
+<p>named list of numeric vectors (one group) or matrices (&gt;1
+group) containing counts for mark-resight models</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reverse</code></td>
+<td>
+<p>if set to TRUE, will reverse timing of transition (Psi) and
+survival (S) in Multistratum models</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>areas</code></td>
+<td>
+<p>values of areas (1 per group) for Densitypc set of models</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>events</code></td>
+<td>
+<p>vector of character events for Hidden Markov models</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For examples of <code>data</code>, see
+<code>dipper</code>,<code>edwards.eberhardt</code>,<code>example.data</code>.
+The structure of the encounter history and the analysis depends on the
+analysis model to some extent. Thus, it is necessary to process a dataframe
+with the encounter history (<code>ch</code>) and a chosen <code>model</code> to define
+the relevant values.  For example, number of capture occasions (<code>nocc</code>)
+is automatically computed based on the length of the encounter history
+(<code>ch</code>) in <code>data</code>; however, this is dependent on the type of
+analysis model.  For models such as "CJS", "Pradel" and others, it is simply
+the length of <code>ch</code>.  Whereas, for "Burnham" and "Barker" models,the
+encounter history contains both capture and resight/recovery values so
+<code>nocc</code> is one-half the length of <code>ch</code>. Likewise, the number of
+<code>time.intervals</code> depends on the model.  For models, such as "CJS",
+"Pradel" and others, the number of <code>time.intervals</code> is <code>nocc-1</code>;
+whereas, for capture&amp;recovery(resight) models the number of
+<code>time.intervals</code> is <code>nocc</code>. The default time interval is unit time
+(1) and if this is adequate, the function will assign the appropriate
+length.  A processed data frame can only be analyzed using the model that
+was specified.  The <code>model</code> value is used by the functions
+<code>make.design.data</code>, <code>add.design.data</code>, and
+<code>make.mark.model</code> to define the model structure as it relates to
+the data. Thus, if the data are going to be analysed with different
+underlying models, create different processed data sets with the model name
+as an extension.  For example, <code>dipper.cjs=process.data(dipper)</code> and
+<code>dipper.popan=process.data(dipper,model="POPAN")</code>.
+</p>
+<p>This function will report inconsistencies in the lengths of the capture
+history values and when invalid entries are given in the capture history.
+For example, with the "CJS" model, the capture history should only contain 0
+and 1 whereas for "Barker" it can contain 0,1,2.  For "Multistrata" models,
+the code will automatically identify the number of strata and strata labels
+based on the unique alphabetic codes used in the capture histories.
+</p>
+<p>The argument <code>begin.time</code> specifies the time for the first capture
+occasion.  This is used in creating the levels of the time factor variable
+in the design data and for labelling parameters. If the <code>begin.time</code>
+varies by group, enter a vector of times with one for each group. Note that
+the time values for survivals are based on the beginning of the survival
+interval and capture probabilities are labeled based on the time of the
+capture occasion.  Likewise, age labels for survival are the ages at the
+beginning times of the intervals and for capture probabilities it is the age
+at the time of capture/recapture.
+</p>
+<p><code>groups</code> is a vector of variable names that are contained in
+<code>data</code>.  Each must be a factor variable. A group is created for each
+unique combination of the levels of the factor variables.  In the first
+example given below <code>groups=c("sex","age","region")</code>. which creates
+groups defined by the levels of <code>sex</code>, <code>age</code> and <code>region</code>.
+There should be 2(sexes)*3(ages)*4(regions)=24 groups but in actuality there
+are only 16 in the data because there are only 2 age groups for each sex.
+Age group 1 and 2 for M and age groups 2 and 3 for F.  This was done to
+demonstrate that the code will only use groups that have 1 or more capture
+histories unless <code>allgroups=TRUE</code>.
+</p>
+<p>The argument <code>age.var=2</code> specifies that the second grouping variable in
+<code>groups</code> represents an age variable.  It could have been named
+something different than age. If a variable in <code>groups</code> is named
+<code>age</code> then it is not necessary to specify <code>age.var</code>.
+<code>initial.age</code> specifies that the age at first capture of the age levels
+is 0,1 and 2 while the age classes were designated as 1,2,3. The actual ages
+for the age classes do not have to be sequential or ordered, but ordering
+will cause less confusion.  Thus levels 1,2,3 could represent initial ages
+of 0,4,6 or 6,0,4. The argument age.unit is the amount an animal ages for
+each unit of time and the default is 1.  The default for <code>initial.age</code>
+is 0 for each group, in which case, <code>age</code> represents time since marking
+(first capture) rather than the actual age of the animal.
+</p>
+
+
+<h3>Value</h3>
+
+<p>processed.data (a list with the following elements)
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>original raw dataframe with group factor variable added if
+groups were defined</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>type of analysis model (eg, "CJS",
+"Burnham", "Barker")</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>freq</code></td>
+<td>
+<p>a dataframe of frequencies (same number of
+rows as data, number of columns is the number of groups in the data. The
+column names are the group labels representing the unique groups that have
+one or more capture histories.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nocc</code></td>
+<td>
+<p>number of capture occasions</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time.intervals</code></td>
+<td>
+<p>length of time intervals between capture occasions</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>begin.time</code></td>
+<td>
+<p>time of first capture occasion</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>age.unit</code></td>
+<td>
+<p>increment
+of age for each increment of time</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>initial.ages</code></td>
+<td>
+<p>an initial age for
+each group in the data; Note that this is not the original argument but is a
+vector with the initial age for each group. In the first example below
+<code>proc.example.data$initial.ages</code> is a vector with 16 elements as
+follows 0 1 1 2 0 1 1 2 0 1 1 2 0 1 1 2</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nstrata</code></td>
+<td>
+<p>number of strata in
+Multistrata models</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>strata.labels</code></td>
+<td>
+<p>vector of alphabetic characters
+used to identify strata in Multistrata models</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group.covariates</code></td>
+<td>
+<p>factor covariates used to define groups</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Jeff Laake
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>import.chdata</code>, <code>dipper</code>,
+<code>edwards.eberhardt</code>, <code>example.data</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+data(example.data)
+proc.example.data=process.data(data=example.data,begin.time=1980,
+groups=c("sex","age","region"),
+age.var=2,initial.age=c(0,1,2))
+
+data(dipper)
+dipper.process=process.data(dipper)
+
+</code></pre>
+
+
+</div>

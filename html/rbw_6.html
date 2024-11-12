@@ -1,0 +1,166 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rbwMed</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Residual Balancing Weights for Causal Mediation Analysis</h2>
+
+<h3>Description</h3>
+
+<p><code>rbwMed</code> is a function that produces residual balancing weights for estimating
+controlled direct/mediator effects in causal mediation analysis. The user supplies
+a (optional) set of baseline confounders and a list of model objects for the conditional
+mean of each post-treatment confounder given the treatment and baseline confounders.
+The weights can be used to fit marginal structural models for the joint effects of the
+treatment and a mediator on an outcome of interest.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rbwMed(
+  treatment,
+  mediator,
+  zmodels,
+  data,
+  baseline_x,
+  interact = FALSE,
+  base_weights,
+  max_iter = 200,
+  tol = 1e-04,
+  print_level = 1
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>treatment</code></td>
+<td>
+<p>A symbol or character string for the treatment variable in <code>data</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mediator</code></td>
+<td>
+<p>A symbol or character string for the mediator variable in <code>data</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zmodels</code></td>
+<td>
+<p>A list of fitted <code>lm</code> or <code>glm</code> objects for
+post-treatment confounders of the mediator-outcome relationship. If there's no
+post-treatment confounder, set it to be <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame containing all variables in the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>baseline_x</code></td>
+<td>
+<p>(Optional) An expression for a set of baseline confounders stored in <code>data</code> or
+a character vector of the names of these variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interact</code></td>
+<td>
+<p>A logical variable indicating whether baseline and post-treatment covariates
+should be balanced against the treatment-mediator interaction term(s).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>base_weights</code></td>
+<td>
+<p>(Optional) A vector of base weights (or its name).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_iter</code></td>
+<td>
+<p>Maximum number of iterations for Newton's method in entropy minimization.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>Tolerance parameter used to determine convergence in entropy minimization.
+See documentation for <code>eb2</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>print_level</code></td>
+<td>
+<p>The level of printing. See documentation for <code>eb2</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list containing the results.
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>A vector of residual balancing weights.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>constraints</code></td>
+<td>
+<p>A matrix of (linearly independent) residual balancing constraints</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eb_out</code></td>
+<td>
+<p>Results from calling the <code>eb2</code> function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>The matched call.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R"># models for post-treatment confounders
+m1 &lt;- lm(threatc ~ ally + trade + h1 + i1 + p1 + e1 + r1 +
+  male + white + age + ed4 + democ, data = peace)
+
+m2 &lt;- lm(cost ~ ally + trade + h1 + i1 + p1 + e1 + r1 +
+  male + white + age + ed4 + democ, data = peace)
+
+m3 &lt;- lm(successc ~ ally + trade + h1 + i1 + p1 + e1 + r1 +
+  male + white + age + ed4 + democ, data = peace)
+
+# residual balancing weights
+rbwMed_fit &lt;- rbwMed(treatment = democ, mediator = immoral,
+  zmodels = list(m1, m2, m3), interact = TRUE,
+  baseline_x = c(ally, trade, h1, i1, p1, e1, r1, male, white, age, ed4),
+  data = peace)
+
+# attach residual balancing weights to data
+peace$rbw_cde &lt;- rbwMed_fit$weights
+
+# fit marginal structural model
+if(require(survey)){
+  rbw_design &lt;- svydesign(ids = ~ 1, weights = ~ rbw_cde, data = peace)
+  msm_rbwMed &lt;- svyglm(strike ~ democ * immoral, design = rbw_design)
+  summary(msm_rbwMed)
+}
+</code></pre>
+
+
+</div>

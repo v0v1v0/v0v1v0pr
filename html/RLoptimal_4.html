@@ -1,0 +1,236 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>learn_allocation_rule</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Build an Optimal Adaptive Allocation Rule using Reinforcement Learning</h2>
+
+<h3>Description</h3>
+
+<p>Build an Optimal Adaptive Allocation Rule using Reinforcement Learning
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">learn_allocation_rule(
+  models,
+  N_total,
+  N_ini,
+  N_block,
+  Delta,
+  outcome_type = c("continuous", "binary"),
+  sd_normal = NULL,
+  optimization_metric = c("MAE", "power", "TD", "power and MAE"),
+  rl_models = models,
+  rl_models_prior = NULL,
+  seed = NULL,
+  rl_config = rl_config_set(),
+  alpha = 0.025,
+  selModel = c("AIC", "maxT", "aveAIC"),
+  Delta_range = c(0.9, 1.1) * Delta,
+  output_dir = format(Sys.time(), "%Y%m%d_%H%M%S"),
+  output_base_dir = "allocation_rules",
+  checkpoint_dir = "checkpoints"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>models</code></td>
+<td>
+<p>An object of class Mods specifying assumed
+dose-response models. When <code>outcome_type</code> is "binary", <code>models</code> should
+be specified on the logit scale.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>N_total</code></td>
+<td>
+<p>A positive integer value. The total number of subjects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>N_ini</code></td>
+<td>
+<p>A positive integer vector in which each element is greater than
+or equal to 2. The number of subjects initially assigned to each dose.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>N_block</code></td>
+<td>
+<p>A positive integer value. The number of subjects allocated
+adaptively in each round.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Delta</code></td>
+<td>
+<p>A positive numeric value. The clinically relevant target effect.
+When <code>outcome_type</code> is "binary", <code>Delta</code> should be specified
+on the logit scale. See TD for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outcome_type</code></td>
+<td>
+<p>A character value specifying the outcome type.
+Possible values are "continuous" (default), and "binary".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sd_normal</code></td>
+<td>
+<p>A positive numeric value. The standard deviation of the
+observation noise. When <code>outcome_type</code> is "continuous",
+<code>sd_normal</code> must be specified.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optimization_metric</code></td>
+<td>
+<p>A character value specifying the metric to
+optimize. Possible values are "MAE" (default), "power", "TD", or
+"power and MAE". See Section 2.2 of the original paper for details.
+"power and MAE" shows performance between "power" and "MAE"
+by setting the reward based on MAE to 0 when not significant.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rl_models</code></td>
+<td>
+<p>An object of class Mods. True dose-response
+models in simulations for reinforcement learning. The default is the
+same as the 'models' argument. Empirically, the inclusion of a wide
+variety of models tends to stabilize performance (See RL-MAE incl. exp
+in the supporting information of the original paper).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rl_models_prior</code></td>
+<td>
+<p>A positive numeric vector. The probability or weight
+with which each model in rl_models is selected as the true model in
+the simulation. The default is NULL, which specifies equal probability
+for each model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>An integer value. Random seed for reinforcement learning.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rl_config</code></td>
+<td>
+<p>A list. Other settings for reinforcement learning. See
+rl_config_set for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>A positive numeric value. The significance level. Default is 0.025.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>selModel</code></td>
+<td>
+<p>A character value specifying the model selection criterion
+for dose estimation. Possible values are "AIC" (default), "maxT", or
+"aveAIC". See MCPMod for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Delta_range</code></td>
+<td>
+<p>A numeric vector of length 2. The lower and upper bounds
+of Delta where the estimated target dose is correct. Default is
+<code>c(0.9, 1.1) * Delta</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>output_dir</code></td>
+<td>
+<p>A character value. Directory name or path to store the
+built allocation rule. Default is the current datetime.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>output_base_dir</code></td>
+<td>
+<p>A character value. Parent directory path where the
+built allocation rule will be stored. Valid only if 'output_dir' does
+not contain '/'. Default is "allocation_rules".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>checkpoint_dir</code></td>
+<td>
+<p>A character value. Parent directory path to save
+checkpoints. It enables you to resume learning from that point onwards.
+Default is "checkpoints".</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An AllocationRule object.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(RLoptimal)
+
+doses &lt;- c(0, 2, 4, 6, 8)
+
+# We build the dose-response models to be used in the MCPMod method, 
+# which we plan to execute at the end of the clinical trial.
+models &lt;- DoseFinding::Mods(
+  doses = doses, maxEff = 1.65,
+  linear = NULL, emax = 0.79, sigEmax = c(4, 5)
+)
+
+# We obtain an optimal adaptive allocation rule by executing 
+# `learn_allocation_rule()` with the `models`.
+## Not run: 
+allocation_rule &lt;- learn_allocation_rule(
+  models,
+  N_total = 150, N_ini = rep(10, 5), N_block = 10, Delta = 1.3,
+  outcome_type = "continuous", sd_normal = sqrt(4.5), 
+  seed = 123, rl_config = rl_config_set(iter = 1000),
+  alpha = 0.025
+)
+## End(Not run)
+
+# It is recommended that the models used in reinforcement learning include 
+# possible models in addition to the models used in the MCPMod method. 
+# Here, we add the exponential model according to the supporting information 
+# in the original paper.
+rl_models &lt;- DoseFinding::Mods(
+  doses = doses, maxEff = 1.65,
+  linear = NULL, emax = 0.79, sigEmax = c(4, 5), exponential = 1
+)
+
+# Then, we specify the argument `rl_models` in `learn_allocation_rule` function.
+## Not run: 
+allocation_rule &lt;- learn_allocation_rule(
+  models,
+  N_total = 150, N_ini = rep(10, 5), N_block = 10, Delta = 1.3,
+  outcome_type = "continuous", sd_normal = sqrt(4.5), 
+  seed = 123, rl_models = rl_models, rl_config = rl_config_set(iter = 1000),
+  alpha = 0.025
+)
+## End(Not run)
+
+</code></pre>
+
+
+</div>

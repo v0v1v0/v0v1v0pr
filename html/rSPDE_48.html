@@ -1,0 +1,204 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rSPDE.construct.matern.loglike</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Constructor of Matern loglikelihood functions.</h2>
+
+<h3>Description</h3>
+
+<p>This function returns a log-likelihood function for a
+Gaussian process with a Matern covariance
+function, that is observed under Gaussian measurement noise:
+<code class="reqn">Y_i = u(s_i) + \epsilon_i</code>, where
+<code class="reqn">\epsilon_i</code> are
+iid mean-zero Gaussian variables. The latent model is approximated using
+the a rational approximation
+of the fractional SPDE model corresponding to the Gaussian process.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rSPDE.construct.matern.loglike(
+  object,
+  Y,
+  A,
+  sigma.e = NULL,
+  mu = 0,
+  user_nu = NULL,
+  user_tau = NULL,
+  user_kappa = NULL,
+  user_sigma = NULL,
+  user_range = NULL,
+  parameterization = c("spde", "matern"),
+  user_m = NULL,
+  log_scale = TRUE,
+  return_negative_likelihood = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>The rational SPDE approximation,
+computed using <code>matern.operators()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>The observations, either a vector or a matrix where
+the columns correspond to independent replicates of observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>A</code></td>
+<td>
+<p>An observation matrix that links the measurement location to the
+finite element basis.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma.e</code></td>
+<td>
+<p>IF non-null, the standard deviation of the measurement noise will be kept fixed in
+the returned likelihood.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mu</code></td>
+<td>
+<p>Expectation vector of the latent field (default = 0).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>user_nu</code></td>
+<td>
+<p>If non-null, the shape parameter will be kept fixed in the returned likelihood.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>user_tau</code></td>
+<td>
+<p>If non-null, the tau parameter will be kept fixed in the returned likelihood. (Replaces sigma)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>user_kappa</code></td>
+<td>
+<p>If non-null, the range parameter will be kept fixed in the returned likelihood.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>user_sigma</code></td>
+<td>
+<p>If non-null, the standard deviation will be kept fixed in the returned likelihood.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>user_range</code></td>
+<td>
+<p>If non-null, the range parameter will be kept fixed in the returned likelihood. (Replaces kappa)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parameterization</code></td>
+<td>
+<p>If <code>spde</code>, then one will use the parameters <code>tau</code> and <code>kappa</code>. If <code>matern</code>, then one will use the parameters <code>sigma</code> and <code>range</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>user_m</code></td>
+<td>
+<p>If non-null, update the order of the rational approximation,
+which needs to be a positive integer.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>log_scale</code></td>
+<td>
+<p>Should the parameters be evaluated in log-scale?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return_negative_likelihood</code></td>
+<td>
+<p>Return minus the likelihood to turn the maximization into a minimization?</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The log-likelihood function. The parameters of the returned function
+are given in the order sigma, kappa, nu, sigma.e, whenever they are available.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>matern.operators()</code>, <code>predict.CBrSPDEobj()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># this example illustrates how the function can be used for maximum
+# likelihood estimation
+
+set.seed(123)
+# Sample a Gaussian Matern process on R using a rational approximation
+nu &lt;- 0.8
+sigma &lt;- 1
+sigma.e &lt;- 0.1
+n.rep &lt;- 10
+n.obs &lt;- 200
+n.x &lt;- 51
+range &lt;- 0.2
+# create mass and stiffness matrices for a FEM discretization
+x &lt;- seq(from = 0, to = 1, length.out = n.x)
+# Compute the covariance-based rational approximation
+op_cov &lt;- matern.operators(
+  loc_mesh = x, nu = nu,
+  range = range, sigma = sigma, d = 1, m = 2,
+ parameterization = "matern"
+)
+# Sample the model
+u &lt;- simulate(op_cov, n.rep)
+# Create some data
+obs.loc &lt;- runif(n = n.obs, min = 0, max = 1)
+A &lt;- rSPDE.A1d(x, obs.loc)
+noise &lt;- rnorm(n.obs * n.rep)
+dim(noise) &lt;- c(n.obs, n.rep)
+Y &lt;- as.matrix(A %*% u + sigma.e * noise)
+
+# Define the negative likelihood function for optimization
+# using CBrSPDE.matern.loglike
+# Matern parameterization
+loglike &lt;- rSPDE.construct.matern.loglike(op_cov, Y, A, parameterization = "matern") 
+
+# The parameters can now be estimated by minimizing mlik with optim
+
+# Choose some reasonable starting values depending on the size of the domain
+theta0 &lt;- c(get.initial.values.rSPDE(mesh.range = 1, dim = 1), 
+                                 log(0.1*sd(as.vector(Y))))
+# run estimation and display the results
+theta &lt;- optim(theta0, loglike,
+  method = "L-BFGS-B"
+)
+print(data.frame(
+  sigma = c(sigma, exp(theta$par[1])), range = c(range, exp(theta$par[2])),
+  nu = c(nu, exp(theta$par[3])), sigma.e = c(sigma.e, exp(theta$par[4])),
+  row.names = c("Truth", "Estimates")
+))
+
+
+</code></pre>
+
+
+</div>

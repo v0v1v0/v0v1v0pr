@@ -1,0 +1,217 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>scan_hh_full</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Compute iHH, iES and inES over a whole chromosome without cut-offs</h2>
+
+<h3>Description</h3>
+
+<p>Compute integrated EHH (iHH), integrated EHHS (iES) and integrated normalized EHHS (inES) for all markers of a chromosome (or linkage group).
+This function computes the statistics by a slightly different algorithm than <code>scan_hh</code>: it sidesteps the calculation of EHH and EHHS values and their subsequent integration and
+consequently no cut-offs relying on these values can be specified. Instead,
+it computes the (full) lengths of pairwise shared haplotypes and averages them afterwords.
+</p>
+<p>This function is primarily intended for the study of general properties of these statistics using simulated data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">scan_hh_full(
+  haplohh,
+  phased = TRUE,
+  polarized = TRUE,
+  maxgap = NA,
+  max_extend = NA,
+  discard_integration_at_border = TRUE,
+  geometric.mean = FALSE,
+  threads = 1
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>haplohh</code></td>
+<td>
+<p>an object of class <code>haplohh</code> (see <code>data2haplohh</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phased</code></td>
+<td>
+<p>logical. If <code>TRUE</code> (default) chromosomes are expected to be phased. If <code>FALSE</code>, the haplotype data is assumed to
+consist of pairwise ordered chromosomes belonging to diploid individuals.
+EHH(S) is then estimated over individuals which are homozygous at the focal marker.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>polarized</code></td>
+<td>
+<p>logical. <code>TRUE</code> by default. If <code>FALSE</code>, use major and minor allele instead of ancestral and derived. If there
+are more than two alleles then the minor allele refers to the second-most frequent allele.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxgap</code></td>
+<td>
+<p>maximum allowed gap in bp between two markers. If exceeded, further calculation of EHH(S) is stopped at the gap
+(default=<code>NA</code>, i.e. no limitation).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_extend</code></td>
+<td>
+<p>maximum distance in bp to extend shared haplotypes away from the focal marker.
+(default <code>NA</code>, i.e. no limitation).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>discard_integration_at_border</code></td>
+<td>
+<p>logical. If <code>TRUE</code> (default) and computation of any of the statistics reaches first or last
+marker or a gap larger than <code>maxgap</code>, iHH, iES and inES are set to <code>NA</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>geometric.mean</code></td>
+<td>
+<p>logical. If <code>FALSE</code> (default), the standard arithmetic mean is used to average
+shared haplotype lengths. If <code>TRUE</code>
+the geometric mean is used instead (IES values are undefined in this case). Note that usage of the geometric mean has not
+yet been studied formally and should be considered experimental!</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threads</code></td>
+<td>
+<p>number of threads to parallelize computation</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Integrated EHH (iHH), integrated EHHS (iES) and integrated normalized EHHS (inES)
+are computed for all markers of the chromosome (or linkage group). This function sidesteps
+the computation of EHH and EHHS values and their stepwise integration. Instead, the length of all shared haplotypes
+is computed and afterwords averaged.  In the absence of missing values the
+statistics are identical to those calculated by <code>scan_hh</code> with settings
+<code>limehh = 0</code>, <code>limehhs = 0</code>, <code>lower_ehh_y_bound = 0</code> and <code>interpolate = FALSE</code>, yet this function is faster.
+</p>
+<p>Application of a cut-off is necessary for reducing the spurious signals
+of selection caused by single shared haplotypes of extreme length. Hence, e.g. for human experimental data
+it might be reasonable to set <code>max_extend</code> to 1 or 2 Mb.
+</p>
+<p><code>scan_hh</code> computes the statistics iHH_A, ihh_D and iES/inES separately,
+while this function calculates them simultaneously. Hence, 
+if <code>discard_integration_at_border</code> is set to <code>TRUE</code> and the extension of shared haplotypes
+reaches a border (i.e. chromosomal boundaries or a gap larger than <code>maxgap</code>), this function discards
+all statistics.
+</p>
+<p>The handling of missing values is different, too: <code>scan_hh</code> "removes" chromosomes with missing values from further calculations.
+EHH and EHHS are then calculated for the remaining chromosomes which can accidentally yield an increase in EHH or EHHS.
+This can not happen with <code>scan_hh_full()</code> which treats each missing value of a marker
+as if it were a new allele - terminating any shared haplotype, but does changing the
+set of considered chromosomes. Thus, missing values
+cause a faster decay of EHH(S) with function <code>scan_hh_full()</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The returned value is a dataframe with markers in rows and the following columns
+</p>
+
+<ol>
+<li>
+<p> chromosome name
+</p>
+</li>
+<li>
+<p> position in the chromosome
+</p>
+</li>
+<li>
+<p> sample frequency of the ancestral / major allele
+</p>
+</li>
+<li>
+<p> sample frequency of the second-most frequent remaining allele
+</p>
+</li>
+<li>
+<p> number of evaluated haplotypes at the focal marker for the ancestral / major allele
+</p>
+</li>
+<li>
+<p> number of evaluated haplotypes at the focal marker for the second-most frequent remaining allele
+</p>
+</li>
+<li>
+<p> iHH of the ancestral / major allele
+</p>
+</li>
+<li>
+<p> iHH of the second-most frequent remaining allele
+</p>
+</li>
+<li>
+<p> iES (used by Sabeti et al 2007)
+</p>
+</li>
+<li>
+<p> inES (used by Tang et al 2007)</p>
+</li>
+</ol>
+<p>Note that in case of unphased data the evaluation is restricted to
+haplotypes of homozygous individuals which reduces the power
+to detect selection, particularly for iHS (for appropriate parameter setting
+see the main vignette and Klassmann et al (2020)).
+</p>
+
+
+<h3>References</h3>
+
+<p>Gautier, M. and Naves, M. (2011). Footprints of selection in the ancestral admixture of a New World Creole cattle breed. <em>Molecular Ecology</em>, <strong>20</strong>, 3128-3143.
+</p>
+<p>Klassmann, A. and Gautier, M. (2020). Detecting selection using Extended Haplotype
+Homozygosity-based statistics on unphased or unpolarized data (preprint). 
+https://doi.org/10.22541/au.160405572.29972398/v1
+</p>
+<p>Sabeti, P.C. et al. (2002). Detecting recent positive selection in the human genome from haplotype structure. <em>Nature</em>, <strong>419</strong>, 832-837.
+</p>
+<p>Sabeti, P.C. et al. (2007). Genome-wide detection and characterization of positive selection in human populations. <em>Nature</em>, <strong>449</strong>, 913-918.
+</p>
+<p>Tang, K. and Thornton, K.R. and Stoneking, M. (2007). A New Approach for Using Genome Scans to Detect Recent Positive Selection in the Human Genome. <em>Plos Biology</em>, <strong>7</strong>, e171.
+</p>
+<p>Voight, B.F. and Kudaravalli, S. and Wen, X. and Pritchard, J.K. (2006). A map of recent positive selection in the human genome. <em>Plos Biology</em>, <strong>4</strong>, e72.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>data2haplohh</code>, <code>scan_hh</code>,
+<code>ihh2ihs</code>, <code>ines2rsb</code>, <code>ies2xpehh</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#example haplohh object (280 haplotypes, 1424 SNPs)
+#see ?haplohh_cgu_bta12 for details
+data(haplohh_cgu_bta12)
+#using function scan_hh() with no cut-offs
+scan &lt;- scan_hh(haplohh_cgu_bta12, discard_integration_at_border = FALSE,
+limehh = 0, limehhs = 0, lower_ehh_y_bound = 0, interpolate = FALSE)
+#using function scan_hh_full()
+scan_full &lt;- scan_hh_full(haplohh_cgu_bta12, discard_integration_at_border = FALSE)
+#both yield identical results within numerical precision
+all.equal(scan, scan_full)
+</code></pre>
+
+
+</div>

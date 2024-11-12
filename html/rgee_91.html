@@ -1,0 +1,152 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>stars_as_ee</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Convert a stars or stars-proxy object into an EE Image object</h2>
+
+<h3>Description</h3>
+
+<p>Convert a stars or stars-proxy object into an EE Image object
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">stars_as_ee(
+  x,
+  assetId,
+  bucket = NULL,
+  predefinedAcl = "bucketLevel",
+  command_line_tool_path = NULL,
+  overwrite = FALSE,
+  monitoring = TRUE,
+  quiet = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>stars or stars-proxy object to be converted into an ee$Image.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>assetId</code></td>
+<td>
+<p>Character. Destination asset ID for the uploaded file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bucket</code></td>
+<td>
+<p>Character. Name of the GCS bucket.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predefinedAcl</code></td>
+<td>
+<p>Specify user access to object. Passed to
+<code>googleCloudStorageR::gcs_upload</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>command_line_tool_path</code></td>
+<td>
+<p>Character. Path to the Earth Engine command line
+tool (CLT). If NULL, rgee assumes that CLT is set in the system PATH.
+(ignore if <code>via</code> is not defined as "gcs_to_asset").</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite</code></td>
+<td>
+<p>Logical. If TRUE, the assetId will be overwritten.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>monitoring</code></td>
+<td>
+<p>Logical. If TRUE the exportation task will be monitored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quiet</code></td>
+<td>
+<p>Logical. Suppress info message.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>parameter(s) passed on to <code>ee_utils_create_manifest_image</code></p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An ee$Image object
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other image upload functions: 
+<code>raster_as_ee()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+library(rgee)
+library(stars)
+ee_Initialize(gcs = TRUE)
+
+# Get the filename of a image
+tif &lt;- system.file("tif/L7_ETMs.tif", package = "stars")
+x &lt;- read_stars(tif)
+assetId &lt;- sprintf("%s/%s",ee_get_assethome(),'stars_l7')
+
+# # Method 1
+# 1. Move from local to gcs
+gs_uri &lt;- local_to_gcs(x = tif, bucket = 'rgee_dev')
+
+# 2. Create a manifest
+manifest &lt;- ee_utils_create_manifest_image(gs_uri, assetId)
+
+# 3. Pass from gcs to asset
+gcs_to_ee_image(
+  manifest = manifest,
+  overwrite = TRUE
+)
+
+# OPTIONAL: Monitoring progress
+ee_monitoring(max_attempts = Inf)
+
+# OPTIONAL: Display results
+ee_stars_01 &lt;- ee$Image(assetId)
+Map$centerObject(ee_stars_01)
+Map$addLayer(ee_stars_01, list(min = 0, max = 255))
+
+# Method 2
+ee_stars_02 &lt;- stars_as_ee(
+ x = x,
+ overwrite = TRUE,
+ assetId = assetId,
+ bucket = "rgee_dev"
+)
+Map$centerObject(ee_stars_02)
+Map$addLayer(ee_stars_02, list(min = 0, max = 255))
+
+## End(Not run)
+</code></pre>
+
+
+</div>

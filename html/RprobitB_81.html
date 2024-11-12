@@ -1,0 +1,114 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>update_reg</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Update coefficient vector of multiple linear regression</h2>
+
+<h3>Description</h3>
+
+<p>This function updates the coefficient vector of a multiple linear regression.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">update_reg(mu0, Tau0, XSigX, XSigU)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>mu0</code></td>
+<td>
+<p>The mean vector of the normal prior distribution for the coefficient vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Tau0</code></td>
+<td>
+<p>The precision matrix (i.e. inverted covariance matrix) of the normal prior distribution for the coefficient vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>XSigX</code></td>
+<td>
+<p>The matrix <code class="reqn">\sum_{n=1}^N X_n'\Sigma^{-1}X_n</code>. See below for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>XSigU</code></td>
+<td>
+<p>The vector <code class="reqn">\sum_{n=1}^N X_n'\Sigma^{-1}U_n</code>. See below for details.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function draws from the posterior distribution of <code class="reqn">\beta</code> in the linear utility
+equation </p>
+<p style="text-align: center;"><code class="reqn">U_n = X_n\beta + \epsilon_n,</code>
+</p>
+<p> where <code class="reqn">U_n</code> is the
+(latent, but here assumed to be known) utility vector of decider <code class="reqn">n = 1,\dots,N</code>, <code class="reqn">X_n</code>
+is the design matrix build from the choice characteristics faced by <code class="reqn">n</code>,
+<code class="reqn">\beta</code> is the unknown coefficient vector (this can be either the fixed
+coefficient vector <code class="reqn">\alpha</code> or the decider-specific coefficient vector <code class="reqn">\beta_n</code>),
+and <code class="reqn">\epsilon_n</code> is the error term assumed to be normally distributed with mean <code class="reqn">0</code>
+and (known) covariance matrix <code class="reqn">\Sigma</code>.
+A priori we assume the (conjugate) normal prior distribution </p>
+<p style="text-align: center;"><code class="reqn">\beta \sim N(\mu_0,T_0)</code>
+</p>
+
+<p>with mean vector <code class="reqn">\mu_0</code> and precision matrix (i.e. inverted covariance matrix) <code class="reqn">T_0</code>.
+The posterior distribution for <code class="reqn">\beta</code> is normal with
+covariance matrix </p>
+<p style="text-align: center;"><code class="reqn">\Sigma_1 = (T_0 + \sum_{n=1}^N X_n'\Sigma^{-1}X_n)^{-1}</code>
+</p>
+<p> and mean vector
+</p>
+<p style="text-align: center;"><code class="reqn">\mu_1 = \Sigma_1(T_0\mu_0 + \sum_{n=1}^N X_n'\Sigma^{-1}U_n)</code>
+</p>
+<p>.
+Note the analogy of <code class="reqn">\mu_1</code> to the generalized least squares estimator
+</p>
+<p style="text-align: center;"><code class="reqn">\hat{\beta}_{GLS} = (\sum_{n=1}^N X_n'\Sigma^{-1}X_n)^{-1} \sum_{n=1}^N X_n'\Sigma^{-1}U_n</code>
+</p>
+<p> which
+becomes weighted by the prior parameters <code class="reqn">\mu_0</code> and <code class="reqn">T_0</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A vector, a draw from the normal posterior distribution of the coefficient
+vector in a multiple linear regression.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">### true coefficient vector
+beta_true &lt;- matrix(c(-1,1), ncol=1)
+### error term covariance matrix
+Sigma &lt;- matrix(c(1,0.5,0.2,0.5,1,0.2,0.2,0.2,2), ncol=3)
+### draw data
+N &lt;- 100
+X &lt;- replicate(N, matrix(rnorm(6), ncol=2), simplify = FALSE)
+eps &lt;- replicate(N, rmvnorm(mu = c(0,0,0), Sigma = Sigma), simplify = FALSE)
+U &lt;- mapply(function(X, eps) X %*% beta_true + eps, X, eps, SIMPLIFY = FALSE)
+### prior parameters for coefficient vector
+mu0 &lt;- c(0,0)
+Tau0 &lt;- diag(2)
+### draw from posterior of coefficient vector
+XSigX &lt;- Reduce(`+`, lapply(X, function(X) t(X) %*% solve(Sigma) %*% X))
+XSigU &lt;- Reduce(`+`, mapply(function(X, U) t(X) %*% solve(Sigma) %*% U, X, U, SIMPLIFY = FALSE))
+beta_draws &lt;- replicate(100, update_reg(mu0, Tau0, XSigX, XSigU), simplify = TRUE)
+rowMeans(beta_draws)
+</code></pre>
+
+
+</div>

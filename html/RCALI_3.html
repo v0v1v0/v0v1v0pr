@@ -1,0 +1,429 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>califlopp</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2> Calculation of the Integrated Flow of Particles
+between Polygons</h2>
+
+<h3>Description</h3>
+
+<p>Calculation of the flow of particles between polygons by two integration methods: integration by a cubature method and
+integration on a grid of points.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">califlopp(file, dispf=c(1,2), param=NULL, resfile = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>file</code></td>
+<td>
+<p> Pathname of the polygons-file. See details. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dispf</code></td>
+<td>
+<p> The required dispersion functions. Vector of integers  or vector of R functions. The maximum length of this vector is 5.
+</p>
+
+<ul>
+<li>
+<p>    If vector of integers, the dispersion functions are
+then compiled. Five are provided.  To modify them, see
+Details.
+By default, 
+1 is for dispersal of oilseed rape pollen, 2 for dispersal
+of oilseed rape seed (dispersals of oilseed rape are the ones
+defined in <em>GeneSys</em> - see References),
+3 for the constant function, 4 for an
+anisotropic version of the dispersal of yellow rust of wheat defined
+in <em>Soubeyrand and all</em>, 5 for a discontinuous function.<br>
+These functions are viewable in the C file <code>src/functions.cc</code>.
+To modify them, see Details.
+</p>
+</li>
+<li>
+<p>    If vector of functions, the dispersion functions are coded in R
+(more time consuming than compiled version). Two R dispersal functions are provided,  <code>fpollen</code> and
+<code>fseed</code>, the functions used in Genesys.
+To specify your own function, see details.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>param</code></td>
+<td>
+<p> Optional list of parameters. Valid components are
+<code>input</code>, <code>output</code>,
+<code>verbose</code>, <code>warn.poly</code>, <code>warn.conv</code>,<code>delim</code>,
+<code>poly</code>, <code>send.and.receive</code>, <code>method</code>, <code>dz</code>, <code>dp</code>.
+In addition, when <code>method</code> is “<code>cub</code>”: <code>maxpts</code>,
+<code>reler</code>, <code>abser</code>, <code>tz</code>.
+When <code>method</code> is “<code>grid</code>”: <code>seed</code>,
+<code>step</code>, <code>nr</code>.
+See details. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>resfile</code></td>
+<td>
+<p>  Optional pathname of a result-file. When set,
+the results are written on it. This file can be read
+by using  function
+<code>getRes</code> or <code>read.table</code>. See details, as to the content of the file.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><b>The polygons-file</b>
+</p>
+<p>The coordinates of the polygons should be provided in an ASCII file,
+denoted here "polygons-file". The unit is the meter. The vertices should
+be ordered clockwise. The polygons can be closed
+or not, but  without holes. The first line contains the number of polygons.
+The following lines depend of the <code>input</code>
+parameter:
+</p>
+
+<dl>
+<dt><code>input=1</code></dt>
+<dd>
+<p> Two lines per polygon: on the first one,
+an identifier (a positive
+integer),   followed by the x-coordinates,
+on the second one, the same identifier
+followed by the y-coordinates. The function
+export.listpoly generates such a file from R structures</p>
+</dd>
+<dt><code>input=2</code></dt>
+<dd>
+<p> Three lines per polygon: on the first one,
+an identifier (a positive
+integer),   followed by a name for the polygon and
+by the number of its vertices, on the second one, the x-coordinates,
+and on the third one, the y-coordinates.</p>
+</dd>
+</dl>
+<p><b>The individual dispersion functions</b>
+</p>
+<p>The individual dispersion functions can  either be compiled
+or R functions.
+</p>
+
+<dl>
+<dt>
+<em>Compiled function:</em>
+</dt>
+<dd>
+<p> Five compiled dispersal functions are
+provided (see argument <code>dispf</code>). To  replace them by yours,
+you have to download the source of <code>RCALI</code>,
+modify and compile it.<br></p>
+<p>Suppose that you have download the tar-archive
+in the directory <code>MyDir</code>.
+The steps to customize the dispersion functions are:
+</p>
+<p>1/ Replace one or several functions in
+<code>MyDir/RCALI/src/functions.cc</code> by yours:
+The dispersion function has one argument,
+the current point, <code>p</code>, of class <code>Point</code>.
+You can use <code>p.getX()</code>
+and <code>p.getY()</code> to get the coordinates of the current point
+(in meters*<code>SCALE</code>, where <code>SCALE</code> is the  rescaling
+parameter defined in the file <code>src/calicinfig.h</code>),
+<code>p.dist0()</code>, the distance of <code>p</code>
+from the origin (in meters*<code>SCALE</code>)
+and <code>p.angle0()</code>, the angle (in degrees, in <code class="reqn">[-\pi, +\pi]</code>) between the line  (0,<code>p</code>)
+and the horizontal   line.
+</p>
+<p>2/ Create a directory <code>MyDir/RCALI/libs</code>,
+place you in <code>MyDir/RCALI/src</code> and  type in:
+</p>
+<pre>R CMD SHLIB -o ../libs/RCALI.so  *.cc</pre>
+<p>to create the compiled shared library.
+</p>
+<p>3/ To use in a R-session:
+</p>
+<pre>
+      source("MyDir/RCALI/R/sourceDir.R")
+      sourceDir("MyDir/RCALI/R")
+      dyn.load("MyDir/RCALI/libs/RCALI.so")
+  </pre>
+<p>The help-files are viewable by opening in a browser
+<code>MyDir/RCALI/inst/doc/html/00Index.html</code>
+</p>
+</dd>
+</dl>
+<p>You can also build  the tar.gz file again, after modifications,
+and install it as a library
+by using the standard R commands <code>R CMD build</code> and
+<code>R CMD INSTALL --html</code>. 
+</p>
+<dl>
+<dt><em>R function:</em></dt>
+<dd>
+<p>  Two R dispersal functions are provided,  <code>fpollen</code> and
+<code>fseed</code>, the functions used in Genesys.<br>
+You can define your own R dispersal function:
+it should have one vector
+argument,  the localization of the current point, <code>p</code>.
+The first element of this vector is the distance of <code>p</code> from the origin
+(in meters) and the second one is the angle (in degrees, in <code class="reqn">[-\pi, +\pi]</code>) between the line  (0,<code>p</code>)
+and the horizontal   line (i.e, stating <code>x</code> and <code>y</code> are the coordinates
+of <code>p</code>, the angle is
+<code class="reqn">atan2(y,x)*\frac{180}{\pi}</code>)
+</p>
+</dd>
+</dl>
+<p><b>The parameters</b>
+</p>
+<p>The argument <code>param</code> is a list which valid components are:
+</p>
+
+<dl>
+<dt><code>input</code></dt>
+<dd>
+<p> format of the polygons-file. 1 or 2 (see above).
+Default 2</p>
+</dd>
+<dt><code>output</code></dt>
+<dd>
+<p> output required  on the screen:
+0 nothing, 1: all  results, 2:  progression numbers,
+3: the integrated flows and their means per squared meter.
+Default 1</p>
+</dd>
+<dt><code>verbose</code></dt>
+<dd>
+<p> TRUE, if output is required about polygons convexity
+and landscape translation. Default FALSE</p>
+</dd>
+<dt><code>warn.poly</code></dt>
+<dd>
+<p> TRUE, if output is required about polygons simplification. Default FALSE</p>
+</dd>
+<dt><code>warn.conv</code></dt>
+<dd>
+<p> TRUE, if output is required when
+cubature convergence is not reached. Default TRUE</p>
+</dd>
+<dt><code>delim</code></dt>
+<dd>
+<p> separator character between values in the polygons-file. Default: tabulate</p>
+</dd>
+<dt><code>send.and.receive</code></dt>
+<dd>
+<p> TRUE, if results are required from
+sending polygons to target polygons and from target polygons to
+sending polygons (case of anisotropic functions). Default FALSE</p>
+</dd>
+<dt><code>poly</code></dt>
+<dd>
+<p> required pairs of polygons.
+List of vectors of length 2, or two-columns  matrix.
+If only one pair is required, it may be a vector of length 2.
+Default: all pairs of polygons.</p>
+</dd>
+<dt><code>method</code></dt>
+<dd>
+<p> string equal to <code>cub</code> for cubature method, <code>grid</code> for the grid
+method. Default: <code>cub</code></p>
+</dd>
+<dt><code>dz</code></dt>
+<dd>
+<p> integer vector, whose length is greater or equal to the number of
+required dispersion functions. <code>dz[i]</code> is the distance in meters
+beyond which the <code>i</code>st dispersion function is considered as
+nul. Default in a standard configuration: 0,21,0,1000,0
+for functions number 1 to 5, respectively.</p>
+</dd>
+<dt><code>dp</code></dt>
+<dd>
+<p> integer vector, whose length is greater or equal
+to the number of
+required dispersion functions. <code>dp[i]</code> is the distance in meters
+beyond which the <code>i</code>st dispersion function is calculated between
+centroids only. Default in a standard configuration: 100, 0, 0,
+500, 0
+for functions number 1 to 5, respectively.</p>
+</dd>
+</dl>
+<p>In addition, when <code>method</code>  is <code>cub</code>:
+</p>
+
+<dl>
+<dt><code>maxpts</code></dt>
+<dd>
+<p> maximal
+number of evaluation points required for each function.
+Vector of length equal to the number of required functions.
+Default in a standard configuration: 100000 </p>
+</dd>
+<dt><code>reler</code></dt>
+<dd>
+<p> relative error required for each function.
+Vector of length equal to the number of required functions.
+Should be positive when method is cubature.
+Default in a standard configuration: 1.0e-3 </p>
+</dd>
+<dt><code>abser</code></dt>
+<dd>
+<p> absolute error required for each function.
+Vector of length equal to the number of required functions.
+Should be positive when method is cubature.
+Default in a standard configuration: 1.0e-3</p>
+</dd>
+<dt><code>tz</code></dt>
+<dd>
+<p> integer vector, whose length is greater
+or equal       to the number of
+required dispersion functions. Mode of triangulation for the
+cubature method.
+<code>tz[i]</code> should be 1, if, for the <code>i</code>st dispersion
+function,
+triangulation from (0,0) has to be done
+when  (0,0) is included in the integration area and, 0 if not.
+1 is recommended  when the dispersion function is very "sharp"
+at the origin. Default in a standard configuration: 0,1,0,0,0
+for functions number 1 to 5, respectively.</p>
+</dd>
+</dl>
+<p>When  <code>method</code> is <code>grid</code>:
+</p>
+
+<dl>
+<dt><code>seed</code></dt>
+<dd>
+<p> seed of the random generator.</p>
+</dd>
+<dt><code>step</code></dt>
+<dd>
+<p> step of the grid on the x-axis and on the y-axis
+in meter. Vector of length 2.</p>
+</dd>
+<dt><code>nr</code></dt>
+<dd>
+<p> maximal number of replications or grids.</p>
+</dd>
+</dl>
+<p><b>The result-file</b>
+</p>
+<p>When the argument <code>resfile</code> is set, a file is created.
+On this file, the values are separated by tabulates.
+</p>
+<p>Its contains, when the method is <code>cub</code>,
+</p>
+
+<dl>
+<dt> on the first line:</dt>
+<dd>
+<p> "npoly:",	"input-file:",
+"nfunc:",	"method:", each of these identifiers
+followed by the actual values.
+</p>
+</dd>
+<dt> on each of the following lines, the results for a couple of
+polygons:</dt>
+<dd>
+<p> the identifiers of both polygons;
+the integrated flow divided by the area of the second
+polygon, for
+each dispersal function;
+the areas of both polygons; then, for
+each dispersal function,
+the integrated flow, the lower and upper bounds
+of the confidence interval, the absolute error, and the
+number of evaluations.</p>
+</dd>
+</dl>
+<p>Its contains, when the method is <code>grid</code>,
+</p>
+
+<dl>
+<dt> on the first line:</dt>
+<dd>
+<p> "npoly:",	"input-file:",
+"nfunc:",	"method:", "stepx:", "stepy:", each of these identifiers
+followed by the actual values.
+</p>
+</dd>
+<dt> on each of the following lines, the results for a couple of
+polygons:</dt>
+<dd>
+<p> the identifiers of both polygons;
+the integrated flow divided by the area of the second
+polygon, for
+each dispersal function;
+the areas of both polygons; then, for
+each dispersal function,
+the integrated flow, and the standard deviation.
+</p>
+</dd>
+</dl>
+<p>This file can be read in a R-session by using the function
+<code>getRes</code> or <code>read.table</code>, with option
+<code>skip=1</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Nothing. To store the results, set the argument <code>resfile</code>,
+then use the function
+<code>getRes</code> or <code>read.table</code>, with option
+<code>skip=1</code></p>
+
+
+<h3>Side effect</h3>
+
+<p>This function creates a temporary file to store the
+parameters, usually in the directory <code>tmp</code> of the user. This file
+is destroyed at the end of execution.</p>
+
+
+<h3>Author(s)</h3>
+
+<p> A. Bouvier </p>
+
+
+<h3>References</h3>
+
+<p>  - The CaliFloPP software: <a href="http://genome.jouy.inra.fr/logiciels/califlopp/">http://genome.jouy.inra.fr/logiciels/califlopp/</a> <br>
+- Main reference paper: A. Bouvier, K. Kieu, K. Adamczyk, and H. Monod. Computation of
+integrated flow of particles between polygons. Environmental Modelling
+&amp; Software, 24:843–849, 2009.<br>
+- N. Colbach, and all.Genesys: a model of the influence of cropping
+system on gene escape from herbicide tolerant rapeseed crops to rape
+volunteers. Agriculture, Ecosystems and Environnement, 83:235–270, 2001. </p>
+
+
+<h3>See Also</h3>
+
+  <p><code>getRes</code></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Grid method with compiled constant and seed dispersion functions:
+param &lt;- list(method="grid",  grid=list(step=c(50,50)))
+## Not run: califlopp("MyPolygonsFile",dispf=c(3,1), param=param)
+
+# Cubature method with a R dispersion function:
+param &lt;- list( output=1, input=2, dz=0, dp=100, tz=0)
+## Not run: califlopp("MyPolygonsFile", dispf=fpollen, param=param)
+</code></pre>
+
+
+</div>

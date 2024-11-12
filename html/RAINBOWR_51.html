@@ -1,0 +1,211 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>score.calc.int.MC</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate -log10(p) for single-SNP GWAS with interaction (multi-cores)</h2>
+
+<h3>Description</h3>
+
+<p>Calculate -log10(p) of each SNP by the Wald test for the model inluding interaction term.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">score.calc.int.MC(
+  M.now,
+  ZETA.now,
+  y,
+  X.now,
+  package.MM = "gaston",
+  interaction.with.SNPs.now,
+  test.method.interaction = "simultaneous",
+  include.SNP.effect = TRUE,
+  Hinv,
+  n.core = 2,
+  parallel.method = "mclapply",
+  P3D = TRUE,
+  eigen.G = NULL,
+  optimizer = "nlminb",
+  min.MAF = 0.02,
+  count = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>M.now</code></td>
+<td>
+<p>A <code class="reqn">n \times m</code> genotype matrix where <code class="reqn">n</code> is sample size and <code class="reqn">m</code> is the number of markers.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ZETA.now</code></td>
+<td>
+<p>A list of variance (relationship) matrix (K; <code class="reqn">m \times m</code>) and its design matrix (Z; <code class="reqn">n \times m</code>) of random effects. You can use only one kernel matrix.
+For example, ZETA = list(A = list(Z = Z, K = K))
+Please set names of list "Z" and "K"!</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>A <code class="reqn">n \times 1</code> vector. A vector of phenotypic values should be used. NA is allowed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X.now</code></td>
+<td>
+<p>A <code class="reqn">n \times p</code> matrix. You should assign mean vector (rep(1, n)) and covariates. NA is not allowed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>package.MM</code></td>
+<td>
+<p>The package name to be used when solving mixed-effects model. We only offer the following three packages:
+"RAINBOWR", "MM4LMM" and "gaston". Default package is 'gaston'.
+See more details at <code>EM3.general</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interaction.with.SNPs.now</code></td>
+<td>
+<p>A <code class="reqn">m \times q</code> matrix. Interaction between each SNP and this matrix will also be tested.
+For example, principal components of genomic relationship matrix can be used as this matrix to test the interaction between SNPs and the genetic background.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test.method.interaction</code></td>
+<td>
+<p>Method for how to test SNPs and the interactions between SNPs and the genetic background.
+We offer three methods as follows:
+</p>
+<p>"simultaneous": All effects (including SNP efects) are tested simultanously.
+</p>
+<p>"snpSeparate": SNP effects are tested as one effect, and the other interaction effects are simulateneously.
+</p>
+<p>"oneByOne": All efects are tested separately, one by one.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>include.SNP.effect</code></td>
+<td>
+<p>Whether or not including SNP effects into the tested effects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Hinv</code></td>
+<td>
+<p>The inverse of <code class="reqn">H = ZKZ' + \lambda I</code> where <code class="reqn">\lambda = \sigma^2_e / \sigma^2_u</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.core</code></td>
+<td>
+<p>Setting n.core &gt; 1 will enable parallel execution on a machine with multiple cores.
+This argument is not valid when 'parallel.method = "furrr"'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel.method</code></td>
+<td>
+<p>Method for parallel computation. We offer three methods, "mclapply", "furrr", and "foreach".
+</p>
+<p>When 'parallel.method = "mclapply"', we utilize <code>pbmclapply</code> function in the 'pbmcapply' package
+with 'count = TRUE' and <code>mclapply</code> function in the 'parallel' package with 'count = FALSE'.
+</p>
+<p>When 'parallel.method = "furrr"', we utilize <code>future_map</code> function in the 'furrr' package.
+With 'count = TRUE', we also utilize <code>progressor</code> function in the 'progressr' package to show the progress bar,
+so please install the 'progressr' package from github (<a href="https://github.com/HenrikBengtsson/progressr">https://github.com/HenrikBengtsson/progressr</a>).
+For 'parallel.method = "furrr"', you can perform multi-thread parallelization by
+sharing memories, which results in saving your memory, but quite slower compared to 'parallel.method = "mclapply"'.
+</p>
+<p>When 'parallel.method = "foreach"', we utilize <code>foreach</code> function in the 'foreach' package
+with the utilization of <code>makeCluster</code> function in 'parallel' package,
+and <code>registerDoParallel</code> function in 'doParallel' package.
+With 'count = TRUE', we also utilize <code>setTxtProgressBar</code> and
+<code>txtProgressBar</code> functions in the 'utils' package to show the progress bar.
+</p>
+<p>We recommend that you use the option 'parallel.method = "mclapply"', but for Windows users,
+this parallelization method is not supported. So, if you are Windows user,
+we recommend that you use the option 'parallel.method = "foreach"'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>P3D</code></td>
+<td>
+<p>When P3D = TRUE, variance components are estimated by REML only once, without any markers in the model.
+When P3D = FALSE, variance components are estimated by REML for each marker separately.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eigen.G</code></td>
+<td>
+<p>A list with
+</p>
+
+<dl>
+<dt>$values</dt>
+<dd>
+<p>Eigen values</p>
+</dd>
+<dt>$vectors</dt>
+<dd>
+<p>Eigen vectors</p>
+</dd>
+</dl>
+<p>The result of the eigen decompsition of <code class="reqn">G = ZKZ'</code>. You can use "spectralG.cpp" function in RAINBOWR.
+If this argument is NULL, the eigen decomposition will be performed in this function.
+We recommend you assign the result of the eigen decomposition beforehand for time saving.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optimizer</code></td>
+<td>
+<p>The function used in the optimization process.
+We offer "optim", "optimx", and "nlminb" functions.
+This argument is only valid when ‘package.MM = ’RAINBOWR''.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min.MAF</code></td>
+<td>
+<p>Specifies the minimum minor allele frequency (MAF).
+If a marker has a MAF less than min.MAF, it is assigned a zero score.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>count</code></td>
+<td>
+<p>When count is TRUE, you can know how far RGWAS has ended with percent display.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>-log10(p) for each marker
+</p>
+
+
+<h3>References</h3>
+
+<p>Kennedy, B.W., Quinton, M. and van Arendonk, J.A. (1992)
+Estimation of effects of single genes on quantitative traits. J Anim Sci. 70(7): 2000-2012.
+</p>
+<p>Kang, H.M. et al. (2008) Efficient Control of Population Structure
+in Model Organism Association Mapping. Genetics. 178(3): 1709-1723.
+</p>
+<p>Kang, H.M. et al. (2010) Variance component model to account for sample
+structure in genome-wide association studies. Nat Genet. 42(4): 348-354.
+</p>
+<p>Zhang, Z. et al. (2010) Mixed linear model approach adapted for genome-wide
+association studies. Nat Genet. 42(4): 355-360.
+</p>
+
+
+</div>

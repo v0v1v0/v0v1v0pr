@@ -1,0 +1,225 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>compositionalSpline</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Compositional spline</h2>
+
+<h3>Description</h3>
+
+<p>This code implements the compositional smoothing splines grounded on the theory of 
+Bayes spaces.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">compositionalSpline(
+  t,
+  clrf,
+  knots,
+  w,
+  order,
+  der,
+  alpha,
+  spline.plot = FALSE,
+  basis.plot = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>t</code></td>
+<td>
+<p>class midpoints</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>clrf</code></td>
+<td>
+<p>clr transformed values at class midpoints, i.e., fcenLR(f(t))</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>knots</code></td>
+<td>
+<p>sequence of knots</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w</code></td>
+<td>
+<p>weights</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>order</code></td>
+<td>
+<p>order of the spline (i.e., degree + 1)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>der</code></td>
+<td>
+<p>lth derivation</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>smoothing parameter</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>spline.plot</code></td>
+<td>
+<p>if TRUE, the resulting spline is plotted</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>basis.plot</code></td>
+<td>
+<p>if TRUE, the ZB-spline basis system is plotted</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The compositional splines enable to construct a spline basis in the centred logratio (clr) space of density 
+functions (ZB-spline basis) and consequently also in the original space of densities (CB-spline basis).The resulting 
+compositional splines in the clr space as well as the ZB-spline basis satisfy the zero integral constraint. 
+This enables to work with compositional splines consistently in the framework of the Bayes space methodology.
+</p>
+<p>Augmented knot sequence is obtained from the original knots by adding #(order-1) multiple endpoints.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>J</code></td>
+<td>
+<p>value of the functional J</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ZB_coef</code></td>
+<td>
+<p>ZB-spline basis coeffcients</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>CV</code></td>
+<td>
+<p>score of cross-validation</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>GCV</code></td>
+<td>
+<p>score of generalized cross-validation</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>J. Machalova <a href="mailto:jitka.machalova@upol.cz">jitka.machalova@upol.cz</a>, R. Talska <a href="mailto:talskarenata@seznam.cz">talskarenata@seznam.cz</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>Machalova, J., Talska, R., Hron, K. Gaba, A. Compositional splines for representation of density functions. <em>Comput Stat</em> (2020). https://doi.org/10.1007/s00180-020-01042-7
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Example (Iris data):
+SepalLengthCm &lt;- iris$Sepal.Length
+Species &lt;- iris$Species
+iris1 &lt;- SepalLengthCm[iris$Species==levels(iris$Species)[1]]
+h1 &lt;- hist(iris1, plot = FALSE)
+midx1 &lt;- h1$mids
+midy1 &lt;- matrix(h1$density, nrow=1, ncol = length(h1$density), byrow=TRUE)
+clrf  &lt;- cenLR(rbind(midy1,midy1))$x.clr[1,]
+knots &lt;- seq(min(h1$breaks),max(h1$breaks),l=5)
+order &lt;- 4
+der &lt;- 2
+alpha &lt;- 0.99
+
+sol1 &lt;- compositionalSpline(t = midx1, clrf = clrf, knots = knots, 
+  w = rep(1,length(midx1)), order = order, der = der, 
+  alpha = alpha, spline.plot = TRUE)
+sol1$GCV
+ZB_coef &lt;- sol1$ZB_coef
+t &lt;- seq(min(knots),max(knots),l=500)
+t_step &lt;- diff(t[1:2])
+ZB_base &lt;- ZBsplineBasis(t=t,knots,order)$ZBsplineBasis
+sol1.t &lt;- ZB_base%*%ZB_coef
+sol2.t &lt;- fcenLRinv(t,t_step,sol1.t)
+h2 = hist(iris1,prob=TRUE,las=1)
+points(midx1,midy1,pch=16)
+lines(t,sol2.t,col="darkred",lwd=2)
+# Example (normal distrubution):
+# generate n values from normal distribution
+set.seed(1)
+n = 1000; mean = 0; sd = 1.5
+raw_data = rnorm(n,mean,sd)
+  
+# number of classes according to Sturges rule
+n.class = round(1+1.43*log(n),0)
+  
+# Interval midpoints
+parnition = seq(-5,5,length=(n.class+1))
+t.mid = c(); for (i in 1:n.class){t.mid[i]=(parnition[i+1]+parnition[i])/2}
+  
+counts = table(cut(raw_data,parnition))
+prob = counts/sum(counts)                # probabilities
+dens.raw = prob/diff(parnition)          # raw density data
+clrf =  cenLR(rbind(dens.raw,dens.raw))$x.clr[1,]  # raw clr density data
+  
+# set the input parameters for smoothing 
+knots = seq(min(parnition),max(parnition),l=5)
+w = rep(1,length(clrf))
+order = 4
+der = 2
+alpha = 0.5
+spline = compositionalSpline(t = t.mid, clrf = clrf, knots = knots, 
+  w = w, order = order, der = der, alpha = alpha, 
+  spline.plot=TRUE, basis.plot=FALSE)
+  
+# ZB-spline coefficients
+ZB_coef = spline$ZB_coef
+  
+# ZB-spline basis evaluated on the grid "t.fine"
+t.fine = seq(min(knots),max(knots),l=1000)
+ZB_base = ZBsplineBasis(t=t.fine,knots,order)$ZBsplineBasis
+  
+# Compositional spline in the clr space (evaluated on the grid t.fine)
+comp.spline.clr = ZB_base%*%ZB_coef
+  
+# Compositional spline in the Bayes space (evaluated on the grid t.fine)
+comp.spline = fcenLRinv(t.fine,diff(t.fine)[1:2],comp.spline.clr)
+  
+# Unit-integral representation of truncated true normal density function 
+dens.true = dnorm(t.fine, mean, sd)/trapzc(diff(t.fine)[1:2],dnorm(t.fine, mean, sd))
+  
+# Plot of compositional spline together with raw density data
+matplot(t.fine,comp.spline,type="l",
+    lty=1, las=1, col="darkblue", xlab="t", 
+    ylab="density",lwd=2,cex.axis=1.2,cex.lab=1.2,ylim=c(0,0.28))
+matpoints(t.mid,dens.raw,pch = 8, col="darkblue", cex=1.3)
+  
+# Add true normal density function
+matlines(t.fine,dens.true,col="darkred",lwd=2)
+
+</code></pre>
+
+
+</div>

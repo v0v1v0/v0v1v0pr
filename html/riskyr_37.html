@@ -1,0 +1,343 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>comp_prob</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Compute probabilities from (3 essential) probabilities.</h2>
+
+<h3>Description</h3>
+
+<p><code>comp_prob</code> computes current probability information
+from 3 essential probabilities
+(<code>prev</code>,
+<code>sens</code> or <code>mirt</code>,
+<code>spec</code> or <code>fart</code>).
+It returns a list of 13 key probabilities <code>prob</code>
+as its output.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">comp_prob(
+  prev = num$prev,
+  sens = num$sens,
+  mirt = NA,
+  spec = num$spec,
+  fart = NA,
+  tol = 0.01
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>prev</code></td>
+<td>
+<p>The condition's prevalence value <code>prev</code>
+(i.e., the probability of the condition being <code>TRUE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sens</code></td>
+<td>
+<p>The decision's sensitivity value <code>sens</code>
+(i.e., the conditional probability of a positive decision
+provided that the condition is <code>TRUE</code>).
+<code>sens</code> is optional when its complement <code>mirt</code> is provided.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mirt</code></td>
+<td>
+<p>The decision's miss rate value <code>mirt</code>
+(i.e., the conditional probability of a negative decision
+provided that the condition is <code>TRUE</code>).
+<code>mirt</code> is optional when its complement <code>sens</code> is provided.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>spec</code></td>
+<td>
+<p>The decision's specificity value <code>spec</code>
+(i.e., the conditional probability
+of a negative decision provided that the condition is <code>FALSE</code>).
+<code>spec</code> is optional when its complement <code>fart</code> is provided.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fart</code></td>
+<td>
+<p>The decision's false alarm rate <code>fart</code>
+(i.e., the conditional probability
+of a positive decision provided that the condition is <code>FALSE</code>).
+<code>fart</code> is optional when its complement <code>spec</code> is provided.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>A numeric tolerance value for <code>is_complement</code>.
+Default: <code>tol = .01</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>comp_prob</code> assumes that a sufficient and
+consistent set of essential probabilities
+(i.e., <code>prev</code> and
+either <code>sens</code> or its complement <code>mirt</code>, and
+either <code>spec</code> or its complement <code>fart</code>)
+is provided.
+</p>
+<p><code>comp_prob</code> computes and returns a full set of basic and
+various derived probabilities (e.g.,
+the probability of a positive decision <code>ppod</code>,
+the probability of a correct decision <code>acc</code>,
+the predictive values <code>PPV</code> and <code>NPV</code>, as well
+as their complements <code>FDR</code> and <code>FOR</code>)
+in its output of a list <code>prob</code>.
+</p>
+<p>Extreme probabilities (sets containing two or more
+probabilities of 0 or 1) may yield unexpected values
+(e.g., predictive values <code>PPV</code> or <code>NPV</code>
+turning <code>NaN</code> when <code>is_extreme_prob_set</code>
+evaluates to <code>TRUE</code>).
+</p>
+<p><code>comp_prob</code> is the probability counterpart to the
+frequency function <code>comp_freq</code>.
+</p>
+<p>Key relationships between probabilities and frequencies:
+</p>
+
+<ul>
+<li>
+<p> Three perspectives on a population:
+</p>
+<p>A population of <code>N</code> individuals can be split into 2 subsets of frequencies
+in 3 different ways:
+</p>
+
+<ol>
+<li>
+<p> by condition:
+</p>
+<p><code>N = cond_true + cond_false</code>
+</p>
+<p>The frequency <code>cond_true</code> depends on the prevalence <code>prev</code>
+and
+the frequency <code>cond_false</code> depends on the prevalence's complement <code>1 - prev</code>.
+</p>
+</li>
+<li>
+<p> by decision:
+</p>
+<p><code>N = dec_pos + dec_neg</code>
+</p>
+<p>The frequency <code>dec_pos</code> depends on the proportion of positive decisions <code>ppod</code>
+and
+the frequency <code>dec_neg</code> depends on the proportion of negative decisions <code>1 - ppod</code>.
+</p>
+</li>
+<li>
+<p> by accuracy (i.e., correspondence of decision to condition):
+</p>
+<p><code>N = dec_cor + dec_err</code>
+</p>
+</li>
+</ol>
+<p>Each perspective combines 2 pairs of the 4 essential probabilities (hi, mi, fa, cr).
+</p>
+<p>When providing probabilities, the population size <code>N</code> is a free parameter (independent of the
+essential probabilities <code>prev</code>, <code>sens</code>, and <code>spec</code>).
+</p>
+<p>If <code>N</code> is unknown (<code>NA</code>), a suitable minimum value can be computed by <code>comp_min_N</code>.
+</p>
+</li>
+<li>
+<p> Defining probabilities in terms of frequencies:
+</p>
+<p>Probabilities <em>are</em> – determine, describe, or are defined as – the relationships between frequencies.
+Thus, they can be computed as ratios between frequencies:
+</p>
+
+<ol>
+<li>
+<p> prevalence <code>prev</code>:
+</p>
+<p><code>prev = cond_true/N  =  (hi + mi) / (hi + mi + fa + cr)</code>
+</p>
+</li>
+<li>
+<p> sensitivity <code>sens</code>:
+</p>
+<p><code>sens = hi/cond_true  =  hi / (hi + mi)  =  (1 - mirt)</code>
+</p>
+</li>
+<li>
+<p> miss rate <code>mirt</code>:
+</p>
+<p><code>mirt = mi/cond_true  =  mi / (hi + mi)  =  (1 - sens)</code>
+</p>
+</li>
+<li>
+<p> specificity <code>spec</code>:
+</p>
+<p><code>spec = cr/cond_false  =  cr / (fa + cr)  =  (1 - fart)</code>
+</p>
+</li>
+<li>
+<p> false alarm rate <code>fart</code>:
+</p>
+<p><code>fart = fa/cond_false  =  fa / (fa + cr)  =  (1 - spec)</code>
+</p>
+</li>
+<li>
+<p> proportion of positive decisions <code>ppod</code>:
+</p>
+<p><code>ppod = dec_pos/N  =  (hi + fa) / (hi + mi + fa + cr)</code>
+</p>
+</li>
+<li>
+<p> positive predictive value <code>PPV</code>:
+</p>
+<p><code>PPV = hi/dec_pos  =  hi / (hi + fa)  =  (1 - FDR)</code>
+</p>
+</li>
+<li>
+<p> negative predictive value <code>NPV</code>:
+</p>
+<p><code>NPV = cr/dec_neg  =  cr / (mi + cr)  =  (1 - FOR)</code>
+</p>
+</li>
+<li>
+<p> false detection rate <code>FDR</code>:
+</p>
+<p><code>FDR = fa/dec_pos  =  fa / (hi + fa)  =  (1 - PPV)</code>
+</p>
+</li>
+<li>
+<p> false omission rate <code>FOR</code>:
+</p>
+<p><code>FOR = mi/dec_neg  =  mi / (mi + cr)  =  (1 - NPV)</code>
+</p>
+</li>
+<li>
+<p> accuracy <code>acc</code>:
+</p>
+<p><code>acc = dec_cor/N  =  (hi + cr) / (hi + mi + fa + cr)</code>
+</p>
+</li>
+<li>
+<p> rate of hits, given accuracy <code>p_acc_hi</code>:
+</p>
+<p><code>p_acc_hi = hi/dec_cor = (1 - cr/dec_cor)</code>
+</p>
+</li>
+<li>
+<p> rate of false alarms, given inaccuracy <code>p_err_fa</code>:
+</p>
+<p><code>p_err_fa = fa/dec_err = (1 - mi/dec_err)</code>
+</p>
+</li>
+</ol>
+<p>Note: When frequencies are rounded (by <code>round = TRUE</code> in <code>comp_freq</code>),
+probabilities computed from <code>freq</code> may differ from exact probabilities.
+</p>
+</li>
+</ul>
+<p>Functions translating between representational formats:
+<code>comp_prob_prob</code>, <code>comp_prob_freq</code>,
+<code>comp_freq_prob</code>, <code>comp_freq_freq</code>
+(see documentation of <code>comp_prob_prob</code> for details).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list <code>prob</code> containing 13 key probability values.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>prob</code> contains current probability information;
+<code>accu</code> contains current accuracy information;
+<code>num</code> contains basic numeric parameters;
+<code>init_num</code> initializes basic numeric parameters;
+<code>pal</code> contains current color information;
+<code>txt</code> contains current text information;
+<code>freq</code> contains current frequency information;
+<code>comp_freq</code> computes frequencies from probabilities;
+<code>is_valid_prob_set</code> verifies sets of probability inputs;
+<code>is_extreme_prob_set</code> verifies sets of extreme probabilities;
+<code>comp_min_N</code> computes a suitable minimum population size <code>N</code>;
+<code>comp_freq_freq</code> computes current frequency information from (4 essential) frequencies;
+<code>comp_freq_prob</code> computes current frequency information from (3 essential) probabilities;
+<code>comp_prob_freq</code> computes current probability information from (4 essential) frequencies;
+<code>comp_prob_prob</code> computes current probability information from (3 essential) probabilities.
+</p>
+<p>Other functions computing probabilities: 
+<code>comp_FDR()</code>,
+<code>comp_FOR()</code>,
+<code>comp_NPV()</code>,
+<code>comp_PPV()</code>,
+<code>comp_accu_freq()</code>,
+<code>comp_accu_prob()</code>,
+<code>comp_acc()</code>,
+<code>comp_comp_pair()</code>,
+<code>comp_complement()</code>,
+<code>comp_complete_prob_set()</code>,
+<code>comp_err()</code>,
+<code>comp_fart()</code>,
+<code>comp_mirt()</code>,
+<code>comp_ppod()</code>,
+<code>comp_prob_freq()</code>,
+<code>comp_sens()</code>,
+<code>comp_spec()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Basics:
+comp_prob(prev = .11, sens = .88, spec = .77)                        # =&gt; ok: PPV = 0.3210614
+comp_prob(prev = .11, sens = NA, mirt = .12, spec = NA, fart = .23)  # =&gt; ok: PPV = 0.3210614
+comp_prob()          # =&gt; ok, using current defaults
+length(comp_prob())  # =&gt; 13 probabilities
+
+# Ways to work:
+comp_prob(.99, sens = .99, spec = .99)              # =&gt; ok: PPV = 0.999898
+comp_prob(.99, sens = .90, spec = NA, fart = .10)   # =&gt; ok: PPV = 0.9988789
+
+# Watch out for extreme cases:
+comp_prob(1, sens = 0, spec = 1)      # =&gt; ok, but with warnings (as PPV &amp; FDR are NaN)
+comp_prob(1, sens = 0, spec = 0)      # =&gt; ok, but with warnings (as PPV &amp; FDR are NaN)
+comp_prob(1, sens = 0, spec = NA, fart = 0)  # =&gt; ok, but with warnings (as PPV &amp; FDR are NaN)
+comp_prob(1, sens = 0, spec = NA, fart = 1)  # =&gt; ok, but with warnings (as PPV &amp; FDR are NaN)
+
+# Watch out for extreme cases:
+comp_prob(1, sens = 0, spec = 1)      # =&gt; ok, but with warnings (as PPV &amp; FDR are NaN)
+comp_prob(1, sens = 0, spec = 0)      # =&gt; ok, but with warnings (as PPV &amp; FDR are NaN)
+comp_prob(1, sens = 0, spec = NA, fart = 0)  # =&gt; ok, but with warnings (as PPV &amp; FDR are NaN)
+comp_prob(1, sens = 0, spec = NA, fart = 1)  # =&gt; ok, but with warnings (as PPV &amp; FDR are NaN)
+
+comp_prob(1, sens = 1, spec = 0)      # =&gt; ok, but with warnings (as NPV &amp; FOR are NaN)
+comp_prob(1, sens = 1, spec = 1)      # =&gt; ok, but with warnings (as NPV &amp; FOR are NaN)
+comp_prob(1, sens = 1, spec = NA, fart = 0)  # =&gt; ok, but with warnings (as NPV &amp; FOR are NaN)
+comp_prob(1, sens = 1, spec = NA, fart = 1)  # =&gt; ok, but with warnings (as NPV &amp; FOR are NaN)
+
+# Ways to fail:
+comp_prob(NA, 1, 1, NA)  # =&gt; only warning: invalid set (prev not numeric)
+comp_prob(8,  1, 1, NA)  # =&gt; only warning: prev no probability
+comp_prob(1,  8, 1, NA)  # =&gt; only warning: sens no probability
+comp_prob(1,  1, 1,  1)  # =&gt; only warning: is_complement not in tolerated range
+
+</code></pre>
+
+
+</div>

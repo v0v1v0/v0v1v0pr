@@ -1,0 +1,120 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>update_role_requirements</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Update role specific requirements</h2>
+
+<h3>Description</h3>
+
+<p><code>update_role_requirements()</code> allows you to fine tune requirements of the
+various roles you might come across in recipes (see <code>update_role()</code> for
+general information about roles). Role requirements can only be altered for
+roles that exist in the <em>original</em> data supplied to <code>recipe()</code>, they are not
+applied to columns computed by steps.
+</p>
+<p>Like <code>update_role()</code>, <code>update_role_requirements()</code> is applied to the recipe
+<em>immediately</em>, unlike the <code style="white-space: pre;">⁠step_*()⁠</code> functions which do most of their work
+at <code>prep()</code> time.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">update_role_requirements(recipe, role, ..., bake = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>recipe</code></td>
+<td>
+<p>A recipe.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>role</code></td>
+<td>
+<p>A string representing the role that you'd like to modify the
+requirements of. This must be a role that already exists in the recipe.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>These dots are for future extensions and must be empty.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bake</code></td>
+<td>
+<p>At <code>bake()</code> time, should a check be done to ensure that all
+columns of this role that were supplied to <code>recipe()</code> also be present
+in the <code>new_data</code> supplied to <code>bake()</code>?
+</p>
+<p>Must be a single <code>TRUE</code> or <code>FALSE</code>. The default, <code>NULL</code>, won't modify
+this requirement.
+</p>
+<p>The following represents the default bake time requirements of specific
+types of roles:
+</p>
+
+<ul>
+<li> <p><code>"outcome"</code>: Not required at bake time. Can't be changed.
+</p>
+</li>
+<li> <p><code>"predictor"</code>: Required at bake time. Can't be changed.
+</p>
+</li>
+<li> <p><code>"case_weights"</code>: Not required at bake time by default.
+</p>
+</li>
+<li> <p><code>NA</code>: Required at bake time by default.
+</p>
+</li>
+<li>
+<p> Custom roles: Required at bake time by default.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">df &lt;- tibble(y = c(1, 2, 3), x = c(4, 5, 6), var = c("a", "b", "c"))
+
+# Let's assume that you have a `var` column that isn't used in the recipe.
+# We typically recommend that you remove this column before passing the
+# `data` to `recipe()`, but for now let's pass it through and assign it an
+# `"id"` role.
+rec &lt;- recipe(y ~ ., df) %&gt;%
+  update_role(var, new_role = "id") %&gt;%
+  step_center(x)
+
+prepped &lt;- prep(rec, df)
+
+# Now assume you have some "new data" and you are ready to `bake()` it
+# to prepare it for prediction purposes. Here, you might not have `var`
+# available as a column because it isn't important to your model.
+new_data &lt;- df[c("y", "x")]
+
+# By default `var` is required at `bake()` time because we don't know if
+# you actually use it in the recipe or not
+try(bake(prepped, new_data))
+
+# You can turn off this check by using `update_role_requirements()` and
+# setting `bake = FALSE` for the `"id"` role. We recommend doing this on
+# the original unprepped recipe, but it will also work on a prepped recipe.
+rec &lt;- update_role_requirements(rec, "id", bake = FALSE)
+prepped &lt;- prep(rec, df)
+
+# Now you can `bake()` on `new_data` even though `var` is missing
+bake(prepped, new_data)
+</code></pre>
+
+
+</div>

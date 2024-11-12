@@ -1,0 +1,197 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ccb.fpc</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Corrected confidence bands using functional principal components</h2>
+
+<h3>Description</h3>
+
+<p>Uses iterated expectation and variances to obtain corrected estimates and
+inference for functional expansions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ccb.fpc(
+  Y,
+  argvals = NULL,
+  nbasis = 10,
+  pve = 0.99,
+  n.boot = 100,
+  simul = FALSE,
+  sim.alpha = 0.95
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>matrix of observed functions for which estimates and covariance
+matrices are desired.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>argvals</code></td>
+<td>
+<p>numeric; function argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nbasis</code></td>
+<td>
+<p>number of splines used in the estimation of the mean function
+and the bivariate smoothing of the covariance matrix</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pve</code></td>
+<td>
+<p>proportion of variance explained used to choose the number of
+principal components to be included in the expansion.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.boot</code></td>
+<td>
+<p>number of bootstrap iterations used to estimate the
+distribution of FPC decomposition objects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>simul</code></td>
+<td>
+<p>TRUE or FALSE, indicating whether critical values for
+simultaneous confidence intervals should be estimated</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sim.alpha</code></td>
+<td>
+<p>alpha level of the simultaneous intervals.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>To obtain corrected curve estimates and variances, this function accounts
+for uncertainty in FPC decomposition objects. Observed curves are
+resampled, and a FPC decomposition for each sample is constructed. A
+mixed-model framework is used to estimate curves and variances conditional
+on each decomposition, and iterated expectation and variances combines both
+model-based and decomposition-based uncertainty.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Yhat </code></td>
+<td>
+<p>a matrix whose rows are the estimates of the curves in
+<code>Y</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Yhat.boot </code></td>
+<td>
+<p>a list containing the estimated curves within
+each bootstrap iteration.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>diag.var </code></td>
+<td>
+<p>diagonal elements of the
+covariance matrices for each estimated curve.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>VarMats </code></td>
+<td>
+<p>a list
+containing the estimated covariance matrices for each curve in <code>Y</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>crit.val </code></td>
+<td>
+<p>estimated critical values for constructing simultaneous
+confidence intervals.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Jeff Goldsmith <a href="mailto:jeff.goldsmith@columbia.edu">jeff.goldsmith@columbia.edu</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>Goldsmith, J., Greven, S., and Crainiceanu, C. (2013).
+Corrected confidence bands for functional data using principal components.
+<em>Biometrics</em>, 69(1), 41–51.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Not run: 
+data(cd4)
+
+# obtain a subsample of the data with 25 subjects
+set.seed(1236)
+sample = sample(1:dim(cd4)[1], 25)
+Y.sub = cd4[sample,]
+
+# obtain a mixed-model based FPCA decomposition
+Fit.MM = fpca.sc(Y.sub, var = TRUE, simul = TRUE)
+
+# use iterated variance to obtain curve estimates and variances
+Fit.IV = ccb.fpc(Y.sub, n.boot = 25, simul = TRUE)
+
+# for one subject, examine curve estimates, pointwise and simultaneous itervals
+EX = 2
+EX.IV =  cbind(Fit.IV$Yhat[EX,],
+      Fit.IV$Yhat[EX,] + 1.96 * sqrt(Fit.IV$diag.var[EX,]),
+      Fit.IV$Yhat[EX,] - 1.96 * sqrt(Fit.IV$diag.var[EX,]),
+      Fit.IV$Yhat[EX,] + Fit.IV$crit.val[EX] * sqrt(Fit.IV$diag.var[EX,]),
+      Fit.IV$Yhat[EX,] - Fit.IV$crit.val[EX] * sqrt(Fit.IV$diag.var[EX,]))
+
+EX.MM =  cbind(Fit.MM$Yhat[EX,],
+      Fit.MM$Yhat[EX,] + 1.96 * sqrt(Fit.MM$diag.var[EX,]),
+      Fit.MM$Yhat[EX,] - 1.96 * sqrt(Fit.MM$diag.var[EX,]),
+      Fit.MM$Yhat[EX,] + Fit.MM$crit.val[EX] * sqrt(Fit.MM$diag.var[EX,]),
+      Fit.MM$Yhat[EX,] - Fit.MM$crit.val[EX] * sqrt(Fit.MM$diag.var[EX,]))
+
+# plot data for one subject, with curve and interval estimates
+d = as.numeric(colnames(cd4))
+plot(d[which(!is.na(Y.sub[EX,]))], Y.sub[EX,which(!is.na(Y.sub[EX,]))], type = 'o',
+  pch = 19, cex=.75, ylim = range(0, 3400), xlim = range(d),
+    xlab = "Months since seroconversion", lwd = 1.2, ylab = "Total CD4 Cell Count",
+      main = "Est. &amp; CI - Sampled Data")
+
+matpoints(d, EX.IV, col = 2, type = 'l', lwd = c(2, 1, 1, 1, 1), lty = c(1,1,1,2,2))
+matpoints(d, EX.MM, col = 4, type = 'l', lwd = c(2, 1, 1, 1, 1), lty = c(1,1,1,2,2))
+
+legend("topright", c("IV Est", "IV PW Int", "IV Simul Int",
+    expression(paste("MM - ", hat(theta), " Est", sep = "")),
+    expression(paste("MM - ", hat(theta), " PW Int", sep = "")),
+    expression(paste("MM - ", hat(theta), " Simul Int", sep = ""))),
+    lty=c(1,1,2,1,1,2), lwd = c(2.5,.75,.75,2.5,.75,.75),
+    col = c("red","red","red","blue","blue","blue"))
+
+## End(Not run)
+</code></pre>
+
+
+</div>

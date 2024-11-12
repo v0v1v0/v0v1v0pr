@@ -1,0 +1,293 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>score.calc.LR.int</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate -log10(p) of each SNP-set and its interaction with kernels by the LR test</h2>
+
+<h3>Description</h3>
+
+<p>This function calculates -log10(p) of each SNP-set and its interaction with kernels by the LR (likelihood-ratio) test.
+First, the function solves the multi-kernel mixed model and calaculates the maximum restricted log likelihood.
+Then it performs the LR test by using the fact that the deviance
+</p>
+<p style="text-align: center;"><code class="reqn">D = 2 \times (LL _ {alt} - LL _ {null})</code>
+</p>
+
+<p>follows the chi-square distribution.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">score.calc.LR.int(
+  M.now,
+  y,
+  X.now,
+  ZETA.now,
+  interaction.kernel,
+  package.MM = "gaston",
+  LL0,
+  eigen.SGS = NULL,
+  eigen.G = NULL,
+  n.core = 1,
+  optimizer = "nlminb",
+  map,
+  kernel.method = "linear",
+  kernel.h = "tuned",
+  haplotype = TRUE,
+  num.hap = NULL,
+  test.effect = "additive",
+  window.size.half = 5,
+  window.slide = 1,
+  chi0.mixture = 0.5,
+  weighting.center = TRUE,
+  weighting.other = NULL,
+  gene.set = NULL,
+  min.MAF = 0.02,
+  count = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>M.now</code></td>
+<td>
+<p>A <code class="reqn">n \times m</code> genotype matrix where <code class="reqn">n</code> is sample size and <code class="reqn">m</code> is the number of markers.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>A <code class="reqn">n \times 1</code> vector. A vector of phenotypic values should be used. NA is allowed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X.now</code></td>
+<td>
+<p>A <code class="reqn">n \times p</code> matrix. You should assign mean vector (rep(1, n)) and covariates. NA is not allowed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ZETA.now</code></td>
+<td>
+<p>A list of variance (relationship) matrix (K; <code class="reqn">m \times m</code>) and its design matrix (Z; <code class="reqn">n \times m</code>) of random effects. You can use only one kernel matrix.
+For example, ZETA = list(A = list(Z = Z, K = K))
+Please set names of list "Z" and "K"!</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interaction.kernel</code></td>
+<td>
+<p>A <code class="reqn">n \times n</code> Gram (kernel) matrix which may indicate some interaction with SNP-sets to be tested.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>package.MM</code></td>
+<td>
+<p>The package name to be used when solving mixed-effects model. We only offer the following three packages:
+"RAINBOWR", "MM4LMM" and "gaston". Default package is 'gaston'.
+See more details at <code>EM3.general</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>LL0</code></td>
+<td>
+<p>The log-likelihood for the null model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eigen.SGS</code></td>
+<td>
+<p>A list with
+</p>
+
+<dl>
+<dt>$values</dt>
+<dd>
+<p>Eigen values</p>
+</dd>
+<dt>$vectors</dt>
+<dd>
+<p>Eeigen vectors</p>
+</dd>
+</dl>
+<p>The result of the eigen decompsition of <code class="reqn">SGS</code>, where <code class="reqn">S = I - X(X'X)^{-1}X'</code>, <code class="reqn">G = ZKZ'</code>.
+You can use "spectralG.cpp" function in RAINBOWR.
+If this argument is NULL, the eigen decomposition will be performed in this function.
+We recommend you assign the result of the eigen decomposition beforehand for time saving.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eigen.G</code></td>
+<td>
+<p>A list with
+</p>
+
+<dl>
+<dt>$values</dt>
+<dd>
+<p>Eigen values</p>
+</dd>
+<dt>$vectors</dt>
+<dd>
+<p>Eigen vectors</p>
+</dd>
+</dl>
+<p>The result of the eigen decompsition of <code class="reqn">G = ZKZ'</code>. You can use "spectralG.cpp" function in RAINBOWR.
+If this argument is NULL, the eigen decomposition will be performed in this function.
+We recommend you assign the result of the eigen decomposition beforehand for time saving.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.core</code></td>
+<td>
+<p>Setting n.core &gt; 1 will enable parallel execution on a machine with multiple cores.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optimizer</code></td>
+<td>
+<p>The function used in the optimization process. We offer "optim", "optimx", and "nlminb" functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>map</code></td>
+<td>
+<p>Data frame of map information where the first column is the marker names,
+the second and third column is the chromosome amd map position, and the forth column is -log10(p) for each marker.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kernel.method</code></td>
+<td>
+<p>It determines how to calculate kernel. There are three methods.
+</p>
+
+<dl>
+<dt>"gaussian"</dt>
+<dd>
+<p>It is the default method. Gaussian kernel is calculated by distance matrix.</p>
+</dd>
+<dt>"exponential"</dt>
+<dd>
+<p>When this method is selected, exponential kernel is calculated by distance matrix.</p>
+</dd>
+<dt>"linear"</dt>
+<dd>
+<p>When this method is selected, linear kernel is calculated by NOIA methods for additive GRM.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kernel.h</code></td>
+<td>
+<p>The hyper-parameter for gaussian or exponential kernel.
+If kernel.h = "tuned", this hyper parameter is calculated as the median of off-diagonals of distance matrix of genotype data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>haplotype</code></td>
+<td>
+<p>If the number of lines of your data is large (maybe &gt; 100), you should set haplotype = TRUE.
+When haplotype = TRUE, haplotype-based kernel will be used for calculating -log10(p).
+(So the dimension of this gram matrix will be smaller.)
+The result won't be changed, but the time for the calculation will be shorter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>num.hap</code></td>
+<td>
+<p>When haplotype = TRUE, you can set the number of haplotypes which you expect.
+Then similar arrays are considered as the same haplotype, and then make kernel(K.SNP) whose dimension is num.hap x num.hap.
+When num.hap = NULL (default), num.hap will be set as the maximum number which reflects the difference between lines.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test.effect</code></td>
+<td>
+<p>Effect of each marker to test. You can choose "test.effect" from "additive", "dominance" and "additive+dominance".
+You also can choose more than one effect, for example, test.effect = c("additive", "aditive+dominance")</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>window.size.half</code></td>
+<td>
+<p>This argument decides how many SNPs (around the SNP you want to test) are used to calculated K.SNP.
+More precisely, the number of SNPs will be 2 * window.size.half + 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>window.slide</code></td>
+<td>
+<p>This argument determines how often you test markers. If window.slide = 1, every marker will be tested.
+If you want to perform SNP set by bins, please set window.slide = 2 * window.size.half + 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chi0.mixture</code></td>
+<td>
+<p>RAINBOWR assumes the deviance is considered to follow a x chisq(df = 0) + (1 - a) x chisq(df = r).
+where r is the degree of freedom.
+The argument chi0.mixture is a (0 &lt;= a &lt; 1), and default is 0.5.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weighting.center</code></td>
+<td>
+<p>In kernel-based GWAS, weights according to the Gaussian distribution (centered on the tested SNP) are taken into account when calculating the kernel if Rainbow = TRUE.
+If weighting.center = FALSE, weights are not taken into account.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weighting.other</code></td>
+<td>
+<p>You can set other weights in addition to weighting.center. The length of this argument should be equal to the number of SNPs.
+For example, you can assign SNP effects from the information of gene annotation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gene.set</code></td>
+<td>
+<p>If you have information of gene, you can use it to perform kernel-based GWAS.
+You should assign your gene information to gene.set in the form of a "data.frame" (whose dimension is (the number of gene) x 2).
+In the first column, you should assign the gene name. And in the second column, you should assign the names of each marker,
+which correspond to the marker names of "geno" argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min.MAF</code></td>
+<td>
+<p>Specifies the minimum minor allele frequency (MAF).
+If a marker has a MAF less than min.MAF, it is assigned a zero score.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>count</code></td>
+<td>
+<p>When count is TRUE, you can know how far RGWAS has ended with percent display.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>-log10(p) for each SNP-set
+</p>
+
+
+<h3>References</h3>
+
+<p>Listgarten, J. et al. (2013) A powerful and efficient set test
+for genetic markers that handles confounders. Bioinformatics. 29(12): 1526-1533.
+</p>
+<p>Lippert, C. et al. (2014) Greater power and computational efficiency for kernel-based
+association testing of sets of genetic variants. Bioinformatics. 30(22): 3206-3214.
+</p>
+
+
+</div>

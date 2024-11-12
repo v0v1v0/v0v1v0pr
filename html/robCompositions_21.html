@@ -1,0 +1,183 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>bpcReg</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Classical and robust regression based on backwards pivot coordinates</h2>
+
+<h3>Description</h3>
+
+<p>Performs classical or robust regression analysis of real response on compositional predictors, represented in backwards pivot coordinates. Also non-compositional covariates can be included (additively).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">bpcReg(
+  X,
+  y,
+  external = NULL,
+  norm.cat = NULL,
+  robust = FALSE,
+  base = exp(1),
+  norm.const = F,
+  seed = 8
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>object of class data.frame with compositional (positive values only) and non-compositional predictors. The response y can be also included.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>character with the name of response (if included in X) or an array with values of the response.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>external</code></td>
+<td>
+<p>array with names of non-compositional predictors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>norm.cat</code></td>
+<td>
+<p>the rationing category placed at the first position in the composition. If not defined, all pairwise logratios are considered. Given in quotation marks.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>robust</code></td>
+<td>
+<p>if TRUE, the MM-type estimator is used. Defaults to FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>base</code></td>
+<td>
+<p>a positive number: the base with respect to which logarithms are computed. Defaults to exp(1).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>norm.const</code></td>
+<td>
+<p>if TRUE, the regression coefficients corresponding to orthonormal coordinates are given a s result. Defaults to FALSE, the normalising constant is omitted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>a single value.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>bpcReg
+</p>
+<p>The compositional part of the data set is repeatedly expressed in a set of backwards logratio coordinates, when each set highlights one pairwise logratio (or one pairwise logratio with the selected rationing category). 
+For each set (supplemented by non-compositonal predictors), robust MM or classical least squares estimate of regression coefficients is performed and information respective to the first backwards pivot coordinate is stored. 
+The summary therefore collects results from several regression models, each leading to the same overall model characteristics, like the F statistics or R^2.
+The coordinates are structured as detailed in Nesrstova et al. (2023).
+In order to maintain consistency of the iterative results collected in the output, a seed is set before robust estimation of each of the models considered. Its specific value can be set via parameter seed.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list containing:</p>
+
+<dl>
+<dt>Summary</dt>
+<dd>
+<p>the summary object which collects results from all coordinate systems. The names of the coefficients indicate the type of the respective coordinate 
+(bpc.1 - the first backwards pivot coordinate) and the logratio quantified thereby. 
+E.g. bpc.1_C2.to.C1 would therefore correspond to the logratio between compositional parts C1 and C2, schematically written log(C2/C1). See Nesrstova et al. (2023) for details.</p>
+</dd> 
+<dt>Base</dt>
+<dd>
+<p>the base with respect to which logarithms are computed</p>
+</dd> 
+<dt>Norm.const</dt>
+<dd>
+<p>the values of normalising constants (when results for orthonormal coordinates are reported).</p>
+</dd>
+<dt>Robust</dt>
+<dd>
+<p>TRUE if the MM estimator was applied.</p>
+</dd>
+<dt>lm</dt>
+<dd>
+<p>the lm object resulting from the first iteration.</p>
+</dd>
+<dt>Levels</dt>
+<dd>
+<p>the order of compositional parts cosidered in the first iteration.</p>
+</dd>
+</dl>
+<h3>Author(s)</h3>
+
+<p>Kamila Facevicova
+</p>
+
+
+<h3>References</h3>
+
+<p>Hron, K., Coenders, G., Filzmoser, P., Palarea-Albaladejo, J., Famera, M., Matys Grygar, M. (2022). Analysing pairwise logratios revisited. Mathematical Geosciences 53, 1643 - 1666.
+</p>
+<p>Nesrstova, V., Jaskova, P., Pavlu, I., Hron, K., Palarea-Albaladejo, J., Gaba, A., Pelclova, J., Facevicova, K. (2023). Simple enough, but not simpler: Reconsidering additive logratio coordinates in compositional analysis. Submitted
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>bpc</code> 
+<code>bpcPca</code>
+<code>bpcRegTab</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## How the total household expenditures in EU Member
+## States depend on relative contributions of 
+## single household expenditures:
+data(expendituresEU)
+y &lt;- as.numeric(apply(expendituresEU,1,sum))
+
+# classical regression summarizing the effect of all pairwise logratios 
+lm.cla &lt;- bpcReg(expendituresEU, y)
+lm.cla
+
+# gives the same model characteristics as lmCoDaX:
+lm &lt;- lmCoDaX(y, expendituresEU, method="classical")
+lm$ilr
+
+# robust regression, with Food as the rationing category and logarithm of base 2
+# response is part of the data matrix X
+expendituresEU.y &lt;- data.frame(expendituresEU, total = y)
+lm.rob &lt;- bpcReg(expendituresEU.y, "total", norm.cat = "Food", robust = TRUE, base = 2)
+lm.rob
+
+## Illustrative example with exports and imports (categorized) as non-compositional covariates
+data(economy)
+X.ext &lt;- economy[!economy$country2 %in% c("HR", "NO", "CH"), c("exports", "imports")]
+X.ext$imports.cat &lt;- cut(X.ext$imports, quantile(X.ext$imports, c(0, 1/3, 2/3, 1)), 
+labels = c("A", "B", "C"), include.lowest = TRUE)
+
+X.y.ext &lt;- data.frame(expendituresEU.y, X.ext[, c("exports", "imports.cat")])
+
+lm.ext &lt;- bpcReg(X.y.ext, y = "total", external = c("exports", "imports.cat"))
+lm.ext
+</code></pre>
+
+
+</div>

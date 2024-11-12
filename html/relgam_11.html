@@ -1,0 +1,334 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rgam</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fit reluctant generalized additive model</h2>
+
+<h3>Description</h3>
+
+<p>Fits a reluctant generalized additive model (RGAM) for an entire regularization
+path indexed by the parameter <code>lambda</code>. Fits linear, logistic, Poisson
+and Cox regression models. RGAM is a three-step algorithm: Step 1 fits the
+lasso and computes residuals, Step 2 constructs the non-linear features, and
+Step 3 fits a lasso of the response on both the linear and non-linear features.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rgam(x, y, lambda = NULL, lambda.min.ratio = ifelse(nrow(x) &lt; ncol(x),
+  0.01, 1e-04), standardize = TRUE, family = c("gaussian", "binomial",
+  "poisson", "cox"), offset = NULL, init_nz, removeLin = TRUE,
+  nfolds = 5, foldid = NULL, df = 4, gamma, tol = 0.01,
+  parallel = FALSE, verbose = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Input matrix, of dimension <code>nobs x nvars</code>; each row is
+an observation vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Response variable. Quantitative for <code>family = "gaussian"</code> or
+<code>family = "poisson"</code> (non-negative counts). For <code>family="binomial"</code>,
+should be a numeric vector consisting of 0s and 1s. For <code>family="cox"</code>,
+y should be a two-column matrix with columns named 'time' and 'status'.
+The latter is a binary variable, with '1' indicating death, and '0'
+indicating right-censored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>A user-supplied <code>lambda</code> sequence. Typical usage is to
+have the program compute its own <code>lambda</code> sequence; supplying a value of
+lambda overrides this.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda.min.ratio</code></td>
+<td>
+<p>Smallest value for lambda as a fraction of the
+largest lambda value. The default depends on the sample size nobs relative to
+the number of variables nvars. If nobs &gt; nvars, the default is 0.0001,
+close to zero. If nobs &lt; nvars, the default is 0.01.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>standardize</code></td>
+<td>
+<p>If <code>TRUE</code> (default), the columns of the input matrix
+are standardized before the algorithm is run. See details section for more
+information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>Response type. Either <code>"gaussian"</code> (default) for linear
+regression, <code>"binomial"</code> for logistic regression, <code>"poisson"</code> for
+Poisson regression or <code>"cox"</code> for Cox regression.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>offset</code></td>
+<td>
+<p>A vector of length nobs. Useful for the "poisson" family (e.g.
+log of exposure time), or for refining a model by starting at a current fit.
+Default is NULL. If supplied, then values must also be supplied to the predict
+function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init_nz</code></td>
+<td>
+<p>A vector specifying which features we must include when
+computing the non-linear features. Default is to construct non-linear features
+for all given features.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>removeLin</code></td>
+<td>
+<p>When constructing the non-linear features, do we remove
+the linear component from them? Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nfolds</code></td>
+<td>
+<p>Number of folds for CV in Step 1 (default is 5). Although
+<code>nfolds</code> can be as large as the sample size (leave-one-out CV), it is
+not recommended for large datasets. Smallest value allowable is <code>nfolds = 3</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>foldid</code></td>
+<td>
+<p>An optional vector of values between 1 and <code>nfolds</code>
+identifying what fold each observation is in. If supplied, <code>nfolds</code> can
+be missing.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>df</code></td>
+<td>
+<p>Degrees of freedom for the non-linear fit in Step 2. Default is 4.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gamma</code></td>
+<td>
+<p>Scale factor for non-linear features (vs. original features), to
+be between 0 and 1. Default is 0.8 if <code>init_nz = c()</code>, 0.6 otherwise.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>Parameter to be passed to <code>smooth.spline</code>: a tolerance for
+same-ness or uniqueness of the x values. Default is 0.01. See
+<code>smooth.spline</code> documentation for more details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel</code></td>
+<td>
+<p>If TRUE, the <code>cv.glmnet()</code> call in Step 1 is
+parallelized. Must register parallel before hand, such as doMC or others.
+Default is FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>If <code>TRUE</code> (default), model-fitting is tracked with a
+progress bar.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>If there are variables which the user definitely wants to compute non-linear
+versions for in Step 2 of the algorithm, they can be specified as a vector for
+the <code>init_nz</code> option. The algorithm will compute non-linear versions for
+these features as well as the features suggested by Step 1 of the algorithm.
+</p>
+<p>If <code>standardize = TRUE</code>, the standard deviation of the linear and
+non-linear features would be 1 and gamma respectively. If
+<code>standardize = FALSE</code>, linear features will remain on their original
+scale while non-linear features would have standard deviation gamma times
+the mean standard deviation of the linear features.
+</p>
+<p>For <code>family="gaussian"</code>, <code>rgam</code> standardizes <code>y</code> to have unit
+variance (using <code>1/n</code> rather than <code>1/(n-1)</code> formula).
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>"rgam"</code>.
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>full_glmfit</code></td>
+<td>
+<p>The glmnet object resulting from Step 3: fitting a <code>glmnet</code>
+model for the response against the linear &amp; non-linear features.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>spline_fit</code></td>
+<td>
+<p>List of spline fits for residual against each response.
+Needed for predicting on new data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lin_comp_fit</code></td>
+<td>
+<p>If <code>removeLin = TRUE</code>, a list of coefficients for
+simple linear regression of non-linear feature on original feature. Needed
+for predicting on new data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init_nz</code></td>
+<td>
+<p>Column indices for the features which we allow to have
+non-linear relationship with the response.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>step1_nz</code></td>
+<td>
+<p>Indices of features which CV in Step 1 chose.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>removeLin</code></td>
+<td>
+<p>Did we remove the linear components when constructing the
+non-linear features? Needed for predicting on new data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mxf</code></td>
+<td>
+<p>Means of the features (both linear and non-linear).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sxf</code></td>
+<td>
+<p>Scale factors of the features (both linear and non-linear).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>feat</code></td>
+<td>
+<p>Column indices of the non-zero features for each value of
+<code>lambda</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>linfeat</code></td>
+<td>
+<p>Column indices of the non-zero linear components for each value of
+<code>lambda</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nonlinfeat</code></td>
+<td>
+<p>Column indices of the non-zero non-linear components for each value
+of <code>lambda</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nzero_feat</code></td>
+<td>
+<p>The number of non-zero features for each value of
+<code>lambda</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nzero_lin</code></td>
+<td>
+<p>The number of non-zero linear components for each value of
+<code>lambda</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nzero_nonlin</code></td>
+<td>
+<p>The number of non-zero non-linear components for each value
+of <code>lambda</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>The actual sequence of <code>lambda</code> values used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>The number of features in the original data matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>Response type.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>The call that produced this object.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">set.seed(1)
+n &lt;- 100; p &lt;- 20
+x &lt;- matrix(rnorm(n * p), n, p)
+beta &lt;- matrix(c(rep(2, 5), rep(0, 15)), ncol = 1)
+y &lt;- x %*% beta + rnorm(n)
+
+fit &lt;- rgam(x, y)
+
+# construct non-linear features for only those selected by Step 1
+fit &lt;- rgam(x, y, init_nz = c())
+
+# specify scale factor gamma and degrees of freedom
+fit &lt;- rgam(x, y, gamma = 1, df = 6)
+
+# binomial family
+bin_y &lt;- ifelse(y &gt; 0, 1, 0)
+fit2 &lt;- rgam(x, bin_y, family = "binomial")
+
+# Poisson family
+poi_y &lt;- rpois(n, exp(x %*% beta))
+fit3 &lt;- rgam(x, poi_y, family = "poisson")
+# Poisson with offset
+offset &lt;- rnorm(n)
+fit3 &lt;- rgam(x, poi_y, family = "poisson", offset = offset)
+
+</code></pre>
+
+
+</div>

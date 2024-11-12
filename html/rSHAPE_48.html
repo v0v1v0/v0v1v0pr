@@ -1,0 +1,155 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>shapeExperiment</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>This is a function used to read the SHAPE_experimentalDesign type input file
+and then build a SHAPE experiment by creating all the folder structure, .R and .sh scripts
+required to programatically run your experiment – excluding post-analysis, that's a you problem.</h2>
+
+<h3>Description</h3>
+
+<p>This is a function used to read the SHAPE_experimentalDesign type input file
+and then build a SHAPE experiment by creating all the folder structure, .R and .sh scripts
+required to programatically run your experiment – excluding post-analysis, that's a you problem.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">shapeExperiment(func_filepath_toDesign, func_templateDir,
+  func_maxGrouped_perShell = 2, func_filePath_R = NULL,
+  func_baseCall = "CMD BATCH",
+  func_rArgs = "\"--args shape_thisRep=1 shape_outDir='fake_serverPath/fakeDir/'\"",
+  func_remoteLocation = "$TMPDISK", func_submitArgs = c(number_ofCores
+  = "-c 1", memory = "--mem=8192", jobName = "-J fakeJob", wallTime =
+  "-t 14-00:00:00", fileOut = "-o fakeOut"), func_processingCores = 1,
+  func_suppressOld_summaryFiles = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>func_filepath_toDesign</code></td>
+<td>
+<p>This is the absolute filepath which points to the SHAPE_experimentalDesign like
+template you'd like used to identify parameter combinations for building your experiment.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>func_templateDir</code></td>
+<td>
+<p>This is the absolute filepath to a directory on your machine where the SHAPE template
+scripts/files have been saved.  They are used by this function to help build your experiment.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>func_maxGrouped_perShell</code></td>
+<td>
+<p>Integer value defining the maximal number of jobs that an output shell script
+will try to have run in parallel once executed.  This is related to your parallel computing potential.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>func_filePath_R</code></td>
+<td>
+<p>This is the absolute path to the R application on the system where SHAPE would be run
+via BATCH MODE, its value is applied in shell scripts written for running the experiment.  If left NULL then
+this function will try to use standard R install paths of which I'm aware.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>func_baseCall</code></td>
+<td>
+<p>This is a string element of arguments when calling BATCH MODE if R via shell script.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>func_rArgs</code></td>
+<td>
+<p>This is a character string which represent additional arguments to be passed via shell
+script BATCH mode call of R.  I consider it most practicable to set the replicate and output directory of SHAPE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>func_remoteLocation</code></td>
+<td>
+<p>The filepath of the compute node on a remote server where your job would be run.  The default
+is based on the environment variable value used in CAC's SLURM submission system.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>func_submitArgs</code></td>
+<td>
+<p>This is information concerning sheel script lines for automatic submission of jobs to
+a remote server's submission system.  I'm basing this off of the SLURM system of the Center for Advanced Computing
+Queen's University computing platform.  If your system is different you may need to tweak this.  Sorry?
+This should be a vector of arguments passed for job submissions on a remote server
+The example here would call 1 core with 8 Gb RAM and a wall time of 14 days and an outFile be named
+You can add more arguments if your server requires this, they'll get used.
+BUT where the job's name MUST be identified as —  fakeJob   —-  and the output log as  — fakeOut —, you can change the argument queues
+I also assume your remote server will create a local directory on the compute nodes whre your job once submitted,
+and that there will be the location defined by func_remoteLocation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>func_processingCores</code></td>
+<td>
+<p>This is the number of parallel cores you would like the summairseExperiment() to call
+when trying to process your experimental output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>func_suppressOld_summaryFiles</code></td>
+<td>
+<p>Logical flag controlling if your summariseExperiment() will delete old output
+summary files.  setting to FALSE (default) is ideal if you could ever expect you might need to restart whereas
+TRUE becomes practical if you are worried you'd have updated output to process and you want to ensure a fresh processing start.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>If no error is encountered, a message will be returned suggesting the build was successful.  SHAPE makes
+no effort to perform validation of this effort to build the experiment and presumes no fatal errors is sufficient evidence.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># This function relies on script templates which can be found at:
+# 'https://github.com/JDench/SHAPE_library/tree/master/SHAPE_templates'
+# Once these have been downloaded you can pass the appropriate filepath values
+# to the first two arguments. For this example, I'll assume you've installed
+# them to a folder position that is now just under the root of your
+# R-environment working directory.
+# However, before runing the function we need to parameterise your run of SHAPE,
+# here I call the default parameters:
+defineSHAPE()
+# Now using the default templates we design an experiment folder complete with
+# shell scripts to submit our work programatically.
+# NOTE: Again, this example assumes you've downloaded the templates and placed
+#        them at the next filepath and directory-path locations
+shapeExperiment(func_filepath_toDesign = "~/SHAPE_templates/SHAPE_experimentalDesign.v.1.r",
+                             func_templateDir = "~/SHAPE_templates/")
+# You should be greeted with a message suggesting your experiment is built.
+# You can find the files now at that script's SHAPE workingDirectory.
+list.files(getOption("shape_workDir"))
+# Voila!  You can go see the spread of variable evolutionary parameters that were
+# considered by looking at -- yourJob_parameterCombos.table -- which is a tab
+# delimated file.
+# Lastly, you may have R installed elsewhere and so want to have that noted while
+# your experiment is built because the shell scripts will need to point to the correct place.
+shapeExperiment(func_filepath_toDesign = "~/SHAPE_templates/SHAPE_experimentalDesign.v.1.r",
+                             func_templateDir = "~/SHAPE_templates/",
+                             func_filePath_R = "~/your_R_folder/R_app/bin/R")
+# Now obviously the above location likely is not where you installed R,
+# but ideally you get the point. The difference is in how the shell scripts were written.
+
+</code></pre>
+
+
+</div>

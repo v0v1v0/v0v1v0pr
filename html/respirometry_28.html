@@ -1,0 +1,117 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>make_bins</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Make time binning thresholds for MO2 calculations</h2>
+
+<h3>Description</h3>
+
+<p>The width of time bins seems to be an under-appreciated consideration when calculating metabolic rates if PO2 or time are interesting covariates. The wider the bins, the higher the precision of your calculated MO2 value (more observations to average over), but at a loss of resolution of an interesting covariate. The narrower the bins, the higher the resolution of the PO2 or time covariate, but at a cost of lower precision. For Pcrit trials, I have found good success using bins of 1/10th the trial duration at the highest PO2s (where good precision is important) and 1/100th the trial duration at the lowest PO2s (where good resolution is important). Thus, these are the defaults, but can be changed as desired.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">make_bins(
+  o2,
+  duration,
+  good_data = TRUE,
+  min_o2_width = 1/100,
+  max_o2_width = 1/10,
+  n_thresholds = 10
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>o2</code></td>
+<td>
+<p>numeric vector of O2 observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>duration</code></td>
+<td>
+<p>numeric vector of the timepoints for each observation (minutes).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>good_data</code></td>
+<td>
+<p>logical vector of whether O2 observations are "good" measurements and should be included in analysis. Default is that all observations are <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min_o2_width</code></td>
+<td>
+<p>The duration of the bins at the lowest O2 value, expressed as a proportion of the total "good" trial duration. Default is 1/100th of the total "good" trial duration.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_o2_width</code></td>
+<td>
+<p>The duration of the bins at the highest O2 value, expressed as a proportion of the total "good" trial duration. Default is 1/10th of the total "good" trial duration.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_thresholds</code></td>
+<td>
+<p>Default is 10.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A data.frame with <code>n_thresholds</code> rows and two columns is returned. Each row describes the threshold and the duration of observations that will be binned together at or above the corresponding O2 value.
+</p>
+
+<dl>
+<dt>o2</dt>
+<dd>
+<p>The various O2 thresholds at which bin widths change.</p>
+</dd>
+<dt>width</dt>
+<dd>
+<p>The bin width applied to values greater than the corresponding row's O2 value but less than the next greater O2 value.</p>
+</dd>
+</dl>
+<h3>Author(s)</h3>
+
+<p>Matthew A. Birk, <a href="mailto:matthewabirk@gmail.com">matthewabirk@gmail.com</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>calc_MO2</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># get O2 data
+file &lt;- system.file('extdata', 'witrox_file.txt', package = 'respirometry')
+o2_data &lt;- na.omit(import_witrox(file, split_channels = TRUE)$CH_4)
+
+# Total trial duration is 21.783 minutes
+
+make_bins(o2 = o2_data$O2, duration = o2_data$DURATION) # creates the default 10 bins. At the
+# highest O2 levels, bin widths are 21.783/10 = 2.1783 mins and at the lowest O2 levels, bin
+# widths are 21.783/100 = 0.21783 mins.
+
+bins &lt;- make_bins(o2 = o2_data$O2, duration = o2_data$DURATION, min_o2_width = 1/20,
+max_o2_width = 1/3, n_thresholds = 5) # creates 5 bins. At the highest O2 levels, bin widths are
+# 21.783/3 = 7.261 mins and at the lowest O2 levels, bin widths are 21.783/20 = 1.089 mins.
+
+(mo2 &lt;- calc_MO2(duration = o2_data$DURATION, o2 = o2_data$O2,
+bin_width = bins, vol = 10, temp = o2_data$TEMP, sal = o2_data$SAL))
+
+</code></pre>
+
+
+</div>

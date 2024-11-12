@@ -1,0 +1,125 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>LS</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fixed effect meta-analysis for correlated test statistics</h2>
+
+<h3>Description</h3>
+
+<p>Fixed effect meta-analysis for correlated test statistics using the Lin-Sullivan method.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">LS(beta, stders, cor = diag(1, length(beta)))
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+<p>regression coefficients from each analysis</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stders</code></td>
+<td>
+<p>standard errors corresponding to betas</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cor</code></td>
+<td>
+<p>correlation matrix between of test statistics.  Default considers uncorrelated test statistics</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Perform fixed effect meta-analysis for correlated test statistics using method of Lin and Sullivan (2009).  By default, correlation is set to identity matrix to for independent test statistics.  
+</p>
+<p>This method requires the correlation matrix to be symmatric positive definite (SPD).  If this condition is not satisfied, results will be NA.  If the matrix is not SPD, there is likely an issue with how it was generated. 
+</p>
+<p>However, evaluating the correlation between observations that are not pairwise complete can give correlation matricies that are not SPD.  In this case, consider running <code>Matrix::nearPD( x, corr=TRUE)</code> to produce the nearest SPD matrix to the input.
+</p>
+
+
+<h3>Value</h3>
+
+
+<dl>
+<dt>beta:</dt>
+<dd>
+<p>effect size</p>
+</dd>
+<dt>se:</dt>
+<dd>
+<p>effect size standard error</p>
+</dd>
+<dt>p:</dt>
+<dd>
+<p>p-value</p>
+</dd>
+</dl>
+<h3>References</h3>
+
+
+<p>Lin D, Sullivan PF (2009).
+“Meta-analysis of genome-wide association studies with overlapping subjects.”
+<em>The American Journal of Human Genetics</em>, <b>85</b>(6), 862–872.
+<a href="https://doi.org/10.1016/j.ajhg.2009.11.001">https://doi.org/10.1016/j.ajhg.2009.11.001</a>.
+
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(clusterGeneration)
+library(mvtnorm)
+
+# sample size
+n = 30
+
+# number of response variables
+m = 6
+
+# Error covariance
+Sigma = genPositiveDefMat(m)$Sigma
+
+# regression parameters
+beta = matrix(.6, 1, m)
+
+# covariates
+X = matrix(rnorm(n), ncol=1)
+
+# Simulate response variables
+Y = X %*% beta + rmvnorm(n, sigma = Sigma)
+
+# Multivariate regression
+fit = lm(Y ~ X)
+
+# Correlation between residuals
+C = cor(residuals(fit))
+
+# Extract effect sizes and standard errors from model fit
+df = lapply(coef(summary(fit)), function(a) 
+ data.frame(beta = a["X", 1], se = a["X", 2]))
+df = do.call(rbind, df)
+
+# Run fixed effects meta-analysis, 
+# assume identity correlation  
+LS( df$beta, df$se)
+ 
+# Run fixed effects meta-analysis, 
+# account for correlation 
+LS( df$beta, df$se, C)
+</code></pre>
+
+
+</div>

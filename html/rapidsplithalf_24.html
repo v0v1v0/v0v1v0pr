@@ -1,0 +1,133 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>maskAggregators</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Multi-mask/weight based aggregators</h2>
+
+<h3>Description</h3>
+
+<p>Methods to aggregate the same vector with different masks or frequency weights.
+Useful for fast bootstrapping or split-half scoring.
+A single aggregate value of <code>x</code> is computed for each column of the mask or weight matrix.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">mediansByMask(x, mask)
+
+meansByMask(x, mask)
+
+sdsByMask(x, mask)
+
+mediansByWeight(x, weights)
+
+meansByWeight(x, weights)
+
+sdsByWeight(x, weights)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A vector to aggregate over with different masks or weights.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mask</code></td>
+<td>
+<p>Logical matrix where each column represents a separate vector of masks 
+to aggregate <code>x</code> with. Only values marked <code>TRUE</code> are included in the aggregation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>Integer matrix where each column represents frequency weights 
+to weight the aggregation by.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>a vector with each value representing an aggregate of the same single input vector 
+but with different masks or frequency weights applied.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>colMedians, colAggregators, generateSplits
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Demonstration of mediansByMask()
+x&lt;-1:6
+mask&lt;-rbind(c(TRUE,FALSE,FALSE),
+            c(TRUE,FALSE,FALSE),
+            c(FALSE,TRUE,FALSE),
+            c(FALSE,TRUE,FALSE),
+            c(FALSE,FALSE,TRUE),
+            c(FALSE,FALSE,TRUE))
+mediansByMask(x,mask)
+
+# Compute split-halves for a single 
+# participant, stratified by stimulus
+data(foodAAT)
+currdata&lt;-foodAAT[foodAAT$subjectid==3,]
+currdata$stratfactor&lt;-
+  interaction(currdata$is_pull,
+              currdata$is_target,
+              currdata$stimid)
+currdata&lt;-currdata[order(currdata$stratfactor),]
+groupsizes&lt;-
+  rle(as.character(currdata$stratfactor))$lengths
+mysplits&lt;-
+  stratifiedItersplits(splits=1000,
+                       groupsizes=groupsizes)
+
+# Median for half 1
+mediansByMask(currdata$RT,mysplits==1)
+ 
+#How to use meansByMask()
+meansByMask(x,mask)
+sd(meansByMask(currdata$RT,mysplits==1))
+
+# How to use sdsByMask() to compute
+# mask-based D-scores
+meansByMask(currdata$RT,mysplits==1) / 
+  sdsByMask(currdata$RT,mysplits==1)
+
+# Compute the bootstrapped 
+# standard error of a median
+weights&lt;-
+  bootstrapWeights(size=nrow(currdata),
+                   times=1000)
+bootmeds&lt;-mediansByWeight(currdata$RT,weights)
+sd(bootmeds) # bootstrapped standard error
+
+# Compute the bootstrapped 
+# standard error of a mean
+bootmeans&lt;-meansByWeight(currdata$RT,weights)
+sd(bootmeans) # bootstrapped standard error
+# exact standard error for comparison
+sd(currdata$RT)/sqrt(length(currdata$RT)) 
+
+# Use sdsByWeight to compute bootstrapped D-scores
+bootsds&lt;-sdsByWeight(currdata$RT,weights)
+# bootstrapped standard error of D-score
+sd(bootmeans/bootsds)
+
+</code></pre>
+
+
+</div>

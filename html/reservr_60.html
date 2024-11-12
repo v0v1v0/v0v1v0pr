@@ -1,0 +1,92 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>predict.reservr_keras_model</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Predict individual distribution parameters</h2>
+
+<h3>Description</h3>
+
+<p>Predict individual distribution parameters
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'reservr_keras_model'
+predict(object, data, as_matrix = FALSE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>A compiled and trained <code>reservr_keras_model</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>Input data compatible with the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>as_matrix</code></td>
+<td>
+<p>Return a parameter matrix instead of a list structure?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>ignored</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A parameter list suitable for the <code>with_params</code> argument of the distribution family used for the model.
+Contains one set of parameters per row in <code>data</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">if (interactive()) {
+  dist &lt;- dist_exponential()
+  params &lt;- list(rate = 1.0)
+  N &lt;- 100L
+  rand_input &lt;- runif(N)
+  x &lt;- dist$sample(N, with_params = params)
+
+  tf_in &lt;- keras3::layer_input(1L)
+  mod &lt;- tf_compile_model(
+    inputs = list(tf_in),
+    intermediate_output = tf_in,
+    dist = dist,
+    optimizer = keras3::optimizer_adam(),
+    censoring = FALSE,
+    truncation = FALSE
+  )
+
+  tf_fit &lt;- fit(
+    object = mod,
+    x = k_matrix(rand_input),
+    y = x,
+    epochs = 10L,
+    callbacks = list(
+      callback_debug_dist_gradients(mod, k_matrix(rand_input), x)
+    )
+  )
+
+  tf_preds &lt;- predict(mod, data = k_matrix(rand_input))
+}
+
+</code></pre>
+
+
+</div>

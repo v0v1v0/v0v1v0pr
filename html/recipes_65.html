@@ -1,0 +1,168 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>developer_functions</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Developer functions for creating recipes steps</h2>
+
+<h3>Description</h3>
+
+<p>This page provides a comprehensive list of the exported functions for
+creating recipes steps and guidance on how to use them.
+</p>
+
+
+<h3>Creating steps</h3>
+
+<p><code>add_step()</code> and <code>add_check()</code> are required when creating a new step. The
+output of <code>add_step()</code> should be the return value of all steps and should
+have the following format:
+</p>
+<div class="sourceCode r"><pre>step_example &lt;- function(recipe,
+                         ...,
+                         role = NA,
+                         trained = FALSE,
+                         skip = FALSE,
+                         id = rand_id("example")) {
+  add_step(
+    recipe,
+    step_example_new(
+      terms = enquos(...),
+      role = role,
+      trained = trained,
+      skip = skip,
+      id = id
+    )
+  )
+}
+</pre></div>
+<p><code>rand_id()</code> should be used in the arguments of <code>step_example()</code> to specify
+the argument, as we see in the above example.
+</p>
+<p><code>recipes_pkg_check()</code> should be used in <code>step_example()</code> functions together
+with <code>required_pkgs()</code> to alert users that certain other packages are
+required. The standard way of using this function is the following format:
+</p>
+<div class="sourceCode r"><pre>recipes_pkg_check(required_pkgs.step_example())
+</pre></div>
+<p><code>step()</code> and <code>check()</code> are used within the <code style="white-space: pre;">⁠step_*_new()⁠</code> function that you
+use in your new step. It will be used in the following way:
+</p>
+<div class="sourceCode r"><pre>step_example_new &lt;- function(terms, role, trained, skip, id) {
+  step(
+    subclass = "example",
+    terms = terms,
+    role = role,
+    trained = trained,
+    skip = skip,
+    id = id
+  )
+}
+</pre></div>
+<p><code>recipes_eval_select()</code> is used within <code style="white-space: pre;">⁠prep.step_*()⁠</code> functions, and are
+used to turn the <code>terms</code> object into a character vector of the selected
+variables.
+</p>
+<p>It will most likely be used like so:
+</p>
+<div class="sourceCode r"><pre>col_names &lt;- recipes_eval_select(x$terms, training, info)
+</pre></div>
+<p><code>check_type()</code> can be used within <code style="white-space: pre;">⁠prep.step_*()⁠</code> functions to check that the
+variables passed in are the right types. We recommend that you use the
+<code>types</code> argument as it offers higher flexibility and it matches the types
+defined by <code>.get_data_types()</code>. When using <code>types</code> we find it better to be
+explicit, e.g. writing <code>types = c("double", "integer")</code> instead of <code>types = "numeric"</code>, as it produces cleaner error messages.
+</p>
+<p>It should be used like so:
+</p>
+<div class="sourceCode r"><pre>check_type(training[, col_names], types = c("double", "integer"))
+</pre></div>
+<p><code>check_new_data()</code> should be used within <code style="white-space: pre;">⁠bake.step_*()⁠</code>. This function is
+used to make check that the required columns are present in the data. It
+should be one of the first lines inside the function.
+</p>
+<p>It should be used like so:
+</p>
+<div class="sourceCode r"><pre>check_new_data(names(object$columns), object, new_data)
+</pre></div>
+<p><code>check_name()</code> should be used in <code style="white-space: pre;">⁠bake.step_*()⁠</code> functions for steps that add
+new columns to the data set. The function throws an error if the column names
+already exist in the data set. It should be called before adding the new
+columns to the data set.
+</p>
+<p><code>get_keep_original_cols()</code> and <code>remove_original_cols()</code> are used within steps
+with the <code>keep_original_cols</code> argument. <code>get_keep_original_cols()</code> is used in
+<code style="white-space: pre;">⁠prep.step_*()⁠</code> functions for steps that were created before the
+<code>keep_original_cols</code> argument was added, and acts as a way to throw a warning
+that the user should regenerate the recipe. <code>remove_original_cols()</code> should
+be used in <code style="white-space: pre;">⁠bake.step_*()⁠</code> functions to remove the original columns. It is
+worth noting that <code>remove_original_cols()</code> can remove multiple columns at
+once and when possible should be put outside <code>for</code> loops.
+</p>
+<div class="sourceCode r"><pre>new_data &lt;- remove_original_cols(new_data, object, names_of_original_cols)
+</pre></div>
+<p><code>recipes_remove_cols()</code> should be used in <code style="white-space: pre;">⁠prep.step_*()⁠</code> functions, and is
+used to remove columns from the data set, either by using the
+<code>object$removals</code> field or by using the <code>col_names</code> argument.
+</p>
+<p><code>recipes_names_predictors()</code> and <code>recipes_names_outcomes()</code> should be used in
+<code style="white-space: pre;">⁠prep.step_*()⁠</code> functions, and are used to get names of predictors and
+outcomes.
+</p>
+<p><code>get_case_weights()</code> and <code>are_weights_used()</code> are functions that help you
+extract case weights and help determine if they are used or not within the
+step. They will typically be used within the <code style="white-space: pre;">⁠prep.step_*()⁠</code> functions if the
+step in question supports case weights.
+</p>
+<p><code>print_step()</code> is used inside <code style="white-space: pre;">⁠print.step_*()⁠</code> functions. This function is
+replacing the internally deprecated <code>printer()</code> function.
+</p>
+<p><code>sel2char()</code> is mostly used within <code style="white-space: pre;">⁠tidy.step_*()⁠</code> functions to turn
+selections into character vectors.
+</p>
+<p><code>names0()</code> creates a series of <code>num</code> names with a common prefix. The names
+are numbered with leading zeros (e.g. <code>prefix01</code>-<code>prefix10</code> instead of
+<code>prefix1</code>-<code>prefix10</code>). This is useful for many types of steps that produce
+new columns.
+</p>
+
+
+<h3>Interacting with recipe objects</h3>
+
+<p><code>recipes_ptype()</code> returns the ptype, expected variables and types, that a
+recipe object expects at <code>prep()</code> and <code>bake()</code> time. Controlled using the
+<code>stage</code> argument. Can be used by functions that interact with recipes to
+verify data is correct before passing it to <code>prep()</code> and <code>bake()</code>.
+</p>
+<p><code>recipes_ptype_validate()</code> checks that a recipe and its data are compatible
+using information extracted using <code>recipes_ptype()</code>. Can be used by functions
+that interact with recipes to verify data is correct before passing it to
+<code>prep()</code> and <code>bake()</code>.
+</p>
+<p><code>detect_step()</code> returns a logical indicator to determine if a given step or
+check is included in a recipe.
+</p>
+<p><code>fully_trained()</code> returns a logical indicator if the recipe is fully trained.
+The function <code>is_trained()</code> can be used to check in any individual steps are
+trained or not.
+</p>
+<p><code>.get_data_types()</code> is an S3 method that is used for selections. This method
+can be extended to work with column types not supported by recipes.
+</p>
+<p><code>recipes_extension_check()</code> is recommended to be used by package authors to
+make sure that all steps have <code style="white-space: pre;">⁠prep.step_*()⁠</code>, <code style="white-space: pre;">⁠bake.step_*()⁠</code>,
+<code style="white-space: pre;">⁠print.step_*()⁠</code>, <code style="white-space: pre;">⁠tidy.step_*()⁠</code>, and <code style="white-space: pre;">⁠required_pkgs.step_*()⁠</code> methods. It
+should be used as a test, preferably like this:
+</p>
+<div class="sourceCode r"><pre>test_that("recipes_extension_check", {
+  expect_snapshot(
+    recipes::recipes_extension_check(
+      pkg = "pkgname"
+    )
+  )
+})
+</pre></div>
+
+
+</div>

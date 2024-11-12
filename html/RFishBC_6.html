@@ -1,0 +1,178 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>backCalc</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Back-calculate length at previous ages from standard data format.</h2>
+
+<h3>Description</h3>
+
+<p>Back-calculates length at previous ages from a data.frame that was primarily created from <code>combineData</code> and <code>digitizeRadii</code>. One of several back-calculation models, described in <code>bcFuns</code> and Vigliola and Meekan (2009), can be used. Parameter estimates from various models of fish length on structure radius or structure radius on fish length are computed internally and used in the back-calculations. This function is intended to make back-calculation of fish length at previous ages as streamlined as possible.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">backCalc(
+  dat,
+  lencap,
+  BCM,
+  inFormat,
+  outFormat = inFormat,
+  a = NULL,
+  L0p = NULL,
+  R0p = NULL,
+  L0 = NULL,
+  R0 = NULL,
+  deletePlusGrowth = TRUE,
+  digits = getOption("digits")
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>dat</code></td>
+<td>
+<p>A data.frame created with <code>combineData</code> that MUST have at least the length-at-capture appended as a variable. See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lencap</code></td>
+<td>
+<p>The unquoted name of the length-at-capture variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>BCM</code></td>
+<td>
+<p>A single numeric between 1 and 22 or a string that indicates which model to use (based on numbers and names in Vigliola and Meekan (2009)). See Details in <code>bcFuns</code> for the list of available models.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inFormat</code></td>
+<td>
+<p>The format of the data in <code>dat</code>. The two choices are <code>"long"</code> with one radial measurement per line (and all radial measurements for a fish in separate rows) and <code>"wide"</code> with one fish per line (and all radial measurements in separate variables). Defaults to <code>"long"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outFormat</code></td>
+<td>
+<p>The format for the returned data.frame. Choices are as described for <code>inFormat</code>. Defaults to be the same as <code>inFormat</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>a</code></td>
+<td>
+<p>The fish length when the structure first forms as used in the Fraser-Lee model (i.e., <code>BCM=1</code> or <code>BCM="FRALE"</code>). If this is missing then <code>a</code> will be estimated as the intercept from the fish length on structure radius linear regression.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>L0p</code></td>
+<td>
+<p>The length at the “Biological Intercept” point. Only used in the “Biological Intercept” (<code>BCM=3</code>), “Watanabe and Kuroki” (<code>BCM=12</code>), and “Modified Fry” (<code>BCM=14</code>) models.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R0p</code></td>
+<td>
+<p>The structure radius at the “Biological Intercept” point. Only used in the “Biological Intercept” (<code>BCM=3</code>), “Watanabe and Kuroki” (<code>BCM=12</code>), and “Modified Fry” (<code>BCM=14</code>) models.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>L0</code></td>
+<td>
+<p>The length at the arbitrarily selected point in the “Fry” (<code>BCM=13</code>) model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R0</code></td>
+<td>
+<p>The structure radius at the arbitrarily selected point in the “Fry” (<code>BCM=13</code>) model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deletePlusGrowth</code></td>
+<td>
+<p>A logical that indicates whether the radial measurement that corresponds to “plus-growth” on the structure should be deleted (<code>TRUE</code>; Default) or not (<code>FALSE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>digits</code></td>
+<td>
+<p>Number of digits to which the back-calculated lengths should be rounded. Defaults to the value returned by <code>getOptions("digits")</code>, which is generally 7 digits.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A data.frame similar to <code>dat</code> but with the radial measurements replaced by back-calculated lengths at previous ages.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Derek H. Ogle, <a href="mailto:DerekOgle51@gmail.com">DerekOgle51@gmail.com</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Get some data
+data(SMBassWB1,package="RFishBC") ## fish data
+data(SMBassWB2,package="RFishBC") ## rad data
+
+# Simplify to 3 fish so we can see what is going on
+tmp1 &lt;- subset(SMBassWB1,id %in% c(377,378,379))
+tmp2 &lt;- subset(SMBassWB2,id %in% c(377,378,379))
+
+# Combine data frames to form a wide data frame (i.e., a left join)
+wdat1 &lt;- merge(tmp1,tmp2,by="id",all.x=TRUE)
+wdat1
+ 
+# Make a long data frame for examples (remove annuli with NA rads)
+ldat1 &lt;- tidyr::pivot_longer(wdat1,rad1:rad9,names_to="ann",names_prefix="rad",
+                             values_to="rad")
+ldat1 &lt;- subset(ldat1,!is.na(rad))
+ldat1 &lt;- as.data.frame(ldat1)
+ldat1
+
+## Back-calculate using Dahl-Lea method
+# wide in and wide out
+wwres1 &lt;- backCalc(wdat1,lencap,BCM="DALE",inFormat="wide",digits=0)
+wwres1
+
+# wide in and long out
+wlres1 &lt;- backCalc(wdat1,lencap,BCM="DALE",inFormat="wide",
+                   outFormat="long",digits=0)
+wlres1
+
+# long in and wide out
+lwres1 &lt;- backCalc(ldat1,lencap,BCM="DALE",inFormat="long",digits=0)
+lwres1
+
+# wide in and long out
+llres1 &lt;- backCalc(ldat1,lencap,BCM="DALE",inFormat="long",
+                   outFormat="long",digits=0)
+llres1
+
+## Situation with no radial measurements for some fish
+# Create an extra fish with length (tmp1) but no rad
+tmp1a &lt;- rbind(tmp1,
+               data.frame(id=999,
+               species="SMB",lake="WB",gear="E",
+               yearcap=1990,lencap=225))
+wdat2 &lt;- merge(tmp1a,tmp2,by="id",all.x=TRUE)
+wdat2
+                
+# wide in and wide out
+wwres2 &lt;- backCalc(wdat2,lencap,BCM="DALE",inFormat="wide",digits=0)
+wwres2
+
+</code></pre>
+
+
+</div>

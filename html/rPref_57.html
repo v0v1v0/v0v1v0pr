@@ -1,0 +1,221 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>psel</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Preference Selection</h2>
+
+<h3>Description</h3>
+
+<p>Evaluates a preference on a given data set, i.e., 
+returns the maximal elements of a data set for a given preference order.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">psel(df, pref, ...)
+
+psel.indices(df, pref, ...)
+
+peval(pref, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>df</code></td>
+<td>
+<p>A data frame or, for a grouped preference selection, a grouped data frame. See below for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pref</code></td>
+<td>
+<p>The preference order constructed via <code>complex_pref</code> and <code>base_pref</code>. 
+All variables occurring in the definition of <code>pref</code> must be either columns of the data frame <code>df</code> 
+or variables/functions of the environment where <code>pref</code> was defined.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional (optional) parameters for top(-level)-k selections:
+</p>
+
+<dl>
+<dt><code>top</code></dt>
+<dd>
+<p>A <code>top</code> value of k means that the k-best tuples of the data set are returned. 
+This may be non-deterministic, see below for details.</p>
+</dd>
+<dt><code>at_least</code></dt>
+<dd>
+<p>An <code>at_least</code> value of k returns the top-k tuples and additionally all tuples which are 
+not dominated by the worst tuple (i.e. the minima) of the Top-k set. 
+The number of tuples returned is greater or equal than
+<code>at_least</code>. In contrast to top-k, this is deterministic.</p>
+</dd>
+<dt><code>top_level</code></dt>
+<dd>
+<p>A <code>top_level</code> value of k returns all tuples from the k-best levels. See below for the definition of a level.</p>
+</dd>
+<dt><code>and_connected</code></dt>
+<dd>
+<p>Logical value, which is only relevant if more than one of the above {<code>top</code>, <code>at_least</code>, <code>top_level</code>} 
+values is given, otherwise it will be ignored. 
+Then <code>and_connected = TRUE</code> (which is the default) means that all top-conditions 
+must hold for the returned tuples: 
+Let <code>cond1</code> and <code>cond2</code> be top-conditions like <code>top=2</code> or <code>top_level=3</code>, then
+<code>psel([...], cond1, cond2)</code> is equivalent to the intersection of <code>psel([...], cond1)</code> and <code>psel([...], cond2)</code>. If we have
+<code>and_connected = FALSE</code>, these conditions are or-connected. 
+This corresponds to the union of <code>psel([...], cond1)</code> and <code>psel([...], cond2)</code>.</p>
+</dd>
+<dt><code>show_level</code></dt>
+<dd>
+<p>Logical value. If <code>TRUE</code>, a column <code>.level</code> 
+is added to the returned data frame, containing all level values. 
+If at least one of the {<code>top</code>, <code>at_least</code>, <code>top_level</code>} values are given,
+then <code>show_level</code> is <code>TRUE</code> by default for the <code>psel</code> function. 
+Otherwise, and for <code>psel.indices</code> in all cases, this option is <code>FALSE</code> by default.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The difference between the three variants of the preference selection is:
+</p>
+
+<ul>
+<li>
+<p> The <code>psel</code> function returns a subset of the data set which contains the maxima according to the given preference. 
+</p>
+</li>
+<li>
+<p> The function <code>psel.indices</code> returns just the row indices of the maxima 
+(except top-k queries with <code>show_level = TRUE</code>, see top-k preference selection).
+Hence <code>psel(df, pref)</code> is equivalent to <code>df[psel.indices(df, pref),]</code> for non-grouped data frames. 
+</p>
+</li>
+<li>
+<p> Finally, <code>peval</code> does the same like <code>psel</code>, but assumes that <code>p</code> has an associated data frame
+which is used for the preference selection.
+Consider <code>base_pref</code> to see how base preferences are associated with data sets
+or use <code>assoc.df</code> to explicitly associate a preference with a data frame.
+</p>
+</li>
+</ul>
+<h3>Top-k Preference Selection</h3>
+
+<p>For a given <code>top</code> value of k the k best elements and their level values are returned. The level values are determined as follows:
+</p>
+
+<ul>
+<li>
+<p>All the maxima of a data set w.r.t. a preference have level 1.
+</p>
+</li>
+<li>
+<p>The maxima of the remainder, i.e., the data set without the level 1 maxima, have level 2.
+</p>
+</li>
+<li>
+<p>The n-th iteration of "Take the maxima from the remainder" returns tuples of level n.
+</p>
+</li>
+</ul>
+<p>By default, <code>psel.indices</code> does not return the level values. By setting <code>show_level = TRUE</code> this function
+returns a data frame with the columns '.indices' and '.level'. 
+Note that, if none of the top-k values {<code>top</code>, <code>at_least</code>, <code>top_level</code>} is set,
+then all level values are equal to 1. 
+</p>
+<p>By definition, a top-k preference selection is non-deterministic. 
+A top-1 query of two equivalent tuples (equivalence according to <code>pref</code>)
+can return both of these tuples. 
+For example, a <code>top=1</code> preference selection on the tuples (a=1, b=1), (a=1, b=2)
+w.r.t. <code>low(a)</code> preference can return either the 'b=1' or the 'b=2' tuple. 
+</p>
+<p>On the contrary, a preference selection using <code>at_least</code> is deterministic by adding all tuples having the same level as the worst level 
+of the corresponding top-k query. This means, the result is filled with all tuples being not worse than the top-k result. 
+A preference selection with top-level-k returns all tuples having level k or better. 
+</p>
+<p>If the <code>top</code> or <code>at_least</code> value is greater than the number of elements in <code>df</code> 
+(i.e., <code>nrow(df)</code>), or <code>top_level</code> is greater than the highest level in <code>df</code>,
+then all elements of <code>df</code> will be returned without further warning.
+</p>
+
+
+<h3>Grouped Preference Selection</h3>
+
+<p>Using <code>psel</code> it is also possible to perform a preference selection where the maxima are calculated for every group separately. 
+The groups have to be created with <code>group_by</code> from the dplyr package. The preference selection preserves the grouping, i.e.,
+the groups are restored after the preference selection.
+</p>
+<p>For example, if the <code>summarize</code> function from dplyr is applied to
+<code>psel(group_by(...), pref)</code>, the summarizing is done for the set of maxima of each group. 
+This can be used to e.g., calculate the number of maxima in each group, see the examples below.
+</p>
+<p>A {<code>top</code>, <code>at_least</code>, <code>top_level</code>} preference selection
+is applied to each group separately.
+A <code>top=k</code> selection returns the k best tuples for each group. 
+Hence if there are 3 groups in <code>df</code>, each containing at least 2 elements, 
+and we have <code>top = 2</code>, then 6 tuples will be returned.
+</p>
+
+
+<h3>Parallel Computation</h3>
+
+<p>On multi-core machines the preference selection can be run in parallel using a divide-and-conquer approach. 
+Depending on the data set, this may be faster than a single-threaded computation.
+To activate parallel computation within rPref the following option has to be set:
+</p>
+<p><code>options(rPref.parallel = TRUE)</code>
+</p>
+<p>If this option is not set, rPref will use single-threaded computation by default. 
+With the option <code>rPref.parallel.threads</code> the maximum number of threads can be specified.
+The default is the number of cores on your machine. 
+To set the number of threads to the value of 4, use:
+</p>
+<p><code>options(rPref.parallel.threads = 4)</code>
+</p>
+
+
+<h3>See Also</h3>
+
+<p>See <code>complex_pref</code> on how to construct a Skyline preference.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Skyline and top-k/at-least Skyline
+psel(mtcars, low(mpg) * low(hp))
+psel(mtcars, low(mpg) * low(hp), top = 5)
+psel(mtcars, low(mpg) * low(hp), at_least = 5)
+
+# Preference with associated data frame and evaluation
+p &lt;- low(mpg, df = mtcars) * (high(cyl) &amp; high(gear))
+peval(p)
+
+# Visualizes the Skyline in a plot.
+sky1 &lt;- psel(mtcars, high(mpg) * high(hp))
+plot(mtcars$mpg, mtcars$hp)
+points(sky1$mpg, sky1$hp, lwd=3)
+
+# Grouped preference with dplyr.
+library(dplyr)
+psel(group_by(mtcars, cyl), low(mpg))
+
+# Returns the size of each maxima group.
+summarise(psel(group_by(mtcars, cyl), low(mpg)), n())
+
+</code></pre>
+
+
+</div>

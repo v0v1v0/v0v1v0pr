@@ -1,0 +1,301 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>nonParBayesSystemInferencePriorSets</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Non-parametric Bayesian posterior predictive system survival inference using sets of priors</h2>
+
+<h3>Description</h3>
+
+<p>Computes a non-parametric Bayesian posterior predictive survival probability
+given the survival signature of a system, test data on each of the
+components and a set of priors. This is the methodology described in Walter
+<em>et al</em> (2017), which extends the method in <code>nonParBayesSystemInference</code> (Aslett <em>et al</em>, 2015) to allow modelling imperfect prior knowledge.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">nonParBayesSystemInferencePriorSets(at.times, survival.signature, test.data,
+                                    nLower=2, nUpper=2, yLower=0.5, yUpper=0.5, cores=NA)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>at.times</code></td>
+<td>
+
+<p>a vector of times at which the posterior predictive estimate of survival
+probability should be computed.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>survival.signature</code></td>
+<td>
+
+<p>the survival signature matrix of the system/network for which inference is
+performed.  This should be in the same format as returned by
+<code>computeSystemSurvivalSignature</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test.data</code></td>
+<td>
+
+<p>a list of vectors containing the component test data.  The elements of the
+list should be named identically to the component columns in the
+<code>survival.signature</code> argument.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nLower, nUpper</code></td>
+<td>
+
+<p>the reparameterised lower/upper prior parameter <code class="reqn">n</code> for the Beta distribution, where
+<code class="reqn">n = \alpha+\beta</code>.  Each must match in type and can be:
+</p>
+
+<ul>
+<li>
+<p> a single scalar for a fixed prior across time and component types;
+</p>
+</li>
+<li>
+<p> a vector of parameters of the same length as the <code>at.times</code>
+argument, which indicates the time-varying prior parameter at the
+corresponding time in <code>at.times</code>.  This is therefore time-varying,
+but indicates the same time-varying prior for all component types;
+</p>
+</li>
+<li>
+<p> or a data frame where each column is named using the same names as for
+the <code>survival.signature</code> argument and each row corresponds to the
+time-varying prior parameter at the corresponding time in
+<code>at.times</code>.
+</p>
+</li>
+</ul>
+<p>In all cases, <code>nUpper</code> but be elementwise greater than or equal to
+<code>nLower</code>.
+</p>
+<p>By default the 'uninformative' (but certain) prior with <code>nLower=2</code> and
+<code>nUpper=1</code> is used for all components at all times.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yLower, yUpper</code></td>
+<td>
+
+<p>the reparameterised lower/upper prior parameter <code class="reqn">y</code> for the Beta distribution, where
+<code class="reqn">y = \alpha/(\alpha+\beta)</code>.  Each must match in type and can be:
+</p>
+
+<ul>
+<li>
+<p> a single scalar for a fixed prior across time and component types;
+</p>
+</li>
+<li>
+<p> a vector of parameters of the same length as the <code>at.times</code>
+argument, which indicates the time-varying prior parameter at the
+corresponding time in <code>at.times</code>.  This is therefore time-varying,
+but indicates the same time-varying prior for all component types;
+</p>
+</li>
+<li>
+<p> or a data frame where each column is named using the same names as for
+the <code>survival.signature</code> argument and each row corresponds to the
+time-varying prior parameter at the corresponding time in
+<code>at.times</code>.
+</p>
+</li>
+</ul>
+<p>In all cases, <code>yUpper</code> but be elementwise greater than or equal to
+<code>yLower</code>.
+</p>
+<p>By default the 'uninformative' (but certain) prior with <code>yLower=0.5</code>
+and <code>yUpper=0.5</code> is used for all components at all times.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cores</code></td>
+<td>
+
+<p>a scalar indicating how many CPU cores on which to execute parallel parts of
+the algorithm (uses the <code>parallel</code> library internally).
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function implements the technique described in Walter <em>et al</em> (2017),
+which extends the methodology of Aslett <em>et al</em> (2015) to allow modelling
+partial or imperfect prior knowledge on component failure distributions.
+</p>
+<p>In brief Aslett <em>et al</em> (2015) consider, at any fixed time <code class="reqn">t</code>, the functioning of a single component of type <code class="reqn">k</code> to be Bernoulli(<code class="reqn">p_t^k</code>) distributed for suitable <code class="reqn">p_t^k</code>, irrespective of the lifetime distribution of the component.  Correspondingly, the distribution of the number of components still functioning at time <code class="reqn">t</code> in a collection of <code class="reqn">n_k</code> iid components of type <code class="reqn">k</code> is Binomial(<code class="reqn">n_k, p_t^k</code>).
+</p>
+<p>Taking the priors <code class="reqn">p_t^k \sim</code> Beta(<code class="reqn">\alpha_t^k, \beta_t^k</code>), Aslett <em>et al</em> (2015) show that this leads to a posterior predictive survival distribution with a nice closed form (see equations 9 and 10 in Section 4).
+</p>
+<p>Walter <em>et al</em> (2017) use the standard reparameterisation (dropping sub/super-scripts for readability) <code class="reqn">n = \alpha+\beta</code> and <code class="reqn">y = \alpha/(\alpha+\beta)</code>. This allows a more natural interpretation, where <code class="reqn">n</code> represents the prior strength (it represents a pseudo-count for number of failures informing the prior specification) and <code class="reqn">y</code> represents the prior expectation for the probability a component functions.
+</p>
+<p>In particular, Walter <em>et al</em> (2017) then enable imprecise prior specification by allowing lower and upper bounds on <code class="reqn">n</code> and <code class="reqn">y</code>, which may optionally be time varying. This is then propagated to construct bounds on the posterior predictive distribution for the functioning of a new system containing components exchangeable with those provided in the testing set and used in a system with design specified by the survival signature provided.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list containing two slots, <code>lower</code> and <code>upper</code>, each of which is a vector of the same length as the <code>at.times</code> argument, where each element is the lower/upper posterior predictive probability of a new system surviving to the corresponding time in <code>at.times</code>.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Please feel free to email <a href="mailto:louis.aslett@durham.ac.uk">louis.aslett@durham.ac.uk</a> with any queries or if you encounter errors when running this function.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Louis J. M. Aslett <a href="mailto:louis.aslett@durham.ac.uk">louis.aslett@durham.ac.uk</a> (<a href="https://www.louisaslett.com/">https://www.louisaslett.com/</a>)
+</p>
+
+
+<h3>References</h3>
+
+<p>Walter, G., Aslett, L. J. M. and Coolen, F. P. A. (2017), ‘Bayesian nonparametric system reliability using sets of priors’, <em>International Journal of Approximate Reasoning</em>, <b>80</b>, 67–88.  <a href="https://www.louisaslett.com/Papers/Walter_Aslett_Coolen_2017.html">Download paper</a>
+</p>
+<p>Aslett, L. J. M., Coolen, F. P. A. and Wilson, S. P. (2015), ‘Bayesian Inference for Reliability of Systems and Networks using the Survival Signature’, <em>Risk Analysis</em> <b>39</b>(9), 1640–1651.  <a href="https://www.louisaslett.com/Papers/Aslett_Coolen_Wilson_2014.html">Download paper</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>computeSystemSurvivalSignature</code>, and also <code>nonParBayesSystemInference</code> which is the precise counterpart to this method.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Exactly reproduce the toy bridge system example in Section 7.2.1 of Walter et al (2017)
+
+# Produces survival signature matrix for one component of type "name", for use
+# in nonParBayesSystemInference()
+oneCompSurvSign &lt;- function(name){
+  res &lt;- data.frame(name=c(0,1), Probability=c(0,1))
+  names(res)[1] &lt;- name
+  res
+}
+
+# Produces data frame with prior and posterior lower &amp; upper component survival
+# function for component of type "name" based on
+# nonParBayesSystemInferencePriorSets() inputs for all components except
+# survival signature; nLower, nUpper, yLower, yUpper must be data frames where
+# each column corresponds to the component type, so there must be a match
+oneCompPriorPostSet &lt;- function(name, at.times, test.data, nLower, nUpper, yLower, yUpper){
+  sig &lt;- oneCompSurvSign(name)
+  nodata &lt;- list(name=NULL)
+  names(nodata) &lt;- name
+  nL &lt;- nLower[, match(name, names(nLower))]
+  nU &lt;- nUpper[, match(name, names(nUpper))]
+  yL &lt;- yLower[, match(name, names(yLower))]
+  yU &lt;- yUpper[, match(name, names(yUpper))]
+  data &lt;- test.data[match(name, names(test.data))]
+  # NB limit to 1 core on CRAN due to Windows -- make larger to speed up locally!
+  prio &lt;- nonParBayesSystemInferencePriorSets(at.times, sig, nodata, nL, nU, yL, yU, cores = 1)
+  post &lt;- nonParBayesSystemInferencePriorSets(at.times, sig,   data, nL, nU, yL, yU, cores = 1)
+  data.frame(Time=rep(at.times,2),
+             Lower=c(prio$lower,post$lower),
+             Upper=c(prio$upper,post$upper),
+             Item=rep(c("Prior", "Posterior"), each=length(at.times)))
+}
+
+# ----------------------------------------------
+
+# System
+b3 &lt;- createSystem(s -- 2:3 -- 4 -- 5:6 -- 1 -- t, 2 -- 5, 3 -- 6,
+                   types = list(T1 = c(2,3,5,6), T2 = c(4), T3 = c(1)))
+
+# Data
+b3nulldata &lt;- list("T1"=NULL, "T2"=NULL, "T3"=NULL)
+b3testdata &lt;- list("T1"=c(2.2, 2.4, 2.6, 2.8),
+                   "T2"=c(3.2, 3.4, 3.6, 3.8),
+                   "T3"=(1:4)/10+4) # T3 late failures
+b3testdata &lt;- list("T1"=c(2.2, 2.4, 2.6, 2.8),
+                   "T2"=c(3.2, 3.4, 3.6, 3.8),
+                   "T3"=(1:4)/10+0.5) # T3 early failures
+b3testdata &lt;- list("T1"=c(2.2, 2.4, 2.6, 2.8),
+                   "T2"=c(3.2, 3.4, 3.6, 3.8),
+                   "T3"=(1:4)-0.5) # T3 fitting failures
+b3dat &lt;- reshape2::melt(b3testdata); names(b3dat) &lt;- c("x", "Part")
+b3dat$Part &lt;- ordered(b3dat$Part, levels=c("T1", "T2", "T3", "System"))
+
+# Setup to run
+b3sig &lt;- computeSystemSurvivalSignature(b3)
+b3t &lt;- seq(0, 5, length.out=301)
+b3nL &lt;- data.frame(T1=rep(1,301), T2=rep(1,301), T3=rep(1,301))
+b3nU &lt;- data.frame(T1=rep(2,301), T2=rep(2,301), T3=rep(4,301))
+b3yL &lt;- data.frame(T1=rep(0.001, 301),
+                   T2=rep(0.001, 301),
+                   T3=c(rep(c(0.625,0.375,0.250,0.125,0.010), each=60), 0.01))
+b3yU &lt;- data.frame(T1=rep(0.999, 301),
+                   T2=rep(0.999, 301),
+                   T3=c(rep(c(0.999,0.875,0.500,0.375,0.250), each=60), 0.25))
+
+b3T1 &lt;- oneCompPriorPostSet("T1", b3t, b3testdata, b3nL, b3nU, b3yL, b3yU)
+b3T2 &lt;- oneCompPriorPostSet("T2", b3t, b3testdata, b3nL, b3nU, b3yL, b3yU)
+b3T3 &lt;- oneCompPriorPostSet("T3", b3t, b3testdata, b3nL, b3nU, b3yL, b3yU)
+
+# Compute prior and posterior sets!!
+# NB limit to 1 core on CRAN due to Windows -- make larger to speed up locally!
+b3prio &lt;- nonParBayesSystemInferencePriorSets(b3t, b3sig, b3nulldata,
+                                              b3nL, b3nU, b3yL, b3yU, cores = 1)
+b3post &lt;- nonParBayesSystemInferencePriorSets(b3t, b3sig, b3testdata,
+                                              b3nL, b3nU, b3yL, b3yU, cores = 1)
+
+b3df &lt;- rbind(data.frame(b3T1, Part="T1"),
+              data.frame(b3T2, Part="T2"),
+              data.frame(b3T3, Part="T3"),
+              data.frame(Time=rep(b3t,2),
+                         Lower=c(b3prio$lower,b3post$lower),
+                         Upper=c(b3prio$upper,b3post$upper),
+                         Item=rep(c("Prior", "Posterior"), each=length(b3t)), Part="System"))
+b3df$Item &lt;- ordered(b3df$Item, levels=c("Prior", "Posterior"))
+b3df$Part &lt;- ordered(b3df$Part, levels=c("T1", "T2", "T3", "System"))
+
+
+library("ggplot2")
+library("xtable")
+
+ggplot(b3df, aes(x=Time)) +
+  scale_fill_manual(values = c("#b2df8a", "#1f78b4")) +
+  scale_colour_manual(values = c("#b2df8a", "#1f78b4")) +
+  geom_line(aes(y=Upper, group=Item, colour=Item)) +
+  geom_line(aes(y=Lower, group=Item, colour=Item)) +
+  geom_ribbon(aes(ymin=Lower, ymax=Upper, group=Item, colour=Item, fill=Item), alpha=0.5) +
+  facet_wrap(~Part, nrow=2) +
+  geom_rug(aes(x=x), data=b3dat) +
+  xlab("Time") +
+  ylab("Survival Probability") +
+  theme_bw() +
+  theme(legend.title = element_blank())
+
+b3sigtable &lt;- b3sig[b3sig$T3 == 1,]
+b3sigtable$T1 &lt;- as.factor(b3sigtable$T1)
+b3sigtable$T2 &lt;- as.factor(b3sigtable$T2)
+b3sigtable$T3 &lt;- as.factor(b3sigtable$T3)
+xtable(b3sigtable)
+
+</code></pre>
+
+
+</div>

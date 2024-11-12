@@ -1,0 +1,326 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pred.curve</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Epidemic Curve Model</h2>
+
+<h3>Description</h3>
+
+<p>Computes the epidemic curve and associated quantities for a given parameter set.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pred.curve(
+  a1 = 0,
+  a2 = 0,
+  a3 = 0,
+  a4 = 0,
+  nu = 0,
+  variant.transm = NULL,
+  Psi = NULL,
+  betas = NULL,
+  cases = NULL,
+  cfg = NULL,
+  use.actual.not.predicted = FALSE,
+  restrictions = NULL,
+  restriction.starts = NULL,
+  ranges = NULL,
+  rt_func = 1,
+  fit.t.pred = NULL,
+  predict.beyond = 0,
+  scenario = NULL,
+  H.E = NULL,
+  H.W = NULL,
+  adj.period = NULL,
+  population = NULL,
+  rho = NULL,
+  serial_mean = NULL,
+  serial_var = NULL,
+  lt = NULL,
+  window_size = NULL,
+  verbose = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>a1, a2, a3, a4</code></td>
+<td>
+<p>Parameters of the contact rate curve specified by <code>rt_func</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nu</code></td>
+<td>
+<p>Loss of immunity rate beyond the first wave.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>variant.transm</code></td>
+<td>
+<p>Vector of transmissibility of variants in each wave,
+as relative multiplication factors compared to transmissibility in wave 1. Should always be 1 for the first wave.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Psi</code></td>
+<td>
+<p>Vector of restriction parameters for severity levels 1 - 4.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>betas</code></td>
+<td>
+<p>Vector containing (beta0,beta.R,beta.E,beta.W), when restrictions = NULL. Not currently implemented.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cases</code></td>
+<td>
+<p>vector of case counts.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cfg</code></td>
+<td>
+<p>The object that contains all variables from the configuration file.
+<code>a1</code>, <code>a2</code>, <code>a3</code>, <code>a4</code>, <code>nu</code>, <code>variant.transm</code>,
+<code>Psi</code>, <code>betas</code>, and <code>cases</code> are also required for the method
+to execute. All other parameters will not be used if <code>cfg</code> is passed
+to the method.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use.actual.not.predicted</code></td>
+<td>
+<p>Logical; if FALSE (default), the susceptible fraction is updated using predicted cases. Otherwise updated using actual cases.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>restrictions</code></td>
+<td>
+<p>A numeric integer vector giving the severity of restrictions.
+Zero means no restriction, and higher numbers means greater severity/disruption.
+The ordered unique values should be consecutive integers starting from zero.
+Each number (other than 0) adds a new parameter to the fit.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>restriction.starts</code></td>
+<td>
+<p>A vector of same length as restrictions, of times when restrictions
+came into effect. Note: the first index time should be 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ranges</code></td>
+<td>
+<p>A vector of time ranges for the different waves.
+The wave ranges should be contiguous, with at least one unit of time
+between consecutive waves.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rt_func</code></td>
+<td>
+<p>The parametric form of function c(). Options are listed under function <code>c_helper</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit.t.pred</code></td>
+<td>
+<p>Time from which prediction is done. If use.actual.not.predicted is TRUE, values of <code class="reqn">S_t</code> before this time will be computed using actual counts.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predict.beyond</code></td>
+<td>
+<p>Number of days to predict beyond the end of <code>cases</code>. See Details for usage notes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scenario</code></td>
+<td>
+<p>A character string describing options to deal with restrictions. Currently unsupported.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>H.E</code></td>
+<td>
+<p>Mobility metrics for category Retail &amp; Entertainment. Currently unsupported.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>H.W</code></td>
+<td>
+<p>Mobility metrics for category Workplaces. Currently unsupported.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adj.period</code></td>
+<td>
+<p>Adjustment period following a change in severity level. Restriction level (psi) is linearly interpolated from the old to the new value over this period.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>population</code></td>
+<td>
+<p>Total population size.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rho</code></td>
+<td>
+<p>A vector of under-reporting rates of the same length as cases. If a scalar is supplied, the vector will be constant with this value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>serial_mean</code></td>
+<td>
+<p>Mean of the serial interval on the log scale.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>serial_var</code></td>
+<td>
+<p>Variance of the serial interval on the log scale.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lt</code></td>
+<td>
+<p>The length of cases.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>window_size</code></td>
+<td>
+<p>The maximum value for the serial interval.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Logical. If TRUE, provides additional details while running the function.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>At each time step, <code class="reqn">R_{t+1}</code> is computed using the contact rate function <code class="reqn">c(S_t)</code> implemented via c_helper. Then the number of cases is computed using formula:
+</p>
+<p style="text-align: center;"><code class="reqn">y_{t+1}=R_{t+1} \sum_{s=1}^M w_s y_{t+1-s}</code>
+</p>
+
+<p>Finally, the fraction <code class="reqn">S_{t+1}</code> is updated. This creates a curve over the entire range of <code>ranges</code>. See Romanescu R, Hu S, Nanton D, Torabi M, Tremblay-Savard O, Haque MA. <a href="https://www.sciencedirect.com/science/article/pii/S1755436523000440">The effective reproductive number:
+modeling and prediction with application to the multi-wave Covid-19 pandemic.</a> Epidemics. 2023 Jul 20:100708 for more details.
+</p>
+<p>For predicting an ongoing wave beyond the end of cases, the end of <code>ranges</code> (or <code>waves_list</code>, if using <code>cfg</code>)
+should be specified to match the <code>predict.beyond</code> argument. As well, argument <code>use.actual.not.predicted</code> should be set to FALSE when predicting beyond the end of <code>cases</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns list:
+</p>
+
+<ul>
+<li>
+<p> Predicted Infections - Vector of estimated infections, computed as predicted cases divided by rho.
+</p>
+</li>
+<li>
+<p> Predicted Cases - Vector of predicted cases.
+</p>
+</li>
+<li>
+<p> Predicted <code class="reqn">R_t</code> - Vector of predicted susceptible fractions
+</p>
+</li>
+<li>
+<p> Predicted <code class="reqn">R_t</code> - Vector of (model) predicted <code class="reqn">R_t</code>.
+</p>
+</li>
+<li>
+<p> Predicted Lambda t - Vector of predicted Lambda_t, which is the numerator used in computing the empirical <code class="reqn">R_t</code>.
+</p>
+</li>
+<li>
+<p> Psi.vec - Vector of psi values, which pastes together parameters psi over the period they apply, or 1 when there are no restrictions.
+</p>
+</li>
+<li>
+<p> Contact rate params - Vector of the curve parameters (a1, a2, a3, a4).
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(REffectivePred)
+## Read in the data
+path_to_data &lt;- system.file("extdata/NY_OCT_4_2022.csv", package = "REffectivePred")
+data &lt;- read.csv(path_to_data)
+head(data)
+cases &lt;- diff(c(0, data$cases)) # Convert cumulative cases into daily cases
+lt &lt;- length(cases)             # Length of cases
+Time &lt;- as.Date(data$date, tryFormats = c("%d-%m-%Y", "%d/%m/%Y"))
+
+navigate_to_config() # Open the config file, make any necessary changes here.
+path_to_config &lt;- system.file("config.yml", package = "REffectivePred")  # Read config file
+cfg &lt;- load_config()    # Build the cfg object
+
+# Example 1. Using fits from Romanescu et al. (2023)
+
+r1 &lt;- pred.curve(
+a1 = 0.58,
+a2 = 1.12,
+nu = 0.56,
+variant.transm = c(1,1.22,0.36,0.56),
+Psi = c(0.58,0.52,0.49),
+cases = cases,
+cfg = cfg
+)
+
+plot(cases, xlab="Day", ylab="Predicted cases")
+lines(r1$'Predicted Cases', col='red')
+
+# Example 2. Best fit curve
+est &lt;- estimate.mle(
+    cases = cases,
+    cfg = cfg
+    )
+a1 &lt;- est$a1
+a2 &lt;- est$a2
+a3 &lt;- est$a3
+a4 &lt;- est$a4
+nu &lt;- est$nu
+vt &lt;- c(1, est$vt_params_est)
+psi &lt;- est$Psi
+betas &lt;- est$betas
+
+r1 &lt;- pred.curve(
+a1 = a1,
+a2 = a2,
+a3 = a3,
+a4 = a4,
+nu = nu,
+variant.transm = vt,
+Psi = psi,
+betas = betas,
+cases = cases,
+cfg = cfg
+)
+plot(r1$'Predicted Infections', xlab="Day", ylab="Predicted infections")
+
+</code></pre>
+
+
+</div>

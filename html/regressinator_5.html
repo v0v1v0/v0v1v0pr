@@ -1,0 +1,171 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>binned_residuals</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Obtain binned residuals for a model</h2>
+
+<h3>Description</h3>
+
+<p>Construct a data frame by binning the fitted values or predictors of a model
+into discrete bins of equal width, and calculating the average value of the
+residuals within each bin.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">binned_residuals(fit, predictors = !".fitted", breaks = NULL, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>The model to obtain residuals for. This can be a model fit with
+<code>lm()</code> or <code>glm()</code>, or any model that has <code>residuals()</code> and <code>fitted()</code>
+methods.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predictors</code></td>
+<td>
+<p>Predictors to calculate binned residuals for. Defaults to
+all predictors, skipping factors. Predictors can be specified using
+tidyselect syntax; see <code>help("language", package = "tidyselect")</code> and the
+examples below. Specify <code>predictors = .fitted</code> to obtain binned residuals
+versus fitted values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>breaks</code></td>
+<td>
+<p>Number of bins to create. If <code>NULL</code>, a default number of breaks
+is chosen based on the number of rows in the data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments passed on to <code>residuals()</code>. The most useful
+additional argument is typically <code>type</code>, to select the type of residuals to
+produce (such as standardized residuals or deviance residuals).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>In many generalized linear models, the residual plots (Pearson or deviance)
+are not useful because the response variable takes on very few possible
+values, causing strange patterns in the residuals. For instance, in logistic
+regression, plotting the residuals versus covariates usually produces two
+curved lines.
+</p>
+<p>If we first bin the data, i.e. divide up the observations into <code>breaks</code> bins
+based on their fitted values, we can calculate the average residual within
+each bin. This can be more informative: if a region has 20 observations and
+its average residual value is large, this suggests those observations are
+collectively poorly fit. We can also bin each predictor and calculate
+averages within those bins, allowing the detection of misspecification for
+specific model terms.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Data frame (tibble) with one row per bin <em>per selected predictor</em>,
+and the following columns:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>.bin</code></td>
+<td>
+<p>Bin number.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>Number of observations in this bin.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predictor_name</code></td>
+<td>
+<p>Name of the predictor that has been binned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predictor_min, predictor_max, predictor_mean, predictor_sd</code></td>
+<td>
+<p>Minimum,
+maximum, mean, and standard deviation of the predictor (or fitted values).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>resid_mean</code></td>
+<td>
+<p>Mean residual in this bin.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>resid_sd</code></td>
+<td>
+<p>Standard deviation of residuals in this bin.</p>
+</td>
+</tr>
+</table>
+<h3>Limitations</h3>
+
+<p>Factor predictors (as factors, logical, or character vectors) are detected
+automatically and omitted. However, if a numeric variable is converted to
+factor in the model formula, such as with <code>y ~ factor(x)</code>, the function
+cannot determine the appropriate type and will raise an error. Create factors
+as needed in the source data frame <em>before</em> fitting the model to avoid this
+issue.
+</p>
+
+
+<h3>References</h3>
+
+<p>Gelman, A., Hill, J., and Vehtari, A. (2021). <em>Regression and
+Other Stories</em>. Section 14.5. Cambridge University Press.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>partial_residuals()</code> for the related partial residuals;
+<code>vignette("logistic-regression-diagnostics")</code> and
+<code>vignette("other-glm-diagnostics")</code> for examples of use and interpretation
+of binned residuals in logistic regression and GLMs; <code>bin_by_interval()</code>
+and <code>bin_by_quantile()</code> to bin data and calculate other values in each bin
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">fit &lt;- lm(mpg ~ disp + hp, data = mtcars)
+
+# Automatically bins both predictors:
+binned_residuals(fit, breaks = 5)
+
+# Just bin one predictor, selected with tidyselect syntax. Multiple could be
+# selected with c().
+binned_residuals(fit, disp, breaks = 5)
+
+# Bin the fitted values:
+binned_residuals(fit, predictors = .fitted)
+
+# Bins are made using the predictor, not regressors derived from it, so here
+# disp is binned, not its polynomial
+fit2 &lt;- lm(mpg ~ poly(disp, 2), data = mtcars)
+binned_residuals(fit2)
+</code></pre>
+
+
+</div>

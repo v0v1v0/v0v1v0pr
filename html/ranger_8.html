@@ -1,0 +1,130 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>importance_pvalues</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>ranger variable importance p-values</h2>
+
+<h3>Description</h3>
+
+<p>Compute variable importance with p-values. 
+For high dimensional data, the fast method of Janitza et al. (2016) can be used. 
+The permutation approach of Altmann et al. (2010) is computationally intensive but can be used with all kinds of data. 
+See below for details.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">importance_pvalues(
+  x,
+  method = c("janitza", "altmann"),
+  num.permutations = 100,
+  formula = NULL,
+  data = NULL,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><code>ranger</code> or <code>holdoutRF</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Method to compute p-values. Use "janitza" for the method by Janitza et al. (2016) or "altmann" for the non-parametric method by Altmann et al. (2010).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>num.permutations</code></td>
+<td>
+<p>Number of permutations. Used in the "altmann" method only.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>Object of class formula or character describing the model to fit. Used in the "altmann" method only.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>Training data of class data.frame or matrix. Used in the "altmann" method only.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments passed to <code>ranger()</code>. Used in the "altmann" method only.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The method of Janitza et al. (2016) uses a clever trick:
+With an unbiased variable importance measure, the importance values of non-associated variables vary randomly around zero. 
+Thus, all non-positive importance values are assumed to correspond to these non-associated variables and they are used to construct a distribution of the importance under the null hypothesis of no association to the response.
+Since only the non-positive values of this distribution can be observed, the positive values are created by mirroring the negative distribution. 
+See Janitza et al. (2016) for details.
+</p>
+<p>The method of Altmann et al. (2010) uses a simple permutation test: 
+The distribution of the importance under the null hypothesis of no association to the response is created by several replications of permuting the response, growing an RF and computing the variable importance.
+The authors recommend 50-100 permutations. 
+However, much larger numbers have to be used to estimate more precise p-values.
+We add 1 to the numerator and denominator to avoid zero p-values.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Variable importance and p-value for each variable.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Marvin N. Wright
+</p>
+
+
+<h3>References</h3>
+
+<p>Janitza, S., Celik, E. &amp; Boulesteix, A.-L., (2016). A computationally fast variable importance test for random forests for high-dimensional data. Adv Data Anal Classif <a href="https://doi.org/10.1007/s11634-016-0276-4">doi:10.1007/s11634-016-0276-4</a>. <br>
+Altmann, A., Tolosi, L., Sander, O. &amp; Lengauer, T. (2010). Permutation importance: a corrected feature importance measure, Bioinformatics 26:1340-1347.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>ranger</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Janitza's p-values with corrected Gini importance
+n &lt;- 50
+p &lt;- 400
+dat &lt;- data.frame(y = factor(rbinom(n, 1, .5)), replicate(p, runif(n)))
+rf.sim &lt;- ranger(y ~ ., dat, importance = "impurity_corrected")
+importance_pvalues(rf.sim, method = "janitza")
+
+## Permutation p-values 
+## Not run: 
+rf.iris &lt;- ranger(Species ~ ., data = iris, importance = 'permutation')
+importance_pvalues(rf.iris, method = "altmann", formula = Species ~ ., data = iris)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

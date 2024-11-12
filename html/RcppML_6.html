@@ -1,0 +1,270 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>nmf</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Non-negative matrix factorization</h2>
+
+<h3>Description</h3>
+
+<p>Sparse matrix factorization of the form <code class="reqn">A = wdh</code> by alternating least squares with optional non-negativity constraints.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">nmf(
+  A,
+  k,
+  tol = 1e-04,
+  maxit = 100,
+  verbose = TRUE,
+  L1 = c(0, 0),
+  seed = NULL,
+  mask_zeros = FALSE,
+  diag = TRUE,
+  nonneg = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>A</code></td>
+<td>
+<p>matrix of features-by-samples in dense or sparse format (preferred classes are "matrix" or "Matrix::dgCMatrix", respectively). Prefer sparse storage when more than half of all values are zero.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>rank</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>stopping criteria, the correlation distance between <code class="reqn">w</code> across consecutive iterations, <code class="reqn">1 - cor(w_i, w_{i-1})</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxit</code></td>
+<td>
+<p>stopping criteria, maximum number of alternating updates of <code class="reqn">w</code> and <code class="reqn">h</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>print model tolerances between iterations</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>L1</code></td>
+<td>
+<p>L1/LASSO penalties between 0 and 1, array of length two for <code>c(w, h)</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>random seed for model initialization</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mask_zeros</code></td>
+<td>
+<p>handle zeros as missing values, available only when <code>A</code> is sparse</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>diag</code></td>
+<td>
+<p>scale factors in <code class="reqn">w</code> and <code class="reqn">h</code> to sum to 1 by introducing a diagonal, <code class="reqn">d</code>. This should generally never be set to <code>FALSE</code>. Diagonalization enables symmetry of models in factorization of symmetric matrices, convex L1 regularization, and consistent factor scalings.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nonneg</code></td>
+<td>
+<p>enforce non-negativity</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This fast non-negative matrix factorization (NMF) implementation decomposes a matrix <code class="reqn">A</code> into lower-rank
+non-negative matrices <code class="reqn">w</code> and <code class="reqn">h</code>, with factors scaled to sum to 1 via multiplication by a diagonal, <code class="reqn">d</code>: </p>
+<p style="text-align: center;"><code class="reqn">A = wdh</code>
+</p>
+
+<p>The scaling diagonal enables symmetric factorization, convex L1 regularization, and consistent factor scalings regardless of random initialization.
+</p>
+<p>The factorization model is randomly initialized, and <code class="reqn">w</code> and <code class="reqn">h</code> are updated alternately using least squares.
+Given <code class="reqn">A</code> and <code class="reqn">w</code>, <code class="reqn">h</code> is updated according to the equation: </p>
+<p style="text-align: center;"><code class="reqn">w^Twh = wA_j</code>
+</p>
+
+<p>This equation is in the form <code class="reqn">ax = b</code> where <code class="reqn">a = w^Tw</code>, <code class="reqn">x = h</code>, and <code class="reqn">b = wA_j</code> for all columns <code class="reqn">j</code> in <code class="reqn">A</code>.
+</p>
+<p>The corresponding update for <code class="reqn">w</code> is </p>
+<p style="text-align: center;"><code class="reqn">hh^Tw = hA^T_j</code>
+</p>
+
+<p><strong>Stopping criteria.</strong> Alternating least squares projections (see <code>project</code> subroutine) are repeated until a stopping criteria is satisfied, which is either a maximum number of
+iterations or a tolerance based on the correlation distance between models (<code class="reqn">1 - cor(w_i, w_{i-1})</code>) across consecutive iterations. Use the <code>tol</code> parameter to control the stopping criteria for alternating updates:
+</p>
+
+<ul>
+<li> <p><code>tol = 1e-2</code> is appropriate for approximate mean squared error determination and coarse cross-validation, useful for rank determination.
+</p>
+</li>
+<li> <p><code>tol = 1e-3</code> to <code>1e-4</code> are suitable for rapid expermentation, cross-validation, and preliminary analysis.
+</p>
+</li>
+<li> <p><code>tol = 1e-5</code> and smaller for publication-quality runs
+</p>
+</li>
+<li> <p><code>tol = 1e-10</code> and smaller for robust factorizations at or near machine-precision
+</p>
+</li>
+</ul>
+<p><strong>Parallelization.</strong> Least squares projections in factorizations of rank-3 and greater are parallelized using the number of threads set by <code>setRcppMLthreads</code>.
+By default, all available threads are used, see <code>getRcppMLthreads</code>.
+The overhead of parallization is too great to benefit rank-1 and rank-2 factorization.
+</p>
+<p><strong>Specializations.</strong> There are specializations for symmetric matrices, and for rank-1 and rank-2 factorization.
+</p>
+<p><strong>L1 regularization</strong>. L1 penalization increases the sparsity of factors, but does not change the information content of the model
+or the relative contributions of the leading coefficients in each factor to the model. L1 regularization only slightly increases the error of a model.
+L1 penalization should be used to aid interpretability. Penalty values should range from 0 to 1, where 1 gives complete sparsity. In this implementation of NMF,
+a scaling diagonal ensures that the L1 penalty is equally applied across all factors regardless of random initialization and the distribution of the model.
+Many other implementations of matrix factorization claim to apply L1, but the magnitude of the penalty is at the mercy of the random distribution and
+more significantly affects factors with lower overall contribution to the model. L1 regularization of rank-1 and rank-2 factorizations has no effect.
+</p>
+<p><strong>Rank-2 factorization.</strong> When <code class="reqn">k = 2</code>, a very fast optimized algorithm is used. Two-variable least squares solutions to the problem <code class="reqn">ax = b</code> are found by direct substitution:
+</p>
+<p style="text-align: center;"><code class="reqn">x_1 = \frac{a_{22}b_1 - a_{12}b_2}{a_{11}a_{22} - a_{12}^2}</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">x_2 = \frac{a_{11}b_2 - a_{12}b_1}{a_{11}a_{22} - a_{12}^2}</code>
+</p>
+
+<p>In the above equations, the denominator is constant and thus needs to be calculated only once. Additionally, if non-negativity constraints are to be imposed,
+if <code class="reqn">x_1 &lt; 0</code> then <code class="reqn">x_1 = 0</code> and <code class="reqn">x_2 = \frac{b_1}{a_{11}}</code>.
+Similarly, if <code class="reqn">x_2 &lt; 0</code> then <code class="reqn">x_2 = 0</code> and <code class="reqn">x_1 = \frac{b_2}{a_{22}}</code>.
+</p>
+<p>Rank-2 NMF is useful for bipartitioning, and is a subroutine in <code>bipartition</code>, where the sign of the difference between sample loadings
+in both factors gives the partitioning.
+</p>
+<p><strong>Rank-1 factorization.</strong> Rank-1 factorization by alternating least squares gives vectors equivalent to the first singular vectors in an SVD. It is a normalization of the data to a middle point,
+and may be useful for ordering samples based on the most significant axis of variation (i.e. pseudotime trajectories). Diagonal scaling guarantees consistent linear
+scaling of the factor across random restarts.
+</p>
+<p><strong>Random seed and reproducibility.</strong> Results of a rank-1 and rank-2 factorizations should be reproducible regardless of random seed. For higher-rank models,
+results across random restarts should, in theory, be comparable at very high tolerances (i.e. machine precision for <em>double</em>, corresponding to about <code>tol = 1e-10</code>). However, to guarantee
+reproducibility without such low tolerances, set the <code>seed</code> argument. Note that <code>set.seed()</code> will not work. Only random initialization is supported, as other methods
+incur unnecessary overhead and sometimes trap updates into local minima.
+</p>
+<p><strong>Rank determination.</strong> This function does not attempt to provide a method for rank determination. Like any clustering algorithm or dimensional reduction,
+finding the optimal rank can be subjective. An easy way to
+estimate rank uses the "elbow method", where the inflection point on a plot of Mean Squared Error loss (MSE) vs. rank
+gives a good idea of the rank at which most of the signal has been captured in the model. Unfortunately, this inflection point
+is not often as obvious for NMF as it is for SVD or PCA.
+</p>
+<p>k-fold cross-validation is a better method. Missing value of imputation has previously been proposed, but is arguably no less subjective
+than test-training splits and requires computationally slower factorization updates using missing values, which are not supported here.
+</p>
+<p><strong>Symmetric factorization.</strong> Special optimization for symmetric matrices is automatically applied. Specifically, alternating updates of <code>w</code> and <code>h</code>
+require transposition of <code>A</code>, but <code>A == t(A)</code> when <code>A</code> is symmetric, thus no up-front transposition is performed.
+</p>
+<p><strong>Zero-masking</strong>. When zeros in a data structure can be regarded as "missing", <code>mask_zeros = TRUE</code> may be set. However, this requires a slower
+algorithm, and tolerances will fluctuate more dramatically.
+</p>
+<p><strong>Publication reference.</strong> For theoretical and practical considerations, please see our manuscript: "DeBruine ZJ, Melcher K, Triche TJ (2021)
+High-performance non-negative matrix factorization for large single cell data." on BioRXiv.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list giving the factorization model:
+</p>
+
+<ul>
+<li>
+<p> w    : feature factor matrix
+</p>
+</li>
+<li>
+<p> d    : scaling diagonal vector
+</p>
+</li>
+<li>
+<p> h    : sample factor matrix
+</p>
+</li>
+<li>
+<p> tol  : tolerance between models at final update
+</p>
+</li>
+<li>
+<p> iter : number of alternating updates run
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>Zach DeBruine
+</p>
+
+
+<h3>References</h3>
+
+<p>DeBruine, ZJ, Melcher, K, and Triche, TJ. (2021). "High-performance non-negative matrix factorization for large single-cell data." BioRXiv.
+</p>
+<p>Lin, X, and Boutros, PC (2020). "Optimization and expansion of non-negative matrix factorization." BMC Bioinformatics.
+</p>
+<p>Lee, D, and Seung, HS (1999). "Learning the parts of objects by non-negative matrix factorization." Nature.
+</p>
+<p>Franc, VC, Hlavac, VC, Navara, M. (2005). "Sequential Coordinate-Wise Algorithm for the Non-negative Least Squares Problem". Proc. Int'l Conf. Computer Analysis of Images and Patterns. Lecture Notes in Computer Science.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>nnls</code>, <code>project</code>, <code>mse</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+library(Matrix)
+# basic NMF
+model &lt;- nmf(rsparsematrix(1000, 100, 0.1), k = 10)
+
+# compare rank-2 NMF to second left vector in an SVD
+data(iris)
+A &lt;- as(as.matrix(iris[,1:4]), "dgCMatrix")
+nmf_model &lt;- nmf(A, 2, tol = 1e-5)
+bipartitioning_vector &lt;- apply(nmf_model$w, 1, diff)
+second_left_svd_vector &lt;- base::svd(A, 2)$u[,2]
+abs(cor(bipartitioning_vector, second_left_svd_vector))
+
+# compare rank-1 NMF with first singular vector in an SVD
+abs(cor(nmf(A, 1)$w[,1], base::svd(A, 2)$u[,1]))
+
+# symmetric NMF
+A &lt;- crossprod(rsparsematrix(100, 100, 0.02))
+model &lt;- nmf(A, 10, tol = 1e-5, maxit = 1000)
+plot(model$w, t(model$h))
+# see package vignette for more examples
+
+## End(Not run)
+</code></pre>
+
+
+</div>

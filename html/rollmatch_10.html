@@ -1,0 +1,240 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rollmatch</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Rolling entry matching</h2>
+
+<h3>Description</h3>
+
+<p><code>rollmatch</code> is the last of 3 main functions in the rollmatch package
+<em>&lt;rollmatch&gt;</em> implements a comparison group selection
+methodology for interventions with rolling participant entry over time.
+A difficulty in evaluating rolling entry interventions is that a suitable
+"entry" date is not observed for non-participants. This method, called
+rolling entry matching, assigns potential comparison non-participants
+multiple counterfactual entry periods which allows for matching of
+participant and non-participants based on data immediately preceding each
+participant's specific entry period, rather than using data from a fixed
+pre-intervention period.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rollmatch(
+  scored_data,
+  data,
+  treat,
+  tm,
+  entry,
+  id,
+  vars,
+  lookback,
+  alpha = 0,
+  standard_deviation = "average",
+  num_matches = 3,
+  replacement = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>scored_data</code></td>
+<td>
+<p>Output from scored_data() or the output from
+reduce_data() with propensity scores labeled "score".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>Original dataset before reduce_data() was ran.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>treat</code></td>
+<td>
+<p>String for name of treatment variable in data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tm</code></td>
+<td>
+<p>String for time period indicator variable name in data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>entry</code></td>
+<td>
+<p>String for name of time period in which the participant
+enrolled in the intervention (in the same units as the tm variable).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id</code></td>
+<td>
+<p>String for individual id variable name in data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vars</code></td>
+<td>
+<p>Vector of column names used in the propensity score algorithm.
+This is used when creating the balance table.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lookback</code></td>
+<td>
+<p>The number of time periods to look back before the
+time period of enrollment (1-...).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>Part of the pre-specified distance within which to allow
+matching. The caliper width is calculated as the <code>alpha</code> multiplied by
+the pooled standard deviation of the propensity scores or the logit of the
+propensity scores - depending on the value of <code>match_on</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>standard_deviation</code></td>
+<td>
+<p>String. 'average' for average pooled standard
+deviation, 'weighted' for weighted pooled standard deviation, and
+'None' to not use a standard deviation multiplication. Default is "average".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>num_matches</code></td>
+<td>
+<p>Number of comparison beneficiary matches to attempt
+to assign to each treatment beneficiary. Default is 3.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>replacement</code></td>
+<td>
+<p>Assign comparison beneficiaries with replacement (TRUE)
+or without replacement (FALSE). If <code>replacement</code> is TRUE, then
+comparison beneficiaries will be allowed to be used with replacement within
+a single quarter, but will not be allowed to match to different treatment
+beneficiaries across multiple quarters. Default is TRUE.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Rolling entry matching requires preliminary steps. This package will 
+assist the user in steps 2 and 3. First, a quasi-panel dataset
+is constructed containing multiple observations of non-participants (one for
+each entry period). Participants enter the data once in the baseline period
+immediately preceding their unique entry into the intervention. Time-varying
+covariates (e.g., health conditions, spending, utilization) are dynamic for
+each entry period's non-participant observations. The user of rollmatch
+is expected to have already created this quasi-panel dataset. Second, the
+pool of potential comparisons for each participant is restricted to those
+that have the same "entry period" into the intervention
+(see function "reduce_data"). Finally, a predicted
+probability of treatment is obtained for participants and non-participants
+(e.g. through propensity score matching). The user can use function
+"score_data" to complete this step, or create use their own propensity score 
+calculation. 
+</p>
+<p>The final step consists of the matching algorithm. The algorithm selects
+the best matched comparison(s) for each participant from the pool of
+non-participants with the same entry period. This is completed via the
+function "rollmatch".
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>rollmatch</code> returns an object of class "rollmatch".
+</p>
+<p>An object of class "rollmatch" is a list containing the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>The output of the model used to estimate the distance measure.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scores</code></td>
+<td>
+<p>The propensity scores used in the matching algorithm. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>The original dataset with all matches added.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>summary</code></td>
+<td>
+<p>A basic summary table with counts of matched and unmatched
+data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ids_not_matched</code></td>
+<td>
+<p>A vector of the treatment IDs that were not matched.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>total_not_matched</code></td>
+<td>
+<p>The number of treatment IDs not matched.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>matched_data</code></td>
+<td>
+<p>R data.frame of matches with scores, matching information,
+and the weights of the individuals</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>balance</code></td>
+<td>
+<p>table showing the full treatment, full control, matched
+treatment, and matched comparison group means and standard deviations for
+the variables used in the model.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(package="rollmatch", "rem_synthdata_small")
+reduced_data &lt;- reduce_data(data = rem_synthdata_small, treat = "treat",
+                            tm = "quarter", entry = "entry_q",
+                            id = "indiv_id", lookback = 1)
+fm &lt;- as.formula(treat ~ qtr_pmt + yr_pmt + age)
+vars &lt;- all.vars(fm)
+scored_data &lt;- score_data(reduced_data = reduced_data,
+                          model_type = "logistic", match_on = "logit",
+                          fm = fm, treat = "treat",
+                          tm = "quarter", entry = "entry_q", id = "indiv_id")
+output &lt;- rollmatch(scored_data, data=rem_synthdata_small, treat = "treat",
+                    tm = "quarter", entry = "entry_q", id = "indiv_id",
+                    vars = vars, lookback = 1, alpha = .2,
+                    standard_deviation = "average", num_matches = 3,
+                    replacement = TRUE)
+output
+
+</code></pre>
+
+
+</div>

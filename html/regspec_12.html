@@ -1,0 +1,108 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Travel data</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Visits abroad by UK residents
+</h2>
+
+<h3>Description</h3>
+
+<p>The Travel data in this package comprises of two data frames
+<code>trav.qly</code> and <code>trav.mly</code>.
+These contain quarterly figures from 2004 to 2010
+and monthly figures from 2011 to 2013.
+They both show the number of UK residents making visits abroad.
+</p>
+
+
+<h3>Details</h3>
+
+<p>The data have been collected by the U.K.'s Office of National Statisitics (ONS) and are contained in the reference tables: <em>Overseas Travel And Tourism, Q3 2013</em> and <em>Monthly Overseas Travel and Tourism, April 2014</em>. The original data files are no longer hosted on the main ONS webpages but, for the foreseeable future, ought to be accessible via the UK's National Archives <a href="https://webarchive.nationalarchives.gov.uk/ukgwa/20160105160709/http://www.ons.gov.uk/ons/index.html">https://webarchive.nationalarchives.gov.uk/ukgwa/20160105160709/http://www.ons.gov.uk/ons/index.html</a>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#
+# This example estimates monthly values for UK residents leaving the
+# country given historical quarterly values and some more recent
+# monthly values. The hindcast function is just a wrapper for code that
+# computes an approximate autocovariance function for the process and
+# performs some matrix calculations to produce Kriging-type estimators.
+#
+qt &lt;- 1:nrow(trav.qly)*3
+mt &lt;- 84+1:nrow(trav.mly)
+
+#
+# Approximately centre data
+#
+
+Nhigh &lt;- 14
+trav.mly2 &lt;- trav.mly[1:Nhigh,3]-5200
+mt &lt;- mt[1:Nhigh]
+trav.qly2 &lt;- trav.qly[,3]-3*5200
+#
+# Construct a likely prior model
+#
+SARIMA0 &lt;- list(ar=0.6, seasonal=list(period=12,sar=0.6), sigma2=60^2)
+
+#
+# Learn about the log-spectrum with regspec
+#
+adj1 &lt;- regspec(D=trav.mly2, deltat=1, plot.log=TRUE, plot.pgram=TRUE,
+	varmult=1, smthpar=0.8, SARIMA=SARIMA0, ylim=c(6,20),
+	intname=" (months)")
+
+adj2 &lt;- regspec(D=trav.qly2, deltat=3, filter=c(1,1,1), ebeta=adj1$ebeta,
+	vbeta=adj1$vbeta, plot.log=TRUE, ylim=c(6,20), SARIMA=SARIMA0,
+	plot.pgram=FALSE, intname=" (months)")
+
+#
+# Compute a hindcast
+#
+predtimes &lt;- 1:84
+
+test &lt;- hindcast(Dhigh=trav.mly2, hightimes=mt, Dlow=trav.qly2,
+	lowtimes=qt, predtimes=predtimes, filter=c(1,1,1), ebeta=adj2$ebeta,
+	vbeta=adj2$vbeta,SARIMA=SARIMA0)
+
+test$hindcast &lt;- test$hindcast+5200
+
+#
+# Plot hindcast
+#
+
+plot(qt, trav.qly[,3], xlim=range(0,qt,mt), type="o",
+	ylim=range(0,trav.mly,trav.qly), xlab="", xaxt="n", ylab="Trips")
+
+axyrs &lt;- 2004:2012
+axlabs &lt;- axyrs
+
+for(i in 1:length(axlabs)) {
+	axlabs[i]&lt;-paste(axyrs[i])
+	}
+
+axis(1, line=0, at=(1:41-1)*3, labels=FALSE)
+
+text((1:length(axlabs)-1)*12, -1800, srt = 45, adj = 1,
+	labels = axlabs, xpd = TRUE)
+
+points(mt, trav.mly2+5200, type="o", cex=0.6)
+
+abline(v=84, lty=2)
+
+points(predtimes, test$hindcast, col=rgb(0.2,0.5,0.7),
+	type="o", cex=0.6)
+
+for(i in 1:length(predtimes)){
+	lines(rep(predtimes[i], 2),
+	test$hindcast[i]+3*c(-1,1)*test$var.hindcast[i,i]^0.5,
+	col=rgb(0.2,0.5,0.7))
+	}
+</code></pre>
+
+
+</div>

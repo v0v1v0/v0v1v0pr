@@ -1,0 +1,140 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>mergeLayers</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Merge layers in a recolorized image</h2>
+
+<h3>Description</h3>
+
+<p>Merges specified layers in a recolorized image. This is a good option if you
+want to manually specify which layers to merge (and what color to make the
+resulting merged layer); it's also called on by other <code>recolorize</code> functions
+like <code>recluster</code> to merge layers that have been identified
+as highly similar in color using a given distance metric.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">mergeLayers(
+  recolorize_obj,
+  merge_list = NULL,
+  color_to = "weighted average",
+  plotting = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>recolorize_obj</code></td>
+<td>
+<p>An object of class "recolorize", such as from
+<code>recolorize</code>, <code>recluster</code>, or
+<code>imposeColors</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>merge_list</code></td>
+<td>
+<p>A list of numeric vectors specifying which layers
+to merge. Layers not included in this list are unchanged. See examples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>color_to</code></td>
+<td>
+<p>Color(s) for the merged layers. See examples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plotting</code></td>
+<td>
+<p>Logical. Plot the results of the layer merging next
+to the original color fit for comparison?</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Colors can be supplied as numeric RGB triplets (e.g. <code>c(1, 1, 1)</code> for
+white), a valid R color name (<code>"white"</code>), or a hex code (<code style="white-space: pre;">⁠"#FFFFFF⁠</code>).
+Alternatively, <code>color_to = "weighted average"</code> will set the merged layer to
+the average color of the layers being merged, weighted by their relative
+size. Must be either a single value or a vector the same length as
+<code>merge_list</code>. If a single color is supplied, then all merged layers
+will be set to that color (so this really is only useful if you're
+already merging those layers into a single layer).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>recolorize</code> class object with merged layers. The order of the returned
+layers depends on <code>merge_list</code>: the first layers will be any not included
+in the list, followed by the new merged layers. If you start with layers
+1-8 and merge layers 4 &amp; 5 and 7 &amp; 8, the returned 5 layers will be, in
+order and in terms of the original layers: 1, 2, 3, 6, 4 &amp; 5 (merged), 7 &amp; 8
+(merged). This is probably easiest to see in the examples.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># image path:
+img &lt;- system.file("extdata/corbetti.png", package = "recolorize")
+
+# initial fit, 8 bins:
+init_fit &lt;- recolorize(img)
+# redundant green, red, and blue clusters
+
+# to make it easier to see, we can plot the numbered palette:
+plot(init_fit)
+
+# based on visual inspection, we should merge:
+mlist &lt;- list(c(3, 5),
+              c(4, 7),
+              c(6, 8))
+
+# we can merge with that list, leaving layers 1 &amp; 2 intact:
+vis_merge &lt;- mergeLayers(init_fit,
+                         merge_list = mlist)
+
+# we can include layers 1 &amp; 2 as their own list elements,
+# leaving them intact (result is identical to above):
+mlist2 &lt;- list(1, 2,
+               c(3, 5),
+               c(4, 7),
+               c(6, 8))
+redundant_merge &lt;- mergeLayers(init_fit,
+                               merge_list = mlist2)
+
+# we can also swap layer order this way without actually merging layers:
+swap_list &lt;- list(2, 5, 3, 4, 1)
+swap_layers &lt;- mergeLayers(redundant_merge,
+                           merge_list = swap_list)
+
+# merging everything but the first layer into a single layer,
+# and making that merged layer orange (result looks
+# a bit like a milkweed bug):
+milkweed_impostor &lt;- mergeLayers(init_fit,
+                                 merge_list = list(c(2:8)),
+                                 color_to = "orange")
+
+# we can also shuffle all the layer colors while
+# leaving their geometry intact:
+centers &lt;- vis_merge$centers
+centers &lt;- centers[sample(1:nrow(centers), nrow(centers)), ]
+shuffle_layers &lt;- mergeLayers(vis_merge,
+                              merge_list = as.list(1:5),
+                              color_to = centers)
+# (this is not really the intended purpose of this function)
+
+</code></pre>
+
+
+</div>

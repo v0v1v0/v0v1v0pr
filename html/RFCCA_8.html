@@ -1,0 +1,436 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rfcca</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Random Forest with Canonical Correlation Analysis</h2>
+
+<h3>Description</h3>
+
+<p>Estimates the canonical correlations between two sets of variables depending
+on the subject-related covariates.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rfcca(
+  X,
+  Y,
+  Z,
+  ntree = 200,
+  mtry = NULL,
+  nodesize = NULL,
+  nodedepth = NULL,
+  nsplit = 10,
+  importance = FALSE,
+  finalcca = c("cca", "scca", "rcca"),
+  bootstrap = TRUE,
+  samptype = c("swor", "swr"),
+  sampsize = if (samptype == "swor") function(x) {
+     x * 0.632
+ } else function(x)
+    {
+     x
+ },
+  forest = TRUE,
+  membership = FALSE,
+  bop = TRUE,
+  Xcenter = TRUE,
+  Ycenter = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>The first multivariate data set which has <code class="reqn">n</code> observations and
+<code class="reqn">px</code> variables. A data.frame of numeric values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>The second multivariate data set which has <code class="reqn">n</code> observations and
+<code class="reqn">py</code> variables. A data.frame of numeric values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Z</code></td>
+<td>
+<p>The set of subject-related covariates which has <code class="reqn">n</code> observations
+and <code class="reqn">pz</code> variables. Used in random forest growing. A data.frame with
+numeric values and factors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ntree</code></td>
+<td>
+<p>Number of trees.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mtry</code></td>
+<td>
+<p>Number of z-variables randomly selected as candidates for
+splitting a node. The default is <code class="reqn">pz/3</code> where <code class="reqn">pz</code> is the number of
+z variables. Values are always rounded up.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nodesize</code></td>
+<td>
+<p>Forest average number of unique data points in a terminal
+node. The default is the <code class="reqn">3 * (px+py)</code> where <code class="reqn">px</code> and <code class="reqn">py</code> are
+the number of x and y variables, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nodedepth</code></td>
+<td>
+<p>Maximum depth to which a tree should be grown. In the
+default, this parameter is ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nsplit</code></td>
+<td>
+<p>Non-negative integer value for the number of random splits to
+consider for each candidate splitting variable. When zero or <code>NULL</code>,
+all possible splits considered.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>importance</code></td>
+<td>
+<p>Should variable importance of z-variables be assessed? The
+default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>finalcca</code></td>
+<td>
+<p>Which CCA should be used for final canonical correlation
+estimation? Choices are <code>cca</code>, <code>scca</code> and <code>rcca</code>, see below
+for details. The default is <code>cca</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bootstrap</code></td>
+<td>
+<p>Should the data be bootstrapped? The default value is
+<code>TRUE</code> which bootstraps the data by sampling without replacement.
+If <code>FALSE</code> is chosen, the data is not bootstrapped. It is not possible
+to return OOB predictions and variable importance measures if <code>FALSE</code>
+is chosen.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>samptype</code></td>
+<td>
+<p>Type of bootstrap. Choices are <code>swor</code> (sampling without
+replacement/sub-sampling) and <code>swr</code> (sampling with replacement/
+bootstrapping). The default action here (as in <code>randomForestSRC</code>) is
+sampling without replacement.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sampsize</code></td>
+<td>
+<p>Size of sample to draw. For sampling without replacement, by
+default it is .632 times the sample size. For sampling with replacement, it
+is the sample size.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>forest</code></td>
+<td>
+<p>Should the forest object be returned? It is used for prediction
+on new data. The default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>membership</code></td>
+<td>
+<p>Should terminal node membership and inbag information be
+returned?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bop</code></td>
+<td>
+<p>Should the Bag of Observations for Prediction (BOP) for training
+observations be returned? The default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Xcenter</code></td>
+<td>
+<p>Should the columns of X be centered? The default is
+<code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Ycenter</code></td>
+<td>
+<p>Should the columns of Y be centered? The default is
+<code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Optional arguments to be passed to other methods.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An object of class <code>(rfcca,grow)</code> which is a list with the
+following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>The original call to <code>rfcca</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>Sample size of the data (<code>NA</code>'s are omitted).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ntree</code></td>
+<td>
+<p>Number of trees grown.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mtry</code></td>
+<td>
+<p>Number of variables randomly selected for splitting at each
+node.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nodesize</code></td>
+<td>
+<p>Minimum forest average number of unique data points in a
+terminal node.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nodedepth</code></td>
+<td>
+<p>Maximum depth to which a tree is allowed to be grown.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nsplit</code></td>
+<td>
+<p>Number of randomly selected split points.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xvar</code></td>
+<td>
+<p>Data frame of x-variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xvar.names</code></td>
+<td>
+<p>A character vector of the x-variable names.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yvar</code></td>
+<td>
+<p>Data frame of y-variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yvar.names</code></td>
+<td>
+<p>A character vector of the y-variable names.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zvar</code></td>
+<td>
+<p>Data frame of z-variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zvar.names</code></td>
+<td>
+<p>A character vector of the z-variable names.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>leaf.count</code></td>
+<td>
+<p>Number of terminal nodes for each tree in the forest.
+Vector of length <code>ntree</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bootstrap</code></td>
+<td>
+<p>Was the data bootstrapped?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>forest</code></td>
+<td>
+<p>If <code>forest=TRUE</code>, the <code>rfcca</code> forest object is
+returned. This object is used for prediction with new data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>membership</code></td>
+<td>
+<p>A matrix recording terminal node membership where each
+cell represents the node number that an observations falls in for that
+tree.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>importance</code></td>
+<td>
+<p>Variable importance measures (VIMP) for each z-variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inbag</code></td>
+<td>
+<p>A matrix recording inbag membership where each cell represents
+whether the observation is in the bootstrap sample in the corresponding
+tree.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predicted.oob</code></td>
+<td>
+<p>OOB predicted canonical correlations for training
+observations based on the selected final canonical correlation estimation
+method.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predicted.coef</code></td>
+<td>
+<p>Predicted canonical weight vectors for x- and y-
+variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bop</code></td>
+<td>
+<p>If <code>bop=TRUE</code>, a list containing BOP for each training
+observation is returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>finalcca</code></td>
+<td>
+<p>The selected CCA used for final canonical correlation
+estimations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rfsrc.grow</code></td>
+<td>
+<p>An object of class <code>(rfsrc,grow)</code> is returned. This
+object is used for prediction with training or new data.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+
+<dl>
+<dt><em>Final canonical correlation estimation:</em></dt>
+<dd>
+<p>Final canonical
+correlation can be computed with CCA (Hotelling, 1936), Sparse CCA (Witten
+et al., 2009) or Regularized CCA (Vinod,1976; Leurgans et al., 1993). If
+Regularized CCA will be used, <code class="reqn">\lambda_1</code> and <code class="reqn">\lambda_2</code> should be
+specified.</p>
+</dd>
+</dl>
+<h3>References</h3>
+
+<p>Hotelling, H. (1936). Relations between two sets of variates.
+Biometrika, 28(3/4), 321–377.
+</p>
+<p>Leurgans, S. E., Moyeed, R. A., &amp; Silverman, B. W. (1993).
+Canonical correlation analysis when the data are curves. Journal of the
+Royal Statistical Society: Series B (Methodological), 55(3), 725-740.
+</p>
+<p>Vinod, H.D. (1976). Canonical ridge and econometrics of joint
+production. Journal of econometrics, 4(2), 147–166.
+</p>
+<p>Witten, D. M., Tibshirani, R., &amp; Hastie, T. (2009). A penalized
+matrix decomposition, with applications to sparse principal components and
+canonical correlation analysis. Biostatistics, 10(3), 515-534.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>predict.rfcca</code>
+<code>global.significance</code>
+<code>vimp.rfcca</code>
+<code>print.rfcca</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## load generated example data
+data(data, package = "RFCCA")
+set.seed(2345)
+
+## define train/test split
+smp &lt;- sample(1:nrow(data$X), size = round(nrow(data$X) * 0.7),
+  replace = FALSE)
+train.data &lt;- lapply(data, function(x) {x[smp, ]})
+test.Z &lt;- data$Z[-smp, ]
+
+## train rfcca
+rfcca.obj &lt;- rfcca(X = train.data$X, Y = train.data$Y, Z = train.data$Z,
+  ntree = 100, importance = TRUE)
+
+## print the grow object
+print(rfcca.obj)
+
+## get the OOB predictions
+pred.oob &lt;- rfcca.obj$predicted.oob
+
+## predict with new test data
+pred.obj &lt;- predict(rfcca.obj, newdata = test.Z)
+pred &lt;- pred.obj$predicted
+
+## get the variable importance measures
+z.vimp &lt;- rfcca.obj$importance
+
+## train rfcca and estimate the final canonical correlations with "scca"
+rfcca.obj2 &lt;- rfcca(X = train.data$X, Y = train.data$Y, Z = train.data$Z,
+  ntree = 100, finalcca = "scca")
+
+
+</code></pre>
+
+
+</div>

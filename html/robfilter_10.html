@@ -1,0 +1,299 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>hybrid.filter</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Robust Hybrid Filtering Methods for Univariate Time Series</h2>
+
+<h3>Description</h3>
+
+<p>Procedures for robust extraction of low frequency components (the 
+<em>signal</em>) from a univariate time series based on a moving 
+window technique using the median of several one-sided 
+half-window estimates (subfilters) in each step. 
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">hybrid.filter(y, width, method = "all", minNonNAs=3, extrapolate = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>a numeric vector or (univariate) time series object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>width</code></td>
+<td>
+<p>an odd positive integer (<code class="reqn">\geq 3</code>) 
+defining the window width used for fitting.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>a (vector of) character string(s) containing the method(s) to be used for the estimation
+of the signal level.<br>
+It is possible to specify any combination of 
+<code>"MED"</code>, <code>"RM"</code>, <code>"MEAN"</code>, 
+<code>FMH</code>, <code>"PFMH"</code>, <code>"CFMH"</code>, 
+<code>"MH"</code>, <code>"PRMH"</code>, <code>"CRMH"</code>, 
+<code>"MMH"</code>, <code>"PRMMH"</code>, <code>"CRMMH"</code>, 
+and <code>"all"</code> (for all of the above). Default is <code>method="all"</code>. 
+For a detailed description see the section ‘Methods’ below.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minNonNAs</code></td>
+<td>
+<p>a positive integer defining the minimum number 
+of non-missing observations within each window (half) which is required  
+for a ‘sensible’ estimation. Default: if a window (half) contains
+less than <code>minNonNAs = 3</code> observations an <code>NA</code> is returned (for that subfilter).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extrapolate</code></td>
+<td>
+<p>a logical indicating whether the level 
+estimations should be extrapolated to the edges of the time series.
+The extrapolation extends the first estimated value to the first 
+time in the first window and the last estimated value to 
+the last time in the last time window. Default is 
+<code>extrapolate=TRUE</code>.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>hybrid.filter</code> is suitable for extracting low frequency 
+components (the <em>signal</em>) from a time series which may be 
+contaminated with outliers and can contain level shifts or local 
+extremes. For this, moving window techniques are applied.
+</p>
+<p>Within each time window several subfilters are applied to 
+half-windows (left and right of the centre); the final signal 
+level in the centre of the time window is then estimated by the 
+median of the subfilter outputs.
+</p>
+<p>For the subfilters, both, location-based and regression-based 
+method are available, the former applying means or medians and 
+the idea of a locally constant signal value, the latter using 
+ordinary least squares (LS) regression or Siegel's (1982) 
+repeated median (RM) and the idea of an underlying locally linear 
+trend. 
+</p>
+<p>The methods should be chosen based on an a-priori guess of the 
+underlying signal and the data quality.  Location based methods 
+(<code>MED</code>, <code>MEAN</code>, <code>FMH</code>, <code>MH</code>, <code>MMH</code>)  are 
+recommended in case of a locally (piecewise) constant signal. 
+Regression based and predictive approaches (<code>RM</code>, 
+<code>PFMH</code>, <code>PRMH</code>, <code>PRMMH</code>) in case of locally linear 
+monotone trends.  The combined filters (<code>CFMH</code>, <code>CRMH</code>, 
+<code>CRMMH</code>) can be seen as a compromise, but are 
+computationally somewhat more expensive and may be inferior to 
+the predictive filters during steep trends.
+</p>
+<p>The approaches based on the median and RM are robust alternatives 
+to the (in Gaussian samples) more efficient mean and least 
+squares methods. The hybrid filters preserve shifts and local 
+extremes much better than <code>MED</code>, <code>MEAN</code> or <code>RM</code> 
+for the price of decreased robustness and / or Gaussian 
+efficiency.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>hybrid.filter</code> returns an object of class <code>hybrid.filter</code>.  
+An object of class <code>hybrid.filter</code> is a list containing the 
+following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>level</code></td>
+<td>
+<p>a data frame containing the signal level extracted 
+by the filter(s) specified in <code>method</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>slope</code></td>
+<td>
+<p>a data frame (possibly) containing <code>RM</code>, 
+<code>RM.left</code>, <code>RM.right</code>, <code>LS.left</code> and 
+<code>LS.right</code>: the slope estimated by Repeated Median regression 
+in the whole window (for <code>method="RM"</code>) or in the left and right 
+window half (for any <code>method</code> in <code>"PRMH"</code>, 
+<code>"CRMH"</code>, <code>"PRMMH"</code> and <code>"CRMMH"</code>) or the least 
+squares slope estimated from the left and right window half (for any <code>method</code> in 
+<code>"PRFMH"</code> or <code>"CFMH"</code>).<br> Only those slopes are 
+returned which are required by the filters specified in 
+<code>method</code>. If only location-based filters are applied (i.e. 
+<code>"MED"</code>, <code>"MEAN"</code>, <code>"FMH"</code>, <code>"MH"</code> and /or 
+<code>"MMH"</code>) <code>NULL</code> is returned for the <code>slope</code>.</p>
+</td>
+</tr>
+</table>
+<p>In addition, the original input time series is returned as list 
+member <code>y</code>, and the settings used for the analysis are 
+returned as the list members <code>width</code>, <code>method</code> and 
+<code>extrapolate</code>. 
+</p>
+<p>Application of the function <code>plot</code> to an object of class
+<code>hybrid.filter</code> returns a plot showing the original time series 
+with the filtered output. 
+</p>
+
+
+<h3>Methods</h3>
+
+ 
+<p>The following methods are available as <code>method</code> for signal extraction.
+</p>
+<p>Filters applying only <em>one</em> location or regression estimate 
+to the whole window of length <code>width</code> and taking the 
+location (in the centre of the time window) as final signal level
+estimate:
+</p>
+
+<dl>
+<dt><code>MED</code></dt>
+<dd>
+<p>ordinary running median filter.</p>
+</dd>
+<dt><code>MEAN</code></dt>
+<dd>
+<p>ordinary moving average filter.</p>
+</dd>
+<dt><code>RM</code></dt>
+<dd>
+<p>ordinary repeated median filter. <br>
+Applies repeated median regression to each time window.</p>
+</dd>
+</dl>
+<p>Filters applying several subfilters within one window, taking the 
+median of the values listed below as the final signal level 
+estimate:
+</p>
+
+<dl>
+<dt><code>FMH</code></dt>
+<dd>
+<p>FIR median hybrid filter. <br>
+Uses half-window averages and the central observation.</p>
+</dd> 
+<dt><code>PFMH</code></dt>
+<dd>
+<p>predictive <code>FMH</code> filter. <br>
+Uses half-window least squares regression and the central 
+observation.</p>
+</dd> 
+<dt><code>CFMH</code></dt>
+<dd>
+<p>combined <code>FMH</code> filter.<br>
+Uses half-window averages, half-window least squares 
+regression, and the central observation.</p>
+</dd> 
+<dt><code>MH</code></dt>
+<dd>
+<p>median hybrid filter. <br>
+Uses half-window medians and the central observation.</p>
+</dd> 
+<dt><code>PRMH</code></dt>
+<dd>
+<p>predictive repeated median hybrid filter. <br> 
+Uses half-window repeated median regression and the 
+central observation.</p>
+</dd> 
+<dt><code>CRMH</code></dt>
+<dd>
+<p>combined repeated median hybrid filter. <br> 
+Uses half-window medians, half-window repeated median 
+regression, and the central observation.</p>
+</dd> 
+<dt><code>MMH</code></dt>
+<dd>
+<p>median/median hybrid filter. <br>
+Uses half-window medians and the median of all 
+observations in the window.</p>
+</dd> 
+<dt><code>PRMMH</code></dt>
+<dd>
+<p>predictive repeated median/median filter. <br> 
+Uses half-window repeated median regression and the 
+median of all observations in the window.</p>
+</dd> 
+<dt><code>CRMMH</code></dt>
+<dd>
+<p>combined repeated median/median filter. <br> 
+Uses half-window medians, half-window repeated median 
+regression, and the median of all observations in the window.</p>
+</dd>
+</dl>
+<h3>Note</h3>
+
+<p>Missing values are treated by omitting them and thus by 
+reducing the corresponding window width. <br> 
+The <code>hybrid.filter</code> function only offers filters for signal 
+extraction delayed by (<code>width</code>+1)/2 time units, in contrast 
+to other filters available from the <code>robfilter</code> package 
+which also offer online time series analysis without time delay.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Roland Fried and Karen Schettlinger</p>
+
+
+<h3>References</h3>
+
+<p>Fried, R., Bernholt, T., Gather, U. (2006) 
+Repeated Median and Hybrid Filters, <em>Computational Statistics &amp; Data Analysis</em> <b>50</b>, 
+2313-2338. <br>
+(earlier version: <a href="http://hdl.handle.net/2003/4866">http://hdl.handle.net/2003/4866</a>)
+</p>
+<p>Schettlinger, K., Fried, R., Gather, U. (2006) 
+Robust Filters for Intensive Care Monitoring: Beyond the Running Median, <em>Biomedizinische Technik</em> <b>51</b>(2), 
+49-56.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>robreg.filter</code>, <code>robust.filter</code>, <code>dw.filter</code>, <code>wrm.filter</code>.</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Generate random time series:
+y &lt;- cumsum(runif(500)) - .5*(1:500)
+# Add jumps:
+y[200:500] &lt;- y[200:500] + 5
+y[400:500] &lt;- y[400:500] - 7
+# Add noise:
+n &lt;- sample(1:500, 30)
+y[n] &lt;- y[n] + rnorm(30)
+# Filtering with all methods:
+y.hy &lt;- hybrid.filter(y, width=31)
+# Plot:
+plot(y.hy)
+
+# Filtering with running median and PRMH only:
+y2.hy &lt;- hybrid.filter(y, width=31, method=c("MED","PRMH"))
+plot(y2.hy)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,152 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>parallel_algorithm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Wrapper of the loop over the subsets which in turn use the parallelised algorithm.</h2>
+
+<h3>Description</h3>
+
+<p>Wrapper of the loop over the subsets which in turn use the parallelised algorithm.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">parallel_algorithm(
+  original_data,
+  indices_subset,
+  S_cand,
+  k_cand,
+  kg_cand,
+  C_candidates,
+  robust = TRUE,
+  USE_DO = FALSE,
+  choice_pic = "pic2022",
+  maxit = 30
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>original_data</code></td>
+<td>
+<p>list containing the original data (1: Y, 2: X)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>indices_subset</code></td>
+<td>
+<p>vector with indices of the subsets; starts with zero</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>S_cand</code></td>
+<td>
+<p>candidates for S (number of groups)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k_cand</code></td>
+<td>
+<p>candidates for k (number of common factors)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kg_cand</code></td>
+<td>
+<p>candidates for kg (number of group specific factors)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>C_candidates</code></td>
+<td>
+<p>candidates for C</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>robust</code></td>
+<td>
+<p>robust or classical estimation</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>USE_DO</code></td>
+<td>
+<p>(for testing purposes) if TRUE, then a serialized version is performed ("do" instead of "dopar")</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>choice_pic</code></td>
+<td>
+<p>indicates which PIC to use to estimate the number of groups and factors.
+Options are "pic2017" (PIC of Ando and Bai (2017); works better for large N),
+"pic2016" (Ando and Bai (2016); works better for large T) weighs the fourth term with an extra factor relative to the size of the groups,
+and "pic2022" which shrinks the NT-space where the number of groups and factors would be over- or underestimated compared to pic2016 and pic2017. This is the default.
+This parameter can also be a vector with multiple pic's.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxit</code></td>
+<td>
+<p>maximum limit for the number of iterations for each configuration; defaults to 30</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Returns a list with three elements.
+</p>
+
+<ol>
+<li>
+<p> Data.frame with the optimal number of common factors for each candidate C in the rows.
+Each column contains the results of one subset of the input data (the first row corresponds to the full dataset).
+</p>
+</li>
+<li>
+<p> Data.frame with the optimal number of groups and group specific factors for each candidate C in the rows. The structure is the same as in the above.
+Each entry is of the form "1_2_3_NA". This is to be interpreted as 3 groups (three non NA values) where group 1 contains 1 group specific factor,
+group 2 contains 2 and group 3 contains 3.
+</p>
+</li>
+<li>
+<p> Data.frame with information about each configuration in the rows.
+</p>
+</li>
+</ol>
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+#Using a small dataset as an example; this will generate several warnings due to its small size.
+#Note that this example is run sequentially instead of parallel,
+#  and consequently will print some intermediate information in the console.
+#This example uses the classical algorithm instead of the robust algorithm
+#  to limit its running time.
+set.seed(1)
+original_data &lt;- create_data_dgp2(30, 10)
+#define the number of subsets used to estimate the optimal number of groups and factors
+indices_subset &lt;- define_number_subsets(2)
+#define the candidate values for C (this is a parameter in the information criterium
+#  used to estimate the optimal number of groups and factors)
+C_candidates &lt;- define_C_candidates()
+
+S_cand &lt;- 3:3 # vector with candidate number of groups
+k_cand &lt;- 0:0 # vector with candidate number of common factors
+kg_cand &lt;- 1:2 # vector with candidate number of group specific factors
+
+#excluding parallel part from this example
+#cl &lt;- makeCluster(detectCores() - 1)
+#registerDoSNOW(cl)
+output &lt;- parallel_algorithm(original_data, indices_subset, S_cand, k_cand, kg_cand,
+  C_candidates, robust = FALSE, USE_DO = TRUE, maxit = 3)
+#stopCluster(cl)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,168 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rspde.make.index</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>rSPDE model index vector generation</h2>
+
+<h3>Description</h3>
+
+<p>Generates a list of named index vectors for an rSPDE model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rspde.make.index(
+  name,
+  n.spde = NULL,
+  n.group = 1,
+  n.repl = 1,
+  mesh = NULL,
+  rspde.order = 2,
+  nu = NULL,
+  dim = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p>A character string with the base name of the effect.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.spde</code></td>
+<td>
+<p>The number of basis functions in the mesh model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.group</code></td>
+<td>
+<p>The size of the group model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.repl</code></td>
+<td>
+<p>The total number of replicates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mesh</code></td>
+<td>
+<p>An <code>inla.mesh</code>,
+an <code>inla.mesh.1d</code> object or a <code>metric_graph</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rspde.order</code></td>
+<td>
+<p>The order of the rational approximation</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nu</code></td>
+<td>
+<p>If <code>NULL</code>, then the model will assume that nu will
+be estimated. If nu is fixed, you should provide the value of nu.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dim</code></td>
+<td>
+<p>the dimension of the domain. Should only be provided if
+<code>mesh</code> is not provided.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list of named index vectors.
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p>Indices into the vector of latent variables</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>name.group</code></td>
+<td>
+<p>'group' indices</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>name.repl</code></td>
+<td>
+<p>Indices for replicates</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R"> #tryCatch version
+tryCatch({
+if (requireNamespace("INLA", quietly = TRUE)){
+library(INLA)
+
+set.seed(123)
+
+m &lt;- 100
+loc_2d_mesh &lt;- matrix(runif(m * 2), m, 2)
+mesh_2d &lt;- inla.mesh.2d(
+  loc = loc_2d_mesh,
+  cutoff = 0.05,
+  max.edge = c(0.1, 0.5)
+)
+sigma &lt;- 1
+range &lt;- 0.2
+nu &lt;- 0.8
+kappa &lt;- sqrt(8 * nu) / range
+op &lt;- matern.operators(
+  mesh = mesh_2d, nu = nu,
+  range = range, sigma = sigma, m = 2,
+  parameterization = "matern"
+)
+u &lt;- simulate(op)
+A &lt;- inla.spde.make.A(
+  mesh = mesh_2d,
+  loc = loc_2d_mesh
+)
+sigma.e &lt;- 0.1
+y &lt;- A %*% u + rnorm(m) * sigma.e
+Abar &lt;- rspde.make.A(mesh = mesh_2d, loc = loc_2d_mesh)
+mesh.index &lt;- rspde.make.index(name = "field", mesh = mesh_2d)
+st.dat &lt;- inla.stack(
+  data = list(y = as.vector(y)),
+  A = Abar,
+  effects = mesh.index
+)
+rspde_model &lt;- rspde.matern(
+  mesh = mesh_2d,
+  nu.upper.bound = 2
+)
+f &lt;- y ~ -1 + f(field, model = rspde_model)
+rspde_fit &lt;- inla(f,
+  data = inla.stack.data(st.dat),
+  family = "gaussian",
+  control.predictor =
+    list(A = inla.stack.A(st.dat))
+)
+result &lt;- rspde.result(rspde_fit, "field", rspde_model)
+summary(result)
+}
+#stable.tryCatch
+}, error = function(e){print("Could not run the example")})
+
+</code></pre>
+
+
+</div>

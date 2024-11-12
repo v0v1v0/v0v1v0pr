@@ -1,0 +1,203 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ee_image_to_asset</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Creates a task to export an EE Image to their EE Assets.</h2>
+
+<h3>Description</h3>
+
+<p>Creates a task to export an EE Image to their EE Assets.
+This function is a wrapper around <code>ee$batch$Export$image$toAsset(...)</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ee_image_to_asset(
+  image,
+  description = "myExportImageTask",
+  assetId = NULL,
+  overwrite = FALSE,
+  pyramidingPolicy = NULL,
+  dimensions = NULL,
+  region = NULL,
+  scale = NULL,
+  crs = NULL,
+  crsTransform = NULL,
+  maxPixels = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>image</code></td>
+<td>
+<p>The image to be exported.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>description</code></td>
+<td>
+<p>Human-readable name of the task.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>assetId</code></td>
+<td>
+<p>The destination asset ID.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite</code></td>
+<td>
+<p>Specifies whether to overwrite the assetId if it already exists.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pyramidingPolicy</code></td>
+<td>
+<p>The pyramiding policy to apply to each band
+in the image, a dictionary keyed by band name. Values must be one
+of: "mean", "sample", "min", "max", or "mode". Defaults to "mean".
+A special key, ".default", may be used to change the default for all bands.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dimensions</code></td>
+<td>
+<p>Defines the image dimensions for export.
+It can be specified as a single positive integer for the maximum dimension
+or in "WIDTHxHEIGHT" format, where WIDTH and HEIGHT are positive integers.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>region</code></td>
+<td>
+<p>The lon,lat coordinates for a LinearRing or Polygon
+specifying the region to export. It can be specified as nested lists
+of numbers or a serialized string. Defaults to the image's region.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>Resolution given in meters per pixel. Defaults to the native
+resolution of the image asset unless a crsTransform is specified.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>crs</code></td>
+<td>
+<p>The coordinate reference system of the exported image's
+projection. Defaults to the image's default projection.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>crsTransform</code></td>
+<td>
+<p>A comma-separated string of 6 numbers describing
+the affine transform of the coordinate reference system of the exported
+image's projection, in the order:
+xScale, xShearing, xTranslation, yShearing, yScale, and yTranslation.
+Defaults to the image's native CRS transform.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxPixels</code></td>
+<td>
+<p>The maximum allowed number of pixels in the exported
+image. The task will fail if the exported region covers more pixels
+in the specified projection. Defaults to 100,000,000. **kwargs: Holds
+other keyword arguments that may have been deprecated, such
+as 'crs_transform'.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An unstarted task
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other image export task creator: 
+<code>ee_image_to_drive()</code>,
+<code>ee_image_to_gcs()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+library(rgee)
+library(stars)
+library(sf)
+
+ee_users()
+ee_Initialize()
+
+# Define study area (local -&gt; earth engine)
+# Communal Reserve Amarakaeri - Peru
+rlist &lt;- list(xmin = -71.13, xmax = -70.95,ymin = -12.89, ymax = -12.73)
+ROI &lt;- c(rlist$xmin, rlist$ymin,
+         rlist$xmax, rlist$ymin,
+         rlist$xmax, rlist$ymax,
+         rlist$xmin, rlist$ymax,
+         rlist$xmin, rlist$ymin)
+ee_ROI &lt;- matrix(ROI, ncol = 2, byrow = TRUE) %&gt;%
+  list() %&gt;%
+  st_polygon() %&gt;%
+  st_sfc() %&gt;%
+  st_set_crs(4326) %&gt;%
+  sf_as_ee()
+
+
+# Get the mean annual NDVI for 2011
+cloudMaskL457 &lt;- function(image) {
+  qa &lt;- image$select("pixel_qa")
+  cloud &lt;- qa$bitwiseAnd(32L)$
+    And(qa$bitwiseAnd(128L))$
+    Or(qa$bitwiseAnd(8L))
+  mask2 &lt;- image$mask()$reduce(ee$Reducer$min())
+  image &lt;- image$updateMask(cloud$Not())$updateMask(mask2)
+  image$normalizedDifference(list("B4", "B3"))
+}
+
+ic_l5 &lt;- ee$ImageCollection("LANDSAT/LT05/C01/T1_SR")$
+  filterBounds(ee$FeatureCollection(ee_ROI))$
+  filterDate("2011-01-01", "2011-12-31")$
+  map(cloudMaskL457)
+
+# Create simple composite
+mean_l5 &lt;- ic_l5$mean()$rename("NDVI")
+mean_l5 &lt;- mean_l5$reproject(crs = "EPSG:4326", scale = 500)
+mean_l5_Amarakaeri &lt;- mean_l5$clip(ee_ROI)
+
+# Move results from Earth Engine to Drive
+assetid &lt;- paste0(ee_get_assethome(), '/l5_Amarakaeri')
+task_img &lt;- ee_image_to_asset(
+  image = mean_l5_Amarakaeri,
+  assetId = assetid,
+  overwrite = TRUE,
+  scale = 500,
+  region = ee_ROI
+)
+
+task_img$start()
+ee_monitoring(task_img)
+
+ee_l5 &lt;- ee$Image(assetid)
+Map$centerObject(ee_l5)
+Map$addLayer(ee_l5)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

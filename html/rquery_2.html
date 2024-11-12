@@ -1,0 +1,117 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>actualize_join_plan</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Execute an ordered sequence of left joins.</h2>
+
+<h3>Description</h3>
+
+<p>Please see <code>vignette('DependencySorting', package = 'rquery')</code> and <code>vignette('joinController', package= 'rquery')</code> for more details.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">actualize_join_plan(
+  columnJoinPlan,
+  ...,
+  jointype = "LEFT",
+  add_ind_cols = FALSE,
+  checkColClasses = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>columnJoinPlan</code></td>
+<td>
+<p>columns to join, from <code>build_join_plan</code> (and likely altered by user).  Note: no column names must intersect with names of the form <code>table_CLEANEDTABNAME_present</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>force later arguments to bind by name.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>jointype</code></td>
+<td>
+<p>character, type of join to perform ("LEFT", "INNER", "RIGHT", ...).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>add_ind_cols</code></td>
+<td>
+<p>logical, if TRUE add indicators showing which tables supplied rows.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>checkColClasses</code></td>
+<td>
+<p>logical if true check for exact class name matches</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>join optree
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>describe_tables</code>, <code>build_join_plan</code>, <code>inspect_join_plan</code>, <code>graph_join_plan</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+if (requireNamespace("DBI", quietly = TRUE) &amp;&amp; requireNamespace("RSQLite", quietly = TRUE)) {
+  my_db &lt;- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+  # example data
+  DBI::dbWriteTable(my_db,
+                    "meas1",
+                    data.frame(id= c(1,2),
+                               weight= c(200, 120),
+                               height= c(60, 14)))
+  DBI::dbWriteTable(my_db,
+                    "meas2",
+                    data.frame(pid= c(2,3),
+                               weight= c(105, 110),
+                               width= 1))
+  # get the initial description of table defs
+  tDesc &lt;- describe_tables(my_db, qc(meas1, meas2))
+  # declare keys (and give them consitent names)
+  tDesc$keys[[1]] &lt;- list(PatientID= 'id')
+  tDesc$keys[[2]] &lt;- list(PatientID= 'pid')
+  # build the column join plan
+  columnJoinPlan &lt;- build_join_plan(tDesc)
+  # decide we don't want the width column
+  columnJoinPlan$want[columnJoinPlan$resultColumn=='width'] &lt;- FALSE
+  # double check our plan
+  if(!is.null(inspect_join_plan(tDesc, columnJoinPlan,
+                                checkColClasses= TRUE))) {
+    stop("bad join plan")
+  }
+  # actualize as left join op_tree
+  optree &lt;- actualize_join_plan(columnJoinPlan,
+                                checkColClasses= TRUE)
+  cat(format(optree))
+  print(execute(my_db, optree))
+  # if(requireNamespace("DiagrammeR", quietly = TRUE)) {
+  #   DiagrammeR::grViz(op_diagram(optree))
+  # }
+  DBI::dbDisconnect(my_db)
+}
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,195 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>step_time</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Time feature generator</h2>
+
+<h3>Description</h3>
+
+<p><code>step_time()</code> creates a <em>specification</em> of a recipe step that will convert
+date-time data into one or more factor or numeric variables.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">step_time(
+  recipe,
+  ...,
+  role = "predictor",
+  trained = FALSE,
+  features = c("hour", "minute", "second"),
+  columns = NULL,
+  keep_original_cols = TRUE,
+  skip = FALSE,
+  id = rand_id("time")
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>recipe</code></td>
+<td>
+<p>A recipe object. The step will be added to the
+sequence of operations for this recipe.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>One or more selector functions to choose variables
+for this step. The selected variables should have class
+<code>POSIXct</code> or <code>POSIXlt</code>. See <code>selections()</code> for more details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>role</code></td>
+<td>
+<p>For model terms created by this step, what analysis role should
+they be assigned? By default, the new columns created by this step from
+the original variables will be used as <em>predictors</em> in a model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trained</code></td>
+<td>
+<p>A logical to indicate if the quantities for
+preprocessing have been estimated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>features</code></td>
+<td>
+<p>A character string that includes at least one
+of the following values: <code>am</code> (is is AM), <code>hour</code>, <code>hour12</code>, <code>minute</code>,
+<code>second</code>, <code>decimal_day</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>columns</code></td>
+<td>
+<p>A character string of the selected variable names. This field
+is a placeholder and will be populated once <code>prep()</code> is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep_original_cols</code></td>
+<td>
+<p>A logical to keep the original variables in the
+output. Defaults to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>skip</code></td>
+<td>
+<p>A logical. Should the step be skipped when the
+recipe is baked by <code>bake()</code>? While all operations are baked
+when <code>prep()</code> is run, some operations may not be able to be
+conducted on new data (e.g. processing the outcome variable(s)).
+Care should be taken when using <code>skip = TRUE</code> as it may affect
+the computations for subsequent operations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id</code></td>
+<td>
+<p>A character string that is unique to this step to identify it.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Unlike some other steps, <code>step_time()</code> does <em>not</em>
+remove the original time variables by default. Set <code>keep_original_cols</code>
+to <code>FALSE</code> to remove them.
+</p>
+<p><code>decimal_day</code> return time of day as a decimal number between 0 and 24. for
+example <code>"07:15:00"</code> would be transformed to <code>7.25</code>  and <code>"03:59:59"</code> would
+be transformed to <code>3.999722</code>. The formula for these calculations are
+<code>hour(x) + (second(x) + minute(x) * 60) / 3600</code>.
+</p>
+<p>See <code>step_date()</code> if you want to calculate features that are larger than
+hours.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An updated version of <code>recipe</code> with the new step added to the
+sequence of any existing operations.
+</p>
+
+
+<h3>Tidying</h3>
+
+<p>When you <code>tidy()</code> this step, a tibble is returned with
+columns <code>terms</code>, <code>value</code> , and <code>id</code>:
+</p>
+
+<dl>
+<dt>terms</dt>
+<dd>
+<p>character, the selectors or variables selected</p>
+</dd>
+<dt>value</dt>
+<dd>
+<p>character, the feature names</p>
+</dd>
+<dt>id</dt>
+<dd>
+<p>character, id of this step</p>
+</dd>
+</dl>
+<h3>See Also</h3>
+
+<p>Other dummy variable and encoding steps: 
+<code>step_bin2factor()</code>,
+<code>step_count()</code>,
+<code>step_date()</code>,
+<code>step_dummy()</code>,
+<code>step_dummy_extract()</code>,
+<code>step_dummy_multi_choice()</code>,
+<code>step_factor2string()</code>,
+<code>step_holiday()</code>,
+<code>step_indicate_na()</code>,
+<code>step_integer()</code>,
+<code>step_novel()</code>,
+<code>step_num2factor()</code>,
+<code>step_ordinalscore()</code>,
+<code>step_other()</code>,
+<code>step_regex()</code>,
+<code>step_relevel()</code>,
+<code>step_string2factor()</code>,
+<code>step_unknown()</code>,
+<code>step_unorder()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(lubridate)
+
+examples &lt;- data.frame(
+  times = ymd_hms("2022-05-06 23:51:07") +
+  hours(1:5) + minutes(1:5) + seconds(1:5)
+)
+time_rec &lt;- recipe(~ times, examples) %&gt;%
+  step_time(all_predictors())
+
+tidy(time_rec, number = 1)
+
+time_rec &lt;- prep(time_rec, training = examples)
+
+time_values &lt;- bake(time_rec, new_data = examples)
+time_values
+
+tidy(time_rec, number = 1)
+</code></pre>
+
+
+</div>

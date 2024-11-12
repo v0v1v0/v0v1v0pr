@@ -1,0 +1,179 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>circuit</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Mensurates a circuit given potentials of some nodes and current
+flow into the others</h2>
+
+<h3>Description</h3>
+
+<p>Given a conductance matrix, a vector of potentials at each node, and a
+vector of current inputs  at each node (<code>NA</code> being interpreted as
+“unknown”), this function determines the potentials at each
+node, and the currents along each edge, of the whole circuit.  
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">circuit(L, v, currents=0, use.inverse=FALSE, give.internal=FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>L</code></td>
+<td>
+<p>Conductance matrix</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>v</code></td>
+<td>
+<p>Vector of potentials; one element per node.  Elements
+with <code>NA</code> are interpreted
+as “free” nodes, that is, nodes that are not kept at a fixed
+potential.  The potential of these nodes is well defined by the other
+nodes in the problem.  Note that such nodes must have
+current inputs (which may be zero) specified by argument
+<code>currents</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>currents</code></td>
+<td>
+<p>Vector of currents fed into each node.  The only
+elements of this vector that are used are those that correspond to a
+node with free potential (use <code>NA</code> for nodes that are at a
+specified potential).  The idea is that each node has
+<strong>either</strong> a specified voltage, <strong>or</strong> a specified current
+is fed into it; not both, and not neither.
+</p>
+<p>Observe that feeding zero current into a node at free potential is
+perfectly acceptable (and the usual case)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use.inverse</code></td>
+<td>
+<p>Boolean, with default <code>FALSE</code> meaning to use
+<code>solve(A,b)</code> and <code>TRUE</code> meaning to use <code>solve(A)</code>, 
+thus incurring the penalty of evaluating a matrix inverse, which is
+typically to be avoided if possible.
+</p>
+<p>The default option should be faster most of the time, but YMMV</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>give.internal</code></td>
+<td>
+<p>Boolean, with <code>TRUE</code> meaning to return also
+a matrix showing the node-to-node currents, and default <code>FALSE</code>
+meaning to omit this</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Depending on the value of Boolean argument <code>give.internal</code>,
+return a list of either 2 or 4 elements:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>potentials</code></td>
+<td>
+<p>A vector of potentials.  Note that the potentials of the
+nodes whose potential was specified by input argument <code>v</code>
+retain their original potentials; symbolically
+<code>all(potentials[!is.na(v)] == v[!is.na(v)])</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>currents</code></td>
+<td>
+<p>Vector of currents required to maintain the system
+with the potentials specified by input argument <code>v</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>internal.currents</code></td>
+<td>
+<p>Matrix showing current flow from node to
+node.  Element <code>[i,j]</code> shows current flow from node <code>i</code> to
+node <code>j</code>.  This and the next two elements only supplied if
+argument <code>give.internal</code> is <code>TRUE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>power</code></td>
+<td>
+<p>The power dissipated at each edge</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>total.power</code></td>
+<td>
+<p>Total power dissipated over the resistor network</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>The SI unit of potential is the “Volt”; the SI unit of current
+is the “Ampere”</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Robin K. S. Hankin</p>
+
+
+<h3>See Also</h3>
+
+<p><code>resistance</code></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+#reproduce first example on ?cube:
+v &lt;- c(0,rep(NA,5),1,NA)
+circuit(cube(),v)
+circuit(cube(),v+1000)
+
+#  problem: The nodes  of a skeleton cube are at potentials
+#  1,2,3,... volts.  What current is needed to maintain this?  Ans:
+circuit(cube(),1:8)
+
+
+#sanity check: maintain one node at 101 volts:
+circuit(cube(),c(rep(NA,7),101))
+
+#now, nodes 1-4 have potential 1,2,3,4 volts.  Nodes 5-8 each have one
+#Amp shoved in them.  What is the potential of nodes 5-8, and what
+#current is needed to maintain nodes 1-4 at their potential?
+# Answer:
+v &lt;- c(1:4,rep(NA,4))
+currents &lt;- c(rep(NA,4),rep(1,4))
+circuit(cube(),v,currents)
+
+# Now back to the resistance of a skeleton cube across its sqrt(3)
+# diagonal.  To do this, we hold node 1 at 0 Volts, node 7 at 1 Volt,
+# and leave the rest floating (see argument v below); we
+# seek the current at nodes 1 and 7
+# and insist that the current flux into the other nodes is zero
+# (see argument currents below):
+
+circuit(L=cube(),v=c(0,NA,NA,NA,NA,NA,1,NA),currents=c(NA,0,0,0,0,0,NA,0))
+
+# Thus the current is 1.2 ohms and the resistance (from V=IR)
+# is just 1/1.2 = 5/6 ohms, as required.
+
+</code></pre>
+
+
+</div>

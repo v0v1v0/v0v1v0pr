@@ -1,0 +1,123 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>panSharpen</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Pan Sharpen Imagery / Image Fusion</h2>
+
+<h3>Description</h3>
+
+<p>provides different methods for pan sharpening a coarse resolution (typically multispectral) image with 
+a higher reolution panchromatic image. Values of the pan-chromatic and multispectral images must be of the same scale, (e.g. from 0:1, or all DNs from 0:255)
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">panSharpen(img, pan, r, g, b, pc = 1, method = "brovey", norm = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>img</code></td>
+<td>
+<p>SpatRaster. Coarse resolution multispectral image</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pan</code></td>
+<td>
+<p>SpatRaster. High resolution image, typically panchromatic.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>r</code></td>
+<td>
+<p>Character or Integer. Red band in <code>img</code>. Only relevant if <code>method!='pca'</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g</code></td>
+<td>
+<p>Character or Integer. Green band in <code>img</code>. Only relevant if <code>method!='pca'</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>b</code></td>
+<td>
+<p>Character or Integer. Blue band in <code>img</code>. Only relevant if <code>method!='pca'</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pc</code></td>
+<td>
+<p>Integer. Only relevant if <code>method = 'pca'</code>. Which principal component to replace. Usually this should be the first component (default). Only if the first component is dominated by something else than brightness it might be worth a try to use the second component.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Character. Choose method from c("pca", "ihs", "brovey").</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>norm</code></td>
+<td>
+<p>Logical.  Rescale pan image to match the 1st PC component. Only relevant if <code>method = 'pca'</code>. If <code>TRUE</code> only min and max are matched to the 1st PC. If <code>FALSE</code> pan will be histogram matched to the 1st PC.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Pan sharpening options:
+</p>
+ 
+<ul>
+<li>
+<p><code>method='pca'</code>: Performs a pca using rasterPCA. The first component is then swapped for the pan band an the PCA is rotated backwards.
+</p>
+</li>
+<li>
+<p><code>method='ihs'</code>: Performs a color space transform to Intensity-Hue-Saturation space, swaps intensity for the histogram matched pan and does the backwards transformation.
+</p>
+</li>
+<li>
+<p><code>method='brovey'</code>: Performs Brovey reweighting. Pan and img must be at the same value scale (e.g. 0:1, or 0:255) otherwise you'll end up with psychodelic colors.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>pan-sharpened SpatRaster
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(terra)
+library(ggplot2)
+
+## Fake panchromatic image (30m resolution covering
+## the visible range (integral from blue to red))
+pan       &lt;- sum(lsat[[1:3]])
+ggR(pan, stretch = "lin") 
+
+## Fake coarse resolution image (150m spatial resolution)
+lowResImg &lt;- aggregate(lsat, 5)
+
+
+## Brovey pan sharpening
+lowResImg_pan &lt;- panSharpen(lowResImg, pan, r = 3, g = 2, b = 1, method = "brovey")
+lowResImg_pan
+## Plot 
+ggRGB(lowResImg, stretch = "lin") + ggtitle("Original")
+ggRGB(lowResImg_pan, stretch="lin") + ggtitle("Pansharpened (Brovey)")
+    
+</code></pre>
+
+
+</div>

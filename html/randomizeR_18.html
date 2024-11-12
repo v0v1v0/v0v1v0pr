@@ -1,0 +1,130 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>assess</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Assessing randomization sequences</h2>
+
+<h3>Description</h3>
+
+<p>Assesses randomization sequences based on specified issues 
+in clinical trials.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">assess(randSeq, ..., endp)
+
+## S4 method for signature 'randSeq,missing'
+assess(randSeq, ..., endp)
+
+## S4 method for signature 'randSeq,endpoint'
+assess(randSeq, ..., endp)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>randSeq</code></td>
+<td>
+<p>object of class <code>randSeq</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>at least one object of class <code>issue</code> or just a list of objects 
+of the class <code>issue</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>endp</code></td>
+<td>
+<p>object of class <code>endpoint</code>, or <code>missing</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Randomization sequences behave differently with respect to issues
+like selection bias, chronological bias, or loss in power estimation.
+The <code>assess</code> function evaluates the behavior of randomization 
+sequences with respect to these issues. 
+The first argument should be a result of one of the functions 
+<code>genSeq</code> or <code>getAllSeq</code>.
+The second argument should be any number of <code>issues</code> arising 
+in a clinical trial. The last argument <code>endp</code> may be provided if 
+the assessment should take the distribution of the treatment groups
+into account, e.g. for power evaluation.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>S4</code> object of class <code>assessment</code> summarizing the assessment of the 
+randomization procedure.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Representation of randomization procedures: <code>randPar</code>
+</p>
+<p>Generation of randomization sequences: <code>genSeq</code>
+</p>
+<p><code>issues</code> for the assessment of randomization sequences
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># assess the full set of Random Allocation Rule for N=4 patients
+sequences &lt;- getAllSeq(rarPar(4))
+issue1 &lt;- corGuess("CS")
+issue2 &lt;- corGuess("DS")
+issue3 &lt;- imbal("imb")
+issue4 &lt;- imbal("maxImb")
+assess(sequences, issue1, issue2, issue3, issue4)
+
+# assess one sequence of the Big Stick Design with respect to correct guesses
+sequence &lt;- genSeq(bsdPar(10, 2), seed = 1909)
+assess(sequence, issue1)
+
+# assess the same sequence with respect to selection bias and power for a normal endpoint
+endp &lt;- normEndp(c(2, 2), c(1, 1))
+issue5 &lt;- selBias("CS", 4, "exact")
+issue6 &lt;- setPower(2, "exact")
+assess(sequence, issue1, issue5, issue6, endp = endp)
+
+# assess the same sequence with respect to selection bias for an exponential endpoint
+endp &lt;- expEndp(lambda = c(0.5, 0.5), cenRate=0.1, accrualTime=1, cenTime=5)
+issue7 &lt;- selBias("CS", 0.1, "exact")
+assess(sequence, issue1, issue7, endp = endp)
+
+# recommended plot for the assessment of rejection probabilities
+RP &lt;- getAllSeq(crPar(6))
+cB &lt;- chronBias(type = "linT", theta = 1/6, method = "exact")
+sB &lt;- selBias(type=  "CS", eta = 1/4, method = "exact")
+normEndp &lt;- normEndp(c(0, 0), c(1, 1))
+A &lt;- assess(RP, cB, sB, endp = normEndp)
+D &lt;- A$D
+desiredSeq &lt;- round(sum(D[,2][D[,3] &lt;= 0.05 &amp; D[,4] &lt;= 0.05]), digits = 4)
+colnames(D) &lt;- c("Seq", "Prob", "SB", "linT")
+g &lt;- ggplot(D, aes(x = SB, y = linT))
+g &lt;- g + annotate("rect", xmin = 0, xmax = 0.05, ymin = 0, ymax = 0.05,
+alpha=0.2, fill="green") 
+g &lt;- g + geom_point(alpha = 1/10, size = 3, col = "orange")
+g &lt;- g &lt;- g + geom_vline(xintercept = 0.05, col = "red")
+g &lt;- g + geom_hline(yintercept = 0.05, col = "red")
+g  &lt;- g + geom_text(data = NULL, x = 0, y = 0,
+label = paste("Proportion:", desiredSeq), hjust=0, vjust=0, size = 7)
+g
+
+</code></pre>
+
+
+</div>

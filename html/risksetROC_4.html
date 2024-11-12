@@ -1,0 +1,153 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>llCoxReg</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Incident/Dynamic (I/D) ROC curve, AUC and integrated AUC (iAUC)
+estimation of censored survival data</h2>
+
+<h3>Description</h3>
+
+<p>This function estimates the time-varying parameter estimate
+<code class="reqn">\beta(t)</code> of non-proportional 
+hazard model using local-linear Cox regression as discussed in
+Heagerty and Zheng, 2005. 
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">llCoxReg(Stime, entry=NULL, status, marker, span=0.40, p=1, window="asymmetric") 
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Stime</code></td>
+<td>
+<p>For right censored data, this is the follow up time. For
+left truncated data, this is the ending time for the interval.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>entry</code></td>
+<td>
+<p>For left truncated data, this is the entry time of
+the interval. The default is set to NULL for right censored
+data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>status</code></td>
+<td>
+<p>Survival status.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>marker</code></td>
+<td>
+<p>Marker value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>span</code></td>
+<td>
+<p>bandwidth parameter that controls the size of a local
+neighborhood.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>1 if only the time-varying coefficient is of interest
+and 2  if the derivative of time-varying coefficient is also of interest,
+default is 1</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>window</code></td>
+<td>
+<p>Either of "asymmetric" or "symmetric", default is asymmetric.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function calculates the parameter estimate <code class="reqn">\beta(t)</code>
+of non-proportional hazard model using local-linear Cox regression as
+discussed in Heagerty and Zheng, 2005. This estimation is based on a
+time-dependent Cox  model (Cai and Sun, 2003). For <em>p=1</em>, the
+return item <em>beta</em> has two columns, the first column is the
+time-varying parameter estimate, while the second column is the
+derivative. However, if the derivative of the time-varying parameter
+is of interest, then we suggest to use <em>p=2</em>. In this case,
+<em>beta</em> has four columns, the first two columns are the same when
+<em>p=1</em>, while the last two columns estimates the coefficients of
+squared marker value and its derivative.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns a list of following items:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>time</code></td>
+<td>
+<p>unique failure times</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+<p>estimate of time-varying parameter <code class="reqn">\beta(t)</code> at each
+unique failure time. </p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Patrick J. Heagerty </p>
+
+
+<h3>References</h3>
+
+<p>Heagerty, P.J., Zheng Y. (2005)
+Survival Model Predictive Accuracy and ROC curves
+<em>Biometrics</em>, <b>61</b>, 92 – 105</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(pbc)
+## considering only randomized patients
+pbc1 &lt;- pbc[1:312,]
+## create new censoring variable combine 0,1 as 0, 2 as 1
+survival.status &lt;- ifelse( pbc1$status==2, 1, 0)
+survival.time &lt;- pbc1$fudays
+pbc1$status1 &lt;- survival.status
+fit &lt;- coxph( Surv(fudays,status1) ~ log(bili) +
+                                     log(protime) +
+                                     edema +
+                                     albumin +
+                                     age,
+              data=pbc1 )
+eta5 &lt;- fit$linear.predictors
+x &lt;- eta5
+nobs &lt;- length(survival.time[survival.status==1])
+span &lt;- 1.0*(nobs^(-0.2))
+
+## Not run: 
+bfnx1 &lt;- llCoxReg(Stime=survival.time, status=survival.status, marker=x,
+                   span=span, p=1)
+plot(bfnx1$time, bfnx1$beta[,1], type="l", xlab="Time", ylab="beta(t)")
+
+## End(Not run)
+</code></pre>
+
+
+</div>

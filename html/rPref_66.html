@@ -1,0 +1,195 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>complex_pref</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Complex Preferences</h2>
+
+<h3>Description</h3>
+
+<p>Complex preferences are used to compose different preference orders. 
+For example the Pareto composition (via operator <code>*</code>) is the usual operator
+to compose the preference for a Skyline query. The Skyline is also known as Pareto frontier.
+All complex preferences are mathematically strict partial orders (irreflexive and transitive).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S4 method for signature 'preference,preference'
+e1 * e2
+
+## S4 method for signature 'preference,preference'
+e1 &amp; e2
+
+## S4 method for signature 'preference,preference'
+e1 | e2
+
+## S4 method for signature 'preference,preference'
+e1 + e2
+
+reverse(p)
+
+is.complex_pref(x)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>p, e1, e2</code></td>
+<td>
+<p>Preference objects (they can be either base preferences, see <code>base_pref</code>, or complex preferences)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>An object to be tested if it is a complex preference.</p>
+</td>
+</tr>
+</table>
+<h3>Skylines</h3>
+
+<p>The most important preference composition operator is the Pareto operator (<code>p1 * p2</code>) to formulate a Skyline query. 
+A tuple t1 is better than t2 w.r.t. <code>p1 * p2</code> if it is strictly better w.r.t. one of the preferences p1, p2 and is better or equal w.r.t. the other preference.
+</p>
+<p>The syntactical correspondence to other query languages supporting Skylines/preferences to rPref
+is given as follows:
+</p>
+
+<ul>
+<li>
+<p> A query in the syntax from Börzsönyi et. al (2001) like
+</p>
+<p>"<code>... SKYLINE OF a MAX, b MIN, c MAX</code>" 
+</p>
+<p>corresponds in rPref to the preference
+</p>
+<p><code>high(a) * low(b) * high(c)</code>.
+</p>
+</li>
+<li>
+<p> A query in the syntax from Kiessling (2002) like 
+</p>
+<p>"<code>... PREFERRING a LOWEST AND (b HIGHEST PRIOR TO c LOWEST)</code>" 
+</p>
+<p>corresponds in rPref to 
+</p>
+<p><code>low(a) * (high(b) &amp; low(c))</code>.
+</p>
+</li>
+<li>
+<p> A query in the syntax of the "Skyline" feature of the commercial database "EXASOL EXASolution 5" like 
+</p>
+<p>"<code>... PREFERRING LOW a PLUS (b = 1 PRIOR TO LOW c))</code>" 
+</p>
+<p>corresponds in rPref to
+</p>
+<p><code>low(a) * (true(b == 1) &amp; low(c))</code>.
+</p>
+</li>
+</ul>
+<p>Note that preferences in rPref can be translated to some of this query dialects by <code>show.query</code>.
+</p>
+
+
+<h3>Definition of Additional Preference Operators</h3>
+
+<p>Additionally, rPref supports the following preference composition operators:
+</p>
+
+<dl>
+<dt><code>p1 &amp; p2</code></dt>
+<dd>
+<p>Prioritization (lexicographical order): A tuple t1 is better than t2 w.r.t. <code>p1 &amp; p2</code> if it is 
+strictly better w.r.t. <code>p1</code> or is equal w.r.t. <code>p1</code> and is better w.r.t. <code>p2</code>.</p>
+</dd>
+<dt><code>p1 | p2</code></dt>
+<dd>
+<p>Intersection preference: A tuple t1 is better than t2 w.r.t. <code>p1 | p2</code> if it is strictly better w.r.t. both preferences. 
+This is a stricter variant of the Pareto operator. The evaluation of <code>psel(df, p1 | p2)</code> is always a subset of <code>psel(df, p1 * p2)</code>.</p>
+</dd>
+<dt><code>p1 + p2</code></dt>
+<dd>
+<p>Union preference: A tuple t1 is better than t2 w.r.t. <code>p1 + p2</code> if it is strictly better w.r.t. to one of the preferences. 
+Note that this can violate the strict partial order property, if the domains (the tuples on which <code>p1</code> and <code>p2</code> define better-than-relationships) 
+of the preferences are not disjoint.</p>
+</dd>
+<dt>
+<code>reverse(p1)</code> or <code>-p1</code>
+</dt>
+<dd>
+<p>Reverse preference (converse relation): 
+A tuple t1 is better than t2 w.r.t. <code>-p1</code> if t2 is better than t1 w.r.t. <code>p1</code>. 
+The unary minus operator, i.e. <code>-p1</code>, is a short hand notation for <code>reverse(p1)</code>.</p>
+</dd>
+</dl>
+<p>The function <code>is.complex_pref</code> returns <code>TRUE</code> if <code>x</code> is a complex preference object 
+(i.e., was constructed by one of these binary operators or the unary operator <code>reverse</code>) 
+and <code>FALSE</code> otherwise.
+</p>
+
+
+<h3>Associated Data Sets</h3>
+
+<p>If one of the preferences for a binary operator are associated with a data set (see <code>base_pref</code>),
+then this association is propagated. For example, the preference
+</p>
+<p><code>p &lt;- high(mpg, df = mtcars) * high(hp)</code>
+</p>
+<p>as well as
+</p>
+<p><code>p &lt;- high(mpg) * high(hp, df = mtcars)</code>
+</p>
+<p>both result in the same complex preference which is associated with <code>mtcars</code>. 
+A partial evaluation is also invoked for all preferences which are added. 
+For example, using this <code>p</code>, 
+</p>
+<p><code>p &lt;- p * true(cyl == max(mtcars$cyl))</code>
+</p>
+<p>generates the following console output:
+</p>
+<p><code>[Preference] high(mpg) * high(hp) * true(cyl == 8)</code> <br><code>  * associated data source: data.frame "mtcars" [32 x 11]</code>
+</p>
+<p>We see that the association with the data set is propagated and <code>max(mtcars$cyl)</code> is partially evaluated.
+</p>
+
+
+<h3>References</h3>
+
+<p>S. Borzsonyi, D. Kossmann, K. Stocker (2001): The Skyline Operator. In Data Engineering (ICDE '01), pages 421-430.
+</p>
+<p>W. Kiessling (2002): Foundations of Preferences in Database Systems. In Very Large Data Bases (VLDB '02), pages 311-322.
+</p>
+<p>S. Mandl, O. Kozachuk, M. Endres, W. Kiessling (2015): Preference Analytics in EXASolution. 
+16th Conference on Database Systems for Business, Technology, and Web.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>See <code>base_pref</code> for the construction of base preferences. 
+See <code>general_pref</code> for functions applicable to all kind of preferences.
+See <code>psel</code> for the evaluation of preferences.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Defines a preference for cars with low consumption (high mpg-value)
+# and simultaneously high horsepower.
+p1 &lt;- high(mpg) * high(hp)  
+
+# Performs the preference search.
+psel(mtcars, p1)
+
+# Alternative way: create preference with associated data set.
+p2 &lt;- high(mpg, df = mtcars) * high(hp)  
+peval(p2)
+</code></pre>
+
+
+</div>

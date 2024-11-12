@@ -1,0 +1,210 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>hetprob</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate heteroskedastic binary (Probit or Logit) model.</h2>
+
+<h3>Description</h3>
+
+<p>Estimation of binary dependent variables, either probit or logit, with heteroskedastic error terms for cross-sectional dataset.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">hetprob(formula, data, link = c("probit", "logit"), ...)
+
+## S3 method for class 'hetprob'
+terms(x, ...)
+
+## S3 method for class 'hetprob'
+model.matrix(object, ...)
+
+## S3 method for class 'hetprob'
+estfun(x, ...)
+
+## S3 method for class 'hetprob'
+bread(x, ...)
+
+## S3 method for class 'hetprob'
+vcov(object, eigentol = 1e-12, ...)
+
+## S3 method for class 'hetprob'
+df.residual(object, ...)
+
+## S3 method for class 'hetprob'
+coef(object, ...)
+
+## S3 method for class 'hetprob'
+logLik(object, ...)
+
+## S3 method for class 'hetprob'
+print(x, ...)
+
+## S3 method for class 'hetprob'
+summary(object, eigentol = 1e-12, ...)
+
+## S3 method for class 'summary.hetprob'
+print(x, digits = max(3, getOption("digits") - 2), ...)
+
+## S3 method for class 'hetprob'
+predict(object, newdata = NULL, type = c("xb", "pr", "sigma"), ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a symbolic description of the model of the form <code>y ~ x | z</code> where <code>y</code> is the binary dependent variable and <code>x</code> and <code>z</code> are regressors variables for the mean of the model and lnsigma.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>the data of class <code>data.frame</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>link</code></td>
+<td>
+<p>the assumption of the distribution of the error term. It could be either <code>link = "probit"</code> or <code>link = "logit"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>arguments passed to <code>maxLik</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x, object</code></td>
+<td>
+<p>an object of class <code>hetprob</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eigentol</code></td>
+<td>
+<p>the standard errors are only calculated if the ratio of the smallest and largest eigenvalue of the Hessian matrix is less than <code>eigentol</code>.  Otherwise the Hessian is treated as singular.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>digits</code></td>
+<td>
+<p>the number of digits.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newdata</code></td>
+<td>
+<p>optionally, a data frame in which to look for variables with which to predict.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>the type of prediction required. The default, <code>type = xb</code>, is on the linear prediction without the variance. If <code>type = pr</code>, the predicted probabilities of a positive outcome is returned. Finally, if <code>type = sigma</code> the predictions of <code class="reqn">\sigma</code> for each individual is returned.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The heterokedastic binary model for cross-sectional data has the following structure:
+</p>
+<p style="text-align: center;"><code class="reqn">
+y_i^*  = x_i^\top\beta + \epsilon_i,
+</code>
+</p>
+
+<p>with
+</p>
+<p style="text-align: center;"><code class="reqn">
+var(\epsilon_i|x_i, z_i)  = \sigma_i^2 = \left[\exp\left(z_i^\top\delta\right)\right]^2,   
+</code>
+</p>
+
+<p>where <code class="reqn">y_i^*</code> is the latent (unobserved) dependent variable for individual <code class="reqn">i = 1,...,N</code>; 
+<code class="reqn">x_i</code> is a <code class="reqn">K\times 1</code> vector of independent variables determining the latent variable <code class="reqn">y_i^*</code> (<code>x</code> variables in <code>formula</code>); 
+and <code class="reqn">\epsilon_i</code> is the error term distributed either normally or logistically with <code class="reqn">E(\epsilon_i|z_i, x_i) = 0</code> 
+and heterokedastic variance <code class="reqn">var(\epsilon_i|x_i, z_i)  = \sigma_i^2, \forall i = 1,...,N</code>. 
+The variance for each individual is modeled parametrically assuming that it depends on a <code class="reqn">P\times 1</code> 
+vector observed variables <code class="reqn">z_i</code> (<code>z</code> in <code>formula</code>), whereas <code class="reqn">\delta</code> is the vector of parameters associated with each variable. 
+It is important to emphasize that <code class="reqn">z_i</code> does not include a constant, otherwise the parameters are not identified.
+</p>
+<p>The models are estimated using the <code>maxLik</code> function from <code>maxLik</code> package using both 
+analytic gradient and hessian  (if <code>Hess = TRUE</code>). In particular, the log-likelihood function is:
+</p>
+<p style="text-align: center;"><code class="reqn">\log L(\theta) = \sum_i^n\log \left\lbrace \left[1- F\left(\frac{x_i^\top\beta}{\exp(z_i^\top\delta)}\right)\right]^{1-y_i}\left[F\left(\frac{x_i^\top\beta}{\exp(z_i^\top\delta)}\right)\right]^{y_i}\right\rbrace.</code>
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>An object of class “<code>hetprob</code>”, a list elements:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>logLik0</code></td>
+<td>
+<p>logLik for the homokedastic model,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>f1</code></td>
+<td>
+<p>the formula,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mf</code></td>
+<td>
+<p>the model framed used,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>the matched call.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Mauricio Sarrias.
+</p>
+
+
+<h3>References</h3>
+
+<p>Greene, W. H. (2012). Econometric Analysis. 7 edition. Prentice Hall.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Estimate a heteroskedastic probit and logit model
+data("Health")
+
+het.probit &lt;- hetprob(working ~ factor(female) + factor(year) + educ + age + I(age^2) | 
+                                factor(female) + age + I(age^2), 
+                     data = Health, 
+                     link = "probit")
+summary(het.probit)
+
+het.logit &lt;- hetprob(working ~ factor(female) + factor(year) + educ + age + I(age^2) | 
+                               factor(female) + age + I(age^2), 
+                    data = Health, 
+                    link = "logit")
+summary(het.logit)
+
+</code></pre>
+
+
+</div>

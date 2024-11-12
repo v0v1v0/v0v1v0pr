@@ -1,0 +1,192 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>EMM2.cpp</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Equation of mixed model for one kernel, EMMA-based method (inplemented by Rcpp)</h2>
+
+<h3>Description</h3>
+
+<p>This function solves single-kernel linear mixed model by EMMA
+(efficient mixed model association; Kang et al., 2008) approach.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">EMM2.cpp(
+  y,
+  X = NULL,
+  ZETA,
+  eigen.G = NULL,
+  eigen.SGS = NULL,
+  tol = NULL,
+  optimizer = "nlminb",
+  traceInside = 0,
+  REML = TRUE,
+  bounds = c(1e-09, 1e+09),
+  SE = FALSE,
+  return.Hinv = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>A <code class="reqn">n \times 1</code> vector. A vector of phenotypic values should be used. NA is allowed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>A <code class="reqn">n \times p</code> matrix. You should assign mean vector (rep(1, n)) and covariates. NA is not allowed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ZETA</code></td>
+<td>
+<p>A list of variance (relationship) matrix (K; <code class="reqn">m \times m</code>) and its design matrix (Z; <code class="reqn">n \times m</code>) of random effects. You can use only one kernel matrix.
+For example, ZETA = list(A = list(Z = Z, K = K))
+Please set names of list "Z" and "K"!</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eigen.G</code></td>
+<td>
+<p>A list with
+</p>
+
+<dl>
+<dt>$values</dt>
+<dd>
+<p>Eigen values</p>
+</dd>
+<dt>$vectors</dt>
+<dd>
+<p>Eigen vectors</p>
+</dd>
+</dl>
+<p>The result of the eigen decompsition of <code class="reqn">G = ZKZ'</code>. You can use "spectralG.cpp" function in RAINBOWR.
+If this argument is NULL, the eigen decomposition will be performed in this function.
+We recommend you assign the result of the eigen decomposition beforehand for time saving.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eigen.SGS</code></td>
+<td>
+<p>A list with
+</p>
+
+<dl>
+<dt>$values</dt>
+<dd>
+<p>Eigen values</p>
+</dd>
+<dt>$vectors</dt>
+<dd>
+<p>Eigen vectors</p>
+</dd>
+</dl>
+<p>The result of the eigen decompsition of <code class="reqn">SGS</code>, where <code class="reqn">S = I - X(X'X)^{-1}X'</code>, <code class="reqn">G = ZKZ'</code>.
+You can use "spectralG.cpp" function in RAINBOWR.
+If this argument is NULL, the eigen decomposition will be performed in this function.
+We recommend you assign the result of the eigen decomposition beforehand for time saving.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>The tolerance for detecting linear dependencies in the columns of G = ZKZ'.
+Eigen vectors whose eigen values are less than "tol" argument will be omitted from results.
+If tol is NULL, top 'n' eigen values will be effective.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optimizer</code></td>
+<td>
+<p>The function used in the optimization process. We offer "optim", "optimx", and "nlminb" functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>traceInside</code></td>
+<td>
+<p>Perform trace for the optimzation if traceInside &gt;= 1, and this argument shows the frequency of reports.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>REML</code></td>
+<td>
+<p>You can choose which method you will use, "REML" or "ML".
+If REML = TRUE, you will perform "REML", and if REML = FALSE, you will perform "ML".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bounds</code></td>
+<td>
+<p>Lower and Upper bounds of the parameter lambda. If the updated parameter goes out of this range,
+the parameter is reset to the value in this range.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SE</code></td>
+<td>
+<p>If TRUE, standard errors are calculated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return.Hinv</code></td>
+<td>
+<p>If TRUE, the function returns the inverse of <code class="reqn">H = ZKZ' + \lambda I</code> where <code class="reqn">\lambda = \sigma^2_e / \sigma^2_u</code>. This is useful for GWAS.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+
+<dl>
+<dt>$Vu</dt>
+<dd>
+<p>Estimator for <code class="reqn">\sigma^2_u</code></p>
+</dd>
+<dt>$Ve</dt>
+<dd>
+<p>Estimator for <code class="reqn">\sigma^2_e</code></p>
+</dd>
+<dt>$beta</dt>
+<dd>
+<p>BLUE(<code class="reqn">\beta</code>)</p>
+</dd>
+<dt>$u</dt>
+<dd>
+<p>BLUP(<code class="reqn">u</code>)</p>
+</dd>
+<dt>$LL</dt>
+<dd>
+<p>Maximized log-likelihood (full or restricted, depending on method)</p>
+</dd>
+<dt>$beta.SE</dt>
+<dd>
+<p>Standard error for <code class="reqn">\beta</code> (If SE = TRUE)</p>
+</dd>
+<dt>$u.SE</dt>
+<dd>
+<p>Standard error for <code class="reqn">u^*-u</code> (If SE = TRUE)</p>
+</dd>
+<dt>$Hinv</dt>
+<dd>
+<p>The inverse of <code class="reqn">H = ZKZ' + \lambda I</code> (If return.Hinv = TRUE)</p>
+</dd>
+</dl>
+<h3>References</h3>
+
+<p>Kang, H.M. et al. (2008) Efficient Control of Population Structure
+in Model Organism Association Mapping. Genetics. 178(3): 1709-1723.
+</p>
+
+
+</div>

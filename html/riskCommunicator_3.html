@@ -1,0 +1,429 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>gComp</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate difference and ratio effects with 95% confidence intervals.</h2>
+
+<h3>Description</h3>
+
+<p>Obtain a point estimate and 95% confidence interval for
+difference and ratio effects comparing exposed and unexposed (or treatment and non-treatment)
+groups using g-computation.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">gComp(
+  data,
+  outcome.type = c("binary", "count", "count_nb", "rate", "rate_nb", "continuous"),
+  formula = NULL,
+  Y = NULL,
+  X = NULL,
+  Z = NULL,
+  subgroup = NULL,
+  offset = NULL,
+  rate.multiplier = 1,
+  exposure.scalar = 1,
+  R = 200,
+  clusterID = NULL,
+  parallel = "no",
+  ncpus = getOption("boot.ncpus", 1L)
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>(Required) A data.frame containing variables for
+<code>Y</code>, <code>X</code>, and <code>Z</code> or with variables matching the model
+variables specified in a user-supplied formula. Data set should also
+contain variables for the optional <code>subgroup</code> and <code>offset</code>, if
+they are specified.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outcome.type</code></td>
+<td>
+<p>(Required) Character argument to describe the outcome
+type. Acceptable responses, and the corresponding error distribution and
+link function used in the <code>glm</code>, include: </p>
+
+<dl>
+<dt>binary</dt>
+<dd>
+<p>(Default) A binomial distribution with link = 'logit' is
+used.</p>
+</dd> 
+<dt>count</dt>
+<dd>
+<p>A Poisson distribution with link = 'log' is used.</p>
+</dd>
+<dt>count_nb</dt>
+<dd>
+<p>A negative binomial model with link = 'log' is used, where the theta 
+parameter is estimated internally; ideal for over-dispersed count data.</p>
+</dd>
+<dt>rate</dt>
+<dd>
+<p>A Poisson distribution with link = 'log' is used; ideal for 
+events/person-time outcomes.</p>
+</dd> 
+<dt>rate_nb</dt>
+<dd>
+<p>A negative binomial model with link = 'log' is used, where the theta 
+parameter is estimated internally; ideal for over-dispersed events/person-time outcomes.</p>
+</dd>
+<dt>continuous</dt>
+<dd>
+<p>A gaussian distribution with link = 'identity' is used.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>(Optional) Default NULL. An object of class "formula" (or one
+that can be coerced to that class) which provides the the complete model
+formula, similar to the formula for the glm function in R (e.g. 'Y ~ X + Z1
++ Z2 + Z3'). Can be supplied as a character or formula object. If no
+formula is provided, Y and X must be provided.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>(Optional) Default NULL. Character argument which specifies the
+outcome variable. Can optionally provide a formula instead of <code>Y</code> and
+<code>X</code> variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>(Optional) Default NULL. Character argument which specifies the
+exposure variable (or treatment group assignment), which can be binary,
+categorical, or continuous. This variable can be supplied as a factor
+variable (for binary or categorical exposures) or a continuous variable.
+For binary/categorical exposures, <code>X</code> should be supplied as a factor 
+with the lowest level set to the desired referent. Numeric variables are 
+accepted, but will be centered (see Note). Character variables are not 
+accepted and will throw an error. Can optionally provide a formula
+instead of <code>Y</code> and <code>X</code> variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Z</code></td>
+<td>
+<p>(Optional) Default NULL. List or single character vector which
+specifies the names of covariates or other variables to adjust for in the
+<code>glm</code> function. All variables should either be factors, continuous, 
+or coded 0/1 (i.e. not character variables). Does not allow interaction terms.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subgroup</code></td>
+<td>
+<p>(Optional) Default NULL. Character argument that indicates
+subgroups for stratified analysis. Effects will be reported for each
+category of the subgroup variable. Variable will be automatically converted
+to a factor if not already.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>offset</code></td>
+<td>
+<p>(Optional, only applicable for rate/count outcomes) Default NULL.
+Character argument which specifies the variable name to be used as the 
+person-time denominator for rate outcomes to be included as an offset in the
+Poisson regression model. Numeric variable should be on the linear scale; 
+function will take natural log before including in the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rate.multiplier</code></td>
+<td>
+<p>(Optional, only applicable for rate/count outcomes). 
+Default 1. Numeric variable signifying the person-time value to use in 
+predictions; the offset variable will be set to this when predicting under 
+the counterfactual conditions. This value should be set to the person-time 
+denominator desired for the rate difference measure and must be inputted in 
+the units of the original offset variable (e.g. if the offset variable is 
+in days and the desired rate difference is the rate per 100 person-years, 
+rate.multiplier should be inputted as 365.25*100).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exposure.scalar</code></td>
+<td>
+<p>(Optional, only applicable for continuous exposure)
+Default 1. Numeric value to scale effects with a continuous exposure. This 
+option facilitates reporting effects for an interpretable contrast (i.e. 
+magnitude of difference) within the continuous exposure. For example, if 
+the continuous exposure is age in years, a multiplier of 10 would result 
+in estimates per 10-year increase in age rather than per a 1-year increase 
+in age.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R</code></td>
+<td>
+<p>(Optional) Default 200. The number of data resamples to be conducted
+to produce the bootstrap confidence interval of the estimate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>clusterID</code></td>
+<td>
+<p>(Optional) Default NULL. Character argument which specifies
+the variable name for the unique identifier for clusters. This option
+specifies that clustering should be accounted for in the calculation of
+confidence intervals. The <code>clusterID</code> will be used as the level for
+resampling in the bootstrap procedure.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel</code></td>
+<td>
+<p>(Optional) Default "no." The type of parallel operation to be used. Available 
+options (besides the default of no parallel processing) include "multicore" (not available 
+for Windows) or "snow." This argument is passed directly to <code>boot</code>.
+See note below about setting seeds and parallel computing.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncpus</code></td>
+<td>
+<p>(Optional, only used if parallel is set to "multicore" or "snow") Default 1. 
+Integer argument for the number of CPUs available for parallel processing/ number of 
+parallel operations to be used.  This argument is passed directly to <code>boot</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The <code>gComp</code> function executes the following steps: 
+</p>
+
+<ol>
+<li>
+<p> Calls the <code>pointEstimate</code> function on the data to obtain
+the appropriate effect estimates (difference, ratio, etc.). 
+</p>
+</li>
+<li>
+<p> Generates <code>R</code> bootstrap resamples of the data, with replacement. If
+the resampling is to be done at the cluster level (set using the
+<code>clusterID</code> argument), the number of clusters will remain constant but
+the total number of observations in each resampled data set might be
+different if clusters are not balanced. 
+</p>
+</li>
+<li>
+<p> Calls the <code>pointEstimate</code> function on each of the resampled data sets.
+</p>
+</li>
+<li>
+<p> Calculates the 95% confidence interval of the difference and ratio
+estimates using the results obtained from the <code>R</code> resampled parameter
+estimates. </p>
+</li>
+</ol>
+<p>As bootstrap resamples are generated with random sampling, users should
+set a seed (<code>set.seed</code> for reproducible
+confidence intervals.
+</p>
+<p>While offsets are used to account for differences in follow-up time 
+between individuals in the <code>glm</code> model, rate differences are 
+calculated assuming equivalent follow-up of all individuals (i.e. 
+predictions for each exposure are based on all observations having the 
+same offset value). The default is 1 (specifying 1 unit of the original 
+offset variable) or the user can specify an offset to be used in the 
+predictions with the rate.multiplier argument.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>gComp</code> which is a named list with components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>$summary</code></td>
+<td>
+<p>Summary providing parameter estimates and 95% confidence
+limits of the outcome difference and ratio (in a print-pretty format)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>$results.df</code></td>
+<td>
+<p>Data.frame with parameter estimates, 2.5% confidence 
+limit, and 97.5% confidence limit each as a column (which can be used for easy 
+incorporation into tables for publication)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>$n</code></td>
+<td>
+<p>Number of unique observations in the original dataset</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>$R</code></td>
+<td>
+<p>Number of bootstrap iterations</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>$boot.result</code></td>
+<td>
+<p>Data.frame containing the results of the <code>R</code>
+bootstrap iterations of the g-computation</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>$contrast</code></td>
+<td>
+<p>Contrast levels compared</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>$family</code></td>
+<td>
+<p>Error distribution used in the model</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>$formula</code></td>
+<td>
+<p>Model formula used to fit the <code>glm</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>$predicted.outcome</code></td>
+<td>
+<p>A data.frame with the marginal mean predicted outcomes 
+(with 95% confidence limits) for each exposure level (i.e. under both exposed 
+and unexposed counterfactual predictions)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>$glm.result</code></td>
+<td>
+<p>The <code>glm</code> class object returned from the 
+fitted regression of the outcome on the exposure and relevant covariates.</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>Note that for a protective exposure (risk difference less than 0), the 
+'Number needed to treat/harm' is interpreted as the number needed to treat, 
+and for a harmful exposure (risk difference greater than 0), it is 
+interpreted as the number needed to harm. Note also that confidence intervals 
+are not reported for the number needed to treat/harm. If the confidence 
+interval (CI) for the risk difference crosses the null, the construction of 
+the CI for the number needed to treat/harm is not well defined. Challenges 
+and options for reporting the number needed to treat/harm CI are reviewed 
+extensively in Altman 1998, Hutton 2000, and Stang 2010, with a consensus 
+that an appropriate interval would have two segments, one bounded at negative 
+infinity and the other at positive infinity. Because the number needed to 
+treat/harm is most useful as a communication tool and is directly derived 
+from the risk difference, which has a CI that provides a more interpretable 
+measure of precision, we do not report the CI for the number needed to 
+treat/harm. If the CI of the risk difference does not cross the null, the 
+number needed to treat/harm CI can be calculated straightforwardly by 
+taking the inverse of each confidence bound of the risk difference.
+</p>
+<p>For continuous exposure variables, the default effects are provided 
+for a one unit difference in the exposure at the mean value of the exposure 
+variable. Because the underlying parametric model for a binary outcome is 
+logistic regression, the risks for a continuous exposure will be estimated 
+to be linear on the log-odds (logit) scale, such that the odds ratio for 
+any one unit increase in the continuous variable is constant. However, 
+the risks will not be linear on the linear (risk difference) or log (risk 
+ratio) scales, such that these parameters will not be constant across the 
+range of the continuous exposure. Users should be aware that the risk 
+difference, risk ratio, number needed to treat/harm (for a binary outcome) 
+and the incidence rate difference (for a rate/count outcome) reported with 
+a continuous exposure apply specifically at the mean of the continuous 
+exposure. The effects do not necessarily apply across the entire range of 
+the variable. However, variations in the effect are likely small, 
+especially near the mean.
+</p>
+<p>Interaction terms are not allowed in the model formula. The <code>subgroup</code> 
+argument affords interaction between the exposure variable and a single 
+covariate (that is forced to categorical if supplied as numeric) to 
+estimate effects of the exposure within subgroups defined by the 
+interacting covariate. To include additional interaction terms with 
+variables other than the exposure, we recommend that users create the 
+interaction term as a cross-product of the two interaction variables in  
+a data cleaning step prior to running the model.
+</p>
+<p>The documentation for <code>boot</code> includes details about 
+reproducible seeds when using parallel computing.
+</p>
+
+
+<h3>References</h3>
+
+<p>Ahern J, Hubbard A, Galea S. Estimating the effects of potential public health 
+interventions on population disease burden: a step-by-step illustration of 
+causal inference methods. Am. J. Epidemiol. 2009;169(9):1140–1147.
+<a href="https://doi.org/10.1093/aje/kwp015">doi:10.1093/aje/kwp015</a>
+</p>
+<p>Altman DG, Deeks JJ, Sackett DL. Odds ratios should be avoided when events 
+are common. BMJ. 1998;317(7168):1318. <a href="https://doi.org/10.1136/bmj.317.7168.1318">doi:10.1136/bmj.317.7168.1318</a>
+</p>
+<p>Hernán MA, Robins JM (2020). Causal Inference: What If. Boca Raton: 
+Chapman &amp; Hall/CRC. <a href="https://www.hsph.harvard.edu/miguel-hernan/causal-inference-book/">Book link</a>
+</p>
+<p>Hutton JL. Number needed to treat: properties and problems. Journal of the 
+Royal Statistical Society: Series A (Statistics in Society). 2000;163(3):381–402.
+<a href="https://doi.org/10.1111/1467-985X.00175">doi:10.1111/1467-985X.00175</a>
+</p>
+<p>Robins J. A new approach to causal inference in mortality studies with a 
+sustained exposure period—application to control of the healthy worker 
+survivor effect. Mathematical Modelling. 1986;7(9):1393–1512. <a href="https://doi.org/10.1016/0270-0255%2886%2990088-6">doi:10.1016/0270-0255(86)90088-6</a>
+</p>
+<p>Snowden JM, Rose S, Mortimer KM. Implementation of G-computation on a 
+simulated data set: demonstration of a causal inference technique. 
+Am. J. Epidemiol. 2011;173(7):731–738. <a href="https://doi.org/10.1093/aje/kwq472">doi:10.1093/aje/kwq472</a>
+</p>
+<p>Stang A, Poole C, Bender R. Common problems related to the use of number 
+needed to treat. Journal of Clinical Epidemiology. 2010;63(8):820–825. 
+<a href="https://doi.org/10.1016/j.jclinepi.2009.08.006">doi:10.1016/j.jclinepi.2009.08.006</a>
+</p>
+<p>Westreich D, Cole SR, Young JG, et al. The parametric g-formula to 
+estimate the effect of highly active antiretroviral therapy on incident 
+AIDS or death. Stat Med. 2012;31(18):2000–2009. <a href="https://doi.org/10.1002/sim.5316">doi:10.1002/sim.5316</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>pointEstimate</code> <code>boot</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Obtain the risk difference and risk ratio for cardiovascular disease or death between
+## patients with and without diabetes.
+data(cvdd)
+set.seed(538)
+diabetes &lt;- gComp(cvdd, formula = "cvd_dth ~ DIABETES + AGE + SEX + BMI + CURSMOKE + PREVHYP",
+outcome.type = "binary", R = 20)
+
+</code></pre>
+
+
+</div>

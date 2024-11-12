@@ -1,0 +1,582 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>spectralIndices</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Spectral Indices</h2>
+
+<h3>Description</h3>
+
+<p>Calculate a suite of multispectral indices such as NDVI, SAVI etc. in an efficient way.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">spectralIndices(
+  img,
+  blue = NULL,
+  green = NULL,
+  red = NULL,
+  nir = NULL,
+  redEdge1 = NULL,
+  redEdge2 = NULL,
+  redEdge3 = NULL,
+  swir1 = NULL,
+  swir2 = NULL,
+  swir3 = NULL,
+  scaleFactor = 1,
+  skipRefCheck = FALSE,
+  indices = NULL,
+  index = NULL,
+  maskLayer = NULL,
+  maskValue = 1,
+  coefs = list(L = 0.5, G = 2.5, L_evi = 1, C1 = 6, C2 = 7.5, s = 1, swir2ccc = NULL,
+    swir2coc = NULL),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>img</code></td>
+<td>
+<p>SpatRaster. Typically remote sensing imagery, which is to be classified.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>blue</code></td>
+<td>
+<p>Character or integer. Blue band.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>green</code></td>
+<td>
+<p>Character or integer. Green band.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>red</code></td>
+<td>
+<p>Character or integer. Red band.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nir</code></td>
+<td>
+<p>Character or integer. Near-infrared band (700-1100nm).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>redEdge1</code></td>
+<td>
+<p>Character or integer. Red-edge band (705nm)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>redEdge2</code></td>
+<td>
+<p>Character or integer. Red-edge band (740nm)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>redEdge3</code></td>
+<td>
+<p>Character or integer. Red-edge band (783nm)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>swir1</code></td>
+<td>
+<p>not used</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>swir2</code></td>
+<td>
+<p>Character or integer. Short-wave-infrared band (1400-1800nm).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>swir3</code></td>
+<td>
+<p>Character or integer. Short-wave-infrared band (2000-2500nm).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scaleFactor</code></td>
+<td>
+<p>Numeric. Scale factor for the conversion of scaled reflectances to [0,1] value range (applied as reflectance/scaleFactor) Neccesary for calculating EVI/EVI2 with scaled reflectance values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>skipRefCheck</code></td>
+<td>
+<p>Logical. When EVI/EVI2 is to be calculated there is a rough heuristic check, whether the data are inside [0,1]+/-0.5 (after applying a potential <code>scaleFactor</code>).
+If there are invalid reflectances, e.g. clouds with reflectance &gt; 1 this check will result in a false positive and skip EVI calculation. Use this argument to skip this check in such cases *iff* you are sure the data and scaleFactor are valid.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>indices</code></td>
+<td>
+<p>Character. One or more spectral indices to calculate (see Details). By default (NULL) all implemented indices given the spectral bands which are provided will be calculated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>index</code></td>
+<td>
+<p>Character. Alias for <code>indices</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maskLayer</code></td>
+<td>
+<p>RasterLayer or SpatRaster containing a mask, e.g. clouds, for which pixels are set to NA. Alternatively a layername or -number can be provided if the mask is part of <code>img</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maskValue</code></td>
+<td>
+<p>Integer. Pixel value in <code>maskLayer</code> which should be masked in output, i.e. will be set to <code>NA</code> in all calculated indices.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coefs</code></td>
+<td>
+<p>List of coefficients (see Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments such as filename etc. passed to writeRaster</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>spectralIndices</code> calculates all indices in one go in C++,  which is more efficient than calculating each index separately (for large rasters).
+By default all indices which can be calculated given the specified indices will be calculated. If you don't want all indices, use the <code>indices</code> argument to specify exactly which indices are to be calculated.
+See the table bellow for index names and required bands.
+</p>
+<p>Index values outside the valid value ranges (if such a range exists) will be set to NA. For example a pixel with NDVI &gt; 1 will be set to NA.
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;"> <strong> Index </strong> </td>
+<td style="text-align: left;"> <strong> Description </strong> </td>
+<td style="text-align: left;"> <strong> Source </strong> </td>
+<td style="text-align: left;"> <strong> Bands </strong> </td>
+<td style="text-align: left;"> <strong> Formula </strong> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> CLG </td>
+<td style="text-align: left;"> Green-band Chlorophyll Index </td>
+<td style="text-align: left;"> Gitelson2003 </td>
+<td style="text-align: left;"> <code>redEdge3, green</code> </td>
+<td style="text-align: left;"> <code class="reqn">redEdge3/green - 1</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> CLRE </td>
+<td style="text-align: left;"> Red-edge-band Chlorophyll Index </td>
+<td style="text-align: left;"> Gitelson2003 </td>
+<td style="text-align: left;"> <code>redEdge3, redEdge1</code> </td>
+<td style="text-align: left;"> <code class="reqn">redEdge3/redEdge1 - 1</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> CTVI </td>
+<td style="text-align: left;"> Corrected Transformed Vegetation Index </td>
+<td style="text-align: left;"> Perry1984 </td>
+<td style="text-align: left;"> <code>red, nir</code> </td>
+<td style="text-align: left;"> <code class="reqn">(NDVI + 0.5)/sqrt(abs(NDVI + 0.5))</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> DVI </td>
+<td style="text-align: left;"> Difference Vegetation Index </td>
+<td style="text-align: left;"> Richardson1977 </td>
+<td style="text-align: left;"> <code>red, nir</code> </td>
+<td style="text-align: left;"> <code class="reqn">s * nir - red</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> EVI </td>
+<td style="text-align: left;"> Enhanced Vegetation Index </td>
+<td style="text-align: left;"> Huete1999 </td>
+<td style="text-align: left;"> <code>red, nir, blue</code> </td>
+<td style="text-align: left;"> <code class="reqn">G * ((nir - red)/(nir + C1 * red - C2 * blue + L_evi))</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> EVI2 </td>
+<td style="text-align: left;"> Two-band Enhanced Vegetation Index </td>
+<td style="text-align: left;"> Jiang 2008 </td>
+<td style="text-align: left;"> <code>red, nir</code> </td>
+<td style="text-align: left;"> <code class="reqn">G * (nir - red)/(nir + 2.4 * red + 1)</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> GEMI </td>
+<td style="text-align: left;"> Global Environmental Monitoring Index </td>
+<td style="text-align: left;"> Pinty1992 </td>
+<td style="text-align: left;"> <code>red, nir</code> </td>
+<td style="text-align: left;"> <code class="reqn">(((nir^2 - red^2) * 2 + (nir * 1.5) + (red * 0.5))/(nir + red + 0.5)) * (1 - ((((nir^2 - red^2) * 2 + (nir * 1.5) + (red * 0.5))/(nir + red + 0.5)) * 0.25)) - ((red - 0.125)/(1 - red))</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> GNDVI </td>
+<td style="text-align: left;"> Green Normalised Difference Vegetation Index </td>
+<td style="text-align: left;"> Gitelson1998 </td>
+<td style="text-align: left;"> <code>green, nir</code> </td>
+<td style="text-align: left;"> <code class="reqn">(nir - green)/(nir + green)</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> KNDVI </td>
+<td style="text-align: left;"> Kernel Normalised Difference Vegetation Index </td>
+<td style="text-align: left;"> Camps-Valls2021 </td>
+<td style="text-align: left;"> <code>red, nir</code> </td>
+<td style="text-align: left;"> <code class="reqn">tanh(((nir - red)/(nir + red)))^2</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> MCARI </td>
+<td style="text-align: left;"> Modified Chlorophyll Absorption Ratio Index </td>
+<td style="text-align: left;"> Daughtery2000 </td>
+<td style="text-align: left;"> <code>green, red, redEdge1</code> </td>
+<td style="text-align: left;"> <code class="reqn">((redEdge1 - red) - (redEdge1 - green)) * (redEdge1/red)</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> MNDWI </td>
+<td style="text-align: left;"> Modified Normalised Difference Water Index </td>
+<td style="text-align: left;"> Xu2006 </td>
+<td style="text-align: left;"> <code>green, swir2</code> </td>
+<td style="text-align: left;"> <code class="reqn">(green - swir2)/(green + swir2)</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> MSAVI </td>
+<td style="text-align: left;"> Modified Soil Adjusted Vegetation Index </td>
+<td style="text-align: left;"> Qi1994 </td>
+<td style="text-align: left;"> <code>red, nir</code> </td>
+<td style="text-align: left;"> <code class="reqn">nir + 0.5 - (0.5 * sqrt((2 * nir + 1)^2 - 8 * (nir - (2 * red))))</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> MSAVI2 </td>
+<td style="text-align: left;"> Modified Soil Adjusted Vegetation Index 2 </td>
+<td style="text-align: left;"> Qi1994 </td>
+<td style="text-align: left;"> <code>red, nir</code> </td>
+<td style="text-align: left;"> <code class="reqn">(2 * (nir + 1) - sqrt((2 * nir + 1)^2 - 8 * (nir - red)))/2</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> MTCI </td>
+<td style="text-align: left;"> MERIS Terrestrial Chlorophyll Index </td>
+<td style="text-align: left;"> DashAndCurran2004 </td>
+<td style="text-align: left;"> <code>red, redEdge1, redEdge2</code> </td>
+<td style="text-align: left;"> <code class="reqn">(redEdge2 - redEdge1)/(redEdge1 - red)</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> NBRI </td>
+<td style="text-align: left;"> Normalised Burn Ratio Index </td>
+<td style="text-align: left;"> Garcia1991 </td>
+<td style="text-align: left;"> <code>nir, swir3</code> </td>
+<td style="text-align: left;"> <code class="reqn">(nir - swir3)/(nir + swir3)</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> NDREI1 </td>
+<td style="text-align: left;"> Normalised Difference Red Edge Index 1 </td>
+<td style="text-align: left;"> GitelsonAndMerzlyak1994 </td>
+<td style="text-align: left;"> <code>redEdge2, redEdge1</code> </td>
+<td style="text-align: left;"> <code class="reqn">(redEdge2 - redEdge1)/(redEdge2 + redEdge1)</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> NDREI2 </td>
+<td style="text-align: left;"> Normalised Difference Red Edge Index 2 </td>
+<td style="text-align: left;"> Barnes2000 </td>
+<td style="text-align: left;"> <code>redEdge3, redEdge1</code> </td>
+<td style="text-align: left;"> <code class="reqn">(redEdge3 - redEdge1)/(redEdge3 + redEdge1)</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> NDVI </td>
+<td style="text-align: left;"> Normalised Difference Vegetation Index </td>
+<td style="text-align: left;"> Rouse1974 </td>
+<td style="text-align: left;"> <code>red, nir</code> </td>
+<td style="text-align: left;"> <code class="reqn">(nir - red)/(nir + red)</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> NDVIC </td>
+<td style="text-align: left;"> Corrected Normalised Difference Vegetation Index </td>
+<td style="text-align: left;"> Nemani1993 </td>
+<td style="text-align: left;"> <code>red, nir, swir2</code> </td>
+<td style="text-align: left;"> <code class="reqn">(nir - red)/(nir + red) * (1 - ((swir2 - swir2ccc)/(swir2coc - swir2ccc)))</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> NDWI </td>
+<td style="text-align: left;"> Normalised Difference Water Index </td>
+<td style="text-align: left;"> McFeeters1996 </td>
+<td style="text-align: left;"> <code>green, nir</code> </td>
+<td style="text-align: left;"> <code class="reqn">(green - nir)/(green + nir)</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> NDWI2 </td>
+<td style="text-align: left;"> Normalised Difference Water Index </td>
+<td style="text-align: left;"> Gao1996 </td>
+<td style="text-align: left;"> <code>nir, swir2</code> </td>
+<td style="text-align: left;"> <code class="reqn">(nir - swir2)/(nir + swir2)</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> NRVI </td>
+<td style="text-align: left;"> Normalised Ratio Vegetation Index </td>
+<td style="text-align: left;"> Baret1991 </td>
+<td style="text-align: left;"> <code>red, nir</code> </td>
+<td style="text-align: left;"> <code class="reqn">(red/nir - 1)/(red/nir + 1)</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> REIP </td>
+<td style="text-align: left;"> Red Edge Inflection Point </td>
+<td style="text-align: left;"> GuyotAndBarnet1988 </td>
+<td style="text-align: left;"> <code>red, redEdge1, redEdge2, redEdge3</code> </td>
+<td style="text-align: left;"> <code class="reqn">0.705 + 0.35 * ((red + redEdge3)/(2 - redEdge1))/(redEdge2 - redEdge1)</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> RVI </td>
+<td style="text-align: left;"> Ratio Vegetation Index </td>
+<td style="text-align: left;">  </td>
+<td style="text-align: left;"> <code>red, nir</code> </td>
+<td style="text-align: left;"> <code class="reqn">red/nir</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> SATVI </td>
+<td style="text-align: left;"> Soil Adjusted Total Vegetation Index </td>
+<td style="text-align: left;"> Marsett2006 </td>
+<td style="text-align: left;"> <code>red, swir2, swir3</code> </td>
+<td style="text-align: left;"> <code class="reqn">(swir2 - red)/(swir2 + red + L) * (1 + L) - (swir3/2)</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> SAVI </td>
+<td style="text-align: left;"> Soil Adjusted Vegetation Index </td>
+<td style="text-align: left;"> Huete1988 </td>
+<td style="text-align: left;"> <code>red, nir</code> </td>
+<td style="text-align: left;"> <code class="reqn">(nir - red) * (1 + L)/(nir + red + L)</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> SLAVI </td>
+<td style="text-align: left;"> Specific Leaf Area Vegetation Index </td>
+<td style="text-align: left;"> Lymburger2000 </td>
+<td style="text-align: left;"> <code>red, nir, swir2</code> </td>
+<td style="text-align: left;"> <code class="reqn">nir/(red + swir2)</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> SR </td>
+<td style="text-align: left;"> Simple Ratio Vegetation Index </td>
+<td style="text-align: left;"> Birth1968 </td>
+<td style="text-align: left;"> <code>red, nir</code> </td>
+<td style="text-align: left;"> <code class="reqn">nir/red</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> TTVI </td>
+<td style="text-align: left;"> Thiam's Transformed Vegetation Index </td>
+<td style="text-align: left;"> Thiam1997 </td>
+<td style="text-align: left;"> <code>red, nir</code> </td>
+<td style="text-align: left;"> <code class="reqn">sqrt(abs((nir - red)/(nir + red) + 0.5))</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> TVI </td>
+<td style="text-align: left;"> Transformed Vegetation Index </td>
+<td style="text-align: left;"> Deering1975 </td>
+<td style="text-align: left;"> <code>red, nir</code> </td>
+<td style="text-align: left;"> <code class="reqn">sqrt((nir - red)/(nir + red) + 0.5)</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> WDVI </td>
+<td style="text-align: left;"> Weighted Difference Vegetation Index </td>
+<td style="text-align: left;"> Richardson1977 </td>
+<td style="text-align: left;"> <code>red, nir</code> </td>
+<td style="text-align: left;"> <code class="reqn">nir - s * red</code> </td>
+</tr>
+</table>
+<p>Some indices require additional parameters, such as the slope of the soil line which are specified via a list to the <code>coefs</code> argument. 
+Although the defaults are sensible values, values like the soil brightnes factor <code>L</code> for SAVI should be adapted depending on the characteristics of the scene.
+The coefficients are:
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+<strong>Coefficient</strong> </td>
+<td style="text-align: left;"> <strong>Description</strong> </td>
+<td style="text-align: left;"> <strong>Affected Indices</strong> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>s</code> </td>
+<td style="text-align: left;"> slope of the soil line </td>
+<td style="text-align: left;"> DVI, WDVI </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>L_evi, C1, C2, G</code> </td>
+<td style="text-align: left;"> various </td>
+<td style="text-align: left;"> EVI </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>L</code> </td>
+<td style="text-align: left;"> soil brightness factor </td>
+<td style="text-align: left;"> SAVI, SATVI </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>swir2ccc</code> </td>
+<td style="text-align: left;"> minimum swir2 value (completely closed forest canopy) </td>
+<td style="text-align: left;"> NDVIC </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>swir2coc</code> </td>
+<td style="text-align: left;"> maximum swir2 value (completely open canopy) </td>
+<td style="text-align: left;"> NDVIC </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<p>The wavelength band names are defined following Schowengertd 2007, p10. 
+The last column shows exemplarily which Landsat 5 TM bands correspond to which wavelength range definition.
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;"> <strong> Band </strong> </td>
+<td style="text-align: left;"> <strong> Description </strong> </td>
+<td style="text-align: left;"> <strong> Wavl_min </strong> </td>
+<td style="text-align: left;"> <strong> Wavl_max </strong> </td>
+<td style="text-align: left;"> <strong> Landsat5_Band </strong> </td>
+<td style="text-align: left;"> <strong> Sentinel2_Band </strong> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> vis </td>
+<td style="text-align: left;"> visible </td>
+<td style="text-align: left;">   400 </td>
+<td style="text-align: left;">    680 </td>
+<td style="text-align: left;"> 1,2,3 </td>
+<td style="text-align: left;"> 2,3,4 </td>
+</tr>
+<tr>
+<td style="text-align: left;"> red-edge1 </td>
+<td style="text-align: left;"> red-edge1 </td>
+<td style="text-align: left;">   680 </td>
+<td style="text-align: left;">    720 </td>
+<td style="text-align: left;"> - </td>
+<td style="text-align: left;"> 5 </td>
+</tr>
+<tr>
+<td style="text-align: left;"> red-edge2 </td>
+<td style="text-align: left;"> red-edge2 </td>
+<td style="text-align: left;">   720 </td>
+<td style="text-align: left;">    760 </td>
+<td style="text-align: left;"> - </td>
+<td style="text-align: left;"> 6 </td>
+</tr>
+<tr>
+<td style="text-align: left;"> red-edge3 </td>
+<td style="text-align: left;"> red-edge3 </td>
+<td style="text-align: left;">   760 </td>
+<td style="text-align: left;">    800 </td>
+<td style="text-align: left;"> - </td>
+<td style="text-align: left;"> 7 </td>
+</tr>
+<tr>
+<td style="text-align: left;"> nir </td>
+<td style="text-align: left;"> near infra-red </td>
+<td style="text-align: left;">   800 </td>
+<td style="text-align: left;">   1100 </td>
+<td style="text-align: left;"> 4 </td>
+<td style="text-align: left;"> 8/8a </td>
+</tr>
+<tr>
+<td style="text-align: left;"> swir1 </td>
+<td style="text-align: left;"> short-wave infra-red </td>
+<td style="text-align: left;">  1100 </td>
+<td style="text-align: left;">   1351 </td>
+<td style="text-align: left;"> - </td>
+<td style="text-align: left;"> 9,10 </td>
+</tr>
+<tr>
+<td style="text-align: left;"> swir2 </td>
+<td style="text-align: left;"> short-wave infra-red </td>
+<td style="text-align: left;">  1400 </td>
+<td style="text-align: left;">   1800 </td>
+<td style="text-align: left;"> 5 </td>
+<td style="text-align: left;"> 11 </td>
+</tr>
+<tr>
+<td style="text-align: left;"> swir3 </td>
+<td style="text-align: left;"> short-wave infra-red </td>
+<td style="text-align: left;">  2000 </td>
+<td style="text-align: left;">   2500 </td>
+<td style="text-align: left;"> 7 </td>
+<td style="text-align: left;"> 12 </td>
+</tr>
+<tr>
+<td style="text-align: left;"> mir1 </td>
+<td style="text-align: left;"> mid-wave infra-red </td>
+<td style="text-align: left;">  3000 </td>
+<td style="text-align: left;">   4000 </td>
+<td style="text-align: left;"> - </td>
+<td style="text-align: left;"> - </td>
+</tr>
+<tr>
+<td style="text-align: left;"> mir2 </td>
+<td style="text-align: left;"> mid-wave infra-red </td>
+<td style="text-align: left;"> 45000 </td>
+<td style="text-align: left;">   5000 </td>
+<td style="text-align: left;"> - </td>
+<td style="text-align: left;"> - </td>
+</tr>
+<tr>
+<td style="text-align: left;"> tir1 </td>
+<td style="text-align: left;"> thermal infra-red </td>
+<td style="text-align: left;">  8000 </td>
+<td style="text-align: left;">   9500 </td>
+<td style="text-align: left;"> - </td>
+<td style="text-align: left;"> - </td>
+</tr>
+<tr>
+<td style="text-align: left;"> tir2 </td>
+<td style="text-align: left;"> thermal infra-red </td>
+<td style="text-align: left;"> 10000 </td>
+<td style="text-align: left;"> 140000 </td>
+<td style="text-align: left;"> 6 </td>
+<td style="text-align: left;"> - </td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>SpatRaster
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(ggplot2)
+library(terra)
+
+## Calculate NDVI
+ndvi &lt;- spectralIndices(lsat, red = "B3_dn", nir = "B4_dn", indices = "NDVI")
+ndvi
+ggR(ndvi, geom_raster = TRUE) +
+        scale_fill_gradientn(colours = c("black", "white")) 
+
+ 
+## Calculate all possible indices, given the provided bands 
+## Convert DNs to reflectance (required to calculate EVI and EVI2)
+mtlFile  &lt;- system.file("external/landsat/LT52240631988227CUB02_MTL.txt", package="RStoolbox")
+lsat_ref &lt;- radCor(lsat, mtlFile, method = "apref")
+
+SI &lt;- spectralIndices(lsat_ref, red = "B3_tre", nir = "B4_tre")
+plot(SI)
+
+</code></pre>
+
+
+</div>

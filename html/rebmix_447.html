@@ -1,0 +1,150 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>mapclusters-methods</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Map Clusters
+</h2>
+
+<h3>Description</h3>
+
+<p>Returns a factor of predictive cluster membership for dataset.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S4 method for signature 'RCLRMIX'
+mapclusters(x = NULL, Dataset = data.frame(),
+            s = expression(c), ...)
+## ... and for other signatures
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+
+<p>see Methods section below.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Dataset</code></td>
+<td>
+
+<p>a data frame of size <code class="reqn">n \times d</code> containing <em>d</em>-dimensional dataset. Each of the <code class="reqn">d</code> columns
+represents one random variable. Number of observations <code class="reqn">n</code> equal the number of rows in the dataset.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s</code></td>
+<td>
+
+<p>a desired number of clusters to be created. The default value is <code>expression(c)</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>currently not used.
+</p>
+</td>
+</tr>
+</table>
+<h3>Methods</h3>
+
+
+<dl>
+<dt><code>signature(x = "RCLRMIX")</code></dt>
+<dd>
+<p>an object of class <code>RCLRMIX</code>.</p>
+</dd>
+<dt><code>signature(x = "RCLRMVNORM")</code></dt>
+<dd>
+<p>an object of class <code>RCLRMVNORM</code>.</p>
+</dd>
+</dl>
+<h3>Author(s)</h3>
+
+<p>Marko Nagode, Branislav Panic</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">devAskNewPage(ask = TRUE)
+
+# Generate normal dataset.
+
+n &lt;- c(50, 20, 40)
+
+Theta &lt;- new("RNGMVNORM.Theta", c = 3, d = 2)
+
+a.theta1(Theta, 1) &lt;- c(3, 10)
+a.theta1(Theta, 2) &lt;- c(8, 6)
+a.theta1(Theta, 3) &lt;- c(12, 11)
+a.theta2(Theta, 1) &lt;- c(3, 0.3, 0.3, 2)
+a.theta2(Theta, 2) &lt;- c(5.7, -2.3, -2.3, 3.5)
+a.theta2(Theta, 3) &lt;- c(2, 1, 1, 2)
+
+normal &lt;- RNGMIX(model = "RNGMVNORM", Dataset.name = paste("normal_", 1:10, sep = ""),
+  n = n, Theta = a.Theta(Theta))
+
+# Convert all datasets to single histogram.
+
+hist &lt;- NULL
+
+n &lt;- length(normal@Dataset)
+
+hist &lt;- fhistogram(Dataset = normal@Dataset[[1]], K = c(10, 10), 
+  ymin = a.ymin(normal), ymax = a.ymax(normal))
+
+for (i in 2:n) {
+  hist &lt;- fhistogram(x = hist, Dataset = normal@Dataset[[i]], shrink = i == n)
+}
+
+# Estimate number of components, component weights and component parameters.
+
+normalest &lt;- REBMIX(model = "REBMVNORM",
+  Dataset = list(hist),
+  Preprocessing = "histogram",
+  cmax = 6,
+  Criterion = "BIC")
+
+summary(normalest)
+
+# Plot finite mixture.
+
+plot(normalest)
+
+# Cluster dataset.
+
+normalclu &lt;- RCLRMIX(model = "RCLRMVNORM", x = normalest)
+
+# Plot clusters.
+
+plot(normalclu)
+
+summary(normalclu)
+
+# Map clusters.
+
+Zp &lt;- mapclusters(x = normalclu, Dataset = a.Dataset(normal, 4))
+
+Zt &lt;- a.Zt(normal)
+
+Zp
+
+Zt
+</code></pre>
+
+
+</div>

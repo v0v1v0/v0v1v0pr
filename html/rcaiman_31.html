@@ -1,0 +1,151 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fit_trend_surface</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fit a trend surface to sky digital numbers</h2>
+
+<h3>Description</h3>
+
+<p>Fit a trend surface using <code>spatial::surf.ls()</code> as workhorse function.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fit_trend_surface(r, z, a, bin, filling_source = NULL, np = 6)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>r</code></td>
+<td>
+<p>SpatRaster. A normalized greyscale image. Typically, the
+blue channel extracted from a canopy photograph. Please see <code>read_caim()</code>
+and <code>normalize()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>z</code></td>
+<td>
+<p>SpatRaster built with <code>zenith_image()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>a</code></td>
+<td>
+<p>SpatRaster built with <code>azimuth_image()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bin</code></td>
+<td>
+<p>SpatRaster. This should be a preliminary binarization of
+<code>r</code> useful for masking pixels that are very likely pure sky pixels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>filling_source</code></td>
+<td>
+<p>SpatRaster. An actual or reconstructed
+above-canopy image to complement the sky pixels detected through the gaps
+of <code>r</code>. A photograph taken immediately after or before taking <code>r</code> under the
+open sky with the same equipment and configuration is a very good option
+but not recommended under fleeting clouds. The orientation relative to the
+North must be the same as for <code>r</code>. If it is set to <code>NULL</code> (default), only
+sky pixels from <code>r</code> will be used as input.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>np</code></td>
+<td>
+
+<p>degree of polynomial surface
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function is meant to be used after <code>fit_coneshaped_model()</code>.
+</p>
+<p>This method was presented in Díaz and Lencinas (2018), under
+the heading <em>Estimation of the sky DN as a previous step for our method</em>. If
+you use this function in your research, please cite that paper in addition to
+this package (<code style="white-space: pre;">⁠citation("rcaiman"⁠</code>).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with an object of class SpatRaster and of class <code>trls</code>
+(see <code>spatial::surf.ls()</code>).
+</p>
+
+
+<h3>Note</h3>
+
+<p>If an incomplete above-canopy image is available as filling source,
+non-sky pixels should be turned <code>NA</code> or they will be erroneously considered
+as sky pixels.
+</p>
+
+
+<h3>References</h3>
+
+<p>Díaz GM, Lencinas JD (2018).
+“Model-based local thresholding for canopy hemispherical photography.”
+<em>Canadian Journal of Forest Research</em>, <b>48</b>(10), 1204–1216.
+<a href="https://doi.org/10.1139/cjfr-2018-0006">doi:10.1139/cjfr-2018-0006</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>thr_mblt()</code>
+</p>
+<p>Other Sky Reconstruction Functions: 
+<code>cie_sky_model_raster()</code>,
+<code>fit_cie_sky_model()</code>,
+<code>fit_coneshaped_model()</code>,
+<code>fix_reconstructed_sky()</code>,
+<code>interpolate_sky_points()</code>,
+<code>ootb_sky_reconstruction()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+caim &lt;- read_caim()
+r &lt;- caim$Blue
+caim &lt;- normalize(caim, 0, 20847, TRUE)
+z &lt;- zenith_image(ncol(caim), lens())
+a &lt;- azimuth_image(z)
+m &lt;- !is.na(z)
+
+bin &lt;- ootb_obia(caim, z, a, m, HSV(239, 0.85, 0.5), gamma = NULL)
+
+g &lt;- sky_grid_segmentation(z, a, 10)
+sky_points &lt;- extract_sky_points(r, bin, g, dist_to_plant = 5)
+plot(bin)
+points(sky_points$col, nrow(caim) - sky_points$row, col = 2, pch = 10)
+rl &lt;- extract_rl(r, z, a, sky_points)
+
+model &lt;- fit_coneshaped_model(rl$sky_points)
+summary(model$model)
+sky_cs &lt;- model$fun(z, a)
+persp(terra::aggregate(sky_cs, 10), theta = 90, phi = 45)
+
+sky_s &lt;- fit_trend_surface(r, z, a, bin, sky_cs)
+persp(terra::aggregate(sky_s$image, 10), theta = 90, phi = 45)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

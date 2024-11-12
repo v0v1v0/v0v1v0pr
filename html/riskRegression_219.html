@@ -1,0 +1,189 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>synthesize</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Cooking and synthesizing survival data</h2>
+
+<h3>Description</h3>
+
+<p>Fit parametric regression models to the outcome distribution and optionally
+also parametric regression models for the joint distribution of the predictors
+structural equation models. 
+Then the function <code>sim.synth</code> can be called on the  resulting object to
+to simulate from the parametric model based on the machinery of the <code>lava</code> package
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">synthesize(object, data, ...)
+
+## S3 method for class 'formula'
+synthesize(
+  object,
+  data,
+  recursive = FALSE,
+  max.levels = 10,
+  verbose = FALSE,
+  ...
+)
+
+## S3 method for class 'lvm'
+synthesize(
+  object,
+  data,
+  max.levels = 10,
+  logtrans = NULL,
+  verbose = FALSE,
+  fix.names = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>Specification of the synthesizing model structures. Either a <code>formula</code> or a <code>lvm</code> object. See examples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>Data to be synthesized.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Not used yet.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>recursive</code></td>
+<td>
+<p>Let covariates recursively depend on each other.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.levels</code></td>
+<td>
+<p>Integer used to guess which variables are categorical. When set to <code>10</code>, the default,
+variables with less than 10 unique values in data are treated as categorical.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Logical. If <code>TRUE</code> then more messages and warnings are provided.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>logtrans</code></td>
+<td>
+<p>Vector of covariate names that should be log-transformed. This is primarily for internal use.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fix.names</code></td>
+<td>
+<p>Fix possible problematic covariate names.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Synthesizes survival data (also works for linear models and generalized linear models).
+The idea is to be able to simulate new data sets that mimic the original data.
+See the vignette <code>vignette("synthesize",package = "riskRegression")</code> for more details.
+</p>
+<p>The simulation engine is: lava.
+</p>
+
+
+<h3>Value</h3>
+
+<p>lava object
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Thomas A. Gerds &lt;tag@biostat.ku.dk&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p>lvm
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># pbc data
+library(survival)
+library(lava)
+data(pbc)
+pbc &lt;- na.omit(pbc[,c("time","status","sex","age","bili")])
+pbc$logbili &lt;- log(pbc$bili)
+v_synt &lt;- synthesize(object=Surv(time,status)~sex+age+logbili,data=pbc)
+d &lt;- simsynth(v_synt,1000)
+fit_sim &lt;- coxph(Surv(time,status==1)~age+sex+logbili,data=d)
+fit_real &lt;- coxph(Surv(time,status==1)~age+sex+logbili,data=pbc)
+# compare estimated log-hazard ratios between simulated and real data
+cbind(coef(fit_sim),coef(fit_real))
+
+u &lt;- lvm()
+distribution(u,~sex) &lt;- binomial.lvm()
+distribution(u,~age) &lt;- normal.lvm()
+distribution(u,~trt) &lt;- binomial.lvm()
+distribution(u,~logbili) &lt;- normal.lvm()
+u &lt;-eventTime(u,time~min(time.cens=0,time.transplant=1,time.death=2), "status")
+lava::regression(u,logbili~age+sex) &lt;- 1
+lava::regression(u,time.transplant~sex+age+logbili) &lt;- 1
+lava::regression(u,time.death~sex+age+logbili) &lt;- 1
+lava::regression(u,time.cens~1) &lt;- 1
+transform(u,logbili~bili) &lt;- function(x){log(x)}
+u_synt &lt;- synthesize(object=u, data=na.omit(pbc))
+set.seed(8)
+d &lt;- simsynth(u_synt,n=1000)
+# note: synthesize may relabel status variable
+fit_sim &lt;- coxph(Surv(time,status==1)~age+sex+logbili,data=d)
+fit_real &lt;- coxph(Surv(time,status==1)~age+sex+log(bili),data=pbc)
+# compare estimated log-hazard ratios between simulated and real data
+cbind(coef(fit_sim),coef(fit_real))
+
+#
+# Cancer data
+#
+data(cancer)
+b &lt;- lvm()
+distribution(b,~rx) &lt;- binomial.lvm()
+distribution(b,~age) &lt;- normal.lvm()
+distribution(b,~resid.ds) &lt;- binomial.lvm()
+distribution(b,~ecog.ps) &lt;- binomial.lvm()
+lava::regression(b,time.death~age+rx+resid.ds) &lt;- 1
+b&lt;-eventTime(b,futime~min(time.cens=0,time.death=1), "fustat")
+b_synt &lt;- synthesize(object = b, data = ovarian)
+D &lt;- simsynth(b_synt,1000)
+fit_real &lt;- coxph(Surv(futime,fustat)~age+rx+resid.ds, data=ovarian)
+fit_sim &lt;- coxph(Surv(futime,fustat)~age+rx+resid.ds, data=D)
+cbind(coef(fit_sim),coef(fit_real))
+w_synt &lt;- synthesize(object=Surv(futime,fustat)~age+rx+resid.ds, data=ovarian)
+D &lt;- simsynth(w_synt,1000)
+fit_sim &lt;- coxph(Surv(futime,fustat==1)~age+rx+resid.ds,data=D)
+fit_real &lt;- coxph(Surv(futime,fustat==1)~age+rx+resid.ds,data=ovarian)
+# compare estimated log-hazard ratios between simulated and real data
+cbind(coef(fit_sim),coef(fit_real))
+
+
+</code></pre>
+
+
+</div>

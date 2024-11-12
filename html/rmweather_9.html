@@ -1,0 +1,183 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rmw_do_all</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Function to train a random forest model to predict (usually) pollutant
+concentrations using meteorological and time variables and then immediately
+normalise a variable for "average" meteorological conditions.</h2>
+
+<h3>Description</h3>
+
+<p><code>rmw_do_all</code> is a user-level function to conduct the meteorological 
+normalisation process in one step.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rmw_do_all(
+  df,
+  variables,
+  variables_sample = NA,
+  n_trees = 300,
+  min_node_size = 5,
+  mtry = NULL,
+  keep_inbag = TRUE,
+  n_samples = 300,
+  replace = TRUE,
+  se = FALSE,
+  aggregate = TRUE,
+  n_cores = NA,
+  verbose = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>df</code></td>
+<td>
+<p>Input data frame after preparation with 
+<code>rmw_prepare_data</code>. <code>df</code> has a number of constraints which 
+will be checked for before modelling.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>variables</code></td>
+<td>
+<p>Independent/explanatory variables used to predict 
+<code>"value"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>variables_sample</code></td>
+<td>
+<p>Variables to use for the normalisation step. If not 
+used, the default of all variables used for training the model with the 
+exception of <code>date_unix</code>, the trend term (see 
+<code>rmw_normalise</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_trees</code></td>
+<td>
+<p>Number of trees to grow to make up the forest.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min_node_size</code></td>
+<td>
+<p>Minimal node size.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mtry</code></td>
+<td>
+<p>Number of variables to possibly split at in each node. Default is 
+the (rounded down) square root of the number variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep_inbag</code></td>
+<td>
+<p>Should in-bag data be kept in the <strong>ranger</strong> model 
+object? This needs to be <code>TRUE</code> if standard errors are to be calculated
+when predicting with the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_samples</code></td>
+<td>
+<p>Number of times to sample <code>df</code> and then predict?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>replace</code></td>
+<td>
+<p>Should <code>variables</code> be sampled with replacement?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>se</code></td>
+<td>
+<p>Should the standard error of the predictions be calculated too? 
+The standard error method is the "infinitesimal jackknife for bagging" and 
+will slow down the predictions significantly.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aggregate</code></td>
+<td>
+<p>Should all the <code>n_samples</code> predictions be aggregated?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_cores</code></td>
+<td>
+<p>Number of CPU cores to use for the model calculation. Default
+is system's total minus one.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Should the function give messages?</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Named list.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Stuart K. Grange
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>rmw_prepare_data</code>,  <code>rmw_train_model</code>, 
+<code>rmw_normalise</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+
+# Load package
+library(dplyr)
+
+# Keep things reproducible
+set.seed(123)
+
+# Prepare example data
+data_london_prepared &lt;- data_london %&gt;% 
+  filter(variable == "no2") %&gt;% 
+  rmw_prepare_data()
+
+# Use the example data to conduct the steps needed for meteorological
+# normalisation
+list_normalised &lt;- rmw_do_all(
+  df = data_london_prepared,
+  variables = c(
+    "ws", "wd", "air_temp", "rh", "date_unix", "day_julian", "weekday", "hour"
+  ),
+  n_trees = 300,
+  n_samples = 300
+)
+
+
+
+</code></pre>
+
+
+</div>

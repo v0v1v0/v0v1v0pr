@@ -1,0 +1,330 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>robpredict</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Robust Prediction of Random Effects, Fixed Effects, and
+Area-Specific Means</h2>
+
+<h3>Description</h3>
+
+<p>Function <code>robpredict()</code> predicts the area-level means by (1) the
+empirical best linear unbiased predictor (EBLUP) or (2) a robust
+prediction method which is due to Copt and Victoria-Feser (2009).
+In addition, the function computes the mean square prediction
+error (MSPE) of the predicted area-level means by a parametric
+bootstrap method.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">robpredict(fit, areameans = NULL, k = NULL, reps = NULL, seed = 1024,
+    progress_bar = TRUE)
+
+## S3 method for class 'pred_model_b'
+print(x, digits = max(3L, getOption("digits") - 3L),
+    ...)
+## S3 method for class 'pred_model_b'
+plot(x, type = "e", sort = NULL, ...)
+## S3 method for class 'pred_model_b'
+residuals(object, ...)
+## S3 method for class 'pred_model_b'
+as.matrix(x, ...)
+## S3 method for class 'pred_model_b'
+head(x, n = 6L, ...)
+## S3 method for class 'pred_model_b'
+tail(x, n = 6L, keepnums = TRUE, addrownums, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>an object of class <code>fit_model_b</code>; a fitted SAE model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>areameans</code></td>
+<td>
+<p><code>[matrix</code>]  or <code>[NULL]</code> area-level means of
+dimension <code>(g, p)</code>, where <code>g</code> and <code>p</code> denote,
+respectively, the number of areas and number of fixed-effects terms
+in the regression model (incl. intercept). By default,
+<code>areadata = NULL</code> which implies that the predictions are
+base on the data used in fitting the model (not new data).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p><code>[numeric]</code> or <code>[NULL]</code> robustness tuning constant
+(of the Huber psi-function) for robust prediction. Note that
+<code>k</code> does not necessarily have to be the same as the <code>k</code>
+that has been used in <code>fitsaemodel()</code>.
+By default, <code>k = NULL</code> which implies that the tuning constant
+specified in <code>fitsaemodel()</code> is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reps</code></td>
+<td>
+<p><code>[integer</code>] or <code>[NULL]</code> number of bootstrap
+replicates for the computation of the mean squared prediction
+error (MSPE).  If <code>reps = NULL</code> the MSPE is not computed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p><code>[integer]</code> a positive integer used as argument
+<code>seed</code> in <code>set.seed()</code> to specify
+the random seed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>progress_bar</code></td>
+<td>
+<p><code>[logical]</code> whether a progress bar is displayed
+for the parametric bootstrap; see <b>NOTE</b> below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>an object of class <code>"pred_model_b"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>digits</code></td>
+<td>
+<p><code>[integer]</code> number of digits to be printed by.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p><code>[character]</code> type of <code>plot</code> method: <code>"e"</code>
+(error bars; default) or <code>"l"</code> (lines).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sort</code></td>
+<td>
+<p><code>[character]</code> or <code>[NULL]</code> if <code>sort = "means"</code>,
+the predicted means are plotted in ascending order (default:
+<code>sort = NULL</code>); similarly, with <code>sort = "fixef"</code> and
+<code>sort = "ranef"</code> the predicted means are sorted along the
+fixed effects or the random effects, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>an object of class <code>fit_model_b</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p><code>[integer]</code> vector of length up to <code>dim(x)</code>, i.e.,
+number of areas.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keepnums</code></td>
+<td>
+<p>in each dimension, if no names in that dimension are
+present, create them using the indices included in that dimension.
+Ignored if <code>dim(x)</code> is <code>NULL</code> or its length 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>addrownums</code></td>
+<td>
+<p>deprecated - <code>keepnums</code> should be used instead.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments (not used).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Function <code>robpredict()</code> computes predictions of the area-level means
+and—if required—an estimate of the area-specific mean square
+prediction error (MSPE).
+</p>
+
+<dl>
+<dt>Prediction of area-level means</dt>
+<dd>
+
+<ul>
+<li>
+<p> Case 1: If <code>areameans</code> is a <code>matrix</code> with
+area-level means of the explanatory variables, then
+the computation of the fixed effects effects are
+based on <code>areameans</code>.
+</p>
+</li>
+<li>
+<p> Case 2: If <code>areameans = NULL</code>, then the predictions
+are based on the sample data that have been used to
+fit the model.
+</p>
+</li>
+</ul>
+</dd>
+<dt>Mean square prediction error</dt>
+<dd>
+
+<ul>
+<li>
+<p> If <code>reps = NULL</code>, the number of bootstrap
+replicates is not specified; hence, MSPE is not computed.
+</p>
+</li>
+<li>
+<p> If <code>reps</code> is a positive integer and
+<code>areameans</code> is not <code>NULL</code> (see Case 1 above), then
+a (robust) parametric bootstrap estimate of MSPE is computed
+as proposed by Sinha and Rao (2009); see also Lahiri (2003)
+and Hall.
+</p>
+</li>
+</ul>
+</dd>
+<dt>Robustness</dt>
+<dd>
+
+<ul>
+<li>
+<p> The EBLUP obtains if <code>k = NULL</code>, i.e., if the
+robustness tuning constant <code>k</code> is unspecified.
+</p>
+</li>
+<li>
+<p> Robust predictions of the area-level means are
+computed if <code>k</code> is a nonnegative real number.
+Small values of <code>k</code> imply that outliers are
+heavily downweighted; formally, the EBLUP corresponds
+to choosing the tuning constant <code>k</code> equal to
+infinity. The value of the tuning constant <code>k</code>
+specified in <code>robpredict()</code> can be different
+from the tuning constant <code>k</code> used in fitting
+the model. The robust prediction method is due to Copt
+and Victoria-Feser (2009); see also Heritier et al.
+(2009, 113-114) and differs from the method in Sinha
+and Rao (2009).
+</p>
+</li>
+</ul>
+</dd>
+</dl>
+<h3>Value</h3>
+
+<p>An instance of the S3 class <code>pred_model_b</code>
+</p>
+
+
+<h3>NOTE</h3>
+
+<p>Users of <code>Rgui.exe</code> on Windows are recommended to call
+<code>robpredict()</code> with argument <code>progress_bar = FALSE</code>
+because <code>Rgui.exe</code> does not handle calls to
+<code>txtProgressBar()</code> well (the
+execution time of the same job increases and it tends to stall the
+execution of R). Users of <code>R-Studio</code> and <code>Rterm.exe</code>
+are <b>not</b> affected.
+</p>
+
+
+<h3>References</h3>
+
+<p>Copt, S. and M.-P. Victoria-Feser (2009).
+<em>Robust Predictions in Mixed Linear Models</em>,
+Research Report, University of Geneva.
+</p>
+<p>Lahiri, P. (2003).
+On the impact of bootstrap in survey sampling and small area estimation.
+<em>Statistical Science</em> <b>18</b>, 199–210.
+<a href="https://doi.org/10.1214/ss/1063994975">doi:10.1214/ss/1063994975</a>
+</p>
+<p>Hall, P. and T. Maiti (2006).
+On parametric bootstrap methods for small area prediction.
+<em>Journal of the Royal Statistical Society. Series B</em> <b>68</b>,
+221–238. <a href="https://doi.org/10.1111/j.1467-9868.2006.00541.x">doi:10.1111/j.1467-9868.2006.00541.x</a>
+</p>
+<p>Heritier, S., Cantoni, E., Copt, S., and M.-P. Victoria-Feser (2009).
+<em>Robust methods in biostatistics</em>. New York: John Wiley and Sons.
+</p>
+<p>Schoch, T. (2012). Robust Unit-Level Small Area Estimation: A Fast Algorithm
+for Large Datasets. <em>Austrian Journal of Statistics</em> <b>41</b>,
+243–265. <a href="https://doi.org/10.17713/ajs.v41i4.1548">doi:10.17713/ajs.v41i4.1548</a>
+</p>
+<p>Sinha, S.K. and J.N.K. Rao (2009).
+Robust small area estimation.
+<em>Canadian Journal of Statistics</em> <b>37</b>, 381–399.
+<a href="https://doi.org/10.1002/cjs.10029">doi:10.1002/cjs.10029</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>saemodel()</code>, <code>makedata()</code>,
+<code>fitsaemodel()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># use the landsat data
+head(landsat)
+
+# set up the model
+model &lt;- saemodel(formula = HACorn ~ PixelsCorn + PixelsSoybeans,
+    area = ~CountyName,
+    data = subset(landsat, subset = (outlier == FALSE)))
+
+# summary of the model
+summary(model)
+
+# Huber M-estimate with robustness tuning constant k = 2
+m &lt;- fitsaemodel("huberm", model, k = 2)
+m
+
+# summary of the fitted model/ estimates
+summary(m)
+
+# robust prediction of the random effects and the area-level means (robust
+# EBLUP) using the counts-specific means (landsat_means)
+head(landsat_means)
+
+# for robust prediction, we use the robustness tuning constant 'k = 1.8'
+m_predicted &lt;- robpredict(m, landsat_means, k = 1.8)
+head(m_predicted)
+
+# extract prediction as matrix
+as.matrix(m_predicted)
+
+# extract residuals from the predictions
+head(residuals(m_predicted))
+
+# prediction incl. MSPE; parametric bootstrap with only 'reps = 10'
+# replications (for demonstration purposes; in practice, 'reps' should be
+# considerably larger)
+m_predicted_mspe &lt;- robpredict(m, landsat_means, k = 1.8, reps = 10,
+                               progress_bar = FALSE)
+head(m_predicted_mspe)
+</code></pre>
+
+
+</div>

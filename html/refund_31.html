@@ -1,0 +1,227 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fpc</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Construct a FPC regression term</h2>
+
+<h3>Description</h3>
+
+<p>Constructs a functional principal component regression (Reiss and Ogden,
+2007, 2010) term for inclusion in an <code>mgcv::gam</code>-formula (or
+<code>{bam}</code> or <code>{gamm}</code> or <code>gamm4:::gamm</code>) as
+constructed by <code>{pfr}</code>. Currently only one-dimensional functions
+are allowed.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fpc(
+  X,
+  argvals = NULL,
+  method = c("svd", "fpca.sc", "fpca.face", "fpca.ssvd"),
+  ncomp = NULL,
+  pve = 0.99,
+  penalize = (method == "svd"),
+  bs = "ps",
+  k = 40,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>functional predictors, typically expressed as an <code>N</code> by <code>J</code> matrix,
+where <code>N</code> is the number of columns and <code>J</code> is the number of
+evaluation points. May include missing/sparse functions, which are
+indicated by <code>NA</code> values. Alternatively, can be an object of class
+<code>"fd"</code>; see <code>[fda]{fd}</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>argvals</code></td>
+<td>
+<p>indices of evaluation of <code>X</code>, i.e. <code class="reqn">(t_{i1},.,t_{iJ})</code> for
+subject <code class="reqn">i</code>. May be entered as either a length-<code>J</code> vector, or as
+an <code>N</code> by <code>J</code> matrix. Indices may be unequally spaced. Entering
+as a matrix allows for different observations times for each subject. If
+<code>NULL</code>, defaults to an equally-spaced grid between 0 or 1 (or within
+<code>X$basis$rangeval</code> if <code>X</code> is a <code>fd</code> object.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>the method used for finding principal components. The default
+is an unconstrained SVD of the <code class="reqn">XB</code> matrix. Alternatives include
+constrained (functional) principal components approaches</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncomp</code></td>
+<td>
+<p>number of principal components. if <code>NULL</code>, chosen by <code>pve</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pve</code></td>
+<td>
+<p>proportion of variance explained; used to choose the number of
+principal components</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>penalize</code></td>
+<td>
+<p>if <code>TRUE</code>, a roughness penalty is applied to the
+functional estimate. Defaults to <code>TRUE</code> if <code>method=="svd"</code>
+(corresponding to the FPCR_R method of Reiss and Ogden (2007)), and
+<code>FALSE</code> if <code>method!="svd"</code> (corresponding to FPCR_C).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bs</code></td>
+<td>
+<p>two letter character string indicating the <code>mgcv</code>-style basis
+to use for pre-smoothing <code>X</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>the dimension of the pre-smoothing basis</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional options to be passed to <code>{lf}</code>. These include
+<code>argvals</code>, <code>integration</code>, and any additional options for the
+pre-smoothing basis (as constructed by <code>mgcv::s</code>), such as <code>m</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>fpc</code> is a wrapper for <code>{lf}</code>, which defines linear
+functional predictors for any type of basis for inclusion in a <code>pfr</code>
+formula. <code>fpc</code> simply calls <code>lf</code> with the appropriate options for
+the <code>fpc</code> basis and penalty construction.
+</p>
+<p>This function implements both the FPCR-R and FPCR-C methods of Reiss and
+Ogden (2007). Both methods consist of the following steps:
+</p>
+
+<ol>
+<li>
+<p> project <code class="reqn">X</code> onto a spline basis <code class="reqn">B</code>
+</p>
+</li>
+<li>
+<p> perform a principal components decomposition of <code class="reqn">XB</code>
+</p>
+</li>
+<li>
+<p> use those PC's as the basis in fitting a (generalized) functional
+linear model
+</p>
+</li>
+</ol>
+<p>This implementation provides options for each of these steps. The basis
+for in step 1 can be specified using the arguments <code>bs</code> and <code>k</code>,
+as well as other options via <code>...</code>; see <code>[mgcv]{s}</code> for
+these options. The type of PC-decomposition is specified with <code>method</code>.
+And the FLM can be fit either penalized or unpenalized via <code>penalize</code>.
+</p>
+<p>The default is FPCR-R, which uses a b-spline basis, an unconstrained
+principal components decomposition using <code>{svd}</code>, and the FLM
+fit with a second-order difference penalty. FPCR-C can be selected by
+using a different option for <code>method</code>, indicating a constrained
+("functional") PC decomposition, and by default an unpenalized fit of the
+FLM.
+</p>
+<p>FPCR-R is also implemented in <code>{fpcr}</code>; here we implement the
+method for inclusion in a <code>pfr</code> formula.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The result of a call to <code>{lf}</code>.
+</p>
+
+
+<h3>NOTE</h3>
+
+<p>Unlike <code>{fpcr}</code>, <code>fpc</code> within a <code>pfr</code> formula does
+not automatically decorrelate the functional predictors from additional
+scalar covariates.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Jonathan Gellar <a href="mailto:JGellar@mathematica-mpr.com">JGellar@mathematica-mpr.com</a>, Phil Reiss
+<a href="mailto:phil.reiss@nyumc.org">phil.reiss@nyumc.org</a>, Lan Huo <a href="mailto:lan.huo@nyumc.org">lan.huo@nyumc.org</a>, and
+Lei Huang <a href="mailto:huangracer@gmail.com">huangracer@gmail.com</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>Reiss, P. T. (2006). Regression with signals and images as predictors. Ph.D.
+dissertation, Department of Biostatistics, Columbia University. Available
+at http://works.bepress.com/phil_reiss/11/.
+</p>
+<p>Reiss, P. T., and Ogden, R. T. (2007). Functional principal component
+regression and functional partial least squares. <em>Journal of the
+American Statistical Association</em>, 102, 984-996.
+</p>
+<p>Reiss, P. T., and Ogden, R. T. (2010). Functional generalized linear models
+with images as predictors. <em>Biometrics</em>, 66, 61-69.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>{lf}</code>, <code>{smooth.construct.fpc.smooth.spec}</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(gasoline)
+par(mfrow=c(3,1))
+
+# Fit PFCR_R
+gasmod1 &lt;- pfr(octane ~ fpc(NIR, ncomp=30), data=gasoline)
+plot(gasmod1, rug=FALSE)
+est1 &lt;- coef(gasmod1)
+
+# Fit FPCR_C with fpca.sc
+gasmod2 &lt;- pfr(octane ~ fpc(NIR, method="fpca.sc", ncomp=6), data=gasoline)
+plot(gasmod2, se=FALSE)
+est2 &lt;- coef(gasmod2)
+
+# Fit penalized model with fpca.face
+gasmod3 &lt;- pfr(octane ~ fpc(NIR, method="fpca.face", penalize=TRUE), data=gasoline)
+plot(gasmod3, rug=FALSE)
+est3 &lt;- coef(gasmod3)
+
+par(mfrow=c(1,1))
+ylm &lt;- range(est1$value)*1.35
+plot(value ~ X.argvals, type="l", data=est1, ylim=ylm)
+lines(value ~ X.argvals, col=2, data=est2)
+lines(value ~ X.argvals, col=3, data=est3)
+
+</code></pre>
+
+
+</div>

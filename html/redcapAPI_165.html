@@ -1,0 +1,259 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>importRecords</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Import Records to a Project</h2>
+
+<h3>Description</h3>
+
+<p>These methods enable the user to import new records or update
+existing records to a project.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">importRecords(
+  rcon,
+  data,
+  overwriteBehavior = c("normal", "overwrite"),
+  returnContent = c("count", "ids", "nothing", "auto_ids"),
+  returnData = FALSE,
+  logfile = "",
+  ...
+)
+
+## S3 method for class 'redcapApiConnection'
+importRecords(
+  rcon,
+  data,
+  overwriteBehavior = c("normal", "overwrite"),
+  returnContent = c("count", "ids", "nothing", "auto_ids"),
+  returnData = FALSE,
+  logfile = "",
+  force_auto_number = FALSE,
+  ...,
+  batch.size = -1,
+  error_handling = getOption("redcap_error_handling"),
+  config = list(),
+  api_param = list()
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>rcon</code></td>
+<td>
+<p>A <code>redcapConnection</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A <code>data.frame</code> to be imported to the project.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwriteBehavior</code></td>
+<td>
+<p><code>character(1)</code>. One of <code>c("normal", "overwrite")</code>.
+<code>"normal"</code> prevents blank fields from overwriting populated fields.
+<code>"overwrite"</code> causes blanks to overwrite data in the database.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>returnContent</code></td>
+<td>
+<p><code>character(1)</code>.
+One of <code>c("count", "ids", "nothing", "auto_ids")</code>.
+'count' returns the number of records imported;
+'ids' returns the record ids that are imported;
+'nothing' returns no message;
+'auto_ids' returns a list of pairs of all record IDs that were imported.
+If used when <code>force_auto_number = FALSE</code>, the value will be changed to <code>'ids'</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>returnData</code></td>
+<td>
+<p><code>logical(1)</code>. When <code>TRUE</code>, prevents the REDCap
+import and instead returns the data frame that would have been given
+for import. This is sometimes helpful if the API import fails without
+providing an informative message. The data frame can be written to a csv
+and uploaded using the interactive tools to troubleshoot the
+problem.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>logfile</code></td>
+<td>
+<p><code>character(1)</code>. An optional filepath (preferably .txt)
+in which to print the log of errors and warnings about the data.
+When <code>""</code>, the log is printed to the console.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Arguments to pass to other methods</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>force_auto_number</code></td>
+<td>
+<p><code>logical(1)</code>. If record auto-numbering has been
+enabled in the project, it may be desirable to import records where each
+record's record name is automatically determined by REDCap (just as it
+does in the user interface). When <code>TRUE</code>, the
+record names provided in the request will not be used (although they
+are still required in order to associate multiple rows of data to an
+individual record in the request); instead those records in the
+request will receive new record names during the import process.
+It is recommended that the user use <code>returnContent = "auto_ids"</code>
+when <code>force_auto_number = TRUE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>batch.size</code></td>
+<td>
+<p><code>integerish(1)</code>.  Specifies the number of subjects to be included
+in each batch of a batched export or import.  Non-positive numbers
+export/import the entire operation in a single batch.
+Batching may be beneficial to prevent tying up smaller servers.
+See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>error_handling</code></td>
+<td>
+<p><code>character(1)</code>. One of <code>c("error", "null")</code>.
+An option for how to handle errors returned by the API.
+see <code>redcapError()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>config</code></td>
+<td>
+<p>A named <code>list</code>. Additional configuration parameters to pass to
+<code>httr::POST()</code>. These are appended to any parameters in
+<code>rcon$config</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>api_param</code></td>
+<td>
+<p>A named <code>list</code>. Additional API parameters to pass into the
+body of the API call. This provides users to execute calls with options
+that may not otherwise be supported by <code>redcapAPI</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>importRecords</code> prevents the most common import errors by testing the
+data before attempting the import.  Namely
+</p>
+
+<ol>
+<li>
+<p> Check that all variables in <code>data</code> exist in the REDCap data dictionary.
+</p>
+</li>
+<li>
+<p> Check that the record id variable exists
+</p>
+</li>
+<li>
+<p> Force the record id variable to the first position in the data frame (with a warning)
+</p>
+</li>
+<li>
+<p> Remove calculated fields (with a warning)
+</p>
+</li>
+<li>
+<p> Verify that REDCap date fields are represented in the data frame as either <code>character</code>, <code>POSIXct</code>, or <code>Date</code> class objects.
+</p>
+</li>
+<li>
+<p> Determine if values are within their specified validation limits.
+</p>
+</li>
+</ol>
+<p>See the documentation for <code>validateImport()</code> for detailed
+explanations of the validation.
+</p>
+<p>A 'batched' import is one where the export is performed over a series of
+API calls rather than one large call.  For large projects on small servers,
+this may prevent a single user from tying up the server and forcing others
+to wait on a larger job.
+</p>
+
+
+<h4>BioPortal Fields</h4>
+
+<p>Text fields that are validation enabled using the BioPortal Ontology service
+may be imported by providing the coded value. Importing the coded value
+does not, however, guarantee that the labeled value will be immediately
+available. Labels for BioPortal values are cached on the REDCap server
+in a process that occurs when viewing data in the user interface. Thus,
+if the label has not be previously cached on the server, the code will be
+used to represent both the code and the label.
+</p>
+
+
+
+<h3>Value</h3>
+
+<p><code>importRecords</code>, when <code>returnData = FALSE</code>, returns the content from the
+API response designated by the <code>returnContent</code> argument.
+</p>
+<p><code>importRecords</code>, when <code>returnData = TRUE</code>, returns the
+data frame that was internally prepared for import. This data frame has
+values transformed from R objects to character values the API will
+accept.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>exportRecords()</code>, <br><code>deleteRecords()</code>, <br><code>exportRecordsTyped()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+unlockREDCap(connections = c(rcon = "project_alias"), 
+             url = "your_redcap_url", 
+             keyring = "API_KEYs", 
+             envir = globalenv())
+
+# Import records
+NewData &lt;- data.frame(record_id = c(1, 2, 3), 
+                      age = c(27, 43, 32), 
+                      date_of_visit = rep(Sys.Date(), 3))
+importRecords(rcon, 
+              data = NewData)
+              
+              
+# Import records and save validation info to a file
+NewData &lt;- data.frame(record_id = c(1, 2, 3), 
+                      age = c(27, 43, 32), 
+                      date_of_visit = rep(Sys.Date(), 3))
+importRecords(rcon, 
+              data = NewData, 
+              logfile = "import-validation-notes.txt")      
+
+
+## End(Not run) 
+
+</code></pre>
+
+
+</div>

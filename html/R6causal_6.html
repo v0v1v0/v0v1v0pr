@@ -1,0 +1,179 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>counterfactual</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Counterfactual inference via simulation</h2>
+
+<h3>Description</h3>
+
+<p>Counterfactual inference via simulation
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">counterfactual(
+  scm,
+  situation,
+  n,
+  target = NULL,
+  ifunction = NULL,
+  method = NULL,
+  returnscm = FALSE,
+  control = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>scm</code></td>
+<td>
+<p>An SCM object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>situation</code></td>
+<td>
+<p>A list or a character string. The list has the following elements:
+</p>
+
+<ul>
+<li>
+<p> do : NULL or a list containing named elements 'target' and 'ifunction' that
+specify the intervention carried out in the situation
+</p>
+</li>
+<li>
+<p> dolist : NULL or a list of lists containing named elements 'target' and 
+'ifunction' that specify the intervention carried out in each parallel world
+</p>
+</li>
+<li>
+<p> condition : either a string that gives an SQL query ( e.g. "select x,y,z from DATA where" )
+or a data.table consisting of the valid rows ( e.g. data.table::data.table( x = 0, y = 0))
+</p>
+</li>
+<li>
+<p> condition_type : (required only if method == "u_find") A character vector giving the type ("continuous" or "discrete") of every variable in <code>situation$condition</code>
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>The number of rows in the data to be simulated</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target</code></td>
+<td>
+<p>NULL or a vector of variable names that specify the target
+variable(s) of the counterfactual intervention.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ifunction</code></td>
+<td>
+<p>NULL or a list of functions for the counterfactual intervention.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>The simulation method, "u_find", "rejection" or "analytic_linear_gaussian"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>returnscm</code></td>
+<td>
+<p>A logical, should the internally created twin SCM or parallel 
+world SCM returned?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>List of parameters to be passed to the simulation method:
+</p>
+
+<ul>
+<li>
+<p> batchsize: (u_find, rejection) The size of data from n observations are resampled (default n)
+</p>
+</li>
+<li>
+<p> max_iterations: (u_find) The maximum number of iterations for the binary search (default 50)
+</p>
+</li>
+<li>
+<p> minu: (u_find) A scalar or a named list that specifies the lower starting value for the binary search (default -10)
+</p>
+</li>
+<li>
+<p> maxu: (u_find) A scalar or a named list that specifies the upper starting value for the binary search (default 10)
+</p>
+</li>
+<li>
+<p> sampling_replace: (u_find) Logical, resampling with replacement? (default TRUE)
+</p>
+</li>
+<li>
+<p> nonunique_jittersd: (u_find) Standard deviation of the noise to be added to the output (default NULL meaning no noise)
+</p>
+</li>
+<li>
+<p> maxbatchs: (u_find, rejection) The maximum number of batches for rejection sampling (for discrete variables)
+</p>
+</li>
+<li>
+<p> weightfunction: (u_find) A function or a named list of functions to be applied to dedicated error terms to obtain the resampling weights (default stats::dnorm)
+</p>
+</li>
+</ul>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A data table representing the situation after the counterfactual intervention
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">cfdata &lt;- counterfactual(backdoor,
+                         situation = list(
+                             do = list(target = "x", ifunction = 0),
+                             condition = data.table::data.table( x = 0, y = 0)),
+                         target = "x",
+                         ifunction = 1,
+                         method = "rejection",
+                         n = 1000)
+mean(cfdata$y)
+
+backdoor_parallel &lt;- ParallelWorld$new(backdoor,
+                                       dolist=list(
+                                         list(target = "x", ifunction = 0),
+                                         list(target = list("z","x"), ifunction = list(1,0))
+                                       )
+)
+cfdata2 &lt;- counterfactual(backdoor_parallel,
+                         situation = list(
+                             do = NULL,
+                             condition = data.table::data.table( y = 0, y_1 = 0, y_2 = 0)),
+                         target = "x",
+                         ifunction = 1,
+                         method = "rejection",
+                         n = 1000)
+mean(cfdata2$y)
+</code></pre>
+
+
+</div>

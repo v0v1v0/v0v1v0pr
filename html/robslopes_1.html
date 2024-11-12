@@ -1,0 +1,140 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PassingBablok</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Passing-Bablok slope and intercept estimator.
+</h2>
+
+<h3>Description</h3>
+
+<p>Computes the equivariant Passing-Bablok regression. The implemented algorithm was proposed by Raymaekers and Dufey (2022) and runs in an expected <code class="reqn">O(n log n)</code> time while requiring <code class="reqn">O(n)</code> storage.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PassingBablok(x, y, alpha = NULL, verbose = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+
+<p>A vector of predictor values.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+
+<p>A vector of response values.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+
+<p>Determines the order statistic of the target slope, which is equal to <code class="reqn">[alpha*n*(n-1)]</code>, where <code class="reqn">n</code> denotes the sample size. Defaults to <code>NULL</code>, which corresponds
+with the (upper) median. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+
+<p>Whether or not to print out the progress of the algorithm. Defaults to <code>TRUE</code>.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Given two input vectors <code>x</code> and <code>y</code> of length <code class="reqn">n</code>, the equivariant Passing-Bablok estimator is computed as <code class="reqn">med_{ij} |(y_i - y_j)/(x_i-x_j)|</code>.  By default, the median in this experssion is the upper median, defined as <code class="reqn">\lfloor (n +2) / 2 \rfloor</code>. 
+By changing <code>alpha</code>, other order statistics of the slopes can be computed.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with elements:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>intecept </code></td>
+<td>
+<p>The estimate of the intercept.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>slope </code></td>
+<td>
+<p>The Theil-Sen estimate of the slope.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Jakob Raymaekers
+</p>
+
+
+<h3>References</h3>
+
+<p>Passing, H., Bablok, W. (1983). A new biometrical procedure for testing the equality of measurements from two different analytical methods. Application of linear regression procedures for method comparison studies in clinical chemistry, Part I,  <em>Journal of clinical chemistry and clinical biochemistry</em>, <b>21</b>,709-720.
+</p>
+<p>Bablok, W., Passing, H., Bender, R., Schneider, B. (1988). A general regression procedure for method transformation. Application of linear
+regression procedures for method comparison studies in clinical chemistry, Part III.  <em>Journal of clinical chemistry and clinical biochemistry</em>, <b>26</b>,783-790.
+</p>
+<p>Raymaekers J., Dufey F. (2022). Equivariant Passing-Bablok regression in quasilinear time. <a href="https://arxiv.org/abs/2202.08060">(link to open access pdf)</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># We compare the implemented algorithm against a naive brute-force approach.
+
+bruteForcePB &lt;- function(x, y) {
+  
+  n &lt;- length(x)
+  medind1 &lt;- floor(((n * (n - 1)) / 2 + 2) / 2) # upper median
+  medind2 &lt;- floor((n + 2) / 2)
+  temp &lt;-  t(sapply(1:n, function(z)  apply(cbind(x, y), 1 ,
+                                            function(k) (k[2] - y[z]) /
+                                              (k[1] - x[z]))))
+  PBslope &lt;- sort(abs(as.vector(temp[lower.tri(temp)])))[medind1]
+  PBintercept &lt;- sort(y - x * PBslope)[medind2]
+  return(list(intercept = PBintercept, slope = PBslope))
+}
+
+
+n = 100
+set.seed(2)
+x = rnorm(n)
+y = x + rnorm(n)
+
+t0 &lt;- proc.time()
+PB.fast &lt;- PassingBablok(x, y, NULL, FALSE)
+t1 &lt;- proc.time()
+t1 - t0
+
+t0 &lt;- proc.time()
+PB.naive &lt;- bruteForcePB(x, y)
+t1 &lt;- proc.time()
+t1 - t0
+
+PB.fast$slope - PB.naive$slope
+
+</code></pre>
+
+
+</div>

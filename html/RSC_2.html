@@ -1,0 +1,176 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rmad</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>RMAD correlation matrix</h2>
+
+<h3>Description</h3>
+
+<p>Compute the RMAD robust correlation matrix proposed in Serra et
+al. (2018) based on the robust correlation coefficient proposed in
+Pasman and Shevlyakov (1987).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">  rmad(x , y = NULL, na.rm = FALSE , even.correction = FALSE, num.threads = "half-max")   
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+
+<p>A numeric vector, a matrix or a data.frame. If <code>x</code> is a matrix
+or a data.frame, rows of  <code>x</code> correspond to sample units
+and columns correspond to variables. If <code>x</code> is a numerical
+vector, and <code>y</code> is not <code>NULL</code>, the RMAD correlation
+coefficient between <code>x</code> and <code>y</code> is computed. Categorical
+variables are not allowed.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+
+<p>A numerical vector if not <code>NULL</code>. If both <code>x</code> and <code>y</code>
+are numerical vectors, the RMAD correlation coefficient between
+<code>x</code> and <code>y</code> is computed.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na.rm</code></td>
+<td>
+
+<p>A logical value, if <code>TRUE</code> sample observation
+containing <code>NA</code> values are excluded (see <em>Details</em>).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>even.correction</code></td>
+<td>
+
+<p>A logical value, if <code>TRUE</code> a correction
+for the calculation of the medians is applied to reduce the bias
+when the number of samples even (see <em>Details</em>).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>num.threads</code></td>
+<td>
+
+<p>An integer value or the string <code>"half-max"</code> (default), specifying the number of threads for parallel execution (see <em>Details</em>).
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The <code>rmad</code> function computes the correlation matrix based on the
+pairwise robust correlation coefficient of Pasman and Shevlyakov
+(1987). This correlation coefficient is based on repeated median
+calculations for all pairs of variables. This is a computational
+intensive task when the number of variables (that is <code>ncol(x)</code>)
+is large.
+</p>
+<p>The software is optimized for large dimensional data sets, the median
+is approximated as the central observation obtained based on the
+<em>find</em> algorithm of Hoare (1961) (also known as <em>quickselect</em>)
+implemented in C language. For small samples this may be a crude
+approximation, however, it makes the computational cost feasible for
+high-dimensional data sets. With the option <code>even.correction
+   = TRUE</code> a correction is applied to reduce the bias for data sets with
+an even number of samples. Although <code>even.correction = TRUE</code>
+has a small computational cost for each pair of variables, it is
+suggested to use the default <code>even.correction = FALSE</code> for large
+dimensional data sets.
+</p>
+<p>The function can handle a data matrix with missing values (<code>NA</code>
+records). If <code>na.rm = TRUE</code> then missing values are handled by
+casewise deletion (and if there are no complete cases, an error is
+returned). In practice, if <code>na.rm = TRUE</code> all rows of
+<code>x</code> that contain at least an <code>NA</code> are removed.
+</p>
+<p>Since the software is optimized to work with high-dimensional data sets,
+the output RMAD matrix is packed into a storage efficient format
+using the <code>"dspMatrix"</code> S4 class from the <code>Matrix</code>
+package. The latter is  specifically designed for dense real symmetric
+matrices. A sparse correlation matrix can be obtained applying
+thresholding using the <code>rsc_cv</code> and <code>rsc</code>.
+</p>
+<p><code>rmad</code> function supports parallel execution.
+This is provided via <em>openmp</em> (http://www.openmp.org), which must be already available on the system at installation time;
+otherwise, falls back to single-core execution.
+For later installation of openmp, the RSC package needs to be re-installed (re-compiled) to provide multi-threads execution. 
+If <code>num.threads &gt; 0</code>, function is executed using <code>min(num.threads, max.threads)</code> threads, where <code>max.threads</code> is the maximum number of available threads. That is, if positive the specified number of threads (up to the maximum available) are used.
+If <code>num.threads &lt; 0</code>, function is executed using <code>max(max.threads - num.threads, 1)</code> threads, i.e. when negative <code>num.threads</code> indicates the number of threads not to use (at least one thread is used).
+If <code>num.threads == 0</code>, a single thread is used (equivalent to <code>num.threads = 1</code>).
+If <code>num.threads == "half-max"</code>, function is executed using half of the available threads (<code>max(max.threads/2, 1)</code>). This is the default.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If <code>x</code> is a matrix or a data.frame, returns a correlation matrix of class <code>"dspMatrix"</code> (S4 class object)
+as defined in the <code>Matrix</code> package.
+</p>
+<p>If <code>x</code> and <code>y</code> are numerical vectors, returns a numerical value, that is the RMAD correlation coefficient
+between <code>x</code> and <code>y</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Hoare, C. A. (1961). Algorithm 65: find.
+<em>Communications of the ACM</em>, 4(7), 321-322.
+</p>
+<p>Musser, D. R. (1997). Introspective sorting and selection algorithms.
+<em>Software: Practice and Experience</em>, 27(8), 983-993.
+</p>
+<p>Pasman,V. and Shevlyakov,G. (1987). Robust methods of estimation of
+correlation coefficient. <em>Automation Remote Control</em>, 48, 332-340.
+</p>
+<p>Serra, A., Coretto, P., Fratello, M., and Tagliaferri, R. (2018).
+Robust and sparsecorrelation matrix estimation for the analysis of
+high-dimensional genomics data. <em>Bioinformatics</em>, 34(4), 625-634.
+doi: 10.1093/bioinformatics/btx642 
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>rsc_cv</code>, <code>rsc</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## simulate a random sample from a multivariate Cauchy distribution
+set.seed(1)
+n   &lt;- 100    # sample size
+p   &lt;- 7      # dimension
+dat &lt;- matrix(rt(n*p, df = 1), nrow = n, ncol = p)
+colnames(dat) &lt;- paste0("Var", 1:p)
+
+   
+## compute the rmad correlation coefficient between dat[,1] and dat[,2]
+a &lt;- rmad(x = dat[,1], y = dat[,2])
+
+
+## compute the RMAD correlaiton matrix   
+b &lt;- rmad(x = dat)
+b
+</code></pre>
+
+
+</div>

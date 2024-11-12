@@ -1,0 +1,322 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>xBalance</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Standardized Differences for Stratified Comparisons</h2>
+
+<h3>Description</h3>
+
+<p>Given covariates, a treatment variable, and a stratifying factor,
+calculates standardized mean differences along each covariate,
+with and without the stratification and tests for conditional
+independence of the treatment variable and the covariates within
+strata.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">xBalance(
+  fmla,
+  strata = list(unstrat = NULL),
+  data,
+  report = c("std.diffs", "z.scores", "adj.means", "adj.mean.diffs",
+    "adj.mean.diffs.null.sd", "chisquare.test", "p.values", "all")[1:2],
+  stratum.weights = harmonic,
+  na.rm = FALSE,
+  covariate.scaling = NULL,
+  normalize.weights = TRUE,
+  impfn = median,
+  post.alignment.transform = NULL,
+  pseudoinversion_tol = .Machine$double.eps
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>fmla</code></td>
+<td>
+<p>A formula containing an indicator of treatment
+assignment on the left hand side and covariates at right.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>strata</code></td>
+<td>
+<p>A list of right-hand-side-only formulas containing
+the factor(s) identifying the strata, with <code>NULL</code> entries
+interpreted as no stratification; or a factor with length equal
+to the number of rows in data; or a data frame of such
+factors. See below for examples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame in which <code>fmla</code> and <code>strata</code>
+are to be evaluated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>report</code></td>
+<td>
+<p>Character vector listing measures to report for each
+stratification; a subset of <code>c("adj.means",
+"adj.mean.diffs", "adj.mean.diffs.null.sd", "chisquare.test",
+"std.diffs", "z.scores", "p.values", "all")</code>. P-values reported
+are two-sided for the null-hypothesis of no effect. The option
+"all" requests all measures.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stratum.weights</code></td>
+<td>
+<p>Weights to be applied when aggregating
+across strata specified by <code>strata</code>, defaulting to weights
+proportional to the harmonic mean of treatment and control group
+sizes within strata.  This can be either a function used to
+calculate the weights or the weights themselves; if
+<code>strata</code> is a data frame, then it can be such a function, a
+list of such functions, or a data frame of stratum weighting
+schemes corresponding to the different stratifying factors of
+<code>strata</code>.  See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na.rm</code></td>
+<td>
+<p>Whether to remove rows with NAs on any variables
+mentioned on the RHS of <code>fmla</code> (i.e. listwise deletion).
+Defaults to <code>FALSE</code>, wherein rows aren't deleted but for
+each variable with <code>NA</code>s a missing-data indicator variable
+is added to the variables on which balance is calculated and
+medians are imputed for the variable with missing data (in
+RItools versions 0.1-9 and before the default imputation was the
+mean, in RItools versions 0.1-11 and henceforth the default is
+the median). See the example below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covariate.scaling</code></td>
+<td>
+<p>A scale factor to apply to covariates in
+calculating <code>std.diffs</code>.  If <code>NULL</code>, <code>xBalance</code>
+pools standard deviations of each variable in the treatment and
+control group (defining these groups according to whether the
+LHS of <code>formula</code> is greater than or equal to 0).  Also, see
+details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>normalize.weights</code></td>
+<td>
+<p>If <code>TRUE</code>, then stratum weights are
+normalized so as to sum to 1.  Defaults to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>impfn</code></td>
+<td>
+<p>A function to impute missing values when
+<code>na.rm=FALSE</code>. Currently <code>median</code>. To impute
+means use <code>mean.default</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>post.alignment.transform</code></td>
+<td>
+<p>Optional transformation applied to
+covariates just after their stratum means are subtracted off.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pseudoinversion_tol</code></td>
+<td>
+<p>The function uses a singular value decomposition
+to invert a covariance matrix. Singular values less than this tolerance
+will be treated as zero.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Note: the newer <code>balanceTest</code> function provides the same
+functionality as <code>xBalance</code> with additional support for clustered
+designs. While there are no plans to deprecate <code>xBalance</code>, users are
+encouraged to use <code>balanceTest</code> going forward.
+</p>
+<p>In the unstratified case, the standardized difference of covariate
+means is the mean in the treatment group minus the mean in the
+control group, divided by the S.D. (standard deviation) in the
+same variable estimated by pooling treatment and control group
+S.D.s on the same variable.  In the stratified case, the
+denominator of the standardized difference remains the same but
+the numerator is a weighted average of within-stratum differences
+in means on the covariate.  By default, each stratum is weighted
+in proportion to the harmonic mean <code class="reqn">1/[(1/a +
+1/b)/2]=2*a*b/(a+b)</code> of the number of treated units (a) and
+control units (b) in the stratum; this weighting is optimal under
+certain modeling assumptions (discussed in Kalton 1968, Hansen and
+Bowers 2008).  This weighting can be modified using the
+<code>stratum.weights</code> argument; see below.
+</p>
+<p>When the treatment variable, the variable specified by the
+left-hand side of <code>fmla</code>, is not binary, <code>xBalance</code>
+calculates the covariates' regressions on the treatment variable,
+in the stratified case pooling these regressions across strata
+using weights that default to the stratum-wise sum of squared
+deviations of the treatment variable from its stratum mean.
+(Applied to binary treatment variables, this recipe gives the same
+result as the one given above.)  In the numerator of the
+standardized difference, we get a “pooled S.D.” from separating
+units into two groups, one in which the treatment variable is 0 or
+less and another in which it is positive.  If <code>report</code>
+includes "adj.means", covariate means for the former of these
+groups are reported, along with the sums of these means and the
+covariates' regressions on either the treatment variable, in the
+unstratified (“pre”) case, or the treatment variable and the
+strata, in the stratified (“post”) case.
+</p>
+<p><code>stratum.weights</code> can be either a function or a numeric
+vector of weights.  If it is a numeric vector, it should be
+non-negative and it should have stratum names as its names. (i.e.,
+its names should be equal to the levels of the factor specified by
+<code>strata</code>.) If it is a function, it should accept one
+argument, a data frame containing the variables in <code>data</code> and
+additionally <code>Tx.grp</code> and <code>stratum.code</code>, and return a
+vector of non-negative weights with stratum codes as names; for an
+example, do <code>getFromNamespace("harmonic", "RItools")</code>.
+</p>
+<p>If <code>covariate.scaling</code> is not <code>NULL</code>, no scaling is
+applied. This behavior is likely to change in future versions.
+(If you want no scaling, set <code>covariate.scaling=1</code>, as this
+is likely to retain this meaning in the future.)
+</p>
+<p><code>adj.mean.diffs.null.sd</code> returns the standard deviation of
+the Normal approximated randomization distribution of the
+strata-adjusted difference of means under the strict null of no
+effect.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>c("xbal", "list")</code>.  There are
+<code>plot</code>, <code>print</code>, and <code>xtable</code> methods for class
+<code>"xbal"</code>; the <code>print</code> method is demonstrated in the
+examples.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Evidence pertaining to the hypothesis that a treatment
+variable is not associated with differences in covariate values
+is assessed by comparing the differences of means (or regression
+coefficients), without standardization, to their distributions
+under hypothetical shuffles of the treatment variable, a
+permutation or randomization distribution.  For the unstratified
+comparison, this reference distribution consists of differences
+(more generally, regression coefficients) when the treatment
+variable is permuted without regard to strata.  For the
+stratified comparison, the reference distribution is determined
+by randomly permuting the treatment variable within strata, then
+re-calculating the treatment-control differences (regressions of
+each covariate on the permuted treatment variable). Significance
+assessments are based on the large-sample Normal approximation
+to these reference distributions.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Ben Hansen and Jake Bowers and Mark Fredrickson
+</p>
+
+
+<h3>References</h3>
+
+<p>Hansen, B.B. and Bowers, J. (2008), “Covariate
+Balance in Simple, Stratified and Clustered Comparative
+Studies,” <em>Statistical Science</em> <b>23</b>.
+</p>
+<p>Kalton, G. (1968), “Standardization: A technique to control for
+extraneous variables,” <em>Applied Statistics</em> <b>17</b>,
+118–136.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>balanceTest</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(nuclearplants)
+##No strata, default output
+xBalance(pr~ date + t1 + t2 + cap + ne + ct + bw + cum.n,
+         data=nuclearplants)
+
+##No strata, all output
+xBalance(pr~ date + t1 + t2 + cap + ne + ct + bw + cum.n,
+         data=nuclearplants,
+         report=c("all"))
+
+##Stratified, all output
+xBalance(pr~.-cost-pt, strata=factor(nuclearplants$pt),
+         data=nuclearplants,
+         report=c("adj.means", "adj.mean.diffs",
+                  "adj.mean.diffs.null.sd",
+                  "chisquare.test", "std.diffs",
+                  "z.scores", "p.values"))
+
+##Comparing unstratified to stratified, just adjusted means and
+#omnibus test
+xBalance(pr~ date + t1 + t2 + cap + ne + ct + bw + cum.n,
+         strata=list(unstrat=NULL, pt=~pt),
+         data=nuclearplants,
+         report=c("adj.means", "chisquare.test"))
+
+##Comparing unstratified to stratified, just adjusted means and
+#omnibus test
+xBalance(pr~ date + t1 + t2 + cap + ne + ct + bw + cum.n,
+         strata=data.frame(unstrat=factor('none'),
+           pt=factor(nuclearplants$pt)),
+         data=nuclearplants,
+         report=c("adj.means", "chisquare.test"))
+
+##Missing data handling.
+testdata&lt;-nuclearplants
+testdata$date[testdata$date&lt;68]&lt;-NA
+
+##na.rm=FALSE by default
+xBalance(pr ~ date, data = testdata, report="all")
+xBalance(pr ~ date, data = testdata, na.rm = TRUE,report="all")
+
+##To match versions of RItools 0.1-9 and older, impute means
+#rather than medians.
+##Not run, impfn option is not implemented in the most recent version
+## Not run: xBalance(pr ~ date, data = testdata, na.rm = FALSE,
+           report="all", impfn=mean.default)
+## End(Not run)
+
+##Comparing unstratified to stratified, just one-by-one wilcoxon
+#rank sum tests and omnibus test of multivariate differences on
+#rank scale.
+xBalance(pr~ date + t1 + t2 + cap + ne + ct + bw + cum.n,
+         strata=data.frame(unstrat=factor('none'),
+           pt=factor(nuclearplants$pt)),
+         data=nuclearplants,
+         report=c("adj.means", "chisquare.test"),
+	 post.alignment.transform=rank)
+</code></pre>
+
+
+</div>

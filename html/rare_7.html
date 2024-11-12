@@ -1,0 +1,81 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>group.recover</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Recover aggregated groups of leaf indices</h2>
+
+<h3>Description</h3>
+
+<p>The function finds aggregated groups of leaf indices by traversing non-zero
+<code>gamma</code> elements and finding descendant leaves at each <code>gamma</code> element. In our problem,
+<code>gamma</code> are latent variables corresponding to tree nodes. The order
+of the traversal is post-order, i.e., a node is visited after its descendants.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">group.recover(gamma, A, postorder = seq(ncol(A)))
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>gamma</code></td>
+<td>
+<p>Length-<code>nnodes</code> latent variable coefficients. Note that <code>rarefit</code>
+returns <code>NA</code> as <code>gamma</code> value when <code>alpha</code> is zero,
+in which case our problem becomes the lasso on <code>beta</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>A</code></td>
+<td>
+<p><code>nvars</code>-by-<code>nnodes</code> binary matrix encoding ancestor-descendant relationships
+between leaves and nodes in the tree.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>postorder</code></td>
+<td>
+<p>Length-<code>nnodes</code> integer vector encoding post-order traversal of the tree
+nodes such that <code>seq(nnodes)[postorder]</code> ensures a node appear after its descendants.
+Default is <code>seq(nnodes)</code>, which gives post-order when <code>A</code> is generated using <code>tree.matrix</code>
+for an <code>hclust</code> tree.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Returns a list of recovered groups of leaf indices.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# See vignette for more details.
+set.seed(100)
+ts &lt;- sample(1:length(data.rating), 400) # Train set indices
+# Fit the model on train set
+ourfit &lt;- rarefit(y = data.rating[ts], X = data.dtm[ts, ], hc = data.hc, lam.min.ratio = 1e-6,
+                  nlam = 20, nalpha = 10, rho = 0.01, eps1 = 1e-5, eps2 = 1e-5, maxite = 1e4)
+# Cross validation
+ourfit.cv &lt;- rarefit.cv(ourfit, y = data.rating[ts], X = data.dtm[ts, ],
+                        rho = 0.01, eps1 = 1e-5, eps2 = 1e-5, maxite = 1e4)
+# Group recovered at optimal beta and gamma
+ibest.lambda &lt;- ourfit.cv$ibest[1]
+ibest.alpha &lt;- ourfit.cv$ibest[2]
+gamma.opt &lt;- ourfit$gamma[[ibest.alpha]][, ibest.lambda] # works if ibest.alpha &gt; 1
+groups.opt &lt;- group.recover(gamma.opt, ourfit$A)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

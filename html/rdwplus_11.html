@@ -1,0 +1,118 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>derive_flow</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Obtain flow direction and accumulation over a digital elevation model (DEM)</h2>
+
+<h3>Description</h3>
+
+<p>This function computes flow direction and accumulation (among other things) from a DEM. This is done using the <code>r.watershed</code> tool in GRASS.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">derive_flow(
+  dem,
+  flow_dir,
+  flow_acc,
+  d8 = TRUE,
+  overwrite = FALSE,
+  max_memory = 300,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>dem</code></td>
+<td>
+<p>A digital elevation model that has been hydrologically corrected.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flow_dir</code></td>
+<td>
+<p>The name of the output flow direction file in the current GRASS mapset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flow_acc</code></td>
+<td>
+<p>The name of the output flow accumulation file in the current GRASS mapset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d8</code></td>
+<td>
+<p>A logical indicating whether D8 flow direction should be used. If <code>FALSE</code>, multiple flow direction is allowed. Defaults to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite</code></td>
+<td>
+<p>A logical indicating whether any of the outputs should be allowed to overwrite existing files. Defaults to <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_memory</code></td>
+<td>
+<p>Max memory used in memory swap mode (MB). Defaults to <code>300</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments to <code>r.watershed</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Nothing. Files are written in the current GRASS mapset.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">if(check_running()){
+# Load data set
+dem &lt;- system.file("extdata", "dem.tif", package = "rdwplus")
+stream_shp &lt;- system.file("extdata", "streams.shp", package = "rdwplus")
+
+# Set environment parameters and import data to GRASS
+set_envir(dem)
+vector_to_mapset(vectors = c(stream_shp))
+
+# Create binary stream
+out_name &lt;- paste0(tempdir(), "/streams_rast.tif")
+rasterise_stream("streams", out_name, overwrite = TRUE)
+reclassify_streams("streams_rast.tif", "streams_binary.tif", 
+out_type = "binary", overwrite = TRUE)
+
+# Burn dem 
+burn_in(dem = "dem.tif", stream = "streams_binary.tif", out = "dem_burn.tif",
+ burn = 10, overwrite = TRUE)
+
+# Fill sinks
+fill_sinks(dem = "dem_burn.tif", out_dem =  "dem_fill.tif", out_fd = "fd1.tif", overwrite = TRUE)
+
+# Derive flow accumulation and direction grids
+derive_flow(dem = "dem_fill.tif", 
+flow_dir = "fdir.tif", 
+flow_acc = "facc.tif", 
+overwrite = TRUE)
+
+# Plot
+plot_GRASS("fdir.tif", col = topo.colors(6))
+plot_GRASS("facc.tif", col = topo.colors(6))
+}
+</code></pre>
+
+
+</div>

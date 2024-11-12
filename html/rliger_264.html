@@ -1,0 +1,199 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>runUINMF</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Perform Mosaic iNMF (UINMF) on scaled datasets with unshared features</h2>
+
+<h3>Description</h3>
+
+<p>Performs mosaic integrative non-negative matrix factorization (UINMF) (A.R.
+Kriebel, 2022) using block coordinate descent (alternating non-negative
+least squares, ANLS) to return factorized <code class="reqn">H</code>, <code class="reqn">W</code>, <code class="reqn">V</code> and
+<code class="reqn">U</code> matrices. The objective function is stated as
+</p>
+<p style="text-align: center;"><code class="reqn">\arg\min_{H\ge0,W\ge0,V\ge0,U\ge0}\sum_{i}^{d}
+||\begin{bmatrix}E_i \\ P_i \end{bmatrix} -
+(\begin{bmatrix}W \\ 0 \end{bmatrix}+
+\begin{bmatrix}V_i \\ U_i \end{bmatrix})Hi||^2_F+
+\lambda_i\sum_{i}^{d}||\begin{bmatrix}V_i \\ U_i \end{bmatrix}H_i||_F^2</code>
+</p>
+
+<p>where <code class="reqn">E_i</code> is the input non-negative matrix of the <code class="reqn">i</code>'th dataset,
+<code class="reqn">P_i</code> is the input non-negative matrix for the unshared features,
+<code class="reqn">d</code> is the total number of datasets. <code class="reqn">E_i</code> is of size
+<code class="reqn">m \times n_i</code> for <code class="reqn">m</code> shared features and <code class="reqn">n_i</code> cells, <code class="reqn">P_i</code>
+is of size <code class="reqn">u_i \times n_i</code> for <code class="reqn">u_i</code> unshared feaetures,
+<code class="reqn">H_i</code> is of size <code class="reqn">k \times n_i</code>, <code class="reqn">V_i</code> is of size
+<code class="reqn">m \times k</code>, <code class="reqn">W</code> is of size <code class="reqn">m \times k</code> and <code class="reqn">U_i</code> is of
+size <code class="reqn">u_i \times k</code>.
+</p>
+<p>The factorization produces a shared <code class="reqn">W</code> matrix (genes by k). For each
+dataset, an <code class="reqn">H</code> matrix (k by cells), a <code class="reqn">V</code> matrix (genes by k) and
+a <code class="reqn">U</code> matrix (unshared genes by k). The <code class="reqn">H</code> matrices represent the
+cell factor loadings. <code class="reqn">W</code> is held consistent among all datasets, as it
+represents the shared components of the metagenes across datasets. The
+<code class="reqn">V</code> matrices represent the dataset-specific components of the metagenes,
+<code class="reqn">U</code> matrices are similar to <code class="reqn">V</code>s but represents the loading
+contributed by unshared features.
+</p>
+<p>This function adopts highly optimized fast and memory efficient
+implementation extended from Planc (Kannan, 2016). Pre-installation of
+extension package <code>RcppPlanc</code> is required. The underlying algorithm
+adopts the identical ANLS strategy as <code>optimizeALS(unshared =
+TRUE)</code> in the old version of LIGER.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">runUINMF(object, k = 20, lambda = 5, ...)
+
+## S3 method for class 'liger'
+runUINMF(
+  object,
+  k = 20,
+  lambda = 5,
+  nIteration = 30,
+  nRandomStarts = 1,
+  seed = 1,
+  nCores = 2L,
+  verbose = getOption("ligerVerbose", TRUE),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>liger object. Should run
+<code>selectGenes</code> with <code>unshared = TRUE</code> and then run
+<code>scaleNotCenter</code> in advance.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>Inner dimension of factorization (number of factors). Generally, a
+higher <code>k</code> will be needed for datasets with more sub-structure. Default
+<code>20</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>Regularization parameter. Larger values penalize
+dataset-specific effects more strongly (i.e. alignment should increase as
+<code>lambda</code> increases). Default <code>5</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Arguments passed to other methods and wrapped functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nIteration</code></td>
+<td>
+<p>Total number of block coordinate descent iterations to
+perform. Default <code>30</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nRandomStarts</code></td>
+<td>
+<p>Number of restarts to perform (iNMF objective function
+is non-convex, so taking the best objective from multiple successive
+initialization is recommended). For easier reproducibility, this increments
+the random seed by 1 for each consecutive restart, so future factorization
+of the same dataset can be run with one rep if necessary. Default <code>1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>Random seed to allow reproducible results. Default <code>1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nCores</code></td>
+<td>
+<p>The number of parallel tasks to speed up the computation.
+Default <code>2L</code>. Only supported for platform with OpenMP support.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Logical. Whether to show information of the progress. Default
+<code>getOption("ligerVerbose")</code> or <code>TRUE</code> if users have not set.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+
+<ul><li>
+<p>liger method - Returns updated input liger object.
+</p>
+
+<ul>
+<li>
+<p>A list of all <code class="reqn">H</code> matrices can be accessed with
+<code>getMatrix(object, "H")</code>
+</p>
+</li>
+<li>
+<p>A list of all <code class="reqn">V</code> matrices can be accessed with
+<code>getMatrix(object, "V")</code>
+</p>
+</li>
+<li>
+<p>The <code class="reqn">W</code> matrix can be accessed with
+<code>getMatrix(object, "W")</code>
+</p>
+</li>
+<li>
+<p>A list of all <code class="reqn">U</code> matrices can be accessed with
+<code>getMatrix(object, "U")</code>
+</p>
+</li>
+</ul>
+</li></ul>
+<h3>Note</h3>
+
+<p>Currently, Seurat S3 method is not supported for UINMF because there is no
+simple solution for organizing a number of miscellaneous matrices with a
+single Seurat object. We strongly recommend that users create a
+liger object which has the specific structure.
+</p>
+
+
+<h3>References</h3>
+
+<p>April R. Kriebel and Joshua D. Welch, UINMF performs mosaic
+integration of single-cell multi-omic datasets using nonnegative matrix
+factorization, Nat. Comm., 2022
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">pbmc &lt;- normalize(pbmc)
+pbmc &lt;- selectGenes(pbmc, useUnsharedDatasets = c("ctrl", "stim"))
+pbmc &lt;- scaleNotCenter(pbmc)
+if (!is.null(getMatrix(pbmc, "scaleUnsharedData", "ctrl")) &amp;&amp;
+    !is.null(getMatrix(pbmc, "scaleUnsharedData", "stim"))) {
+    # TODO: unshared variable features cannot be detected from this example
+    pbmc &lt;- runUINMF(pbmc)
+}
+</code></pre>
+
+
+</div>

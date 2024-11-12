@@ -1,0 +1,603 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fit_mediation</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>(Robustly) fit a mediation model</h2>
+
+<h3>Description</h3>
+
+<p>(Robustly) estimate the effects in a mediation model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fit_mediation(object, ...)
+
+## S3 method for class 'formula'
+fit_mediation(formula, data, ...)
+
+## Default S3 method:
+fit_mediation(
+  object,
+  x,
+  y,
+  m,
+  covariates = NULL,
+  method = c("regression", "covariance"),
+  robust = TRUE,
+  family = "gaussian",
+  model = c("parallel", "serial"),
+  contrast = FALSE,
+  fit_yx = TRUE,
+  control = NULL,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>the first argument will determine the method of the generic
+function to be dispatched.  For the default method, this should be a data
+frame containing the variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments to be passed down.  For the default
+method, this can be used to specify tuning parameters directly instead
+of via <code>control</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>an object of class "formula" (or one that can be coerced to
+that class): a symbolic description of the model to be fitted.  Hypothesized
+mediator variables should be wrapped in a call to <code>m()</code> (see
+examples), and any optional control variables should be wrapped in a call to
+<code>covariates()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>for the <code>formula</code> method, a data frame containing the
+variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a character, integer or logical vector specifying the columns of
+<code>object</code> containing the independent variables of interest.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>a character string, an integer or a logical vector specifying the
+column of <code>object</code> containing the dependent variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m</code></td>
+<td>
+<p>a character, integer or logical vector specifying the columns of
+<code>object</code> containing the hypothesized mediator variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covariates</code></td>
+<td>
+<p>optional; a character, integer or logical vector
+specifying the columns of <code>object</code> containing additional covariates to
+be used as control variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>a character string specifying the method of
+estimation.  Possible values are <code>"regression"</code> (the default)
+to estimate the effects via regressions, or <code>"covariance"</code> to
+estimate the effects via the covariance matrix.  Note that the effects are
+always estimated via regressions if more than one independent variable or
+hypothesized mediator is specified, or if control variables are supplied.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>robust</code></td>
+<td>
+<p>a logical indicating whether to robustly estimate the effects
+(defaults to <code>TRUE</code>).  For estimation via regressions
+(<code>method = "regression"</code>), this can also be a character string, with
+<code>"MM"</code> specifying the MM-estimator of regression, and <code>"median"</code>
+specifying median regression.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>a character string specifying the error distribution to be
+used in maximum likelihood estimation of regression models.  Possible values
+are <code>"gaussian"</code> for a normal distribution (the default),
+<code>skewnormal</code> for a skew-normal distribution, <code>"student"</code> for
+Student's t distribution, <code>"skewt"</code> for a skew-t distribution, or
+<code>"select"</code> to select among these four distributions via BIC (see
+‘Details’).  This is only relevant if <code>method = "regression"</code>
+and <code>robust = FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>a character string specifying the type of model in case of
+multiple mediators.  Possible values are <code>"parallel"</code> (the default) for
+the parallel multiple mediator model, or <code>"serial"</code> for the serial
+multiple mediator model.  This is only relevant for models with multiple
+hypothesized mediators, which are currently only implemented for estimation
+via regressions (<code>method = "regression"</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>contrast</code></td>
+<td>
+<p>a logical indicating whether to compute pairwise contrasts
+of the indirect effects (defaults to <code>FALSE</code>).  This can also be a
+character string, with <code>"estimates"</code> for computing the pairwise
+differences of the indirect effects, and <code>"absolute"</code> for computing the
+pairwise differences of the absolute values of the indirect effects.  This
+is only relevant for models with multiple indirect effects, which are
+currently only implemented for estimation via regressions
+(<code>method = "regression"</code>).  For models with multiple independent
+variables of interest and multiple hypothesized mediators, contrasts are
+only computed between indirect effects corresponding to the same independent
+variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit_yx</code></td>
+<td>
+<p>a logical indicating whether to fit the regression model
+<code>y ~ x + covariates</code> to estimate the total effect (the default is
+<code>TRUE</code>).  This is only relevant if <code>method = "regression"</code> and
+<code>robust = FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>a list of tuning parameters for the corresponding robust
+method.  For robust regression (<code>method = "regression"</code>, and
+<code>robust = TRUE</code> or <code>robust = "MM"</code>), a list of tuning
+parameters for <code>lmrob()</code> as generated by
+<code>reg_control()</code>.  For winsorized covariance matrix estimation
+(<code>method = "covariance"</code> and <code>robust = TRUE</code>), a list of tuning
+parameters for <code>cov_Huber()</code> as generated by
+<code>cov_control()</code>.  No tuning parameters are necessary for median
+regression (<code>method = "regression"</code> and <code>robust = "median"</code>).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>With <code>method = "regression"</code>, and <code>robust = TRUE</code> or
+<code>robust = "MM"</code>, the effects are computed via the robust MM-estimator
+of regression from <code>lmrob()</code>.  This is the default
+behavior.
+</p>
+<p>With <code>method = "regression"</code> and <code>robust = "median"</code>, the effects
+are estimated via median regressions with <code>rq()</code>.
+Unlike the robust MM-regressions above, median regressions are not robust
+against outliers in the explanatory variables.
+</p>
+<p>With <code>method = "regression"</code>, <code>robust = FALSE</code> and
+<code>family = "select"</code>, the error distribution to be used in maximum
+likelihood estimation of the regression models is selected via BIC.  The
+following error distributions are included in the selection procedure: a
+normal distribution, a skew-normal distribution, Student's t distribution,
+and a skew-t distribution.  Note that the parameters of those distributions
+are estimated as well.  The skew-normal and skew-t distributions thereby
+use a centered parametrization such that the residuals are (approximately)
+centered around 0.  Moreover, the skew-t distribution is only evaluated in
+the selection procedure if both the skew-normal and Student's t distribution
+yield an improvement in BIC over the normal distribution.  Otherwise the
+estimation with a skew-t error distribution can be unstable.  Furthermore,
+this saves a considerable amount of computation time in a bootstrap test,
+as estimation with those error distributions is orders of magnitude slower
+than any other implemented estimation procedure.
+</p>
+<p>With <code>method = "covariance"</code> and <code>robust = TRUE</code>, the effects are
+estimated based on a Huber M-estimator of location and scatter.  Note that
+this covariance-based approach is less robust than the approach based on
+robust MM-regressions described above.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object inheriting from class <code>"fit_mediation"</code> (class
+<code>"reg_fit_mediation"</code> if <code>method = "regression"</code> or
+<code>"cov_fit_mediation"</code> if <code>method = "covariance"</code>) with
+the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>a</code></td>
+<td>
+<p>a numeric vector containing the point estimates of the effects of
+the independent variables on the proposed mediator variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>b</code></td>
+<td>
+<p>a numeric vector containing the point estimates of the direct
+effects of the proposed mediator variables on the dependent variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d</code></td>
+<td>
+<p>in case of a serial multiple mediator model, a numeric vector
+containing the point estimates of the effects of proposed mediator variables
+on other mediator variables occurring later in the sequence (only
+<code>"reg_fit_mediation"</code> if applicable).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>total</code></td>
+<td>
+<p>a numeric vector containing the point estimates of the total
+effects of the independent variables on the dependent variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>direct</code></td>
+<td>
+<p>a numeric vector containing the point estimates of the direct
+effects of the independent variables on the dependent variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>indirect</code></td>
+<td>
+<p>a numeric vector containing the point estimates of the
+indirect effects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ab</code></td>
+<td>
+<p>for back-compatibility with versions &lt;0.10.0, the point estimates
+of the indirect effects are also included here.  <b>This component is
+deprecated and may be removed as soon as the next version.</b></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit_mx</code></td>
+<td>
+<p>an object of class <code>"lmrob"</code>,
+<code>"rq"</code>, <code>"lm"</code> or <code>"lmse"</code>
+containing the estimation results from the regression of the proposed
+mediator variable on the independent variables, or a list of such objects
+in case of more than one hypothesized mediator (only
+<code>"reg_fit_mediation"</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit_ymx</code></td>
+<td>
+<p>an object of class <code>"lmrob"</code>,
+<code>"rq"</code>, <code>"lm"</code> or <code>"lmse"</code>
+containing the estimation results from the regression of the dependent
+variable on the proposed mediator and independent variables (only
+<code>"reg_fit_mediation"</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit_yx</code></td>
+<td>
+<p>an object of class <code>"lm"</code> or <code>"lmse"</code>
+containing the estimation results from the regression of the dependent
+variable on the independent variables (only <code>"reg_fit_mediation"</code>
+if arguments <code>robust = FALSE</code> and <code>fit_yx = TRUE</code> were used).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cov</code></td>
+<td>
+<p>an object of class <code>"cov_Huber"</code> or
+<code>"cov_ML"</code> containing the covariance matrix estimates
+(only <code>"cov_fit_mediation"</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x, y, m, covariates</code></td>
+<td>
+<p>character vectors specifying the respective
+variables used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a data frame containing the independent, dependent and
+proposed mediator variables, as well as covariates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>robust</code></td>
+<td>
+<p>either a logical indicating whether the effects were estimated
+robustly, or one of the character strings <code>"MM"</code> and <code>"median"</code>
+specifying the type of robust regressions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>a character string specifying the type of mediation model
+fitted: <code>"simple"</code> in case of one independent variable and one
+hypothesized mediator, <code>"multiple"</code> in case of multiple independent
+variables and one hypothesized mediator, <code>"parallel"</code> in case of
+parallel multiple mediators, or <code>"serial"</code> in case of serial multiple
+mediators (only <code>"reg_fit_mediation"</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>contrast</code></td>
+<td>
+<p>either a logical indicating whether contrasts of the
+indirect effects were computed, or one of the character strings
+<code>"estimates"</code> and <code>"absolute"</code> specifying the type of contrasts
+of the indirect effects (only <code>"reg_fit_mediation"</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>a list of tuning parameters used (if applicable).</p>
+</td>
+</tr>
+</table>
+<h3>Mediation models</h3>
+
+<p>The following mediation models are implemented.  In the regression equations
+below, the <code class="reqn">i_j</code> are intercepts and the <code class="reqn">e_j</code> are random error terms.
+</p>
+
+<ul>
+<li>
+<p><em>Simple mediation model</em>: The mediation model in its simplest
+form is given by the equations
+</p>
+<p style="text-align: center;"><code class="reqn">M = i_1 + aX + e_1,</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">Y = i_2 + bM + cX + e_2,</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">Y = i_3 + c'X + e_3,</code>
+</p>
+
+<p>where <code class="reqn">Y</code> denotes the dependent variable, <code class="reqn">X</code> the independent
+variable, and <code class="reqn">M</code> the hypothesized mediator.  The main parameter of
+interest is the product of coefficients <code class="reqn">ab</code>, called the indirect
+effect.  The coefficients <code class="reqn">c</code> and <code class="reqn">c'</code> are called the direct and
+total effect, respectively.
+</p>
+</li>
+<li>
+<p><em>Parallel multiple mediator model</em>: The simple mediation model
+can be extended with multiple mediators <code class="reqn">M_1, \dots, M_k</code> in the
+following way:
+</p>
+<p style="text-align: center;"><code class="reqn">M_1 = i_1 + a_1 X + e_1,</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">\vdots</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">M_k = i_k + a_k X + e_k,</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">Y = i_{k+1} + b_1 M_1 + \dots + b_k M_k + c X + e_{k+1},</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">Y = i_{k+2} + c' X + e_{k+2}.</code>
+</p>
+
+<p>The main parameters of interest are the individual indirect effects
+<code class="reqn">a_1 b_1, \dots, a_k b_k</code>.
+</p>
+</li>
+<li>
+<p><em>Serial multiple mediator model</em>: It differs from the parallel
+multiple mediator model in that it allows the hypothesized mediators
+<code class="reqn">M_1, \dots, M_k</code> to influence each other in a sequential manner.
+It is given by the equations
+</p>
+<p style="text-align: center;"><code class="reqn">M_1 = i_1 + a_1 X + e_1,</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">M_2 = i_1 + d_{21} M_1 + a_2 X + e_2,</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">\vdots</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">M_k = i_k + d_{k1} M_1 + \dots +  d_{k,k-1} M_{k-1} + a_k X + e_k,</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">Y = i_{k+1} + b_1 M_1 + \dots + b_k M_k + c X + e_{k+1},</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">Y = i_{k+2} + c' X + e_{k+2}.</code>
+</p>
+
+<p>The serial multiple mediator model quickly grows in complexity with
+increasing number of mediators due to the combinatorial increase in
+indirect paths through the mediators.  It is therefore only implemented
+for two and three mediators to maintain a focus on easily interpretable
+models.  For two serial mediators, the three indirect effects
+<code class="reqn">a_1 b_1</code>, <code class="reqn">a_2 b_2</code>, and <code class="reqn">a_1 d_{21} b_2</code> are the main
+parameters of interest.  For three serial mediators, there are already
+seven indirect effects: <code class="reqn">a_1 b_1</code>, <code class="reqn">a_2 b_2</code>, <code class="reqn">a_3 b_3</code>,
+<code class="reqn">a_1 d_{21} b_2</code>, <code class="reqn">a_1 d_{31} b_3</code>, <code class="reqn">a_2 d_{32} b_3</code>, and
+<code class="reqn">a_1 d_{21} d_{32} b_3</code>.
+</p>
+</li>
+<li>
+<p><em>Multiple independent variables to be mediated</em>: The simple
+mediation model can also be extended by allowing multiple independent
+variables <code class="reqn">X_1, \dots, X_l</code> instead of multiple mediators.  It is
+defined by the equations
+</p>
+<p style="text-align: center;"><code class="reqn">M = i_1 + a_1 X_1 + \dots + a_l X_l + e_1,</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">Y = i_2 + b M + c_1 X_1 + \dots + c_l X_l + e_2,</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">Y = i_3 + c_1' X_1 + \dots + c_l' X_l + e_3.</code>
+</p>
+
+<p>The indirect effects <code class="reqn">a_1 b, \dots, a_l b</code> are the main parameters of
+interest.  Note that an important special case of this model occurs when a
+categorical independent variable is represented by a group of dummy
+variables.
+</p>
+</li>
+<li>
+<p><em>Control variables</em>: To isolate the effects of the independent
+variables of interest from other factors, control variables can be added
+to all regression equations of a mediation model.  Note that that there is
+no intrinsic difference between independent variables of interest and
+control variables in terms of the model or its estimation.  The difference
+is purely conceptual in nature: for the control variables, the estimates
+of the direct and indirect paths are not of particular interest to the
+researcher.  Control variables can therefore be specified separately from
+the independent variables of interest.  Only for the latter, results for
+the indirect effects are included in the output.
+</p>
+</li>
+<li>
+<p><em>More complex models</em>: Some of the models described above can
+be combined, for instance parallel and serial multiple mediator models
+support multiple independent variables of interest and control variables.
+</p>
+</li>
+</ul>
+<h3>Note</h3>
+
+<p>The default method takes a data frame its first argument so that it can
+easily be used with the pipe operator (<span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>'s built-in <code>|&gt;</code> or
+<span class="pkg">magrittr</span>'s <code>%&gt;%</code>).
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Andreas Alfons
+</p>
+
+
+<h3>References</h3>
+
+<p>Alfons, A., Ates, N.Y. and Groenen, P.J.F. (2022a) A Robust Bootstrap Test
+for Mediation Analysis.  <em>Organizational Research Methods</em>,
+<b>25</b>(3), 591–617.  doi:10.1177/1094428121999096.
+</p>
+<p>Alfons, A., Ates, N.Y. and Groenen, P.J.F. (2022b) Robust Mediation Analysis:
+The <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> Package <span class="pkg">robmed</span>.  <em>Journal of Statistical Software</em>,
+<b>103</b>(13), 1–45.  doi:10.18637/jss.v103.i13.
+</p>
+<p>Azzalini, A. and Arellano-Valle, R. B. (2013) Maximum Penalized Likelihood
+Estimation for Skew-Normal and Skew-t Distributions.  <em>Journal of
+Statistical Planning and Inference</em>, <b>143</b>(2), 419–433.
+doi:10.1016/j.jspi.2012.06.022.
+</p>
+<p>Yuan, Y. and MacKinnon, D.P. (2014) Robust Mediation Analysis Based on
+Median Regression.  <em>Psychological Methods</em>, <b>19</b>(1), 1–20.
+doi:10.1037/a0033820.
+</p>
+<p>Zu, J. and Yuan, K.-H. (2010) Local Influence and Robust Procedures for
+Mediation Analysis.  <em>Multivariate Behavioral Research</em>, <b>45</b>(1),
+1–44.  doi:10.1080/00273170903504695.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>test_mediation()</code>
+</p>
+<p><code>lmrob()</code>, <code>lm()</code>,
+<code>cov_Huber()</code>, <code>cov_ML()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data("BSG2014")
+
+## seed to be used for the random number generator
+seed &lt;- 20211117
+
+## simple mediation
+# set seed of the random number generator
+set.seed(seed)
+# The results in Alfons et al. (2022a) were obtained with an
+# older version of the random number generator.  To reproduce
+# those results, uncomment the two lines below.
+# RNGversion("3.5.3")
+# set.seed(20150601)
+# perform mediation analysis
+fit_simple &lt;- fit_mediation(TeamCommitment ~
+                              m(TaskConflict) +
+                              ValueDiversity,
+                            data = BSG2014)
+boot_simple &lt;- test_mediation(fit_simple)
+summary(boot_simple)
+
+
+## serial multiple mediators
+# set seed of the random number generator
+set.seed(seed)
+# perform mediation analysis
+fit_serial &lt;- fit_mediation(TeamScore ~
+                              serial_m(TaskConflict,
+                                       TeamCommitment) +
+                              ValueDiversity,
+                            data = BSG2014)
+boot_serial &lt;- test_mediation(fit_serial)
+summary(boot_serial)
+
+## parallel multiple mediators and control variables
+# set seed of the random number generator
+set.seed(seed)
+# perform mediation analysis
+fit_parallel &lt;- fit_mediation(TeamPerformance ~
+                                parallel_m(ProceduralJustice,
+                                           InteractionalJustice) +
+                                SharedLeadership +
+                                covariates(AgeDiversity,
+                                           GenderDiversity),
+                              data = BSG2014)
+boot_parallel &lt;- test_mediation(fit_parallel)
+summary(boot_parallel)
+
+
+</code></pre>
+
+
+</div>

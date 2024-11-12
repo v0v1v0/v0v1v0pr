@@ -1,0 +1,162 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rpf_knn_query</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Query a random projection forest index for nearest neighbors</h2>
+
+<h3>Description</h3>
+
+<p>Run queries against a "forest" of Random Projection Trees (Dasgupta and
+Freund, 2008), to return nearest neighbors taken from the reference data used
+to build the forest.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rpf_knn_query(
+  query,
+  reference,
+  forest,
+  k,
+  cache = TRUE,
+  n_threads = 0,
+  verbose = FALSE,
+  obs = "R"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>query</code></td>
+<td>
+<p>Matrix of <code>n</code> query items, with observations in the rows and
+features in the columns. Optionally, the data may be passed with the
+observations in the columns, by setting <code>obs = "C"</code>, which should be more
+efficient. The <code>reference</code> data must be passed in the same orientation as
+<code>query</code>. Possible formats are <code>base::data.frame()</code>, <code>base::matrix()</code>
+or <code>Matrix::sparseMatrix()</code>. Sparse matrices should be in <code>dgCMatrix</code>
+format. Dataframes will be converted to <code>numerical</code> matrix format
+internally, so if your data columns are <code>logical</code> and intended to be used
+with the specialized binary <code>metric</code>s, you should convert it to a logical
+matrix first (otherwise you will get the slower dense numerical version).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reference</code></td>
+<td>
+<p>Matrix of <code>m</code> reference items, with observations in the rows
+and features in the columns. The nearest neighbors to the queries are
+calculated from this data and should be the same data used to build the
+<code>forest</code>. Optionally, the data may be passed with the observations in the
+columns, by setting <code>obs = "C"</code>, which should be more efficient. The
+<code>query</code> data must be passed in the same format and orientation as
+<code>reference</code>. Possible formats are <code>base::data.frame()</code>, <code>base::matrix()</code> or
+<code>Matrix::sparseMatrix()</code>. Sparse matrices should be in <code>dgCMatrix</code> format.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>forest</code></td>
+<td>
+<p>A random partition forest, created by <code>rpf_build()</code>,
+representing partitions of the data in <code>reference</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>Number of nearest neighbors to return. You are unlikely to get good
+results if you choose a value substantially larger than the value of
+<code>leaf_size</code> used to build the <code>forest</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cache</code></td>
+<td>
+<p>if <code>TRUE</code> (the default) then candidate indices found in the
+leaves of the forest are cached to avoid recalculating the same distance
+repeatedly. This incurs an extra memory cost which scales with <code>n_threads</code>.
+Set this to <code>FALSE</code> to disable distance caching.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_threads</code></td>
+<td>
+<p>Number of threads to use. Note that the parallelism in the
+search is done over the observations in <code>query</code> not the trees in the
+<code>forest</code>. Thus a single observation will not see any speed-up from
+increasing <code>n_threads</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>If <code>TRUE</code>, log information to the console.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>obs</code></td>
+<td>
+<p>set to <code>"C"</code> to indicate that the input <code>data</code> orientation stores
+each observation as a column. The default <code>"R"</code> means that observations are
+stored in each row. Storing the data by row is usually more convenient, but
+internally your data will be converted to column storage. Passing it
+already column-oriented will save some memory and (a small amount of) CPU
+usage.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>the approximate nearest neighbor graph as a list containing:
+</p>
+
+<ul>
+<li> <p><code>idx</code> an n by k matrix containing the nearest neighbor indices.
+</p>
+</li>
+<li> <p><code>dist</code> an n by k matrix containing the nearest neighbor distances.
+</p>
+</li>
+</ul>
+<p><code>k</code> neighbors per observation are not guaranteed to be found. Missing data
+is represented with an index of <code>0</code> and a distance of <code>NA</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Dasgupta, S., &amp; Freund, Y. (2008, May).
+Random projection trees and low dimensional manifolds.
+In <em>Proceedings of the fortieth annual ACM symposium on Theory of computing</em>
+(pp. 537-546).
+<a href="https://doi.org/10.1145/1374376.1374452">doi:10.1145/1374376.1374452</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>rpf_build()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Build a forest of 10 trees from the odd rows
+iris_odd &lt;- iris[seq_len(nrow(iris)) %% 2 == 1, ]
+iris_odd_forest &lt;- rpf_build(iris_odd, n_trees = 10)
+
+iris_even &lt;- iris[seq_len(nrow(iris)) %% 2 == 0, ]
+iris_even_nn &lt;- rpf_knn_query(
+  query = iris_even, reference = iris_odd,
+  forest = iris_odd_forest, k = 15
+)
+</code></pre>
+
+
+</div>

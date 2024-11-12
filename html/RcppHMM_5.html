@@ -1,0 +1,200 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>generateObservations</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Generate observations given a model
+</h2>
+
+<h3>Description</h3>
+
+<p>Function used to generate simulated observations given a hidden Markov model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">generateObservations(hmm, length)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>hmm</code></td>
+<td>
+<p>a list with the necessary variables to define a hidden Markov model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>length</code></td>
+<td>
+<p>the number of observations will be generated.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A <code>"list"</code> that contains the generated observations and the hidden state that generated it.
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>a vector representing the path of hidden states.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>generated observations. HMM and PHMM return a vector. GHMM returns a matrix.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Values for a hidden Markov model with categorical observations
+# Set the model parameters
+n &lt;- c("First","Second")
+m &lt;- c("A","T","C","G")
+A &lt;- matrix(c(0.8,0.2,
+              0.1,0.9),
+            nrow = 2,
+            byrow = TRUE)
+
+B &lt;- matrix(c(0.2, 0.2, 0.3, 0.3,
+              0.4, 0.4, 0.1, 0.1),
+            nrow = 2,
+            byrow = TRUE)
+
+Pi &lt;- c(0.5, 0.5)
+
+params &lt;- list( "Model" = "HMM",
+                "StateNames" = n,
+                "ObservationNames" = m,
+                "A" = A,
+                "B" = B,
+                "Pi" = Pi)
+
+HMM &lt;- verifyModel(params)
+
+# Data simulation
+set.seed(100)
+length &lt;- 100
+observationSequence &lt;- generateObservations(HMM, length)
+# Observed data
+head(observationSequence$Y)
+# Hidden states path
+head(observationSequence$X)
+
+
+## Values for a hidden Markov model with discrete observations
+
+n &lt;- c("Low","Normal","High")
+
+A &lt;- matrix(c(0.5, 0.3,0.2,
+              0.2, 0.6, 0.2,
+              0.1, 0.3, 0.6),
+            ncol=length(n), byrow=TRUE)
+
+B &lt;- c(2600,  # First distribution with mean 2600
+       2700,  # Second distribution with mean 2700
+       2800)  # Third distribution with mean 2800
+
+Pi &lt;- rep(1/length(n), length(n))
+
+HMM.discrete &lt;- verifyModel(list("Model"="PHMM", "StateNames" = n, "A" = A, "B" = B, "Pi" = Pi))
+
+# Data simulation
+set.seed(100)
+length &lt;- 100
+observationSequence &lt;- generateObservations(HMM.discrete, length)
+# Observed data
+head(observationSequence$Y)
+# Hidden states path
+head(observationSequence$X)
+
+
+## Values for a hidden Markov model with continuous observations                          
+# Number of hidden states = 3
+# Univariate gaussian mixture model
+
+N = c("Low","Normal", "High")
+A &lt;- matrix(c(0.5, 0.3,0.2,
+              0.2, 0.6, 0.2,
+              0.1, 0.3, 0.6),
+            ncol= length(N), byrow = TRUE)
+
+Mu &lt;- matrix(c(0, 50, 100), ncol = length(N))
+Sigma &lt;- array(c(144, 400, 100), dim = c(1,1,length(N)))
+Pi &lt;- rep(1/length(N), length(N))
+
+HMM.cont.univariate &lt;- verifyModel(list( "Model"="GHMM", 
+                                         "StateNames" = N,
+                                         "A" = A, 
+                                         "Mu" = Mu, 
+                                         "Sigma" = Sigma, 
+                                         "Pi" = Pi))
+
+# Data simulation
+set.seed(100)
+length &lt;- 100
+observationSequence &lt;- generateObservations(HMM.cont.univariate, length)
+# Observed data
+observationSequence$Y[,1:6]
+# Hidden states path
+head(observationSequence$X)
+
+
+## Values for a hidden Markov model with continuous observations                          
+# Number of hidden states = 2
+# Multivariate gaussian mixture model
+# Observed vector with dimensionality of 3
+N = c("X1","X2")
+M &lt;- 3
+
+# Same number of dimensions
+Sigma &lt;- array(0, dim =c(M,M,length(N)))
+Sigma[,,1] &lt;- matrix(c(1.0,0.8,0.8,
+                       0.8,1.0,0.8,
+                       0.8,0.8,1.0), ncol = M,  
+                     byrow = TRUE)
+Sigma[,,2] &lt;- matrix(c(1.0,0.4,0.6,
+                       0.4,1.0,0.8,
+                       0.6,0.8,1.0), ncol = M,
+                     byrow = TRUE)
+Mu &lt;- matrix(c(0, 5, 
+               10, 0, 
+               5, 10), 
+             nrow = M, 
+             byrow = TRUE)
+
+A &lt;- matrix(c(0.6, 0.4,
+              0.3, 0.7), 
+            ncol = length(N),
+            byrow = TRUE)
+Pi &lt;- c(0.5, 0.5)
+
+HMM.cont.multi &lt;- verifyModel(list( "Model" = "GHMM",
+                                    "StateNames" = N,
+                                    "A" = A, 
+                                    "Mu" = Mu, 
+                                    "Sigma" = Sigma, 
+                                    "Pi" = Pi))
+
+# Data simulation
+set.seed(100)
+length &lt;- 100
+observationSequence &lt;- generateObservations(HMM.cont.multi, length)
+# Observed data
+observationSequence$Y[,1:6]
+# Hidden states path
+head(observationSequence$X)
+
+</code></pre>
+
+
+</div>

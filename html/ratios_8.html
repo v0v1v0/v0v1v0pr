@@ -1,0 +1,305 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ratioDT</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>ratioDT</h2>
+
+<h3>Description</h3>
+
+<p>The function calculates ratios of corresponding variables and corresponding rows between two data sets, DT1 and DT2.
+The result is a data set with the same dimensions as DT1.
+The variables can be specified by <code>vars</code>, without specification the subfunction <code>select.VarsElements</code> matches column names with element abbreviations.
+Which row of DT1 corresponds to which row in DT2 has to be specified by the variable(s) <code>group1.vars</code> (and optional <code>group2.vars</code>).
+If DT2 has different number of rows than DT1 a 'new DT2' with equal dimensions to DT1 is prepared by the function <code>preparationDT2</code>.
+At the moment there are three different options for calculating the ratios:
+</p>
+
+<ul>
+<li>
+<p> "simple"
+</p>
+</li>
+<li>
+<p> "log"
+</p>
+</li>
+<li>
+<p> "ar"
+</p>
+</li>
+<li>
+<p> "alr"
+</p>
+</li>
+<li>
+<p> "cr"
+</p>
+</li>
+<li>
+<p> "clr"
+</p>
+</li>
+</ul>
+<p>For more details please refer to <code>preparationDT2</code> and section Details.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ratioDT(DT1, DT2, vars = NULL, group1.vars, group2.vars = NULL,
+  ratio_type = "simple", vars.ref, id.vars, Errors = FALSE,
+  Error_method = "gauss", var_subgroup = NULL, use_only_DT2 = FALSE,
+  DT2_replace = NULL, STD_DT1, STD_DT2, minNr_DT1 = 50, minNr_DT2 = 50,
+  return_all = FALSE, return_as_list = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>DT1</code></td>
+<td>
+<p>data.frame or data.table, samples in rows and variables in columns</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>DT2</code></td>
+<td>
+<p>data.frame or data.table, samples in rows and variables in columns.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vars</code></td>
+<td>
+<p>optional, character vector of column names of DT1 and DT2, default is function <code>select.VarsElements</code>.
+Please make sure the columns given in <code>vars</code> are of class numeric.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group1.vars</code></td>
+<td>
+<p>character vector, column name(s) for subsetting DT1 and DT2</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group2.vars</code></td>
+<td>
+<p>optional, column name for subsetting DT1 and DT2 if some entries in <code>group1.vars</code> are empty.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ratio_type</code></td>
+<td>
+<p>character vector of "simple", "log", "ar", "alr", "cr" and "clr".
+Please refer to details for explanations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vars.ref</code></td>
+<td>
+<p>reference variable, one out of <code>vars</code>. Only for <code>ratio_type</code> "ar" or "alr".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id.vars</code></td>
+<td>
+<p>column with unique (!) entries for each row. Class can be integer (corresponding row numbers) or character (e.g. sample IDs).
+If missing, all columns but <code>vars</code> will be assigned to it.
+Please note: Function is faster and more stable if <code>id.vars</code> is provided.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Errors</code></td>
+<td>
+<p>logical, should absolute errors get calculated appended to the list - output? Default is FALSE.
+If Errors are set to TRUE it overrides the option <code>return_as_list</code> and always returns a list.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Error_method</code></td>
+<td>
+<p>method with which the error should be calculated. At the moment you can choose between "gauss" (default) and "biggest".
+See Details for explanation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>var_subgroup</code></td>
+<td>
+<p>optional, character vector of one column name of DT1. This option affects the only the error calculation, hence it is ignored if <code>Errors</code> is set to FALSE.
+If provided, DT1 is split into subsets by <code>group1.vars</code> <em>and</em> 'var_subgroup' and the error will calculated for each of these subset.
+Please read in the Details for further information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use_only_DT2</code></td>
+<td>
+<p>logical, default is FALSE. If there are not enough DT2 data of the location should the DT2s of the region be used? If the <code>use_only_DT2</code> is set to FALSE then the Upper Crust is used for the correction.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>DT2_replace</code></td>
+<td>
+<p>mandatory if <code>use_only_DT2</code> is set to FALSE, serves as substitute for DT2 where DT2 has no corresponding rows to DT1.
+A named vector or one-row data.table/ data.frame with the all <code>vars</code> present.
+A column for <code>group1.vars</code> is not necessary.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>STD_DT1</code></td>
+<td>
+<p>optional, data.frame or data.table object for calculating errors for DT1, e.g. the standards. Please see Details. If left empty a default of 5.2% relative error is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>STD_DT2</code></td>
+<td>
+<p>optional, data.frame or data.table object for calculating errors for DT2, e.g. the standards. Please see Details. If left empty a default of 5.2% relative error is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minNr_DT1</code></td>
+<td>
+<p>minimum numbers of samples/observations in DT1 for calculating a relative error of observations.
+If the number of observations of DT1 is smaller than <code>minNr_DT1</code> the error is calculated via the data set <code>STD_DT1</code>.
+Default is 50.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minNr_DT2</code></td>
+<td>
+<p>minimum numbers of samples/observations in DT2 for calculating a relative error of observations.
+If the number of observations of DT1 is smaller than <code>minNr_DT2</code> the error is calculated via the data set <code>STD_DT2</code>.
+Default is 50.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return_all</code></td>
+<td>
+<p>logical, should <em>all</em> used data sets be returned as a list? Default is FALSE.
+If set to TRUE the list contains DT1, DT2, vars, ratios, and optional additional ratios_error, DT1_error and DT2_error.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return_as_list</code></td>
+<td>
+<p>logical, should the result get returned as list? Default is FALSE.
+If set to FALSE and <code>Errors</code> is set to TRUE a column <code>type_of_data</code> is appended.
+This option is ignored if option 'return_all' is set to TRUE.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>To calculate the ratios the functions internally calls <code>preparationDT2</code> to create a data set 'new DT2' from the variables <code>vars</code> of DT2, which has equal number of rows to DT1.
+Then the division is done by the now corresponding data sets by the method given in 'ratio_type'.
+</p>
+<p>The method "simple" is a simple division between DT1 and DT2:
+</p>
+<p style="text-align: center;"><code class="reqn">
+\frac{DT1[vars]}{DT2[vars]}
+</code>
+</p>
+
+<p>The method "log" is the logarithm of the simple ratio:
+</p>
+<p style="text-align: center;"><code class="reqn"> ln \left( \frac{DT1[vars]}{DT2[vars]} \right)</code>
+</p>
+
+<p>The methods "ar" and "alr" normalize all ratios to one reference column:
+ar:
+</p>
+<p style="text-align: center;"><code class="reqn">
+\frac{DT1[vars_{i}]}{DT2[vars_{i}]} * \frac{DT2[vars_n]}{DT1[vars_n]}_{i=1,\dots, n, \dots, D}
+</code>
+</p>
+
+<p>alr:
+</p>
+<p style="text-align: center;"><code class="reqn">
+ln \left(\frac{DT1[vars_{i}]}{DT2[vars_{i}]} * \frac{DT2[vars_n]}{DT1[vars_n]}\right)_{i=1,\dots, n, \dots, D}
+</code>
+</p>
+
+<p>The methods "cr" and "clr" normalize all ratios to the geometric mean of all columns included by <code>vars</code>:
+"cr" is calculated by:
+</p>
+<p style="text-align: center;"><code class="reqn">
+\frac{DT1[vars_{i}]}{DT2[vars_{i}]} * \frac{g(x)^{DT2[vars]}}{g(x)^{DT1[vars]}}_{i=1,\dots, D}
+</code>
+</p>
+
+<p>whereof the function g(x) stands for:
+</p>
+<p style="text-align: center;"><code class="reqn">g(x) = \sqrt[D]{DT[vars_1] \cdot DT[vars_2] \cdots DT[vars_D]} </code>
+</p>
+
+<p>and "clr" is calculated by:
+</p>
+<p style="text-align: center;"><code class="reqn">
+ ln \left(\frac{DT1[vars_{i}]}{DT2[vars_{i}]} * \frac{g(x)^{DT2[vars]}}{g(x)^{DT1[vars]}}\right)_{i=1,\dots, D}
+</code>
+</p>
+
+<p>The methods "clr" and "alr" should be considered if the data contain so called <em>compositional data</em> as defined by Aitchison, J. (1986): "The statistical analysis of compositional data".
+They names correspond to the names used in the package <code>compositions</code> by K. Gerald van den Boogaart, Raimon Tolosana and Matevz Bren.
+</p>
+<p>Calculating the absolute error for the ratios requires calculating the absolute errors of DT1 and DT2, too.
+For calculating the errors of DT1 and DT2 the function <code>relError_dataset</code> is used.
+Accordingly the options for <code>STD_DT1</code> and <code>STD_DT2</code> are passed to the option <code>STD</code> in <code>relError_dataset</code>.
+If STD_DT1 and/or STD_DT2 are left empty the default of 5.2% relative error is used.
+Also the options <code>minNr_DT1</code> and <code>minNr_DT2</code> are passed to the option <code>minNr</code> in <code>relError_dataset</code>.
+</p>
+<p>The <code>Error_method</code> determines how the absolute error of the ratios is calculated.
+The error method "gauss" refers to the error propagation after Gauss:
+</p>
+<p style="text-align: center;"><code class="reqn">
+\Delta x =  \frac{\Delta DT1}{DT2} - DT1 * \frac{\Delta DT2}{DT2^2}
+</code>
+</p>
+
+<p>The error method "biggest" refers to the maximum error after Gauss:
+</p>
+<p style="text-align: center;"><code class="reqn">
+\Delta x =  \frac{\Delta DT1}{DT2} + DT1 * \frac{\Delta DT2}{DT2^2}
+</code>
+</p>
+
+<p>For example:
+If you have in DT1 plant samples with <code>group1.vars = "Location"</code> the error function would calculate the relative standard deviation for all plants of one location.
+But maybe you have very different plants in one location so setting <code>var_subgroup = "Species"</code> the error function will calculate the relative standard deviation for each plant species per location, if there are more species per location than given in <code>minNr_DT1</code>.
+Suppose DT2 are soil data with several samples per location.
+If <code>group1.vars = "Location"</code> than the function calls <code>preparationDT2</code> and calculates a mean for each location from the data set.
+The ratio from plant to soil and the absolute errors of the ratios is then calculated for each plant sample to a mean of soils from one location.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The function returns either a data.table, data.frame or a list controlled by the option <code>return_as_list</code>.
+If <code>return_as_list</code> to FALSE a data.frame (or data.table if DT1 is of class data.table) is returned.
+If option <code>Errors</code> is set to TRUE ratios and error are combined into one object and a column <code>type_of_data</code> is appended with the entries <em>ratio</em> and <em>ratio_error</em> respectively.
+If <code>return_as_list</code> to TRUE the DT1-DT2-ratios are named in the list as "ratios" and, if <code>Errors</code> is set to TRUE the absolute errors of the ratios are saved in the list as "ratios_error".
+If 'return_all' is set to TRUE a list with the following entries will be returned:
+</p>
+<p>[[1]] "DT1", [[2]] "DT2", [[3]] "vars", [[4]] "ratios" and if <code>Errors</code> is set to TRUE additionally [[5]] "ratios_error", [[6]] "DT1_error", [[7]] "DT2_error".
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Solveig Pospiech
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other ratio functions: <code>Correction.AdheringParticles</code>,
+<code>preparationDT2</code>,
+<code>ratio_append_smallest</code>
+</p>
+
+
+</div>

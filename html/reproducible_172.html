@@ -1,0 +1,299 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>postProcess</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Generic function to post process objects</h2>
+
+<h3>Description</h3>
+
+<p><img src="../help/figures/lifecycle-maturing.svg" alt="maturing"></p>
+<p>The method for GIS objects (terra <code style="white-space: pre;">⁠Spat*⁠</code> &amp; sf classes) will
+crop, reproject, and mask, in that order.
+This is a wrapper for <code>cropTo()</code>, <code>fixErrorsIn()</code>,
+<code>projectTo()</code>, <code>maskTo()</code> and <code>writeTo()</code>,
+with a required amount of data manipulation between these calls so that the crs match.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">postProcess(x, ...)
+
+## S3 method for class 'list'
+postProcess(x, ...)
+
+## Default S3 method:
+postProcess(x, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A GIS object of postProcessing,
+e.g., Spat* or sf*. This can be provided as a
+<code>rlang::quosure</code> or a normal R object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments passed to methods. For <code>spatialClasses</code>,
+these are: <code>cropTo()</code>, <code>fixErrorsIn()</code>,
+<code>projectTo()</code>, <code>maskTo()</code>,
+<code>determineFilename()</code>, and <code>writeTo()</code>.
+Each of these may also pass <code>...</code> into other functions, like
+<code>writeTo()</code>.
+This might include potentially important arguments like <code>datatype</code>,
+<code>format</code>. Also passed to <code>terra::project</code>,
+with likely important arguments such as <code>method = "bilinear"</code>.
+See details.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A GIS file (e.g., <code>RasterLayer</code>, <code>SpatRaster</code> etc.) that has been
+appropriately cropped, reprojected, masked, depending on the inputs.
+</p>
+
+
+<h3>Post processing sequence</h3>
+
+<p>If the <code>rasterToMatch</code> or <code>studyArea</code> are passed, then
+the following sequence will occur:
+</p>
+
+<ol>
+<li>
+<p> Fix errors <code>fixErrorsIn()</code>. Currently only errors fixed are for
+<code>SpatialPolygons</code> using <code>buffer(..., width = 0)</code>.
+</p>
+</li>
+<li>
+<p> Crop using <code>cropTo()</code>
+</p>
+</li>
+<li>
+<p> Project using <code>projectTo()</code>
+</p>
+</li>
+<li>
+<p> Mask using <code>maskTo()</code>
+</p>
+</li>
+<li>
+<p> Determine file name <code>determineFilename()</code>
+</p>
+</li>
+<li>
+<p> Write that file name to disk, optionally <code>writeTo()</code>
+</p>
+</li>
+</ol>
+<p>NOTE: checksumming does not occur during the post-processing stage, as
+there are no file downloads. To achieve fast results, wrap
+<code>prepInputs</code> with <code>Cache</code>
+</p>
+
+
+<h3>Backwards compatibility with <code>rasterToMatch</code> and/or <code>studyArea</code> arguments</h3>
+
+<p>For backwards compatibility, <code>postProcess</code> will continue to allow passing
+<code>rasterToMatch</code> and/or <code>studyArea</code> arguments. Depending on which of these
+are passed, different things will happen to the <code>targetFile</code> located at <code>filename1</code>.
+</p>
+<p>See <em>Use cases</em> section in <code>postProcessTo()</code> for post processing behaviour with
+the new <code>from</code> and <code>to</code> arguments.
+</p>
+
+
+<h4>If <code>targetFile</code> is a raster (<code style="white-space: pre;">⁠Raster*⁠</code>, or <code>SpatRaster</code>) object:</h4>
+
+
+<table>
+<tr>
+<td style="text-align: left;">
+</td>
+<td style="text-align: center;"> <code>rasterToMatch</code>      </td>
+<td style="text-align: center;"> <code>studyArea</code>  </td>
+<td style="text-align: center;">  Both               </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>extent</code>     </td>
+<td style="text-align: center;"> Yes                  </td>
+<td style="text-align: center;">   Yes        </td>
+<td style="text-align: center;"> <code>rasterToMatch</code>     </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>resolution</code> </td>
+<td style="text-align: center;"> Yes                  </td>
+<td style="text-align: center;">   No         </td>
+<td style="text-align: center;"> <code>rasterToMatch</code>     </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>projection</code> </td>
+<td style="text-align: center;"> Yes                  </td>
+<td style="text-align: center;">   No*        </td>
+<td style="text-align: center;"> <code>rasterToMatch</code>*    </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>alignment</code>  </td>
+<td style="text-align: center;"> Yes                  </td>
+<td style="text-align: center;">   No         </td>
+<td style="text-align: center;"> <code>rasterToMatch</code>     </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>mask</code>       </td>
+<td style="text-align: center;"> No**                 </td>
+<td style="text-align: center;">   Yes        </td>
+<td style="text-align: center;"> <code>studyArea</code>**       </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<p>*Can be overridden with <code>useSAcrs</code>.
+</p>
+<p>**Will mask with <code>NA</code>s from <code>rasterToMatch</code> if <code>maskWithRTM</code>.
+</p>
+
+
+
+<h4>If <code>targetFile</code> is a vector (<code style="white-space: pre;">⁠Spatial*⁠</code>, <code>sf</code> or <code>SpatVector</code>) object:</h4>
+
+
+<table>
+<tr>
+<td style="text-align: left;">
+</td>
+<td style="text-align: center;"> <code>rasterToMatch</code>      </td>
+<td style="text-align: center;"> <code>studyArea</code>  </td>
+<td style="text-align: center;"> Both               </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>extent</code>     </td>
+<td style="text-align: center;"> Yes                  </td>
+<td style="text-align: center;">   Yes        </td>
+<td style="text-align: center;"> <code>rasterToMatch</code>    </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>resolution</code> </td>
+<td style="text-align: center;"> NA                   </td>
+<td style="text-align: center;">   NA         </td>
+<td style="text-align: center;"> NA                 </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>projection</code> </td>
+<td style="text-align: center;"> Yes                  </td>
+<td style="text-align: center;">   No*        </td>
+<td style="text-align: center;"> <code>rasterToMatch</code>*   </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>alignment</code>  </td>
+<td style="text-align: center;"> NA                   </td>
+<td style="text-align: center;">   NA         </td>
+<td style="text-align: center;"> NA                 </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>mask</code>       </td>
+<td style="text-align: center;"> No                   </td>
+<td style="text-align: center;">   Yes        </td>
+<td style="text-align: center;"> <code>studyArea</code>        </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<p>*Can be overridden with <code>useSAcrs</code>
+</p>
+
+
+
+<h3>See Also</h3>
+
+<p><code>prepInputs</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">if (requireNamespace("terra", quietly = TRUE) &amp;&amp; requireNamespace("sf", quietly = TRUE)) {
+  library(reproducible)
+  od &lt;- setwd(tempdir2())
+  # download a (spatial) file from remote url (which often is an archive) load into R
+  # need 3 files for this example; 1 from remote, 2 local
+  dPath &lt;- file.path(tempdir2())
+  remoteTifUrl &lt;- "https://github.com/rspatial/terra/raw/master/inst/ex/elev.tif"
+
+  localFileLuxSm &lt;- system.file("ex/luxSmall.shp", package = "reproducible")
+  localFileLux &lt;- system.file("ex/lux.shp", package = "terra")
+
+  # 1 step for each layer
+  # 1st step -- get study area
+  studyArea &lt;- prepInputs(localFileLuxSm, fun = "terra::vect") # default is sf::st_read
+
+  # 2nd step: make the input data layer like the studyArea map
+  # Test only relevant if connected to internet -- so using try just in case
+  elevForStudy &lt;- try(prepInputs(url = remoteTifUrl, to = studyArea, res = 250,
+                             destinationPath = dPath))
+
+  # Alternate way, one step at a time. Must know each of these steps, and perform for each layer
+  
+    dir.create(dPath, recursive = TRUE, showWarnings = FALSE)
+    file.copy(localFileLuxSm, file.path(dPath, basename(localFileLuxSm)))
+    studyArea2 &lt;- terra::vect(localFileLuxSm)
+    if (!all(terra::is.valid(studyArea2))) studyArea2 &lt;- terra::makeValid(studyArea2)
+    tf &lt;- tempfile(fileext = ".tif")
+    download.file(url = remoteTifUrl, destfile = tf, mode = "wb")
+    Checksums(dPath, write = TRUE, files = tf)
+    elevOrig &lt;- terra::rast(tf)
+    elevForStudy2 &lt;- terra::project(elevOrig, terra::crs(studyArea2), res = 250) |&gt;
+      terra::crop(studyArea2) |&gt;
+      terra::mask(studyArea2)
+
+    isTRUE(all.equal(studyArea, studyArea2)) # Yes!
+  
+
+  # sf class
+  studyAreaSmall &lt;- prepInputs(localFileLuxSm)
+  studyAreas &lt;- list()
+  studyAreas[["orig"]] &lt;- prepInputs(localFileLux)
+  studyAreas[["reprojected"]] &lt;- projectTo(studyAreas[["orig"]], studyAreaSmall)
+  studyAreas[["cropped"]] &lt;- suppressWarnings(cropTo(studyAreas[["orig"]], studyAreaSmall))
+  studyAreas[["masked"]] &lt;- suppressWarnings(maskTo(studyAreas[["orig"]], studyAreaSmall))
+
+  # SpatVector-- note: doesn't matter what class the "to" object is, only the "from"
+  studyAreas &lt;- list()
+  studyAreas[["orig"]] &lt;- prepInputs(localFileLux, fun = "terra::vect")
+  studyAreas[["reprojected"]] &lt;- projectTo(studyAreas[["orig"]], studyAreaSmall)
+  studyAreas[["cropped"]] &lt;- suppressWarnings(cropTo(studyAreas[["orig"]], studyAreaSmall))
+  studyAreas[["masked"]] &lt;- suppressWarnings(maskTo(studyAreas[["orig"]], studyAreaSmall))
+  if (interactive()) {
+    par(mfrow = c(2,2));
+    out &lt;- lapply(studyAreas, function(x) terra::plot(x))
+  }
+
+  setwd(od)
+}
+</code></pre>
+
+
+</div>

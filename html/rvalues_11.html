@@ -1,0 +1,211 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>npmle</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Maximum Likelihood Estimate of a Mixing Distribution.
+</h2>
+
+<h3>Description</h3>
+
+<p>Estimates the mixture distribution nonparametrically using an EM algorithm.
+The estimate is discrete with the results being returned as a vector of support
+points and a vector of associated mixture probabilities.
+The available choices for the sampling distribution include: Normal, Poisson, Binomial
+and t-distributions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">npmle(data, family = gaussian, maxiter = 500, tol = 1e-4,
+      smooth = TRUE, bass = 0, nmix = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+
+<p>A data frame or a matrix with the number of rows equal
+to the number of sampling units. The first column should
+contain the main estimates, and the second column should
+contain the nuisance terms.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+
+<p>family determining the sampling distribution (see <cite>family</cite>)
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxiter</code></td>
+<td>
+
+<p>the maximum number of EM iterations
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+
+<p>the convergence tolerance
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>smooth</code></td>
+<td>
+
+<p>logical; whether or not to smooth the estimated cdf
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bass</code></td>
+<td>
+
+<p>controls the smoothness level; only relevant if <code>smooth=TRUE</code>. 
+Values of up to 10 indicate increasing smoothness.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nmix</code></td>
+<td>
+
+<p>optional; the number of mixture components
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Assuming the following two-level sampling model
+<code class="reqn"> X_i|\theta_i</code> ~ <code class="reqn">p(x|\theta_i,\eta_i)</code>
+and <code class="reqn">\theta_i</code> ~ <code class="reqn">F</code> for <code class="reqn">i = 1,...,n</code>.
+The function <code>npmle</code> seeks to find an estimate of the mixing distribution
+<code class="reqn">F</code> which maximizes the marginal log-likelihood 
+</p>
+<p style="text-align: center;"><code class="reqn">
+l(F) = \sum_i \int p( X_i |\theta, \eta_i) dF(\theta).
+</code>
+</p>
+
+<p>The distribution function maximizing <code class="reqn">l(F)</code> is
+known to be discrete; and thus, the estimated mixture distribution is
+returned as a set of support points and associated mixture
+probabilities.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class npmix which is a list containing at least 
+the following components 
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code> support </code></td>
+<td>
+<p>a vector of estimated support points</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code> mix.prop </code></td>
+<td>
+<p>a vector of estimated mixture proportions</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code> Fhat </code></td>
+<td>
+<p> a function; obtained through interpolation of
+the estimated discrete cdf</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code> fhat </code></td>
+<td>
+<p> a function; estimate of the mixture density</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code> loglik </code></td>
+<td>
+<p> value of the log-likelihood at each iteration</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code> convergence </code></td>
+<td>
+<p> 0 indicates convergence; 1 indicates
+that convergence was not achieved</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code> numiter </code></td>
+<td>
+<p>the number of EM iterations required</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Nicholas Henderson and Michael Newton
+</p>
+
+
+<h3>References</h3>
+
+<p>Laird, N.M. (1978), Nonparametric maximum likelihood estimation of a 
+mixing distribution, <em>Journal of the American Statistical Association</em>, <b>73</b>, 805–811. 
+</p>
+<p>Lindsay, B.G. (1983), The geometry of mixture likelihoods: a general theory. <em>The
+Annals of Statistics</em>, <b>11</b>, 86–94
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>npmixapply</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+data(hiv)
+npobj &lt;- npmle(hiv, family = tdist(df=6), maxiter = 25)
+
+
+###  Generate Binomial data with Beta mixing distribution
+n &lt;- 3000
+theta &lt;- rbeta(n, shape1 = 2, shape2 = 10)
+ntrials &lt;- rpois(n, lambda = 10)
+x &lt;- rbinom(n, size = ntrials, prob = theta)
+
+###  Estimate mixing distribution 
+dd &lt;- cbind(x,ntrials)
+npest &lt;- npmle(dd, family = binomial, maxiter = 25)
+
+### compare with true mixture cdf
+tt &lt;- seq(1e-4,1 - 1e-4, by = .001)
+plot(npest, lwd = 2)
+lines(tt, pbeta(tt, shape1 = 2, shape2 = 10), lwd = 2, lty = 2)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

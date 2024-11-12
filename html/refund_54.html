@@ -1,0 +1,255 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>lpfr</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Longitudinal penalized functional regression</h2>
+
+<h3>Description</h3>
+
+<p>Implements longitudinal penalized functional regression (Goldsmith et al.,
+2012) for generalized linear functional models with scalar outcomes and
+subject-specific random intercepts.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">lpfr(
+  Y,
+  subj,
+  covariates = NULL,
+  funcs,
+  kz = 30,
+  kb = 30,
+  smooth.cov = FALSE,
+  family = "gaussian",
+  method = "REML",
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>vector of all outcomes over all visits</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subj</code></td>
+<td>
+<p>vector containing the subject number for each observation</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covariates</code></td>
+<td>
+<p>matrix of scalar covariates</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>funcs</code></td>
+<td>
+<p>matrix or list of matrices containing observed functional
+predictors as rows. NA values are allowed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kz</code></td>
+<td>
+<p>dimension of principal components basis for the observed
+functional predictors</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kb</code></td>
+<td>
+<p>dimension of the truncated power series spline basis for the
+coefficient function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>smooth.cov</code></td>
+<td>
+<p>logical; do you wish to smooth the covariance matrix of
+observed functions? Increases computation time, but results in smooth
+principal components</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>generalized linear model family</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>method for estimating the smoothing parameters; defaults to
+REML</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments passed to <code>gam</code> to fit
+the regression model.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Functional predictors are entered as a matrix or, in the case of multiple
+functional predictors, as a list of matrices using the <code>funcs</code>
+argument. Missing values are allowed in the functional predictors, but it
+is assumed that they are observed over the same grid. Functional
+coefficients and confidence bounds are returned as lists in the same order
+as provided in the <code>funcs</code> argument, as are principal component and
+spline bases.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>fit </code></td>
+<td>
+<p>result of the call to <code>gam</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fitted.vals
+</code></td>
+<td>
+<p>predicted outcomes</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>betaHat </code></td>
+<td>
+<p>list of estimated coefficient
+functions</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta.covariates </code></td>
+<td>
+<p>parameter estimates for scalar
+covariates</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ranef </code></td>
+<td>
+<p>vector of subject-specific random intercepts</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X </code></td>
+<td>
+<p>design matrix used in the model fit</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phi </code></td>
+<td>
+<p>list of
+truncated power series spline bases for the coefficient functions</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>psi </code></td>
+<td>
+<p>list of principal components basis for the functional
+predictors</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>varBetaHat </code></td>
+<td>
+<p>list containing covariance matrices for the
+estimated coefficient functions</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Bounds </code></td>
+<td>
+<p>list of bounds of a 95%
+confidence interval for the estimated coefficient functions</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Jeff Goldsmith &lt;jeff.goldsmith@columbia.edu&gt;
+</p>
+
+
+<h3>References</h3>
+
+<p>Goldsmith, J., Crainiceanu, C., Caffo, B., and Reich, D.
+(2012). Longitudinal penalized functional regression for cognitive outcomes
+on neuronal tract measurements. <em>Journal of the Royal Statistical
+Society: Series C</em>, 61(3), 453–469.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Not run: 
+##################################################################
+# use longitudinal data to regress continuous outcomes on
+# functional predictors (continuous outcomes only recorded for
+# case == 1)
+##################################################################
+
+data(DTI)
+
+# subset data as needed for this example
+cca = DTI$cca[which(DTI$case == 1),]
+rcst = DTI$rcst[which(DTI$case == 1),]
+DTI = DTI[which(DTI$case == 1),]
+
+
+# note there is missingness in the functional predictors
+apply(is.na(cca), 2, mean)
+apply(is.na(rcst), 2, mean)
+
+
+# fit two models with single functional predictors and plot the results
+fit.cca = lpfr(Y=DTI$pasat, subj=DTI$ID, funcs = cca, smooth.cov=FALSE)
+fit.rcst = lpfr(Y=DTI$pasat, subj=DTI$ID, funcs = rcst, smooth.cov=FALSE)
+
+par(mfrow = c(1,2))
+matplot(cbind(fit.cca$BetaHat[[1]], fit.cca$Bounds[[1]]),
+  type = 'l', lty = c(1,2,2), col = c(1,2,2), ylab = "BetaHat",
+  main = "CCA")
+matplot(cbind(fit.rcst$BetaHat[[1]], fit.rcst$Bounds[[1]]),
+  type = 'l', lty = c(1,2,2), col = c(1,2,2), ylab = "BetaHat",
+  main = "RCST")
+
+
+# fit a model with two functional predictors and plot the results
+fit.cca.rcst = lpfr(Y=DTI$pasat, subj=DTI$ID, funcs = list(cca,rcst),
+  smooth.cov=FALSE)
+
+par(mfrow = c(1,2))
+matplot(cbind(fit.cca.rcst$BetaHat[[1]], fit.cca.rcst$Bounds[[1]]),
+  type = 'l', lty = c(1,2,2), col = c(1,2,2), ylab = "BetaHat",
+  main = "CCA")
+matplot(cbind(fit.cca.rcst$BetaHat[[2]], fit.cca.rcst$Bounds[[2]]),
+  type = 'l', lty = c(1,2,2), col = c(1,2,2), ylab = "BetaHat",
+  main = "RCST")
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,503 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>predict.evpost</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Predictive inference for the largest value observed in <code class="reqn">N</code> years.</h2>
+
+<h3>Description</h3>
+
+<p><code>predict</code> method for class "evpost".  Performs predictive inference
+about the largest value to be observed over a future time period of
+<code class="reqn">N</code> years.  Predictive inferences accounts for uncertainty in model
+parameters and for uncertainty owing to the variability of future
+observations.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'evpost'
+predict(
+  object,
+  type = c("i", "p", "d", "q", "r"),
+  x = NULL,
+  x_num = 100,
+  n_years = 100,
+  npy = NULL,
+  level = 95,
+  hpd = FALSE,
+  lower_tail = TRUE,
+  log = FALSE,
+  big_q = 1000,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>An object of class <code>"evpost"</code>, a result of a call to
+<code>rpost</code> or <code>rpost_rcpp</code> with <code>model = "gev"</code>,
+<code>model = "os"</code>, <code>model = "pp"</code> or <code>model == "bingp"</code>.
+Calling these functions after a call to <code>rpost</code> or <code>rpost_rcpp</code>
+with <code>model == "gp"</code> will produce an error, because inferences about
+the probability of threshold exceedance are required, in addition to the
+distribution of threshold excesses. The model is stored in
+<code>object$model</code>.
+</p>
+<p><code>object</code> may also be an object created within the function
+<code>predict.blite</code> in the <code>lite</code> package. In this case
+<code>object$sim_vals</code> has a column named <code>"theta"</code> containing
+a posterior sample of values of the extremal index.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>A character vector.  Indicates which type of inference is
+required:
+</p>
+
+<ul>
+<li>
+<p> "i" for predictive intervals,
+</p>
+</li>
+<li>
+<p> "p" for the predictive distribution function,
+</p>
+</li>
+<li>
+<p> "d" for the predictive density function,
+</p>
+</li>
+<li>
+<p> "q" for the predictive quantile function,
+</p>
+</li>
+<li>
+<p> "r" for random generation from the predictive distribution.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A numeric vector or a matrix with <code>n_years</code> columns.
+The meaning of <code>x</code> depends on <code>type</code>.
+</p>
+
+<ul>
+<li> <p><code>type = "p"</code> or <code>type = "d"</code>: <code>x</code> contains
+quantiles at which to evaluate the distribution or density function.
+</p>
+<p>If <code>object$model == "bingp"</code> then no element of <code>x</code> can be
+less than the threshold <code>object$thresh</code>.
+</p>
+<p>If <code>x</code> is not supplied then <code>n_year</code>-specific defaults are
+set: vectors of length <code>x_num</code> from the 0.1% quantile to the
+99% quantile, subject all values being greater than the threshold.
+</p>
+</li>
+<li> <p><code>type = "q"</code>: <code>x</code> contains probabilities in (0,1)
+at which to evaluate the quantile function.  Any values outside
+(0, 1) will be removed without warning.
+</p>
+<p>If <code>object$model == "bingp"</code> then no element of <code>p</code> can
+correspond to a predictive quantile that is below the threshold,
+<code>object$thresh</code>.  That is, no element of <code>p</code> can be less
+than the value of <code>predict.evpost(object,</code>
+<code>type = "q", x = object$thresh)</code>.
+</p>
+<p>If <code>x</code> is not supplied then a default value of
+<code>c(0.025, 0.25, 0.5, 0.75, 0.975)</code> is used.
+</p>
+</li>
+<li> <p><code>type = "i"</code> or <code>type = "r"</code>: <code>x</code> is not relevant.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x_num</code></td>
+<td>
+<p>A numeric scalar.  If <code>type = "p"</code> or <code>type = "d"</code>
+and <code>x</code> is not supplied then <code>x_num</code> gives the number of values
+in <code>x</code> for each value in <code>n_years</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_years</code></td>
+<td>
+<p>A numeric vector. Values of <code class="reqn">N</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>npy</code></td>
+<td>
+<p>A numeric scalar. The mean number of observations per year
+of data, after excluding any missing values, i.e. the number of
+non-missing observations divided by total number of years' worth of
+non-missing data.
+</p>
+<p>If <code>rpost</code> or <code>rpost_rcpp</code> was called with
+<code>model == "bingp"</code> then <code>npy</code> must either have been supplied
+in that call or be supplied here.
+</p>
+<p>Otherwise, a default value will be assumed if <code>npy</code> is not supplied,
+based on the value of <code>model</code> in the call to <code>rpost</code> or
+<code>rpost_rcpp</code>:
+</p>
+
+<ul>
+<li> <p><code>model = "gev"</code>: <code>npy</code> = 1, i.e. the data were
+annual maxima so the block size is one year.
+</p>
+</li>
+<li> <p><code>model = "os"</code>: <code>npy</code> = 1, i.e. the data were
+annual order statistics so the block size is one year.
+</p>
+</li>
+<li> <p><code>model = "pp"</code>:
+<code>npy</code> = <code>length(x$data)</code> / <code>object$noy</code>,
+i.e. the value of <code>noy</code> used in the call to <code>rpost</code>
+or <code>rpost_rcpp</code> is equated to a block size of one year.
+</p>
+</li>
+</ul>
+<p>If <code>npy</code> is supplied twice then the value supplied here will be
+used and a warning given.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>level</code></td>
+<td>
+<p>A numeric vector of values in (0, 100).
+Only relevant when <code>type = "i"</code>.
+Levels of predictive intervals for the largest value observed in
+<code class="reqn">N</code> years, i.e. level% predictive intervals are returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hpd</code></td>
+<td>
+<p>A logical scalar.
+Only relevant when <code>type = "i"</code>.
+</p>
+<p>If <code>hpd = FALSE</code> then the interval is
+equi-tailed, with its limits produced by <br><code>predict.evpost(</code><code>object, type ="q", x = p)</code>,
+where <code>p = c((1-level/100)/2,</code> <code>(1+level/100)/2)</code>.
+</p>
+<p>If <code>hpd = TRUE</code> then, in addition to the equi-tailed interval,
+the shortest possible level% interval is calculated.
+If the predictive distribution is unimodal then this
+is a highest predictive density (HPD) interval.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lower_tail</code></td>
+<td>
+<p>A logical scalar.
+Only relevant when <code>type = "p"</code> or <code>type = "q"</code>.
+If TRUE (default), (output or input) probabilities are
+<code class="reqn">P[X \leq x]</code>, otherwise, <code class="reqn">P[X &gt; x]</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>log</code></td>
+<td>
+<p>A logical scalar.  Only relevant when <code>type = "d"</code>.
+If TRUE the log-density is returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>big_q</code></td>
+<td>
+<p>A numeric scalar.  Only relevant when <code>type = "q"</code>.
+An initial upper bound for the desired quantiles to be passed to
+<code>uniroot</code> (its argument <code>upper</code>) in the
+search for the predictive quantiles.  If this is not sufficiently large
+then it is increased until it does provide an upper bound.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional optional arguments. At present no optional
+arguments are used.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Inferences about future extreme observations are integrated over
+the posterior distribution of the model parameters, thereby accounting
+for uncertainty in model parameters and uncertainty owing to the
+variability of future observations.  In practice the integrals involved
+are estimated using an empirical mean over the posterior sample.
+See, for example, Coles (2001), Stephenson (2016) or
+Northrop et al. (2017) for details. See also the vignette
+<a href="https://CRAN.R-project.org/package=revdbayes">Posterior Predictive Extreme Value Inference</a>
+</p>
+<p><strong>GEV / OS / PP</strong>.
+If <code>model = "gev"</code>, <code>model = "os"</code> or <code>model = "pp"</code>
+in the call to <code>rpost</code> or <code>rpost_rcpp</code>
+we first calculate the number of blocks <code class="reqn">b</code> in <code>n_years</code> years.
+To calculate the density function or distribution function of the maximum
+over <code>n_years</code> we call <code>dgev</code> or <code>pgev</code>
+with <code>m</code> = <code class="reqn">b</code>.
+</p>
+
+<ul>
+<li> <p><code>type = "p"</code>. We calculate using <code>pgev</code>
+the GEV distribution function at <code>q</code> for each of the posterior
+samples of the location, scale and shape parameters.  Then we take
+the mean of these values.
+</p>
+</li>
+<li> <p><code>type = "d"</code>. We calculate using <code>dgev</code>
+the GEV density function at <code>x</code> for each of the posterior samples
+of the location, scale and shape parameters.  Then we take the
+mean of these values.
+</p>
+</li>
+<li> <p><code>type = "q"</code>. We solve numerically
+<code>predict.evpost(object, type = "p", x = q)</code> = <code>p[i]</code>
+numerically for <code>q</code> for each element <code>p[i]</code> of <code>p</code>.
+</p>
+</li>
+<li> <p><code>type = "i"</code>. If <code>hpd = FALSE</code> then the interval is
+equi-tailed, equal to <code>predict.evpost()</code> <code>object, type ="q", x = p)</code>,
+where <code>p = c((1-level/100)/2,</code> <code>(1+level/100)/2)</code>.
+If <code>hpd = TRUE</code> then, in addition, we perform a
+numerical minimisation of the length of level% intervals, after
+approximating the predictive quantile function using monotonic
+cubic splines, to reduce computing time.
+</p>
+</li>
+<li> <p><code>type = "r"</code>. For each simulated value of the GEV parameters
+at the <code>n_years</code> level of aggregation we simulate one value from
+this GEV distribution using <code>rgev</code>.  Thus, each sample
+from the predictive distribution is of a size equal to the size of
+the posterior sample.
+</p>
+</li>
+</ul>
+<p><strong>Binomial-GP</strong>.  If <code>model = "bingp"</code> in the call to
+<code>rpost</code> or <code>rpost_rcpp</code> then we calculate the
+mean number of observations in <code>n_years</code> years, i.e.
+<code>npy * n_years</code>.
+</p>
+<p>Following Northrop et al. (2017), let <code class="reqn">M_N</code> be the largest value
+observed in <code class="reqn">N</code> years, <code class="reqn">m</code> = <code>npy * n_years</code> and <code class="reqn">u</code> the
+threshold <code>object$thresh</code> used in the call to <code>rpost</code>
+or <code>rpost_rcpp</code>.
+For fixed values of <code class="reqn">\theta = (p, \sigma, \xi)</code> the distribution
+function of <code class="reqn">M_N</code> is given by <code class="reqn">F(z, \theta)^m</code>, for
+<code class="reqn">z \geq u</code>, where
+</p>
+<p style="text-align: center;"><code class="reqn">F(z, \theta) = 1 - p [1 + \xi (x - u) / \sigma] ^ {-1/\xi}.</code>
+</p>
+
+<p>The distribution function of <code class="reqn">M_N</code> cannot be evaluated for
+<code class="reqn">z &lt; u</code> because no model has been supposed for observations below
+the threshold.
+</p>
+
+<ul>
+<li> <p><code>type = "p"</code>. We calculate
+<code class="reqn">F(z, \theta)^m</code> at <code>q</code> for each of the posterior samples
+<code class="reqn">\theta</code>.  Then we take the mean of these values.
+</p>
+</li>
+<li> <p><code>type = "d"</code>.  We calculate the density of of <code class="reqn">M_n</code>, i.e.
+the derivative of <code class="reqn">F(z, \theta)^m</code> with respect to <code class="reqn">z</code> at
+<code>x</code> for each of the posterior samples <code class="reqn">\theta</code>.  Then we take
+the mean of these values.
+</p>
+</li>
+<li> <p><code>type = "q"</code> and <code>type = "i"</code>. We perform calculations
+that are analogous to the GEV case above.  If <code>n_years</code> is very
+small and/or level is very close to 100 then a predictive interval
+may extend below the threshold.  In such cases <code>NA</code>s are returned
+(see <strong>Value</strong> below).
+</p>
+</li>
+<li> <p><code>type = "r"</code>.  For each simulated value of the bin-GP
+parameter we simulate from the distribution of <code class="reqn">M_N</code> using the
+inversion method applied to the distribution function of <code class="reqn">M_N</code> given
+above.  Occasionally a value below the threshold would need to be
+simulated.  If these instances a missing value code <code>NA</code> is
+returned. Thus, each sample from the predictive distribution is of a
+size equal to the size of the posterior sample, perhaps with a small
+number os <code>NA</code>s.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>An object of class "evpred", a list containing a subset of the
+following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>The argument <code>type</code> supplied to <code>predict.evpost</code>.
+Which of the following components are present depends <code>type</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A matrix containing the argument <code>x</code> supplied to
+<code>predict.evpost</code>, or set within <code>predict.evpost</code> if <code>x</code>
+was not supplied, replicated to have <code>n_years</code> columns
+if necessary.
+Only present if <code>type</code> is <code>"p", "d"</code> or <code>"q"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>The content of <code>y</code> depends on <code>type</code>:
+</p>
+
+<ul>
+<li> <p><code>type = "p", "d", "q"</code>:  A matrix with the same
+dimensions as <code>x</code>.  Contains distribution function values
+(<code>type = "p"</code>), predictive density (<code>type = "d"</code>)
+or quantiles (<code>type = "q"</code>).
+</p>
+</li>
+<li> <p><code>type = "r"</code>: A numeric matrix with <code>length(n_years)</code>
+columns and number of rows equal to the size of the posterior sample.
+</p>
+</li>
+<li> <p><code>type = "i"</code>: <code>y</code> is not present.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>long</code></td>
+<td>
+<p>A <code>length(n_years)*length(level)</code> by 4 numeric
+matrix containing the equi-tailed limits with columns:
+lower limit, upper limit, n_years, level.
+Only present if <code>type = "i"</code>.  If an interval extends below
+the threshold then <code>NA</code> is returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>short</code></td>
+<td>
+<p>A matrix with the same structure as <code>long</code>
+containing the HPD limits.  Only present if <code>type = "i"</code>.
+Columns 1 and 2 contain <code>NA</code>s if <code>hpd = FALSE</code>
+or if the corresponding equi-tailed interval extends below
+the threshold.</p>
+</td>
+</tr>
+</table>
+<p>The arguments <code>n_years, level, hpd, lower_tail, log</code> supplied
+to <code>predict.evpost</code> are also included, as is the argument <code>npy</code>
+supplied to, or set within, <code>predict.evpost</code> and
+the arguments <code>data</code> and <code>model</code> from the original call to
+<code>rpost</code> or <code>rpost_rcpp</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Coles, S. G. (2001) <em>An Introduction to Statistical
+Modeling of Extreme Values</em>, Springer-Verlag, London.
+Chapter 9: <a href="https://doi.org/10.1007/978-1-4471-3675-0_9">doi:10.1007/978-1-4471-3675-0_9</a>
+</p>
+<p>Northrop, P. J., Attalides, N. and Jonathan, P. (2017)
+Cross-validatory extreme value threshold selection and uncertainty
+with application to ocean storm severity.
+<em>Journal of the Royal Statistical Society Series C: Applied
+Statistics</em>, <strong>66</strong>(1), 93-120.
+<a href="https://doi.org/10.1111/rssc.12159">doi:10.1111/rssc.12159</a>
+</p>
+<p>Stephenson, A. (2016). Bayesian Inference for Extreme Value
+Modelling. In <em>Extreme Value Modeling and Risk Analysis: Methods and
+Applications</em>, edited by D. K. Dey and J. Yan, 257-80. London:
+Chapman and Hall. <a href="https://doi.org/10.1201/b19721">doi:10.1201/b19721</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>plot.evpred</code> for the S3 <code>plot</code> method for
+objects of class <code>evpred</code>.
+</p>
+<p><code>rpost</code> or <code>rpost_rcpp</code> for sampling
+from an extreme value posterior distribution.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">### GEV
+data(portpirie)
+mat &lt;- diag(c(10000, 10000, 100))
+pn &lt;- set_prior(prior = "norm", model = "gev", mean = c(0,0,0), cov = mat)
+gevp  &lt;- rpost_rcpp(n = 1000, model = "gev", prior = pn, data = portpirie)
+
+# Interval estimation
+predict(gevp)$long
+predict(gevp, hpd = TRUE)$short
+# Density function
+x &lt;- 4:7
+predict(gevp, type = "d", x = x)$y
+plot(predict(gevp, type = "d", n_years = c(100, 1000)))
+# Distribution function
+predict(gevp, type = "p", x = x)$y
+plot(predict(gevp, type = "p", n_years = c(100, 1000)))
+# Quantiles
+predict(gevp, type = "q", n_years = c(100, 1000))$y
+# Random generation
+plot(predict(gevp, type = "r"))
+
+### Binomial-GP
+u &lt;- quantile(gom, probs = 0.65)
+fp &lt;- set_prior(prior = "flat", model = "gp", min_xi = -1)
+bp &lt;- set_bin_prior(prior = "jeffreys")
+npy_gom &lt;- length(gom)/105
+bgpg &lt;- rpost_rcpp(n = 1000, model = "bingp", prior = fp, thresh = u,
+                   data = gom, bin_prior = bp)
+
+# Setting npy in call to predict.evpost()
+predict(bgpg, npy = npy_gom)$long
+
+# Setting npy in call to rpost() or rpost_rcpp()
+bgpg &lt;- rpost_rcpp(n = 1000, model = "bingp", prior = fp, thresh = u,
+                   data = gom, bin_prior = bp, npy = npy_gom)
+
+# Interval estimation
+predict(bgpg)$long
+predict(bgpg, hpd = TRUE)$short
+# Density function
+plot(predict(bgpg, type = "d", n_years = c(100, 1000)))
+# Distribution function
+plot(predict(bgpg, type = "p", n_years = c(100, 1000)))
+# Quantiles
+predict(bgpg, type = "q", n_years = c(100, 1000))$y
+# Random generation
+plot(predict(bgpg, type = "r"))
+</code></pre>
+
+
+</div>

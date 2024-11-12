@@ -1,0 +1,203 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fscenario-methods</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Scenario Generation</h2>
+
+<h3>Description</h3>
+
+<p>Generates a 1-ahead forecast scenario given a choice of data generating 
+processes (for use in stochastic programming or risk management).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fscenario(Data, sim = 1000, roll = 0, 
+	model = c("gogarch", "dcc", "cgarch", "var", "mdist"), 
+	spec = NULL, 
+	var.model = list(lag = 1, lag.max = NULL, 
+				lag.criterion = c("AIC", "HQ", "SC", "FPE"), 
+				robust = FALSE, robust.control = list("gamma" = 0.25, 
+				"delta" = 0.01, "nc" = 10, "ns" = 500)),
+	mdist.model = list(distribution = c("mvn", "mvt", "manig"), 
+				AR = TRUE, lag = 1),
+	spd.control = list(lower = 0.1, upper = 0.9, type = "pwm", 
+				kernel = "epanech"),
+	cov.method = c("ML", "LW", "EWMA", "MVE", "MCD", "MVT", "BS"),
+	cov.options = list(shrinkage=-1, lambda = 0.96),
+	solver = "solnp", solver.control = list(), 
+	fit.control = list(eval.se = FALSE), 
+	cluster = NULL, save.output = FALSE, save.dir = getwd(),
+	save.name = paste("S", sample(1:1000, 1), sep = ""), rseed  = NULL, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Data</code></td>
+<td>
+<p> An n-by-m data matrix or data.frame.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sim</code></td>
+<td>
+<p> The size of the simulated 1-ahead forecast.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>roll</code></td>
+<td>
+<p> Whether to fit the data using (n - roll) periods and then
+return a (roll+1) 1-ahead rolling simulated scenarios.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p> A choice of 5 models for generating scenarios.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>spec</code></td>
+<td>
+<p> Required if choosing ‘gogarch’, ‘dcc’ or ‘cgarch’, 
+in which case this represents a specification object (see rmgarch package) .</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>var.model</code></td>
+<td>
+<p> Required if model is var.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mdist.model</code></td>
+<td>
+<p> Required if model is mdist, and provides details for the model 
+estimation (not yet implemented).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>spd.control</code></td>
+<td>
+<p> Required if model is “cgarch” and transformation is spd.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cov.method</code></td>
+<td>
+<p> For model “var” this represents the choice of 
+covariance matrix to use to generate random deviates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cov.options</code></td>
+<td>
+<p> For model “var” this provides the optional parameters
+to certain types of covariance estimation methods.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>solver</code></td>
+<td>
+<p> The choice of solver to use for all models but “var”,
+and includes ‘solnp’, ‘nlminb’ and ‘nloptr’.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>solver.control</code></td>
+<td>
+<p> Optional control options passed to the appropriate solver
+chosen.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit.control</code></td>
+<td>
+<p>Control arguments passed to the fitting routine.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cluster</code></td>
+<td>
+<p> A cluster object created by calling <code>makeCluster</code> from 
+the parallel package. If it is not NULL, then this will be used for parallel 
+estimation of the refits (remember to stop the cluster on completion).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>save.output</code></td>
+<td>
+<p> Whether output should be saved to file instead of being 
+returned to the workspace.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>save.dir</code></td>
+<td>
+<p> The directory to save output if save.output is TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>save.name</code></td>
+<td>
+<p> The name of the file to save the output list.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rseed</code></td>
+<td>
+<p> A vector of length sim to initiate the random number generator.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p> Additional parameters passed to the model fitting routines. In 
+particular, for the ‘gogarch’ model additional parameters are passed to
+the ICA routines, whereas for the ‘dcc’ and ‘cgarch’ models 
+this would include the ‘realizedVol’ xts matrix for the realGARCH model.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The functionality here provides some wrapper functions, to create 1-ahead (and 
+optionally rolling, useful for backtesting) scenarios for use in portfolio 
+optimization using stochastic programming methods. The nature of these
+data generating processes (as implemented here) and resulting optimization 
+problems results in the so called anticipative class of stochastic programming 
+models. If save.output is chosen, and given a save.dir, the scenario is saved 
+(using save.name) and an object is returned containing an empty list for the 
+scenario but with a model details list and the seed values. This can then be 
+passed on to the <code>goload</code> function which can read from the directory and 
+return a complete object with the scenario.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>fScenario</code> object containing the scenario and the model 
+details (list). The scenario list contains a list of the
+(roll+1) simulated forecast scenarios, the list of (roll+1) simulated forecast 
+residuals, the forecast conditional mean, the forecast covariance and the list 
+of random generator seed values used for replication. In addition, for the 
+gogarch model the ICA whitening (K) and rotation matrices are also returned 
+and required for replication of results (these may be entered in the 
+‘gogarchspec’ function). Use the <code>fitted</code> method on the object to
+extract the simulated returns forecast.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Alexios Galanos</p>
+
+
+</div>

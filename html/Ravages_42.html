@@ -1,0 +1,266 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>SKAT</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2> SKAT test </h2>
+
+<h3>Description</h3>
+
+<p> Peforms SKAT on categorical or binary phenotypes </p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">SKAT(x, NullObject, genomic.region = x@snps$genomic.region, 
+     weights = (1 - x@snps$maf)**24, maf.threshold = 0.5, 
+     get.moments = "size.based", estimation.pvalue = "kurtosis",
+     params.sampling, cores = 10, debug = FALSE, verbose = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p> A bed.matrix </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>NullObject</code></td>
+<td>
+<p> A list returned from <code>NullObject.parameters</code> </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>genomic.region</code></td>
+<td>
+<p> A factor defining the genomic region of each variant </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p> A vector with the weight of each variant. By default, the weight of each variant is inversely proportionnal to its MAF, as it was computed in the original SKAT method</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maf.threshold</code></td>
+<td>
+<p> The MAF above which variants are removed (default is to keep all variants)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>get.moments</code></td>
+<td>
+<p> How to estimate the moments to compute the p-values among "size.based", "bootstrap", "permutations", or "theoretical" for categorical phenotypes (2 or more groups of individuals). By default "size.based" that will choose the method depending on sample size (see <code>details</code>) </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estimation.pvalue</code></td>
+<td>
+<p> Whether to use the skewness ("skewness") or the kurtosis ("kurtosis") for the chi-square approximation </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>params.sampling</code></td>
+<td>
+<p> A list containing the elements "perm.target", "perm.max", "debug". Only needed if <code>get.moments = "boostrap"</code> or <code>get.moments = "permutations" </code> </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cores</code></td>
+<td>
+<p> How many cores to use for moments computation, set at 10 by default. Only needed if <code>get.moments = "theoretical"</code> </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>debug</code></td>
+<td>
+<p> Whether to return the mean, standard deviation, skewness and kurtosis of the statistics</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p> Whether to display information about the function actions </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For categorical phenotypes, the p-value is calculated using a chi-square approximation based on the statistics' moments. The user has to choose how to compute these moments (argument <code>get.moments</code>), and which moments to use for the chi-square approximation (argument <code>estimation.pvalue</code>).  
+</p>
+<p>The moments can be computed either using a sampling procedure (<code>"permutations"</code> if there are no covariates, or <code>"bootstrap"</code> otherwise), or using theoretical moments computed as in Liu et al. 2008 (<code>"theoretical"</code>).  
+</p>
+<p>If <code>get.moments = "size.based"</code>, the sampling procedure will be used for sample sizes lower than 2000, and the theoretical calculations otherwise.  
+</p>
+<p>To estimate the p-values, etiher the first three moments are used (<code>estimation.pvalue = "skewness"</code>), or the moments 1, 2 and 4 are used (<code>estimation.pvalue = "kurtosis"</code>). 
+</p>
+<p>If <code>get.moments = "theoretical"</code> and <code>estimation.pvalue = "skewness"</code>, it corresponds to <code>method = "liu"</code> in the SKAT package.
+If <code>get.moments = "theoretical"</code> and <code>estimation.pvalue = "kurtosis"</code>, it corresponds to <code>method = "liu.mod"</code> in the SKAT package.
+</p>
+<p>For small samples, p-values estimation is based on sampling and a sequential procedure: permutated statistics are computed and each one is compared to the observed statistics.
+This method requires <code>perm.target</code> and <code>perm.max</code> that should be given as a list to <code>params.bootstrap</code>.
+If <code>params.bootstrap</code> is not specified, perm.target will be set at 100, perm.max at 5e4.
+The boostrap progam stops when either <code>perm.target</code> or <code>perm.max</code> is reached.  
+P-values are then computed using a mixed procedure:   
+</p>
+<p>if <code>perm.target</code> is reached, the p-value is computed as : <code>perm.target</code> divided by the number of permutations used to reach <code>perm.target</code>;   
+</p>
+<p>if <code>perm.max</code> is reached, the SKAT small sample procedure is used, and p-values are approximated using a chi-square distributions based on statistics' moments 1, 2 and 4 computed from the permutated values.     
+</p>
+<p>If <code>NullObject$pheno.type = "continuous"</code>, the method from Liu et al. will be used to compute the p-value for the continuous phenotype, but <code>estimation.pvalue</code> can be set at "skewness" or "kurtosis".  
+</p>
+<p>If <code>debug=TRUE</code>, more informations about the estimated statistics moments are given.  
+</p>
+<p>All missing genotypes are imputed by the mean genotype.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A data frame containing for each genomic region: 
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>stat</code></td>
+<td>
+<p> The observed statistics</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p.value</code></td>
+<td>
+<p> The p-value of the test</p>
+</td>
+</tr>
+</table>
+<p>If <code>get.moments = "bootstrap"</code> or <code>get.moments = "permutations"</code>, additional fields are present:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>p.perm</code></td>
+<td>
+<p> The p-value computed by permutations: number of times permutated is greater than observed statistics divided by the total number of permutations performed</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p.chi2</code></td>
+<td>
+<p> The p-value computed by the chi-square approximation using the SKAT small sample procedure</p>
+</td>
+</tr>
+</table>
+<p>If <code>debug = TRUE</code>, the mean, standard deviation, skewness and kurtosis are also returned, as well as for the sampling procedure:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>nb.gep</code></td>
+<td>
+<p> The number of times a permutated statistics is equal or greater than the observed statistics <code>stat</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nb.eq</code></td>
+<td>
+<p> The number of times a permutated statistics is equal to the observed statistics <code>stat</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nb.perms</code></td>
+<td>
+<p> The total number of simulations performed </p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p> Wu et al. 2011, <em>Rare-variant association testing for sequencing data with the sequence kernel association test</em>, American Journal of Human Genetics <b>82-93</b> doi:10.1016/j.ajhg.2011.05.029;  
+</p>
+<p>Lee et al. 2012, <em>Optimal Unified Approach for Rare-Variant Association Testing with Application to Small-Sample Case-Control Whole-Exome Sequencing Studies</em>, American Journal of Human Genetics, doi:10.1016/j.ajhg.2012.06.007;  
+</p>
+<p>Liu et al. 2008, <em>A new chi-square approximation to the distribution of non-negative definite quadratic forms in non-central normal variables</em>, Computational Statistics &amp; Data Analysis, doi:10.1016/j.csda.2008.11.025
+</p>
+
+
+<h3>See Also</h3>
+
+ <p><code>NullObject.parameters</code>, <code>SKAT.theoretical</code>, <code>SKAT.bootstrap</code>, <code>SKAT.permutations</code></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+#Example on simulated data from Ravages with 
+#One group of 50 controls and 
+#two groups of 25 cases, each one with a prevalence of 0.01
+#with 50% of causal variants, 5 genomic regions are simulated
+GRR.del &lt;- GRR.matrix(GRR = "SKAT", genes.maf = Kryukov,
+                      n.case.groups = 2, select.gene = "R1",
+                      GRR.multiplicative.factor=2)
+
+x.sim &lt;- rbm.GRR(genes.maf = Kryukov, size = c(50, 25, 25),
+                 prev = c(0.001, 0.001), GRR.matrix.del = GRR.del,
+                 p.causal = 0.5, p.protect = 0, select.gene="R1",
+                 same.variant = FALSE, genetic.model = "multiplicative", replicates = 5)
+#Null Model
+x.sim.H0 &lt;- NullObject.parameters(x.sim@ped$pheno, RVAT = "SKAT", pheno.type = "categorical")
+
+#Run SKAT (here permutations as n&lt;2000 and no covariates)
+#Parameters for the sampling procedure: target = 5, max = 100
+#Please increase the number of permutations for a more accurate estimation of the p-values
+params.sampling = list(perm.target = 5, perm.max = 100)
+SKAT(x.sim, x.sim.H0, params.sampling = params.sampling)
+
+#Run SKAT with a random continuous phenotype
+#Null Model
+x.sim.H0.c &lt;- NullObject.parameters(rnorm(100), RVAT = "SKAT", pheno.type = "continuous")
+SKAT(x.sim, x.sim.H0.c, cores = 1)
+
+
+
+#Example on 1000Genome data
+#Import data in a bed matrix
+x &lt;- as.bed.matrix(x=LCT.matrix.bed, fam=LCT.matrix.fam, bim=LCT.snps)
+#Add population
+x@ped[,c("pop", "superpop")] &lt;- LCT.matrix.pop1000G[,c("population", "super.population")]
+
+#Select EUR superpopulation
+x &lt;- select.inds(x, superpop=="EUR")
+x@ped$pop &lt;- droplevels(x@ped$pop)
+
+#Group variants within known genes
+x &lt;- set.genomic.region(x)
+
+#Filter of rare variants: only non-monomorphic variants with
+#a MAF lower than 2.5%
+#keeping only genomic regions with at least 10 SNPs
+x1 &lt;- filter.rare.variants(x, filter = "whole", maf.threshold = 0.025, min.nb.snps = 10)
+
+#Simulation of a covariate + Sex as a covariate
+sex &lt;- x1@ped$sex
+set.seed(1) ; u &lt;- runif(nrow(x1))
+covar &lt;- cbind(sex, u)
+
+#run SKAT using the 1000 genome EUR populations as "outcome"
+#with very few permutations
+#Please increase the permutations for a more accurate estimation of the p-values
+#Fit Null model with covariate sex
+x1.H0.covar &lt;- NullObject.parameters(x1@ped$pop, RVAT = "SKAT", pheno.type = "categorical",
+                                     data = covar, formula = ~ sex)
+
+#Run SKAT with the covariates: use boostrap as n&lt;2000
+SKAT(x1, x1.H0.covar, params.sampling = params.sampling, get.moments = "bootstrap")
+
+#Run SKAT using theoretical moments (discourage here as n&lt;2000) and 1 core
+#SKAT(x1, x1.H0.covar, get.moments = "theoretical", cores = 1)
+
+
+</code></pre>
+
+
+</div>

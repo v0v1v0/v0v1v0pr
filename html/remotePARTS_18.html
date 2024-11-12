@@ -1,0 +1,390 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fitGLS</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fit a PARTS GLS model.</h2>
+
+<h3>Description</h3>
+
+<p>Fit a PARTS GLS model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fitGLS(
+  formula,
+  data,
+  V,
+  nugget = 0,
+  formula0 = NULL,
+  save.xx = FALSE,
+  save.invchol = FALSE,
+  logLik.only = FALSE,
+  no.F = FALSE,
+  coords,
+  distm_FUN,
+  covar_FUN,
+  covar.pars,
+  invCholV,
+  ncores = NA,
+  suppress_compare_warning = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a model formula</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>an optional data frame environment in which to search for
+variables given by <code>formula</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>V</code></td>
+<td>
+<p>a covariance matrix, which must be positive definitive. This argument
+is optional if <code>coords</code>, <code>distm_FUN</code>, <code>covar_FUN</code>, and
+<code>covar.pars</code> are given instead.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nugget</code></td>
+<td>
+<p>an optional numeric nugget, must be positive</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula0</code></td>
+<td>
+<p>an optional formula for the null model to be compared with
+<code>formula</code> by an F-test</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>save.xx</code></td>
+<td>
+<p>logical: should information needed for cross-partition
+comparisons be returned?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>save.invchol</code></td>
+<td>
+<p>logical: should the inverse of the Cholesky matrix be
+returned?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>logLik.only</code></td>
+<td>
+<p>logical: should calculations stop after calculating parital
+log-likelihood?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>no.F</code></td>
+<td>
+<p>logical: should F-test calculations be made?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coords</code></td>
+<td>
+<p>optional coordinate matrix for calculating <code>V</code> internally</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>distm_FUN</code></td>
+<td>
+<p>optional function for calculating a distance matrix from
+<code>coords</code>, when calculating <code>V</code> internally</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covar_FUN</code></td>
+<td>
+<p>optional distance-based covariance function for calculating
+<code>V</code> internally</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covar.pars</code></td>
+<td>
+<p>an optional named list of parameters passed to <code>covar_FUN</code>
+when calculating <code>V</code> internally</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>invCholV</code></td>
+<td>
+<p>optional pre-calculated inverse cholesky matrix to use in place
+of <code>V</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncores</code></td>
+<td>
+<p>an optional integer indicating how many CPU threads to use for
+matrix calculations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>suppress_compare_warning</code></td>
+<td>
+<p>an optional variable to suppress warning that
+arises from identical <code>formula</code> and <code>formula0</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments passed to <code>optimize_nugget</code>, which are
+only used if if <code>nugget = NA</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>conduct generalized least-squares regression of
+spatiotemporal trends
+</p>
+<p><code>fitGLS</code> fits a GLS model, using terms specified in <code>formula</code>.
+In the PARTS method, generally the left side of <code>formula</code> should be
+pixel-level trend estimates and the right side should be spatial predictors.
+The errors of the GLS are correlated according to covariance matrix <code>V</code>.
+</p>
+<p>If <code>nugget = NA</code>, an ML nugget is estimated from the data using the
+<code>optimize_nugget()</code> function. Arguments additional arguments (<code>...</code>)
+are passed to <code>optimize_nugget</code> in this case. <code>V</code> must be provided
+for nugget optimization.
+</p>
+<p>If <code>formula0</code> is not specified, the default is to fit an intercept-only
+null model.
+</p>
+<p><code>save.xx</code> is included to allow for manually conducting a partitioned
+GLS analyses. Because most users will not need this feature, opting instead
+to use <code>fitGLS_parition()</code>, <code>save.xx = FALSE</code> by default.
+</p>
+<p>Similarly, <code>save.invchol</code> is included to allow for recycling of the
+inverse cholesky matrix. Often, inverting the large cholesky matrix
+(i.e., <code>invert_chol(V)</code>) is the slowest part of GLS. This argument exists
+to allow users to recycle this process, though no <code>remotePARTS</code> function
+currently exists that can use <code>invert_chol(V)</code> to fit the GLS.
+</p>
+<p><code>logLik.only = TRUE</code> will return only the partial log-likelihood, which can
+minimized to obtain the maximum likelihood for a given set of data.
+</p>
+<p>If <code>no.F = TRUE</code>, then the model given by <code>formula</code> is not compared
+to the model given by <code>formula0</code>.
+</p>
+<p>If <code>V</code> is not provided, it can be fit internally by specifying all of
+<code>coords</code>, <code>distm_FUN</code>, <code>covar_FUN</code>, and <code>covar.pars</code>.
+The function given by <code>distm_FUN</code> will calculate a distance matrix from
+<code>coords</code>, which is then transformed into a distance-based covariance
+matrix with <code>covar_FUN</code> and parameters given by <code>covar.pars</code>.
+</p>
+<p>This function uses C++ code that uses the Eigen matrix library (RcppEigen
+package) to fit models as efficiently as possible. As such, all available
+CPU cores are used for matrix calculations on systems with OpenMP
+support.
+</p>
+<p><code>ncores</code> is passed to the C++ code Eigen::setNpThreads() which sets
+the number of cores used for compatible Eigen matrix operations (when OpenMP
+is used).
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>fitGLS</code> returns a list object of class "remoteGLS", if
+<code>logLik.only = FALSE</code>. The list contains at least the following elements:
+</p>
+
+<dl>
+<dt>coefficients</dt>
+<dd>
+<p>coefficient estimates for predictor variables</p>
+</dd>
+<dt>SSE</dt>
+<dd>
+<p>sum of squares error</p>
+</dd>
+<dt>MSE</dt>
+<dd>
+<p>mean squared error</p>
+</dd>
+<dt>SE</dt>
+<dd>
+<p>standard errors</p>
+</dd>
+<dt>df_t</dt>
+<dd>
+<p>degrees of freedom for the t-test</p>
+</dd>
+<dt>logDetV</dt>
+<dd>
+<p>log-determinant of V</p>
+</dd>
+<dt>tstat</dt>
+<dd>
+<p>t-test statistic</p>
+</dd>
+<dt>pval_t</dt>
+<dd>
+<p>p-value of the t-statistic</p>
+</dd>
+<dt>logLik</dt>
+<dd>
+<p>the Log-likelihood of the model</p>
+</dd>
+<dt>nugget</dt>
+<dd>
+<p>the nugget used in fitting</p>
+</dd>
+<dt>covar_coef</dt>
+<dd>
+<p>the covariance matrix of the coefficients</p>
+</dd>
+</dl>
+<p>If <code>no.F = FALSE</code>, the following elements, corresponding to the null
+model and F-test are also calculated:
+</p>
+
+<dl>
+<dt>coefficients0</dt>
+<dd>
+<p>coefficient estimates for the null model</p>
+</dd>
+<dt>SSE0</dt>
+<dd>
+<p>sum of squares error for the null model</p>
+</dd>
+<dt>MSE0</dt>
+<dd>
+<p>mean squared error for the null model</p>
+</dd>
+<dt>SE0</dt>
+<dd>
+<p>the standard errors for null coefficients</p>
+</dd>
+<dt>MSR</dt>
+<dd>
+<p>the regression mean square</p>
+</dd>
+<dt>df0</dt>
+<dd>
+<p>the null model F-test degrees of freedom</p>
+</dd>
+<dt>LL0</dt>
+<dd>
+<p>the log-likelihood of the null model</p>
+</dd>
+<dt>df_F</dt>
+<dd>
+<p>the F-test degrees of freedom, for the main model</p>
+</dd>
+<dt>Fstat</dt>
+<dd>
+<p>the F-statistic</p>
+</dd>
+<dt>pval_F</dt>
+<dd>
+<p>the F-test p-value</p>
+</dd>
+<dt>formula</dt>
+<dd>
+<p>the alternate formula used</p>
+</dd>
+<dt>formula0</dt>
+<dd>
+<p>the null formula used</p>
+</dd>
+</dl>
+<p>An attribute called also set to <code>"no.F"</code> is set to the value of
+argument <code>no.F</code>, which signals to generic methods how to handle the output.
+</p>
+<p>If <code>save.invchol = TRUE</code>, output also includes
+</p>
+
+<dl>
+<dt>invcholV</dt>
+<dd>
+<p>the inverse of the Cholesky decomposition of the covariance
+matrix obtained with <code>invert_chol(V, nugget)</code> </p>
+</dd>
+</dl>
+<p>If <code>save.xx = TRUE</code>, output also includes the following elements
+</p>
+
+<dl>
+<dt>xx</dt>
+<dd>
+<p>the predictor variables <code>X</code>, from the right side of <code>formula</code>,
+transformed by the inverse cholesky matrix: xx = <code>invcholV %*% X</code> </p>
+</dd>
+<dt>xx0</dt>
+<dd>
+<p>the predictor variables <code>X0</code>, from the right side of <code>formula0</code>,
+transformed by the inverse cholesky matrix: xx0 = <code>invcholV %*% X0</code> </p>
+</dd>
+</dl>
+<p>The primary use of <code>xx</code> and <code>xx0</code> is for use with <code>fitGLS_partition()</code>.
+</p>
+<p>If <code>logLik.only = TRUE</code>, a single numeric output containing the
+log-likelihood is returned.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## read data
+data(ndvi_AK10000)
+df = ndvi_AK10000[seq_len(200), ] # first 200 rows
+
+## fit covariance matrix
+V = covar_exp(distm_scaled(cbind(df$lng, df$lat)), range = .01)
+
+## run GLS
+(GLS = fitGLS(CLS_coef ~ 0 + land, data = df, V = V))
+
+## with F-test calculations to compare with the NULL model
+(GLS.F = fitGLS(CLS_coef ~ 0 + land, data = df, V = V, no.F = FALSE))
+
+## find ML nugget
+fitGLS(CLS_coef ~ 0 + land, data = df, V = V, no.F = FALSE, nugget = NA)
+
+## calculate V internally
+coords = cbind(df$lng, df$lat)
+fitGLS(CLS_coef ~ 0 + land, data = df, logLik.only = FALSE, coords = coords,
+       distm_FUN = "distm_scaled", covar_FUN = "covar_exp", covar.pars = list(range = .01))
+
+## use inverse cholesky
+fitGLS(CLS_coef ~ 0 + land, data = df, invCholV = invert_chol(V))
+
+## save inverse cholesky matrix
+invchol = fitGLS(CLS_coef ~ 0 + land, data = df, V = V, save.invchol = TRUE)$invcholV
+
+## re-use inverse cholesky instead of V
+fitGLS(CLS_coef ~ 0 + land, data = df, invCholV = invchol)
+
+## Log-likelihood (fast)
+fitGLS(CLS_coef ~ 0 + land, data = df, V = V, logLik.only = TRUE)
+
+</code></pre>
+
+
+</div>

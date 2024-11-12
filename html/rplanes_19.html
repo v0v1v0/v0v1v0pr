@@ -1,0 +1,195 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>plane_trend</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Trend component</h2>
+
+<h3>Description</h3>
+
+<p>This function identifies any change points in the forecast data or in the final observed data point. Change points are identified by any significant change in magnitude or direction of the slope of the time series.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">plane_trend(location, input, seed, sig_lvl = 0.1)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>location</code></td>
+<td>
+<p>Character vector with location code; the location must appear in input and seed</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>input</code></td>
+<td>
+<p>Input signal data to be scored; object must be forecast</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>Prepared seed</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sig_lvl</code></td>
+<td>
+<p>The significance level at which to identify change points (between zero and one); default is <code>0.1</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function uses e.divisive(), which implements a hierarchical divisive algorithm to identify change points based on distances between segments (calculated using equations 3 and 5 in Matteson and James, 2014; the larger the distance, the more likely a change point). Then a permutation test is used to calculate an approximate p-value.
+</p>
+<p>The input to <code>e.divisive()</code> is transformed using differencing (i.e., <code>diff(x)</code> instead of the raw data, <code>x</code>). This slightly changes the way that change points are identified, as the index aligns with the gap between points rather than the points themselves. Instead of identifying a change point based on the change in size between two points, it identifies change points based on the change in the change itself. The dataframe below illustrates the difference between <code>x</code> and <code>diff(x)</code>:</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+   <strong>Index</strong> </td>
+<td style="text-align: center;"> <strong>x</strong> </td>
+<td style="text-align: right;"> <strong>diff(x)</strong> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   1 </td>
+<td style="text-align: center;"> 3 </td>
+<td style="text-align: right;"> 6 </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   2 </td>
+<td style="text-align: center;"> 9 </td>
+<td style="text-align: right;"> 0 </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   3 </td>
+<td style="text-align: center;"> 9 </td>
+<td style="text-align: right;"> 28 </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   4 </td>
+<td style="text-align: center;"> 37 </td>
+<td style="text-align: right;"> 37 </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   5 </td>
+<td style="text-align: center;"> 74 </td>
+<td style="text-align: right;"> 1 </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   6 </td>
+<td style="text-align: center;"> 75 </td>
+<td style="text-align: right;"> 0 </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   7 </td>
+<td style="text-align: center;"> 75 </td>
+<td style="text-align: right;"> 0 </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<p>Given this data, <code>e.divisive(x)</code> would identify index 5 (74) as the change point, because there was a jump of +37 between index 4 and 5. But <code>e.divisive(diff(x))</code> would pick both index 3 (28) and 5 (1), because there was a jump of +28 from index 2 and 3, and there was a jump of -36 between index 4 and 5.
+</p>
+<p>Internally, the trend function uses an extra argument to <code>e.divisive()</code> for <code>min.size = 2</code>, which requires a gap of at least 2 points between detecting change points. This can indirectly increase the significance level or decrease the number of change points identified.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>list</code> with the following values:
+</p>
+
+<ul>
+<li> <p><strong>indicator</strong>: Logical as to whether or not the any forecast data or the final observed data point are a significant change point
+</p>
+</li>
+<li> <p><strong>output</strong>: An n x 7 tibble. The length of the forecast plus the observed data determine the length of n. The columns are:
+</p>
+
+<ul>
+<li> <p><strong>Location</strong>: A character vector with the location code
+</p>
+</li>
+<li> <p><strong>Index</strong>: An integer index of all observed and forecast data
+</p>
+</li>
+<li> <p><strong>Date</strong>: The dates corresponding to all observed and forecast data (formatted as date)
+</p>
+</li>
+<li> <p><strong>Value</strong>: The incidence of all observed and forecast data (e.g., hospitalization rates)
+</p>
+</li>
+<li> <p><strong>Type</strong>: Indicates whether the data row is observed or forecast data
+</p>
+</li>
+<li> <p><strong>Changepoint</strong>: Logical identifying any change point (whether in observed or forecast data). A TRUE is returned if any point is determined a change point based on the user defined significance level (sig_lvl).
+</p>
+</li>
+<li> <p><strong>Flagged</strong>: Logical indicating whether or not the change point was flagged. Change points are only flagged if they are in the forecast data or are the final observed data point. A TRUE is returned if the Changepoint is TRUE and is a final observed data point or any forecast point.
+</p>
+</li>
+</ul>
+</li>
+<li> <p><strong>flagged_dates</strong>: The date of any flagged change point(s). If there are none, NA is returned
+</p>
+</li>
+</ul>
+<h3>References</h3>
+
+<p>Matteson, D. S., &amp; James, N. A. (2014). A nonparametric approach for multiple change point analysis of multivariate data. Journal of the American Statistical Association, 109(505), 334–345. https://doi.org/10.1080/01621459.2013.849605
+</p>
+<p>Matteson DS, James NA (2013). “A Nonparametric Approach for Multiple Change Point Analysis of Multivariate Data.” ArXiv e-prints. To appear in the Journal of the American Statistical Association, 1306.4933.
+</p>
+<p>Gandy, A. (2009) "Sequential implementation of Monte Carlo tests with uniformly bounded resampling risk." Journal of the American Statistical Association.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## read in example observed data and prep observed signal
+hosp &lt;- read.csv(system.file("extdata/observed/hdgov_hosp_weekly.csv", package = "rplanes"))
+tmp_hosp &lt;-
+  hosp %&gt;%
+  dplyr::select(date, location, flu.admits) %&gt;%
+  dplyr::mutate(date = as.Date(date))
+
+prepped_observed &lt;- to_signal(tmp_hosp, outcome = "flu.admits",
+                             type = "observed", resolution = "weeks")
+
+## read in example forecast and prep forecast signal
+prepped_forecast &lt;- read_forecast(system.file("extdata/forecast/2022-10-31-SigSci-TSENS.csv",
+                                               package = "rplanes")) %&gt;%
+   to_signal(., outcome = "flu.admits", type = "forecast", horizon = 4)
+
+## prepare seed with cut date
+prepped_seed &lt;- plane_seed(prepped_observed, cut_date = "2022-10-29")
+
+## run plane component
+plane_trend(location = "05", input = prepped_forecast, seed = prepped_seed, sig_lvl = .2)
+## change location
+plane_trend(location = "09", input = prepped_forecast, seed = prepped_seed, sig_lvl = .2)
+## change sig_lvl
+plane_trend(location = "06", input = prepped_forecast, seed = prepped_seed, sig_lvl = .05)
+
+</code></pre>
+
+
+</div>

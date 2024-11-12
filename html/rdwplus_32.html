@@ -1,0 +1,129 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>snap_sites</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>A function to snap survey sites to a stream raster and a flow accumulation raster</h2>
+
+<h3>Description</h3>
+
+<p>This function takes a set of survey site locations and snaps them to the highest-value cell within a flow accumulation raster, within a specified distance. Note that this function calls <code>r.stream.snap</code>, which is a GRASS GIS add-on. It can be installed through the GRASS GUI.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">snap_sites(
+  sites,
+  stream,
+  flow_acc,
+  max_move,
+  out,
+  overwrite = FALSE,
+  max_memory = 300,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>sites</code></td>
+<td>
+<p>File name for a shapefile containing the locations of the survey sites in the current GRASS mapset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stream</code></td>
+<td>
+<p>Name of a stream raster in the current GRASS mapset. This can either be formatted to have NoData in non-stream cells or 0s in non-stream cells.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flow_acc</code></td>
+<td>
+<p>Name of a flow accumulation raster in the current GRASS mapset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_move</code></td>
+<td>
+<p>The maximum distance in cells that any site can be moved to snap it to the flow accumulation grid.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>out</code></td>
+<td>
+<p>Name of the output in the current GRASS mapset. Note that this function will add a column called <code>snap_dist</code> to the attribute table of the input sites, which indicates how far each site was snapped.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite</code></td>
+<td>
+<p>Whether the output should be allowed to overwrite any existing files. Defaults to <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_memory</code></td>
+<td>
+<p>Max memory (in) used in memory swap mode. Defaults to <code>300</code> Mb.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments to <code>r.stream.snap</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Nothing.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Will only run if GRASS is running
+# You should load rdwplus and initialise GRASS via the initGRASS function
+if(check_running()){
+# Retrieve paths to data sets
+dem &lt;- system.file("extdata", "dem.tif", package = "rdwplus")
+lus &lt;- system.file("extdata", "landuse.tif", package = "rdwplus")
+sts &lt;- system.file("extdata", "site.shp", package = "rdwplus")
+stm &lt;- system.file("extdata", "streams.shp", package = "rdwplus")
+
+# Set environment 
+set_envir(dem)
+
+# Get other data sets (stream layer, sites, land use, etc.)
+raster_to_mapset(lus)
+vector_to_mapset(c(stm, sts))
+
+# Reclassify streams
+out_stream &lt;- paste0(tempdir(), "/streams.tif")
+rasterise_stream("streams", out_stream, TRUE)
+reclassify_streams("streams.tif", "streams01.tif", overwrite = TRUE)
+
+# Burn in the streams to the DEM
+burn_in("dem.tif", "streams01.tif", "burndem.tif", overwrite = TRUE)
+
+# Fill dem
+fill_sinks("burndem.tif", "filldem.tif", "fd1.tif", "sinks.tif", overwrite = TRUE)
+
+# Derive flow direction and accumulation grids
+derive_flow("dem.tif", "fd.tif", "fa.tif", overwrite = T)
+
+# Derive a new stream raster from the FA grid
+derive_streams("dem.tif", "fa.tif", "new_stm.tif", "new_stm", min_acc = 200, overwrite = T)
+
+# Snap sites to streams and flow accumulation
+snap_sites("site", "new_stm.tif", "fa.tif", 2, "snapsite", T)
+}
+</code></pre>
+
+
+</div>

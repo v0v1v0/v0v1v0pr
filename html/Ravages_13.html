@@ -1,0 +1,156 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>filter.adjustedCADD</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Variant filtering based on frequency and median adjusted CADD by CADD regions
+</h2>
+
+<h3>Description</h3>
+
+<p>Filter rare variants based on a MAF threshold, a given number of SNP or a given cumulative MAF per genomic region and the median of adjusted CADD score for each CADD region
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">filter.adjustedCADD(x, SNVs.scores = NULL, indels.scores = NULL,
+                    ref.level = NULL, 
+                    filter=c("whole", "controls", "any"), 
+                    maf.threshold=0.01, min.nb.snps = 2, 
+                    min.cumulative.maf = NULL, 
+                    group = NULL, cores = 10, path.data, verbose = T)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p> A bed.matrix annotated with CADD regions using <code>set.CADDregions</code> </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SNVs.scores</code></td>
+<td>
+<p> A dataframe containing the ADJUSTED CADD scores of the SNVs (Optional, useful to gain in computation time if the adjusted CADD scores of variants in the study are available)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>indels.scores</code></td>
+<td>
+<p> A dataframe containing the CADD PHREDv1.4 scores of the indels - Compulsory if indels are present in <code>x</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ref.level</code></td>
+<td>
+<p> The level corresponding to the controls group, only needed if <code>filter=="controls"</code> </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>filter</code></td>
+<td>
+<p> On which group the filter will be applied </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maf.threshold</code></td>
+<td>
+<p> The MAF threshold used to define a rare variant, set at 0.01 by default</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min.nb.snps</code></td>
+<td>
+<p> The minimum number of variants needed to keep a CADD region, set at 2 by default</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min.cumulative.maf</code></td>
+<td>
+<p> The minimum cumulative maf of variants needed to keep a CADD region</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group</code></td>
+<td>
+<p> A factor indicating the group of each individual, only needed if <code>filter = "controls"</code> or <code>filter = "any"</code>. If missing, <code>x@ped$pheno</code> is taken</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cores</code></td>
+<td>
+<p> How many cores to use, set at 10 by default</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>path.data</code></td>
+<td>
+<p> The repository where data for RAVA-FIRST are or will be downloaded from https://lysine.univ-brest.fr/RAVA-FIRST/</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p> Whether to display information about the function actions </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Variants are directly annotated with the adjusted CADD scores in the function using the file "AdjustedCADD_v1.4_202108.tsv.gz" downloaded from https://lysine.univ-brest.fr/RAVA-FIRST/ in the repository of the package Ravages or the scores of variants can be provided to <code>variant.scores</code> to gain in computation time (this file should contain 5 columns: the chromosome ('chr'), position ('pos'), reference allele ('A1'), alternative allele ('A2') and adjusted CADD scores ('adjCADD'). As CADD scores are only available for SNVs, only those ones will be kept in the analysis.  
+</p>
+<p>If a column 'adjCADD' is already present in <code>x@snps</code>, no annotation will be performed and filtering will be directly on this column.  
+</p>
+<p>To use this function, a factor 'genomic.region' corresponding to the CADD regions and a vector 'adjCADD.Median' should be present in the slot <code>x@snps</code>. To obtain those two, use the function <code>set.CADDregions</code>.  
+</p>
+<p>Only variants with an adjusted CADD score upper than the median value are kept in the analysis. It is the filtering strategy applied in the <code>RAVA.FIRST()</code> pipeline.     
+</p>
+<p>If <code>filter="whole"</code>, only the variants having a MAF lower than the threshold in the entire sample are kept.
+</p>
+<p>If <code>filter="controls"</code>, only the variants having a MAF lower than the threshold in the controls group are kept.
+</p>
+<p>If <code>filter="any"</code>, only the variants having a MAF lower than the threshold in any of the groups are kept.  
+</p>
+<p>It is recommended to use this function chromosome by chromosome for large datasets.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A bed.matrix with filtered variants
+</p>
+
+
+<h3>Source</h3>
+
+<p>https://lysine.univ-brest.fr/RAVA-FIRST/</p>
+
+
+<h3>See Also</h3>
+
+<p><code>RAVA.FIRST</code>, <code>set.CADDregions</code>, <code>burden.subscores</code>, <code>filter.rare.variants </code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#Import 1000Genome data from region around LCT gene
+#x &lt;- as.bed.matrix(LCT.gen, LCT.fam, LCT.bim)
+
+#Group variants within CADD regions and genomic categories
+#x &lt;- set.CADDregions(x)
+
+#Annotate variants with adjusted CADD score
+#and filter on frequency and median
+#x.median &lt;- filter.adjustedCADD(x, maf.threshold = 0.025, 
+#                                min.nb.snps = 2)
+</code></pre>
+
+
+</div>

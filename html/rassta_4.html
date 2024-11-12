@@ -1,0 +1,245 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>locations</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Select Representative Sampling Locations for Stratification Units</h2>
+
+<h3>Description</h3>
+
+<p>Selection of the <em>representative sampling locations</em> based on landscape
+similarity values. For a give stratification unit, the representative
+sampling location is the XY position where the highest landscape similarity
+value occurs. This location is assumed to best reflect the influence that the
+landscape configuration of a given stratification unit exerts on response
+phenomena. Currently, two selection methods are supported: (1) <em>maximum
+similarity within buffer zones</em> ("buffer"), and (2) <em>absolute maximum
+similarity</em> ("absolute"). For the buffer method, the <em>n</em> largest zones
+enclosing landscape similarity values above a certain threshold are first
+identified. Then, for each zone, one sample is placed at the <em>XY</em>
+location where the landscape similarity value is maximized. For the absolute
+method, a sample is placed at the <em>XY</em> locations with the <em>n</em>
+maximum landscape similarity values. In both methods, it is possible to
+constrain the sampling process to the boundaries of the stratification unit.
+Constraining the process ensures that the sampling locations determined for a
+given unit are placed within the boundaries of that unit. See
+<strong>Details</strong> for some guidance in the use of this function for
+classification units.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">locations(
+  ls.rast,
+  su.rast,
+  method = "buffer",
+  constrained = TRUE,
+  buf.quant = 0.9,
+  buf.n = 1,
+  abs.n = 1,
+  tol = 1,
+  parallel = FALSE,
+  to.disk = FALSE,
+  outdir = ".",
+  verbose = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>ls.rast</code></td>
+<td>
+<p>SpatRaster, as in <code>rast</code>. Multi-layer
+SpatRaster representing landscape similarities to stratification units.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>su.rast</code></td>
+<td>
+<p>SpatRaster. Single-layer SpatRaster representing the
+stratification units occurring across geographic space. Integer values are
+expected as cell values (i.e., numeric codes) of stratification units.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Character. String denoting the sampling method. Current options
+are "buffer" for the maximum similarity within buffer zones method, and
+"absolute" for the absolute maximum similarity method. Default: "buffer"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>constrained</code></td>
+<td>
+<p>Boolean. Should the sampling process be constrained to the
+boundaries of each stratification unit? See <strong>Details</strong>. Default: TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>buf.quant</code></td>
+<td>
+<p>Numeric. Number expressed in quantile notation (0-1)
+indicating the similarity threshold for the creation of buffer zones. Only
+zones enclosing raster cells with <em>landscape similarity &gt;= buf.quant</em>
+will be created and thus, considered for sampling. See <strong>Details</strong>.
+Default: 0.9</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>buf.n</code></td>
+<td>
+<p>Integer. Positive integer indicating the <em>n</em> largest buffer
+zones for which sampling locations will be selected (<em>n</em> buffer zones
+per stratification unit, one sampling location per buffer zone). Default: 1</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>abs.n</code></td>
+<td>
+<p>Integer. When <em>method = "absolute"</em>, Positive integer
+indicating the number of sampling locations to select for each
+stratification unit. See <strong>Details</strong>. Default: 1</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>Numeric. When <em>method = "absolute"</em>, this number will be
+subtracted from the sampled maximum value of a landscape similarity layer
+to ensure that the requested number of sampling locations will be found
+(see <strong>Details</strong>). The default assumes that landscape similarity
+values are on a scale of 1 to 100. If these values are on a different scale
+(e.g., decimal), then, <em>tol</em> needs to be adjusted accordingly.
+Default: 1</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel</code></td>
+<td>
+<p>Boolean. Perform parallel processing? A parallel backend must
+be registered beforehand with <code>registerDoParallel</code>.
+Keep in mind that the amount of RAM to allocate when performing parallel
+processing can result prohibitive for large data sets. Default: FALSE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>to.disk</code></td>
+<td>
+<p>Boolean. Should output SpatVector(s) (as in
+<code>vect</code>) be written to disk? Default: FALSE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outdir</code></td>
+<td>
+<p>Character. If <em>to.disk = TRUE</em>, string specifying the path
+for the output SpatVector(s). Default: "."</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Boolean. Show warning messages in the console? Default: FALSE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments, as for <code>writeVector</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Except when <em>buf.n = 1</em> or <em>abs.n = 1</em>, the number of returned
+sampling locations per stratification unit may be smaller than requested,
+especially when <em>constrained = TRUE</em>. For the constrained buffer method,
+reducing the landscape similarity threshold value <em>buf.quant</em> will not
+always result in more buffer zones; i.e., more sampling locations. The reason
+for this is that reducing the threshold value for the creation of buffer
+zones may actually promote the spatial contiguity of zones. For instance, two
+buffer zones created at <em>buf.quant = 0.9</em>, may be merged into a single
+buffer zone when <em>buf.quant = 0.80</em>. This will occur if the raster cells
+between the two buffer zones satisfy: <em>landscape similarity &gt;=
+quantile(landscape similarity, 0.8)</em>. For the absolute method, increasing the
+value of the <em>tol</em> argument will ensure a safer search for <em>n</em>
+sampling locations and thus, greater chances of getting the total number of
+requested sampling locations per stratification unit.
+</p>
+<p>Note that this sampling scheme can be applied for classification units. In
+order to do this, one should replace the multi-layer SpatRaster of landscape
+similarities with a multi-layer SpatRaster of spatial signatures. One should
+also replace the raster layer of stratification units with that of
+classification units.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If <em>method = "buffer"</em> and <em>constrained = TRUE</em>, a list with the
+following components:
+</p>
+<p><strong>locations</strong>: SpatVector of point geometry. Each point in this vector
+represents the sampling location placed at the maximum landscape similarity
+value within a stratification unit's buffer zone. Tabular attributes in this
+SpatVector are (1) <em>SU</em> = stratification unit's numeric code, (2)
+<em>land_sim</em> = landscape similarity value, (3) <em>x</em> = X coordinate,
+and (4) <em>y</em> = Y coordinate.
+</p>
+<p><strong>buffer</strong>: SpatVector of polygon geometry. Each polygon in this vector
+represents the buffer zone of an stratification unit.
+</p>
+<p>If <em>method = "buffer"</em> and <em>constrained = FALSE</em>:
+</p>
+<p><strong>locations</strong>: Same as <strong>locations</strong> from <em>method = "buffer"</em>
+and <em>constrained = TRUE</em>.
+</p>
+<p>If <em>method = "absolute"</em>:
+</p>
+<p><strong>locations</strong>: SpatVector of point geometry. Each point in this vector
+represents the sampling location placed at the maximum landscape similarity
+value for an stratification unit. Tabular attributes in this SpatVector are
+(1) <em>SU</em> = stratification unit's numeric code, (2) <em>land_sim</em> =
+landscape similarity value, (3) <em>x</em> = X coordinate, and (4) <em>y</em> = Y
+coordinate.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>similarity</code>, <code>strata</code>
+</p>
+<p>Other Functions for Stratified Sampling: 
+<code>observation()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">require(terra)
+p &lt;- system.file("exdat", package = "rassta")
+# Multi-layer SpatRaster of landscape similarities
+fls &lt;- list.files(path = p, pattern = "su_", full.names = TRUE)
+ls &lt;- terra::rast(fls)
+# Single-layer SpatRaster of stratification units
+fsu &lt;- list.files(path = p, pattern = "strata.tif", full.names = TRUE)
+su &lt;- terra::rast(fsu)
+# Get 1 representative sampling location per stratification unit
+rl &lt;- locations(ls.rast = ls, su.rast = su)
+# Plot representative locations (including buffer areas)
+if(interactive()){
+  plot(su, type = "classes", fun = function() c(points(rl$locations),
+                                                polys(rl$buffers))
+      )}
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,150 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>SKAT.theoretical</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2> Multi group SKAT test using Liu et al. approximation </h2>
+
+<h3>Description</h3>
+
+<p> Peforms SKAT on two or more groups of individuals using Liu et al. approximation </p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">SKAT.theoretical(x, NullObject, genomic.region = x@snps$genomic.region,
+                 weights = (1 - x@snps$maf)**24, maf.threshold = 0.5,
+                 estimation.pvalue = "kurtosis", cores = 10, debug = FALSE )
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p> A bed.matrix </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>NullObject</code></td>
+<td>
+<p> A list returned from <code>NullObject.parameters</code> </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>genomic.region</code></td>
+<td>
+<p> A factor defining the genomic region of each variant </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p> A vector with the weight of each variant. By default, the weight of each variant is inversely proportionnal to its MAF, as it was computed in the original SKAT method</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maf.threshold</code></td>
+<td>
+<p> The MAF above which variants are removed (default is to keep all variants)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estimation.pvalue</code></td>
+<td>
+<p> Whether to use the skewness ("skewness") or the kurtosis ("kurtosis") for the chi-square approximation </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cores</code></td>
+<td>
+<p> How many cores to use for moments computation, set at 10 by default </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>debug</code></td>
+<td>
+<p> Whether to return the mean, standard deviation, skewness and kurtosis of the statistics. Set at FALSE by default </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The method from Liu et al. 2008 is used where p-values are estimated using a chi-square approximation from moment's statistics
+</p>
+<p>If <code>estimation.pvalue = "kurtosis"</code>, the kurtosis is used instead of skewness in the chi-square approximation. This is equivalent to "liu.mod" in SKAT package.  
+</p>
+<p>This function is used by <code>SKAT</code> when the sample size is larger than 2000.  
+</p>
+<p>All missing genotypes are imputed by the mean genotype.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A data frame containing for each genomic region:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>stat</code></td>
+<td>
+<p> The observed statistics</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p.value</code></td>
+<td>
+<p> The p-value of the test</p>
+</td>
+</tr>
+</table>
+<p>If <code>debug = TRUE</code>, the mean, standard deviation, skewness and kurtosis used to compute the p-value are returned
+</p>
+
+
+<h3>References</h3>
+
+<p> Wu et al. 2011, <em>Rare-variant association testing for sequencing data with the sequence kernel association test</em>, American Journal of Human Genetics <b>82-93</b> doi:10.1016/j.ajhg.2011.05.029;  
+</p>
+<p>Liu et al. 2008, <em>A new chi-square approximation to the distribution of non-negative definite quadratic forms in non-central normal variables</em>, Computational Statistics &amp; Data Analysis, doi:10.1016/j.csda.2008.11.025
+</p>
+
+
+<h3>See Also</h3>
+
+ <p><code>NullObject.parameters</code>, <code>SKAT</code></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+#Import data in a bed matrix
+x &lt;- as.bed.matrix(x=LCT.matrix.bed, fam=LCT.matrix.fam, bim=LCT.snps)
+#Add population
+x@ped[,c("pop", "superpop")] &lt;- LCT.matrix.pop1000G[,c("population", "super.population")]
+
+#Select EUR superpopulation
+x &lt;- select.inds(x, superpop=="EUR")
+x@ped$pop &lt;- droplevels(x@ped$pop)
+
+#Group variants within known genes
+x &lt;- set.genomic.region(x)
+
+#Filter of rare variants: only non-monomorphic variants with
+#a MAF lower than 2.5%
+#keeping only genomic regions with at least 10 SNPs
+x1 &lt;- filter.rare.variants(x, filter = "whole", maf.threshold = 0.025, min.nb.snps = 10)
+
+#run SKAT using the 1000 genome EUR populations as "outcome" using one core
+#Fit Null model
+x1.H0 &lt;- NullObject.parameters(x1@ped$pop, RVAT = "SKAT", pheno.type = "categorical")
+
+SKAT.theoretical(x1, x1.H0, cores = 1)
+
+</code></pre>
+
+
+</div>

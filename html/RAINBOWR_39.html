@@ -1,0 +1,587 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>RGWAS.twostep.epi</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Perform normal GWAS (genome-wide association studies) first, then check epistatic effects for relatively significant markers</h2>
+
+<h3>Description</h3>
+
+<p>Perform normal GWAS (genome-wide association studies) first, then check epistatic effects for relatively significant markers
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">RGWAS.twostep.epi(
+  pheno,
+  geno,
+  ZETA = NULL,
+  package.MM = "gaston",
+  covariate = NULL,
+  covariate.factor = NULL,
+  structure.matrix = NULL,
+  n.PC = 0,
+  min.MAF = 0.02,
+  n.core = 1,
+  parallel.method = "mclapply",
+  check.size.epi = 4,
+  epistasis.percent = 0.05,
+  check.epi.max = 200,
+  your.check = NULL,
+  GWAS.res.first = NULL,
+  P3D = TRUE,
+  test.method = "LR",
+  dominance.eff = TRUE,
+  skip.self.int = FALSE,
+  haplotype = TRUE,
+  num.hap = NULL,
+  optimizer = "nlminb",
+  window.size.half = 5,
+  window.slide = 1,
+  chi0.mixture = 0.5,
+  gene.set = NULL,
+  map.gene.set = NULL,
+  sig.level = 0.05,
+  method.thres = "BH",
+  plot.qq.1 = TRUE,
+  plot.Manhattan.1 = TRUE,
+  plot.epi.3d = TRUE,
+  plot.epi.2d = TRUE,
+  plot.method = 1,
+  plot.col1 = c("dark blue", "cornflowerblue"),
+  plot.col2 = 1,
+  plot.type = "p",
+  plot.pch = 16,
+  saveName = NULL,
+  main.qq.1 = NULL,
+  main.man.1 = NULL,
+  main.epi.3d = NULL,
+  main.epi.2d = NULL,
+  skip.check = FALSE,
+  verbose = TRUE,
+  verbose2 = FALSE,
+  count = TRUE,
+  time = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>pheno</code></td>
+<td>
+<p>Data frame where the first column is the line name (gid). The remaining columns should be a phenotype to test.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>geno</code></td>
+<td>
+<p>Data frame with the marker names in the first column. The second and third columns contain the chromosome and map position.
+Columns 4 and higher contain the marker scores for each line, coded as [-1, 0, 1] = [aa, Aa, AA].</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ZETA</code></td>
+<td>
+<p>A list of covariance (relationship) matrix (K: <code class="reqn">m \times m</code>) and its design matrix (Z: <code class="reqn">n \times m</code>) of random effects.
+Please set names of list "Z" and "K"! You can use more than one kernel matrix.
+For example,
+</p>
+<p>ZETA = list(A = list(Z = Z.A, K = K.A), D = list(Z = Z.D, K = K.D))
+</p>
+
+<dl>
+<dt>Z.A, Z.D</dt>
+<dd>
+<p>Design matrix (<code class="reqn">n \times m</code>) for the random effects. So, in many cases, you can use the identity matrix.</p>
+</dd>
+<dt>K.A, K.D</dt>
+<dd>
+<p>Different kernels which express some relationships between lines.</p>
+</dd>
+</dl>
+<p>For example, K.A is additive relationship matrix for the covariance between lines, and K.D is dominance relationship matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>package.MM</code></td>
+<td>
+<p>The package name to be used when solving mixed-effects model. We only offer the following three packages:
+"RAINBOWR", "MM4LMM" and "gaston". Default package is 'gaston'.
+See more details at <code>EM3.general</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covariate</code></td>
+<td>
+<p>A <code class="reqn">n \times 1</code> vector or a <code class="reqn">n \times p _ 1</code> matrix. You can insert continuous values, such as other traits or genotype score for special markers.
+This argument is regarded as one of the fixed effects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covariate.factor</code></td>
+<td>
+<p>A <code class="reqn">n \times p _ 2</code> dataframe. You should assign a factor vector for each column.
+Then RGWAS changes this argument into model matrix, and this model matrix will be included in the model as fixed effects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>structure.matrix</code></td>
+<td>
+<p>You can use structure matrix calculated by structure analysis when there are population structure.
+You should not use this argument with n.PC &gt; 0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.PC</code></td>
+<td>
+<p>Number of principal components to include as fixed effects. Default is 0 (equals K model).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min.MAF</code></td>
+<td>
+<p>Specifies the minimum minor allele frequency (MAF).
+If a marker has a MAF less than min.MAF, it is assigned a zero score.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.core</code></td>
+<td>
+<p>Setting n.core &gt; 1 will enable parallel execution on a machine with multiple cores.
+This argument is not valid when 'parallel.method = "furrr"'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel.method</code></td>
+<td>
+<p>Method for parallel computation. We offer three methods, "mclapply", "furrr", and "foreach".
+</p>
+<p>When 'parallel.method = "mclapply"', we utilize <code>pbmclapply</code> function in the 'pbmcapply' package
+with 'count = TRUE' and <code>mclapply</code> function in the 'parallel' package with 'count = FALSE'.
+</p>
+<p>When 'parallel.method = "furrr"', we utilize <code>future_map</code> function in the 'furrr' package.
+With 'count = TRUE', we also utilize <code>progressor</code> function in the 'progressr' package to show the progress bar,
+so please install the 'progressr' package from github (<a href="https://github.com/HenrikBengtsson/progressr">https://github.com/HenrikBengtsson/progressr</a>).
+For 'parallel.method = "furrr"', you can perform multi-thread parallelization by
+sharing memories, which results in saving your memory, but quite slower compared to 'parallel.method = "mclapply"'.
+</p>
+<p>When 'parallel.method = "foreach"', we utilize <code>foreach</code> function in the 'foreach' package
+with the utilization of <code>makeCluster</code> function in 'parallel' package,
+and <code>registerDoParallel</code> function in 'doParallel' package.
+With 'count = TRUE', we also utilize <code>setTxtProgressBar</code> and
+<code>txtProgressBar</code> functions in the 'utils' package to show the progress bar.
+</p>
+<p>We recommend that you use the option 'parallel.method = "mclapply"', but for Windows users,
+this parallelization method is not supported. So, if you are Windows user,
+we recommend that you use the option 'parallel.method = "foreach"'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>check.size.epi</code></td>
+<td>
+<p>This argument determines how many SNPs (around the SNP detected by normal GWAS) you will check epistasis.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>epistasis.percent</code></td>
+<td>
+<p>This argument determines how many SNPs are detected by normal GWAS.
+For example, when epistasis.percent = 0.1, SNPs whose value of -log10(p) is in the top 0.1 percent are chosen as candidate for checking epistasis.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>check.epi.max</code></td>
+<td>
+<p>It takes a lot of time to check epistasis, so you can decide the maximum number of SNPs to check epistasis.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>your.check</code></td>
+<td>
+<p>Because there are less SNPs that can be tested in epistasis than in kernel-based GWAS, you can select which SNPs you want to test.
+If you use this argument, please set the number where SNPs to be tested are located in your data (so not position).
+In the default setting, your_check = NULL and epistasis between SNPs detected by GWAS will be tested.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>GWAS.res.first</code></td>
+<td>
+<p>If you have already performed regular GWAS and have the result, you can skip performing normal GWAS.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>P3D</code></td>
+<td>
+<p>When P3D = TRUE, variance components are estimated by REML only once, without any markers in the model.
+When P3D = FALSE, variance components are estimated by REML for each marker separately.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test.method</code></td>
+<td>
+<p>RGWAS supports two methods to test effects of each SNP-set.
+</p>
+
+<dl>
+<dt>"LR"</dt>
+<dd>
+<p>Likelihood-ratio test, relatively slow, but accurate (default).</p>
+</dd>
+<dt>"score"</dt>
+<dd>
+<p>Score test, much faster than LR, but sometimes overestimate -log10(p).</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dominance.eff</code></td>
+<td>
+<p>If this argument is TRUE, dominance effect is included in the model,
+and additive x dominance and dominance x dominance are also tested as epistatic effects.
+When you use inbred lines, please set this argument FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>skip.self.int</code></td>
+<td>
+<p>As default, the function also tests the self-interactions among the same SNP-sets.
+If you want to avoid this, please set 'skip.self.int = TRUE'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>haplotype</code></td>
+<td>
+<p>If the number of lines of your data is large (maybe &gt; 100), you should set haplotype = TRUE.
+When haplotype = TRUE, haplotype-based kernel will be used for calculating -log10(p).
+(So the dimension of this gram matrix will be smaller.)
+The result won't be changed, but the time for the calculation will be shorter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>num.hap</code></td>
+<td>
+<p>When haplotype = TRUE, you can set the number of haplotypes which you expect.
+Then similar arrays are considered as the same haplotype, and then make kernel(K.SNP) whose dimension is num.hap x num.hap.
+When num.hap = NULL (default), num.hap will be set as the maximum number which reflects the difference between lines.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optimizer</code></td>
+<td>
+<p>The function used in the optimization process. We offer "optim", "optimx", and "nlminb" functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>window.size.half</code></td>
+<td>
+<p>This argument decides how many SNPs (around the SNP you want to test) are used to calculated K.SNP.
+More precisely, the number of SNPs will be 2 * window.size.half + 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>window.slide</code></td>
+<td>
+<p>This argument determines how often you test markers. If window.slide = 1, every marker will be tested.
+If you want to perform SNP set by bins, please set window.slide = 2 * window.size.half + 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chi0.mixture</code></td>
+<td>
+<p>RAINBOWR assumes the deviance is considered to follow a x chisq(df = 0) + (1 - a) x chisq(df = r).
+where r is the degree of freedom.
+The argument chi0.mixture is a (0 &lt;= a &lt; 1), and default is 0.5.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gene.set</code></td>
+<td>
+<p>If you have information of gene (or haplotype block), you can use it to perform kernel-based GWAS.
+You should assign your gene information to gene.set in the form of a "data.frame" (whose dimension is (the number of gene) x 2).
+In the first column, you should assign the gene name. And in the second column, you should assign the names of each marker,
+which correspond to the marker names of "geno" argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>map.gene.set</code></td>
+<td>
+<p>Genotype map for 'gene.set' (list of haplotype blocks).
+This is a data.frame with the haplotype block (SNP-set, or gene-set) names in the first column.
+The second and third columns contain the chromosome and map position for each block.
+The forth column contains the cumulative map position for each block, which can be computed by <code>cumsumPos</code> function.
+If this argument is NULL, the map will be constructed by <code>genesetmap</code> function after the SNP-set GWAS.
+It will take some time, so you can reduce the computational time by assigning this argument beforehand.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sig.level</code></td>
+<td>
+<p>Significance level for the threshold. The default is 0.05.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method.thres</code></td>
+<td>
+<p>Method for detemining threshold of significance. "BH" and "Bonferroni are offered.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot.qq.1</code></td>
+<td>
+<p>If TRUE, draw qq plot for normal GWAS.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot.Manhattan.1</code></td>
+<td>
+<p>If TRUE, draw manhattan plot for normal GWAS.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot.epi.3d</code></td>
+<td>
+<p>If TRUE, draw 3d plot</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot.epi.2d</code></td>
+<td>
+<p>If TRUE, draw 2d plot</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot.method</code></td>
+<td>
+<p>If this argument = 1, the default manhattan plot will be drawn.
+If this argument = 2, the manhattan plot with axis based on Position (bp) will be drawn.
+Also, this plot's color is changed by all chromosomes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot.col1</code></td>
+<td>
+<p>This argument determines the color of the manhattan plot.
+You should substitute this argument as color vector whose length is 2.
+plot.col1[1] for odd chromosomes and plot.col1[2] for even chromosomes</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot.col2</code></td>
+<td>
+<p>Color of the manhattan plot. color changes with chromosome and it starts from plot.col2 + 1
+(so plot.col2 = 1 means color starts from red.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot.type</code></td>
+<td>
+<p>This argument determines the type of the manhattan plot. See the help page of "plot".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot.pch</code></td>
+<td>
+<p>This argument determines the shape of the dot of the manhattan plot. See the help page of "plot".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>saveName</code></td>
+<td>
+<p>When drawing any plot, you can save plots in png format. In saveName, you should substitute the name you want to save.
+When saveName = NULL, the plot is not saved.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>main.qq.1</code></td>
+<td>
+<p>The title of qq plot for normal GWAS. If this argument is NULL, trait name is set as the title.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>main.man.1</code></td>
+<td>
+<p>The title of manhattan plot for normal GWAS. If this argument is NULL, trait name is set as the title.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>main.epi.3d</code></td>
+<td>
+<p>The title of 3d plot. If this argument is NULL, trait name is set as the title.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>main.epi.2d</code></td>
+<td>
+<p>The title of 2d plot. If this argument is NULL, trait name is set as the title.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>skip.check</code></td>
+<td>
+<p>As default, RAINBOWR checks the type of input data and modifies it into the correct format.
+However, it will take some time, so if you prepare the correct format of input data, you can skip this procedure
+by setting 'skip.check = TRUE'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>If this argument is TRUE, messages for the current steps will be shown.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose2</code></td>
+<td>
+<p>If this argument is TRUE, welcome message will be shown.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>count</code></td>
+<td>
+<p>When count is TRUE, you can know how far RGWAS has ended with percent display.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time</code></td>
+<td>
+<p>When time is TRUE, you can know how much time it took to perform RGWAS.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+
+<dl>
+<dt>$first</dt>
+<dd>
+<p>The results of first normal GWAS will be returned.</p>
+</dd>
+<dt>$map.epi</dt>
+<dd>
+<p>Map information for SNPs which are tested epistatic effects.</p>
+</dd>
+<dt>$epistasis</dt>
+<dd>
+
+<dl>
+<dt>$scores</dt>
+<dd>
+<dl>
+<dt>$scores</dt>
+<dd>
+<p>This is the matrix which contains -log10(p) calculated by the test about epistasis effects.</p>
+</dd>
+<dt>$x, $y</dt>
+<dd>
+<p>The information of the positions of SNPs detected by regular GWAS.
+These vectors are used when drawing plots. Each output correspond to the replication of row and column of scores.</p>
+</dd>
+<dt>$z</dt>
+<dd>
+<p>This is a vector of $scores.  This vector is also used when drawing plots.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd>
+</dl>
+<h3>References</h3>
+
+<p>Kennedy, B.W., Quinton, M. and van Arendonk, J.A. (1992) Estimation of effects of single genes on quantitative traits. J Anim Sci. 70(7): 2000-2012.
+</p>
+<p>Storey, J.D. and Tibshirani, R. (2003) Statistical significance for genomewide studies. Proc Natl Acad Sci. 100(16): 9440-9445.
+</p>
+<p>Yu, J. et al. (2006) A unified mixed-model method for association mapping that accounts for multiple levels of relatedness. Nat Genet. 38(2): 203-208.
+</p>
+<p>Kang, H.M. et al. (2008) Efficient Control of Population Structure in Model Organism Association Mapping. Genetics. 178(3): 1709-1723.
+</p>
+<p>Kang, H.M. et al. (2010) Variance component model to account for sample structure in genome-wide association studies. Nat Genet. 42(4): 348-354.
+</p>
+<p>Zhang, Z. et al. (2010) Mixed linear model approach adapted for genome-wide association studies. Nat Genet. 42(4): 355-360.
+</p>
+<p>Endelman, J.B. (2011) Ridge Regression and Other Kernels for Genomic Selection with R Package rrBLUP. Plant Genome J. 4(3): 250.
+</p>
+<p>Endelman, J.B. and Jannink, J.L. (2012) Shrinkage Estimation of the Realized Relationship Matrix. G3 Genes, Genomes, Genet. 2(11): 1405-1413.
+</p>
+<p>Su, G. et al. (2012) Estimating Additive and Non-Additive Genetic Variances and Predicting Genetic Merits Using Genome-Wide Dense Single Nucleotide Polymorphism Markers. PLoS One. 7(9): 1-7.
+</p>
+<p>Zhou, X. and Stephens, M. (2012) Genome-wide efficient mixed-model analysis for association studies. Nat Genet. 44(7): 821-824.
+</p>
+<p>Listgarten, J. et al. (2013) A powerful and efficient set test for genetic markers that handles confounders. Bioinformatics. 29(12): 1526-1533.
+</p>
+<p>Lippert, C. et al. (2014) Greater power and computational efficiency for kernel-based association testing of sets of genetic variants. Bioinformatics. 30(22): 3206-3214.
+</p>
+<p>Jiang, Y. and Reif, J.C. (2015) Modeling epistasis in genomic selection. Genetics. 201(2): 759-768.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+
+
+  ### Import RAINBOWR
+  require(RAINBOWR)
+
+  ### Load example datasets
+  data("Rice_Zhao_etal")
+  Rice_geno_score &lt;- Rice_Zhao_etal$genoScore
+  Rice_geno_map &lt;- Rice_Zhao_etal$genoMap
+  Rice_pheno &lt;- Rice_Zhao_etal$pheno
+
+  ### View each dataset
+  See(Rice_geno_score)
+  See(Rice_geno_map)
+  See(Rice_pheno)
+
+  ### Select one trait for example
+  trait.name &lt;- "Flowering.time.at.Arkansas"
+  y &lt;- Rice_pheno[, trait.name, drop = FALSE]
+
+  ### Remove SNPs whose MAF &lt;= 0.05
+  x.0 &lt;- t(Rice_geno_score)
+  MAF.cut.res &lt;- MAF.cut(x.0 = x.0, map.0 = Rice_geno_map)
+  x &lt;- MAF.cut.res$x
+  map &lt;- MAF.cut.res$map
+
+
+  ### Estimate genomic relationship matrix (GRM)
+  K.A &lt;- calcGRM(genoMat = x)
+
+
+  ### Modify data
+  modify.data.res &lt;- modify.data(pheno.mat = y, geno.mat = x, map = map,
+                                 return.ZETA = TRUE, return.GWAS.format = TRUE)
+  pheno.GWAS &lt;- modify.data.res$pheno.GWAS
+  geno.GWAS &lt;- modify.data.res$geno.GWAS
+  ZETA &lt;- modify.data.res$ZETA
+
+
+  ### View each data for RAINBOWR
+  See(pheno.GWAS)
+  See(geno.GWAS)
+  str(ZETA)
+
+
+
+
+  ### Perform two-step epistasis GWAS (single-snp GWAS -&gt; Check epistasis for significant markers)
+  twostep.epi.res &lt;- RGWAS.twostep.epi(pheno = pheno.GWAS, geno = geno.GWAS, ZETA = ZETA,
+                                       n.PC = 4, test.method = "LR", gene.set = NULL,
+                                       window.size.half = 10, window.slide = 21,
+                                       package.MM = "gaston", parallel.method = "mclapply",
+                                       skip.check = TRUE, n.core = 2)
+
+  See(twostep.epi.res$epistasis$scores)
+
+</code></pre>
+
+
+</div>

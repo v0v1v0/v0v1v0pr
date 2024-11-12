@@ -1,0 +1,142 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ssa-input</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Input Data Formats Used by SSA Routines</h2>
+
+<h3>Description</h3>
+
+<p>The inputs of SSA can be quite different depending on the kind of SSA
+used. However, there is a common of all the variants of SSA and all
+the routines. The package tries hard to preserve the specifics of
+input object as much as possible. This means, that all the attributes,
+etc. are copied back to the reconstructed objects. This way, the
+result of the SSA decomposition of a 'ts' object is a 'ts' object as
+well.
+</p>
+<p>For forecasting, it is not possible in general to preserve the
+attributes of the input objects. However, <code>Rssa</code> knows about some
+common time series classes (e.g. 'ts') and tries to infer the time
+scales for forecasted objects as well.
+</p>
+<p>The input formats are as follows:
+</p>
+
+
+<h4>1d SSA and Toeplitz SSA</h4>
+
+<p>Input is assumed to be a simple vector, or vector-like object
+(e.g. univariare 'ts' or 'zooreg' object). Everything else is
+coerced to vector.
+</p>
+
+
+
+<h4>2d SSA</h4>
+
+<p>Input assumed to be a matrix. If there are any <code>NA</code>'s then the
+shaped variant of 2d SSA will be used. All non-<code>NA</code> elements
+will be used as a mask.
+</p>
+
+
+
+<h4>nd SSA</h4>
+
+<p>Input assumed to be an array of arbitrary dimension. If there are any
+<code>NA</code>'s then the shaped variant will be used.
+</p>
+
+
+
+<h4>MSSA</h4>
+
+<p>While the representation of a one dimensional time series in
+R is pretty obvious, there are multiple possible ways of
+defining the multivariate time series. Let us outline some common
+choices.
+</p>
+
+<ul>
+<li>
+<p> Matrix with separate series in the columns. Optionally,
+additional time structure like in 'mts' objects, can be embedded.
+</p>
+</li>
+<li>
+<p> Matrix-like (e.g. a 'data.frame') object with series in the
+columns. In particular, 'data.frame' would be a result of reading
+the series from the file via 'read.table' function.
+</p>
+</li>
+<li>
+<p> List of separate time series objects (e.g. a 'list' of 'ts'
+or 'zoo' objects).
+</p>
+</li>
+</ul>
+<p>Also, the time scales of the individual time series can be
+normalized via head or tail padding with <code>NA</code> (for example, as
+a result of the <code>ts.union</code> call), or specified via time series
+attributes. Or, everything can be mixed all together.
+</p>
+<p>The <code>ssa</code> routine with 'kind = mssa' allows one to provide any
+of the outlined multivariate series formats. As usual, all the
+attributes, names of the series, NA padding, etc. is carefully
+preserved.
+</p>
+
+
+
+<h4>CSSA</h4>
+
+<p>Complex vectors are assumed at the input.
+</p>
+
+
+
+<h3>See Also</h3>
+
+<p><code>ssa</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">s &lt;- ssa(co2) # Perform the decomposition using the default window length
+r &lt;- reconstruct(s, groups = list(Trend = c(1, 4),
+                                  Seasonality = c(2, 3))) # Reconstruct into 2 series
+class(r$Trend) # Result is 'ts' object
+
+# Simultaneous trend extraction using MSSA
+s &lt;- ssa(EuStockMarkets, kind = "mssa")
+r &lt;- reconstruct(s, groups = list(Trend = c(1,2)))
+class(r$Trend) # Result is 'mts' object
+
+# Trend forecast
+f &lt;- rforecast(s, groups = list(Trend = c(1, 2)), len = 50, only.new = FALSE)
+class(f) # For 'ts' objects the time scales are inferred automatically
+
+# Artificial image for 2dSSA
+mx &lt;- outer(1:50, 1:50,
+            function(i, j) sin(2*pi * i/17) * cos(2*pi * j/7) + exp(i/25 - j/20)) +
+      rnorm(50^2, sd = 0.1)
+# Decompose 'mx' with circular window
+s &lt;- ssa(mx, kind = "2d-ssa", wmask = circle(5), neig = 10)
+# Reconstruct
+r &lt;- reconstruct(s, groups = list(1, 2:5))
+# Plot components, original image and residuals
+plot(r)
+
+# 3D-SSA example (2D-MSSA)
+data(Barbara)
+
+ss &lt;- ssa(Barbara, L = c(50, 50, 1))
+plot(ss)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,2110 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Rush</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Rush Controller</h2>
+
+<h3>Description</h3>
+
+<p>Rush is the controller in a centralized rush network.
+The controller starts and stops the workers, pushes tasks to the workers and fetches results.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Object of class R6::R6Class and <code>Rush</code> with controller methods.
+</p>
+
+
+<h3>Local Workers</h3>
+
+<p>A local worker runs on the same machine as the controller.
+Local workers are spawned with the <code style="white-space: pre;">⁠$start_local_workers() method via the ⁠</code>processx' package.
+</p>
+
+
+<h3>Remote Workers</h3>
+
+<p>A remote worker runs on a different machine than the controller.
+Remote workers are started manually with the <code style="white-space: pre;">⁠$create_worker_script()⁠</code> and <code style="white-space: pre;">⁠$start_remote_workers()⁠</code> methods.
+Remote workers can be started on any system as long as the system has access to Redis and all required packages are installed.
+Only a heartbeat process can kill remote workers.
+The heartbeat process also monitors the remote workers for crashes.
+</p>
+
+
+<h3>Stopping Workers</h3>
+
+<p>Local and remote workers can be terminated with the <code style="white-space: pre;">⁠$stop_workers(type = "terminate")⁠</code> method.
+The workers evaluate the currently running task and then terminate.
+The option <code>type = "kill"</code> stops the workers immediately.
+Killing a local worker is done with the <code>processx</code> package.
+Remote workers are killed by pushing a kill signal to the heartbeat process.
+Without a heartbeat process a remote worker cannot be killed (see section heartbeat).
+</p>
+
+
+<h3>Heartbeat</h3>
+
+<p>The heartbeat process periodically signals that a worker is still alive.
+This is implemented by setting a <a href="https://redis.io/docs/latest/commands/expire/">timeout</a> on the heartbeat key.
+Furthermore, the heartbeat process can kill the worker.
+</p>
+
+
+<h3>Data Structure</h3>
+
+<p>Tasks are stored in Redis <a href="https://redis.io/docs/latest/develop/data-types/hashes/">hashes</a>.
+Hashes are collections of field-value pairs.
+The key of the hash identifies the task in Redis and <code>rush</code>.
+</p>
+<div class="sourceCode"><pre>key : xs | ys | xs_extra
+</pre></div>
+<p>The field-value pairs are written by different methods, e.g. <code style="white-space: pre;">⁠$push_tasks()⁠</code> writes <code>xs</code> and <code style="white-space: pre;">⁠$push_results()⁠</code> writes <code>ys</code>.
+The values of the fields are serialized lists or atomic values e.g. unserializing <code>xs</code> gives <code>list(x1 = 1, x2 = 2)</code>
+This data structure allows quick converting of a hash into a row and joining multiple hashes into a table.
+</p>
+<div class="sourceCode"><pre>| key | x1 | x2 | y | timestamp |
+| 1.. |  3 |  4 | 7 |  12:04:11 |
+| 2.. |  1 |  4 | 5 |  12:04:12 |
+| 3.. |  1 |  1 | 2 |  12:04:13 |
+</pre></div>
+<p>When the value of a field is a named list, the field can store the cells of multiple columns of the table.
+When the value of a field is an atomic value, the field stores a single cell of a column named after the field.
+The methods <code style="white-space: pre;">⁠$push_tasks()⁠</code> and <code style="white-space: pre;">⁠$push_results()⁠</code> write into multiple hashes.
+For example, <code style="white-space: pre;">⁠$push_tasks(xss = list(list(x1 = 1, x2 = 2), list(x1 = 2, x2 = 2))⁠</code> writes <code>xs</code> in two hashes.
+</p>
+
+
+<h3>Task States</h3>
+
+<p>A task can go through four states <code>"queued"</code>, <code>"running"</code>, <code>"finished"</code> or <code>"failed"</code>.
+Internally, the keys of the tasks are pushed through Redis <a href="https://redis.io/docs/latest/develop/data-types/lists/">lists</a> and <a href="https://redis.io/docs/latest/develop/data-types/sets/">sets</a> to keep track of their state.
+Queued tasks are waiting to be evaluated.
+A worker pops a task from the queue and changes the state to <code>"running"</code> while evaluating the task.
+When the task is finished, the state is changed to <code style="white-space: pre;">⁠"finished" and the result is written to the data base. If the task fails, the state is changed to ⁠</code>"failed"<code style="white-space: pre;">⁠instead of⁠</code>"finished"'.
+</p>
+
+
+<h3>Queues</h3>
+
+<p>Rush uses a shared queue and a queue for each worker.
+The shared queue is used to push tasks to the workers.
+The first worker that pops a task from the shared queue evaluates the task.
+The worker queues are used to push tasks to specific workers.
+</p>
+
+
+<h3>Fetch Tasks and Results</h3>
+
+<p>The <code style="white-space: pre;">⁠$fetch_*()⁠</code> methods retrieve data from the Redis database.
+A matching method is defined for each task state e.g. <code style="white-space: pre;">⁠$fetch_running_tasks()⁠</code> and <code style="white-space: pre;">⁠$fetch_finished_tasks()⁠</code>.
+The methods <code style="white-space: pre;">⁠$fetch_new_tasks()⁠</code> and <code style="white-space: pre;">⁠$fetch_finished_tasks()⁠</code> cache the already queried data.
+The <code style="white-space: pre;">⁠$wait_for_finished_tasks()⁠</code> variant wait until a new result is available.
+</p>
+
+
+<h3>Error Handling</h3>
+
+<p>When evaluating tasks in a distributed system, many things can go wrong.
+Simple R errors in the worker loop are caught and written to the archive.
+The task is marked as <code>"failed"</code>.
+If the connection to a worker is lost, it looks like a task is <code>"running"</code> forever.
+The method <code style="white-space: pre;">⁠$detect_lost_workers()⁠</code> identifies lost workers.
+Running this method periodically adds a small overhead.
+</p>
+
+
+<h3>Logging</h3>
+
+<p>The worker logs all messages written with the <code>lgr</code> package to the data base.
+The <code>lgr_thresholds</code> argument defines the logging level for each logger e.g. <code>c(rush = "debug")</code>.
+Saving log messages adds a small overhead but is useful for debugging.
+By default, no log messages are stored.
+</p>
+
+
+<h3>Seed</h3>
+
+<p>Setting a seed is important for reproducibility.
+The tasks can be evaluated with a specific L'Ecuyer-CMRG seed.
+If an initial seed is passed, the seed is used to generate L'Ecuyer-CMRG seeds for each task.
+Each task is then evaluated with a separate RNG stream.
+See parallel::nextRNGStream for more details.
+</p>
+
+
+<h3>Public fields</h3>
+
+<div class="r6-fields">
+
+<dl>
+<dt><code>network_id</code></dt>
+<dd>
+<p>(<code>character(1)</code>)<br>
+Identifier of the rush network.</p>
+</dd>
+<dt><code>config</code></dt>
+<dd>
+<p>(redux::redis_config)<br>
+Redis configuration options.</p>
+</dd>
+<dt><code>connector</code></dt>
+<dd>
+<p>(redux::redis_api)<br>
+Returns a connection to Redis.</p>
+</dd>
+<dt><code>processes</code></dt>
+<dd>
+<p>(processx::process)<br>
+List of processes started with <code style="white-space: pre;">⁠$start_local_workers()⁠</code>.</p>
+</dd>
+</dl>
+</div>
+
+
+<h3>Active bindings</h3>
+
+<div class="r6-active-bindings">
+
+<dl>
+<dt><code>n_workers</code></dt>
+<dd>
+<p>(<code>integer(1)</code>)<br>
+Number of workers.</p>
+</dd>
+<dt><code>n_running_workers</code></dt>
+<dd>
+<p>(<code>integer(1)</code>)<br>
+Number of running workers.</p>
+</dd>
+<dt><code>n_terminated_workers</code></dt>
+<dd>
+<p>(<code>integer(1)</code>)<br>
+Number of terminated workers.</p>
+</dd>
+<dt><code>n_killed_workers</code></dt>
+<dd>
+<p>(<code>integer(1)</code>)<br>
+Number of killed workers.</p>
+</dd>
+<dt><code>n_lost_workers</code></dt>
+<dd>
+<p>(<code>integer(1)</code>)<br>
+Number of lost workers.
+Run <code style="white-space: pre;">⁠$detect_lost_workers()⁠</code> to update the number of lost workers.</p>
+</dd>
+<dt><code>n_pre_workers</code></dt>
+<dd>
+<p>(<code>integer(1)</code>)<br>
+Number of workers that are not yet completely started.</p>
+</dd>
+<dt><code>worker_ids</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Ids of workers.</p>
+</dd>
+<dt><code>running_worker_ids</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Ids of running workers.</p>
+</dd>
+<dt><code>terminated_worker_ids</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Ids of terminated workers.</p>
+</dd>
+<dt><code>killed_worker_ids</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Ids of killed workers.</p>
+</dd>
+<dt><code>lost_worker_ids</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Ids of lost workers.</p>
+</dd>
+<dt><code>pre_worker_ids</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Ids of workers that are not yet completely started.</p>
+</dd>
+<dt><code>tasks</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Keys of all tasks.</p>
+</dd>
+<dt><code>queued_tasks</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Keys of queued tasks.</p>
+</dd>
+<dt><code>running_tasks</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Keys of running tasks.</p>
+</dd>
+<dt><code>finished_tasks</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Keys of finished tasks.</p>
+</dd>
+<dt><code>failed_tasks</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Keys of failed tasks.</p>
+</dd>
+<dt><code>n_queued_tasks</code></dt>
+<dd>
+<p>(<code>integer(1)</code>)<br>
+Number of queued tasks.</p>
+</dd>
+<dt><code>n_queued_priority_tasks</code></dt>
+<dd>
+<p>(<code>integer(1)</code>)<br>
+Number of queued priority tasks.</p>
+</dd>
+<dt><code>n_running_tasks</code></dt>
+<dd>
+<p>(<code>integer(1)</code>)<br>
+Number of running tasks.</p>
+</dd>
+<dt><code>n_finished_tasks</code></dt>
+<dd>
+<p>(<code>integer(1)</code>)<br>
+Number of finished tasks.</p>
+</dd>
+<dt><code>n_failed_tasks</code></dt>
+<dd>
+<p>(<code>integer(1)</code>)<br>
+Number of failed tasks.</p>
+</dd>
+<dt><code>n_tasks</code></dt>
+<dd>
+<p>(<code>integer(1)</code>)<br>
+Number of all tasks.</p>
+</dd>
+<dt><code>worker_info</code></dt>
+<dd>
+<p>(<code>data.table::data.table()</code>)<br>
+Contains information about the workers.</p>
+</dd>
+<dt><code>worker_states</code></dt>
+<dd>
+<p>(<code>data.table::data.table()</code>)<br>
+Contains the states of the workers.</p>
+</dd>
+<dt><code>all_workers_terminated</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+Whether all workers are terminated.</p>
+</dd>
+<dt><code>all_workers_lost</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+Whether all workers are lost.
+Runs <code style="white-space: pre;">⁠$detect_lost_workers()⁠</code> to detect lost workers.</p>
+</dd>
+<dt><code>priority_info</code></dt>
+<dd>
+<p>(data.table::data.table)<br>
+Contains the number of tasks in the priority queues.</p>
+</dd>
+<dt><code>snapshot_schedule</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Set a snapshot schedule to periodically save the data base on disk.
+For example, <code>c(60, 1000)</code> saves the data base every 60 seconds if there are at least 1000 changes.
+Overwrites the redis configuration file.
+Set to <code>NULL</code> to disable snapshots.
+For more details see <a href="https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/">redis.io</a>.</p>
+</dd>
+<dt><code>redis_info</code></dt>
+<dd>
+<p>(<code>list()</code>)<br>
+Information about the Redis server.</p>
+</dd>
+</dl>
+</div>
+
+
+<h3>Methods</h3>
+
+
+
+<h4>Public methods</h4>
+
+
+<ul>
+<li> <p><a href="#method-Rush-new"><code>Rush$new()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-format"><code>Rush$format()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-print"><code>Rush$print()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-start_local_workers"><code>Rush$start_local_workers()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-restart_local_workers"><code>Rush$restart_local_workers()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-create_worker_script"><code>Rush$create_worker_script()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-start_remote_workers"><code>Rush$start_remote_workers()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-wait_for_workers"><code>Rush$wait_for_workers()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-stop_workers"><code>Rush$stop_workers()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-detect_lost_workers"><code>Rush$detect_lost_workers()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-reset"><code>Rush$reset()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-read_log"><code>Rush$read_log()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-print_log"><code>Rush$print_log()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-push_tasks"><code>Rush$push_tasks()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-push_priority_tasks"><code>Rush$push_priority_tasks()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-push_failed"><code>Rush$push_failed()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-retry_tasks"><code>Rush$retry_tasks()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-fetch_queued_tasks"><code>Rush$fetch_queued_tasks()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-fetch_priority_tasks"><code>Rush$fetch_priority_tasks()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-fetch_running_tasks"><code>Rush$fetch_running_tasks()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-fetch_finished_tasks"><code>Rush$fetch_finished_tasks()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-wait_for_finished_tasks"><code>Rush$wait_for_finished_tasks()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-fetch_new_tasks"><code>Rush$fetch_new_tasks()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-wait_for_new_tasks"><code>Rush$wait_for_new_tasks()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-fetch_failed_tasks"><code>Rush$fetch_failed_tasks()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-fetch_tasks"><code>Rush$fetch_tasks()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-fetch_tasks_with_state"><code>Rush$fetch_tasks_with_state()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-wait_for_tasks"><code>Rush$wait_for_tasks()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-write_hashes"><code>Rush$write_hashes()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-read_hashes"><code>Rush$read_hashes()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-read_hash"><code>Rush$read_hash()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-is_running_task"><code>Rush$is_running_task()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-is_failed_task"><code>Rush$is_failed_task()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-tasks_with_state"><code>Rush$tasks_with_state()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-Rush-clone"><code>Rush$clone()</code></a>
+</p>
+</li>
+</ul>
+<hr>
+<a id="method-Rush-new"></a>
+
+
+
+<h4>Method <code>new()</code>
+</h4>
+
+<p>Creates a new instance of this R6 class.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$new(network_id = NULL, config = NULL, seed = NULL)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>network_id</code></dt>
+<dd>
+<p>(<code>character(1)</code>)<br>
+Identifier of the rush network.
+Controller and workers must have the same instance id.
+Keys in Redis are prefixed with the instance id.</p>
+</dd>
+<dt><code>config</code></dt>
+<dd>
+<p>(redux::redis_config)<br>
+Redis configuration options.
+If <code>NULL</code>, configuration set by <code>rush_plan()</code> is used.
+If <code>rush_plan()</code> has not been called, the <code>REDIS_URL</code> environment variable is parsed.
+If <code>REDIS_URL</code> is not set, a default configuration is used.
+See redux::redis_config for details.</p>
+</dd>
+<dt><code>seed</code></dt>
+<dd>
+<p>(<code>integer()</code>)<br>
+Initial seed for the random number generator.
+Either a L'Ecuyer-CMRG seed (<code>integer(7)</code>) or a regular RNG seed (<code>integer(1)</code>).
+The later is converted to a L'Ecuyer-CMRG seed.
+If <code>NULL</code>, no seed is used for the random number generator.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-Rush-format"></a>
+
+
+
+<h4>Method <code>format()</code>
+</h4>
+
+<p>Helper for print outputs.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$format(...)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>...</code></dt>
+<dd>
+<p>(ignored).</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>(<code>character()</code>).
+</p>
+
+
+<hr>
+<a id="method-Rush-print"></a>
+
+
+
+<h4>Method <code>print()</code>
+</h4>
+
+<p>Print method.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$print()</pre></div>
+
+
+
+<h5>Returns</h5>
+
+<p>(<code>character()</code>).
+</p>
+
+
+<hr>
+<a id="method-Rush-start_local_workers"></a>
+
+
+
+<h4>Method <code>start_local_workers()</code>
+</h4>
+
+<p>Start workers locally with <code>processx</code>.
+The processx::process are stored in <code style="white-space: pre;">⁠$processes⁠</code>.
+Alternatively, use <code style="white-space: pre;">⁠$create_worker_script()⁠</code> to create a script for starting workers on remote machines.
+By default, <code>worker_loop_default()</code> is used as worker loop.
+This function takes the arguments <code>fun</code> and optionally <code>constants</code> which are passed in <code>...</code>.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$start_local_workers(
+  n_workers = NULL,
+  wait_for_workers = TRUE,
+  timeout = Inf,
+  globals = NULL,
+  packages = NULL,
+  heartbeat_period = NULL,
+  heartbeat_expire = NULL,
+  lgr_thresholds = NULL,
+  lgr_buffer_size = 0,
+  supervise = TRUE,
+  worker_loop = worker_loop_default,
+  ...
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>n_workers</code></dt>
+<dd>
+<p>(<code>integer(1)</code>)<br>
+Number of workers to be started.</p>
+</dd>
+<dt><code>wait_for_workers</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+Whether to wait until all workers are available.</p>
+</dd>
+<dt><code>timeout</code></dt>
+<dd>
+<p>(<code>numeric(1)</code>)<br>
+Timeout to wait for workers in seconds.</p>
+</dd>
+<dt><code>globals</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Global variables to be loaded to the workers global environment.</p>
+</dd>
+<dt><code>packages</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Packages to be loaded by the workers.</p>
+</dd>
+<dt><code>heartbeat_period</code></dt>
+<dd>
+<p>(<code>integer(1)</code>)<br>
+Period of the heartbeat in seconds.</p>
+</dd>
+<dt><code>heartbeat_expire</code></dt>
+<dd>
+<p>(<code>integer(1)</code>)<br>
+Time to live of the heartbeat in seconds.</p>
+</dd>
+<dt><code>lgr_thresholds</code></dt>
+<dd>
+<p>(named <code>character()</code> | named <code>numeric()</code>)<br>
+Logger threshold on the workers e.g. <code>c(rush = "debug")</code>.</p>
+</dd>
+<dt><code>lgr_buffer_size</code></dt>
+<dd>
+<p>(<code>integer(1)</code>)<br>
+By default (<code>lgr_buffer_size = 0</code>), the log messages are directly saved in the Redis data store.
+If <code>lgr_buffer_size &gt; 0</code>, the log messages are buffered and saved in the Redis data store when the buffer is full.
+This improves the performance of the logging.</p>
+</dd>
+<dt><code>supervise</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+Whether to kill the workers when the main R process is shut down.</p>
+</dd>
+<dt><code>worker_loop</code></dt>
+<dd>
+<p>(<code>function</code>)<br>
+Loop run on the workers.
+Defaults to worker_loop_default which is called with <code>fun</code>.
+Pass <code>fun</code> in <code>...</code>.
+Use worker_loop_callr to run <code>fun</code> in an external callr session.</p>
+</dd>
+<dt><code>...</code></dt>
+<dd>
+<p>(<code>any</code>)<br>
+Arguments passed to <code>worker_loop</code>.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-Rush-restart_local_workers"></a>
+
+
+
+<h4>Method <code>restart_local_workers()</code>
+</h4>
+
+<p>Restart local workers.
+If the worker is is still running, it is killed and restarted.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$restart_local_workers(worker_ids, supervise = TRUE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>worker_ids</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Worker ids to be restarted.</p>
+</dd>
+<dt><code>supervise</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+Whether to kill the workers when the main R process is shut down.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-Rush-create_worker_script"></a>
+
+
+
+<h4>Method <code>create_worker_script()</code>
+</h4>
+
+<p>Create script to remote start workers.
+Run these command to pre-start a worker.
+The worker will wait until the start arguments are pushed with <code style="white-space: pre;">⁠$start_remote_workers()⁠</code>.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$create_worker_script()</pre></div>
+
+
+<hr>
+<a id="method-Rush-start_remote_workers"></a>
+
+
+
+<h4>Method <code>start_remote_workers()</code>
+</h4>
+
+<p>Push start arguments to remote workers.
+Remote workers must be pre-started with <code style="white-space: pre;">⁠$create_worker_script()⁠</code>.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$start_remote_workers(
+  globals = NULL,
+  packages = NULL,
+  heartbeat_period = NULL,
+  heartbeat_expire = NULL,
+  lgr_thresholds = NULL,
+  lgr_buffer_size = 0,
+  worker_loop = worker_loop_default,
+  ...
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>globals</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Global variables to be loaded to the workers global environment.</p>
+</dd>
+<dt><code>packages</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Packages to be loaded by the workers.</p>
+</dd>
+<dt><code>heartbeat_period</code></dt>
+<dd>
+<p>(<code>integer(1)</code>)<br>
+Period of the heartbeat in seconds.</p>
+</dd>
+<dt><code>heartbeat_expire</code></dt>
+<dd>
+<p>(<code>integer(1)</code>)<br>
+Time to live of the heartbeat in seconds.</p>
+</dd>
+<dt><code>lgr_thresholds</code></dt>
+<dd>
+<p>(named <code>character()</code> | named <code>numeric()</code>)<br>
+Logger threshold on the workers e.g. <code>c(rush = "debug")</code>.</p>
+</dd>
+<dt><code>lgr_buffer_size</code></dt>
+<dd>
+<p>(<code>integer(1)</code>)<br>
+By default (<code>lgr_buffer_size = 0</code>), the log messages are directly saved in the Redis data store.
+If <code>lgr_buffer_size &gt; 0</code>, the log messages are buffered and saved in the Redis data store when the buffer is full.
+This improves the performance of the logging.</p>
+</dd>
+<dt><code>worker_loop</code></dt>
+<dd>
+<p>(<code>function</code>)<br>
+Loop run on the workers.
+Defaults to worker_loop_default which is called with <code>fun</code>.
+Pass <code>fun</code> in <code>...</code>.
+Use worker_loop_callr to run <code>fun</code> in an external callr session.</p>
+</dd>
+<dt><code>...</code></dt>
+<dd>
+<p>(<code>any</code>)<br>
+Arguments passed to <code>worker_loop</code>.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-Rush-wait_for_workers"></a>
+
+
+
+<h4>Method <code>wait_for_workers()</code>
+</h4>
+
+<p>Wait until <code>n</code> workers are available.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$wait_for_workers(n, timeout = Inf)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>n</code></dt>
+<dd>
+<p>(<code>integer(1)</code>)<br>
+Number of workers to wait for.</p>
+</dd>
+<dt><code>timeout</code></dt>
+<dd>
+<p>(<code>numeric(1)</code>)<br>
+Timeout in seconds.
+Default is <code>Inf</code>.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-Rush-stop_workers"></a>
+
+
+
+<h4>Method <code>stop_workers()</code>
+</h4>
+
+<p>Stop workers.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$stop_workers(type = "terminate", worker_ids = NULL)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>type</code></dt>
+<dd>
+<p>(<code>character(1)</code>)<br>
+Type of stopping.
+Either <code>"terminate"</code> or <code>"kill"</code>.
+If <code>"terminate"</code> the workers evaluate the currently running task and then terminate.
+If <code>"kill"</code> the workers are stopped immediately.</p>
+</dd>
+<dt><code>worker_ids</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Worker ids to be stopped.
+If <code>NULL</code> all workers are stopped.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-Rush-detect_lost_workers"></a>
+
+
+
+<h4>Method <code>detect_lost_workers()</code>
+</h4>
+
+<p>Detect lost workers.
+The state of the worker is changed to <code>"lost"</code>.
+Local workers without a heartbeat are checked by their process id.
+Checking local workers on unix systems only takes a few microseconds per worker.
+But checking local workers on windows might be very slow.
+Workers with a heartbeat process are checked with the heartbeat.
+Lost tasks are marked as <code>"lost"</code>.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$detect_lost_workers(restart_local_workers = FALSE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>restart_local_workers</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+Whether to restart lost workers.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-Rush-reset"></a>
+
+
+
+<h4>Method <code>reset()</code>
+</h4>
+
+<p>Stop workers and delete data stored in redis.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$reset(type = "kill")</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>type</code></dt>
+<dd>
+<p>(<code>character(1)</code>)<br>
+Type of stopping.
+Either <code>"terminate"</code> or <code>"kill"</code>.
+If <code>"terminate"</code> the workers evaluate the currently running task and then terminate.
+If <code>"kill"</code> the workers are stopped immediately.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-Rush-read_log"></a>
+
+
+
+<h4>Method <code>read_log()</code>
+</h4>
+
+<p>Read log messages written with the <code>lgr</code> package from a worker.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$read_log(worker_ids = NULL)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>worker_ids</code></dt>
+<dd>
+<p>(<code>character(1)</code>)<br>
+Worker ids.
+If <code>NULL</code> all worker ids are used.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-Rush-print_log"></a>
+
+
+
+<h4>Method <code>print_log()</code>
+</h4>
+
+<p>Print log messages written with the <code>lgr</code> package from a worker.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$print_log()</pre></div>
+
+
+<hr>
+<a id="method-Rush-push_tasks"></a>
+
+
+
+<h4>Method <code>push_tasks()</code>
+</h4>
+
+<p>Pushes a task to the queue.
+Task is added to queued tasks.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$push_tasks(
+  xss,
+  extra = NULL,
+  seeds = NULL,
+  timeouts = NULL,
+  max_retries = NULL,
+  terminate_workers = FALSE
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>xss</code></dt>
+<dd>
+<p>(list of named <code>list()</code>)<br>
+Lists of arguments for the function e.g. <code style="white-space: pre;">⁠list(list(x1, x2), list(x1, x2)))⁠</code>.</p>
+</dd>
+<dt><code>extra</code></dt>
+<dd>
+<p>(<code>list()</code>)<br>
+List of additional information stored along with the task e.g. <code style="white-space: pre;">⁠list(list(timestamp), list(timestamp)))⁠</code>.</p>
+</dd>
+<dt><code>seeds</code></dt>
+<dd>
+<p>(<code>list()</code>)<br>
+List of L'Ecuyer-CMRG seeds for each task e.g <code>list(list(c(104071, 490840688, 1690070564, -495119766, 503491950, 1801530932, -1629447803)))</code>.
+If <code>NULL</code> but an initial seed is set, L'Ecuyer-CMRG seeds are generated from the initial seed.
+If <code>NULL</code> and no initial seed is set, no seeds are used for the random number generator.</p>
+</dd>
+<dt><code>timeouts</code></dt>
+<dd>
+<p>(<code>integer()</code>)<br>
+Timeouts for each task in seconds e.g. <code>c(10, 15)</code>.
+A single number is used as the timeout for all tasks.
+If <code>NULL</code> no timeout is set.</p>
+</dd>
+<dt><code>max_retries</code></dt>
+<dd>
+<p>(<code>integer()</code>)<br>
+Number of retries for each task.
+A single number is used as the number of retries for all tasks.
+If <code>NULL</code> tasks are not retried.</p>
+</dd>
+<dt><code>terminate_workers</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+Whether to stop the workers after evaluating the tasks.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>(<code>character()</code>)<br>
+Keys of the tasks.
+</p>
+
+
+<hr>
+<a id="method-Rush-push_priority_tasks"></a>
+
+
+
+<h4>Method <code>push_priority_tasks()</code>
+</h4>
+
+<p>Pushes a task to the queue of a specific worker.
+Task is added to queued priority tasks.
+A worker evaluates the tasks in the priority queue before the shared queue.
+If <code>priority</code> is <code>NA</code> the task is added to the shared queue.
+If the worker is lost or worker id is not known, the task is added to the shared queue.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$push_priority_tasks(xss, extra = NULL, priority = NULL)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>xss</code></dt>
+<dd>
+<p>(list of named <code>list()</code>)<br>
+Lists of arguments for the function e.g. <code style="white-space: pre;">⁠list(list(x1, x2), list(x1, x2)))⁠</code>.</p>
+</dd>
+<dt><code>extra</code></dt>
+<dd>
+<p>(<code>list</code>)<br>
+List of additional information stored along with the task e.g. <code style="white-space: pre;">⁠list(list(timestamp), list(timestamp)))⁠</code>.</p>
+</dd>
+<dt><code>priority</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Worker ids to which the tasks should be pushed.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>(<code>character()</code>)<br>
+Keys of the tasks.
+</p>
+
+
+<hr>
+<a id="method-Rush-push_failed"></a>
+
+
+
+<h4>Method <code>push_failed()</code>
+</h4>
+
+<p>Pushes failed tasks to the data base.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$push_failed(keys, conditions)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>keys</code></dt>
+<dd>
+<p>(<code>character(1)</code>)<br>
+Keys of the associated tasks.</p>
+</dd>
+<dt><code>conditions</code></dt>
+<dd>
+<p>(named <code>list()</code>)<br>
+List of lists of conditions.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-Rush-retry_tasks"></a>
+
+
+
+<h4>Method <code>retry_tasks()</code>
+</h4>
+
+<p>Retry failed tasks.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$retry_tasks(keys, ignore_max_retries = FALSE, next_seed = FALSE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>keys</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Keys of the tasks to be retried.</p>
+</dd>
+<dt><code>ignore_max_retries</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+Whether to ignore the maximum number of retries.</p>
+</dd>
+<dt><code>next_seed</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+Whether to change the seed of the task.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-Rush-fetch_queued_tasks"></a>
+
+
+
+<h4>Method <code>fetch_queued_tasks()</code>
+</h4>
+
+<p>Fetch queued tasks from the data base.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$fetch_queued_tasks(
+  fields = c("xs", "xs_extra"),
+  data_format = "data.table"
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>fields</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Fields to be read from the hashes.
+Defaults to <code>c("xs", "xs_extra")</code>.</p>
+</dd>
+<dt><code>data_format</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Returned data format.
+Choose <code>"data.table"</code> or "list".
+The default is <code>"data.table"</code> but <code>"list"</code> is easier when list columns are present.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p><code>data.table()</code><br>
+Table of queued tasks.
+</p>
+
+
+<hr>
+<a id="method-Rush-fetch_priority_tasks"></a>
+
+
+
+<h4>Method <code>fetch_priority_tasks()</code>
+</h4>
+
+<p>Fetch queued priority tasks from the data base.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$fetch_priority_tasks(
+  fields = c("xs", "xs_extra"),
+  data_format = "data.table"
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>fields</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Fields to be read from the hashes.
+Defaults to <code>c("xs", "xs_extra")</code>.</p>
+</dd>
+<dt><code>data_format</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Returned data format.
+Choose <code>"data.table"</code> or "list".
+The default is <code>"data.table"</code> but <code>"list"</code> is easier when list columns are present.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p><code>data.table()</code><br>
+Table of queued priority tasks.
+</p>
+
+
+<hr>
+<a id="method-Rush-fetch_running_tasks"></a>
+
+
+
+<h4>Method <code>fetch_running_tasks()</code>
+</h4>
+
+<p>Fetch running tasks from the data base.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$fetch_running_tasks(
+  fields = c("xs", "xs_extra", "worker_extra"),
+  data_format = "data.table"
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>fields</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Fields to be read from the hashes.
+Defaults to <code>c("xs", "xs_extra", "worker_extra")</code>.</p>
+</dd>
+<dt><code>data_format</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Returned data format.
+Choose <code>"data.table"</code> or "list".
+The default is <code>"data.table"</code> but <code>"list"</code> is easier when list columns are present.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p><code>data.table()</code><br>
+Table of running tasks.
+</p>
+
+
+<hr>
+<a id="method-Rush-fetch_finished_tasks"></a>
+
+
+
+<h4>Method <code>fetch_finished_tasks()</code>
+</h4>
+
+<p>Fetch finished tasks from the data base.
+Finished tasks are cached.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$fetch_finished_tasks(
+  fields = c("xs", "ys", "xs_extra", "worker_extra", "ys_extra", "condition"),
+  reset_cache = FALSE,
+  data_format = "data.table"
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>fields</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Fields to be read from the hashes.
+Defaults to <code>c("xs", "xs_extra", "worker_extra", "ys", "ys_extra")</code>.</p>
+</dd>
+<dt><code>reset_cache</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+Whether to reset the cache.</p>
+</dd>
+<dt><code>data_format</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Returned data format.
+Choose <code>"data.table"</code> or "list".
+The default is <code>"data.table"</code> but <code>"list"</code> is easier when list columns are present.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p><code>data.table()</code><br>
+Table of finished tasks.
+</p>
+
+
+<hr>
+<a id="method-Rush-wait_for_finished_tasks"></a>
+
+
+
+<h4>Method <code>wait_for_finished_tasks()</code>
+</h4>
+
+<p>Block process until a new finished task is available.
+Returns all finished tasks or <code>NULL</code> if no new task is available after <code>timeout</code> seconds.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$wait_for_finished_tasks(
+  fields = c("xs", "ys", "xs_extra", "worker_extra", "ys_extra"),
+  timeout = Inf,
+  data_format = "data.table"
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>fields</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Fields to be read from the hashes.
+Defaults to <code>c("xs", "xs_extra", "worker_extra", "ys", "ys_extra")</code>.</p>
+</dd>
+<dt><code>timeout</code></dt>
+<dd>
+<p>(<code>numeric(1)</code>)<br>
+Time to wait for a result in seconds.</p>
+</dd>
+<dt><code>data_format</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Returned data format.
+Choose <code>"data.table"</code> or "list".
+The default is <code>"data.table"</code> but <code>"list"</code> is easier when list columns are present.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p><code>data.table()</code><br>
+Table of finished tasks.
+</p>
+
+
+<hr>
+<a id="method-Rush-fetch_new_tasks"></a>
+
+
+
+<h4>Method <code>fetch_new_tasks()</code>
+</h4>
+
+<p>Fetch finished tasks from the data base that finished after the last fetch.
+Updates the cache of the finished tasks.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$fetch_new_tasks(
+  fields = c("xs", "ys", "xs_extra", "worker_extra", "ys_extra", "condition"),
+  data_format = "data.table"
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>fields</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Fields to be read from the hashes.</p>
+</dd>
+<dt><code>data_format</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Returned data format.
+Choose <code>"data.table"</code> or "list".
+The default is <code>"data.table"</code> but <code>"list"</code> is easier when list columns are present.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p><code>data.table()</code><br>
+Latest results.
+</p>
+
+
+<hr>
+<a id="method-Rush-wait_for_new_tasks"></a>
+
+
+
+<h4>Method <code>wait_for_new_tasks()</code>
+</h4>
+
+<p>Block process until a new finished task is available.
+Returns new tasks or <code>NULL</code> if no new task is available after <code>timeout</code> seconds.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$wait_for_new_tasks(
+  fields = c("xs", "ys", "xs_extra", "worker_extra", "ys_extra", "condition"),
+  timeout = Inf,
+  data_format = "data.table"
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>fields</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Fields to be read from the hashes.
+Defaults to <code>c("xs", "xs_extra", "worker_extra", "ys", "ys_extra")</code>.</p>
+</dd>
+<dt><code>timeout</code></dt>
+<dd>
+<p>(<code>numeric(1)</code>)<br>
+Time to wait for new result in seconds.</p>
+</dd>
+<dt><code>data_format</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Returned data format.
+Choose <code>"data.table"</code> or "list".
+The default is <code>"data.table"</code> but <code>"list"</code> is easier when list columns are present.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p><code>data.table() | list()</code>.
+</p>
+
+
+<hr>
+<a id="method-Rush-fetch_failed_tasks"></a>
+
+
+
+<h4>Method <code>fetch_failed_tasks()</code>
+</h4>
+
+<p>Fetch failed tasks from the data base.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$fetch_failed_tasks(
+  fields = c("xs", "worker_extra", "condition"),
+  data_format = "data.table"
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>fields</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Fields to be read from the hashes.
+Defaults to <code style="white-space: pre;">⁠c("xs", "xs_extra", "worker_extra", "condition"⁠</code>.</p>
+</dd>
+<dt><code>data_format</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Returned data format.
+Choose <code>"data.table"</code> or "list".
+The default is <code>"data.table"</code> but <code>"list"</code> is easier when list columns are present.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p><code>data.table()</code><br>
+Table of failed tasks.
+</p>
+
+
+<hr>
+<a id="method-Rush-fetch_tasks"></a>
+
+
+
+<h4>Method <code>fetch_tasks()</code>
+</h4>
+
+<p>Fetch all tasks from the data base.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$fetch_tasks(
+  fields = c("xs", "ys", "xs_extra", "worker_extra", "ys_extra", "condition"),
+  data_format = "data.table"
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>fields</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Fields to be read from the hashes.
+Defaults to <code>c("xs", "xs_extra", "worker_extra", "ys", "ys_extra", "condition", "state")</code>.</p>
+</dd>
+<dt><code>data_format</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Returned data format.
+Choose <code>"data.table"</code> or "list".
+The default is <code>"data.table"</code> but <code>"list"</code> is easier when list columns are present.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p><code>data.table()</code><br>
+Table of all tasks.
+</p>
+
+
+<hr>
+<a id="method-Rush-fetch_tasks_with_state"></a>
+
+
+
+<h4>Method <code>fetch_tasks_with_state()</code>
+</h4>
+
+<p>Fetch tasks with different states from the data base.
+If tasks with different states are to be queried at the same time, this function prevents tasks from appearing twice.
+This could be the case if a worker changes the state of a task while the tasks are being fetched.
+Finished tasks are cached.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$fetch_tasks_with_state(
+  fields = c("xs", "ys", "xs_extra", "worker_extra", "ys_extra", "condition"),
+  states = c("queued", "running", "finished", "failed"),
+  reset_cache = FALSE,
+  data_format = "data.table"
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>fields</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Fields to be read from the hashes.
+Defaults to <code>c("xs", "ys", "xs_extra", "worker_extra", "ys_extra")</code>.</p>
+</dd>
+<dt><code>states</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+States of the tasks to be fetched.
+Defaults to <code>c("queued", "running", "finished", "failed")</code>.</p>
+</dd>
+<dt><code>reset_cache</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+Whether to reset the cache of the finished tasks.</p>
+</dd>
+<dt><code>data_format</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Returned data format.
+Choose <code>"data.table"</code> or "list".
+The default is <code>"data.table"</code> but <code>"list"</code> is easier when list columns are present.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-Rush-wait_for_tasks"></a>
+
+
+
+<h4>Method <code>wait_for_tasks()</code>
+</h4>
+
+<p>Wait until tasks are finished.
+The function also unblocks when no worker is running or all tasks failed.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$wait_for_tasks(keys, detect_lost_workers = FALSE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>keys</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Keys of the tasks to wait for.</p>
+</dd>
+<dt><code>detect_lost_workers</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+Whether to detect failed tasks.
+Comes with an overhead.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-Rush-write_hashes"></a>
+
+
+
+<h4>Method <code>write_hashes()</code>
+</h4>
+
+<p>Writes R objects to Redis hashes.
+The function takes the vectors in <code>...</code> as input and writes each element as a field-value pair to a new hash.
+The name of the argument defines the field into which the serialized element is written.
+For example, <code>xs = list(list(x1 = 1, x2 = 2), list(x1 = 3, x2 = 4))</code> writes <code>serialize(list(x1 = 1, x2 = 2))</code> at field <code>xs</code> into a hash and <code>serialize(list(x1 = 3, x2 = 4))</code> at field <code>xs</code> into another hash.
+The function can iterate over multiple vectors simultaneously.
+For example, <code style="white-space: pre;">⁠xs = list(list(x1 = 1, x2 = 2), list(x1 = 3, x2 = 4)), ys = list(list(y = 3), list(y = 7))⁠</code> creates two hashes with the fields <code>xs</code> and <code>ys</code>.
+The vectors are recycled to the length of the longest vector.
+Both lists and atomic vectors are supported.
+Arguments that are <code>NULL</code> are ignored.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$write_hashes(..., .values = list(), keys = NULL)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>...</code></dt>
+<dd>
+<p>(named <code>list()</code>)<br>
+Lists to be written to the hashes.
+The names of the arguments are used as fields.</p>
+</dd>
+<dt><code>.values</code></dt>
+<dd>
+<p>(named <code>list()</code>)<br>
+Lists to be written to the hashes.
+The names of the list are used as fields.</p>
+</dd>
+<dt><code>keys</code></dt>
+<dd>
+<p>(character())<br>
+Keys of the hashes.
+If <code>NULL</code> new keys are generated.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>(<code>character()</code>)<br>
+Keys of the hashes.
+</p>
+
+
+<hr>
+<a id="method-Rush-read_hashes"></a>
+
+
+
+<h4>Method <code>read_hashes()</code>
+</h4>
+
+<p>Reads R Objects from Redis hashes.
+The function reads the field-value pairs of the hashes stored at <code>keys</code>.
+The values of a hash are deserialized and combined to a list.
+If <code>flatten</code> is <code>TRUE</code>, the values are flattened to a single list e.g. list(xs = list(x1 = 1, x2 = 2), ys = list(y = 3)) becomes list(x1 = 1, x2 = 2, y = 3).
+The reading functions combine the hashes to a table where the names of the inner lists are the column names.
+For example, <code style="white-space: pre;">⁠xs = list(list(x1 = 1, x2 = 2), list(x1 = 3, x2 = 4)), ys = list(list(y = 3), list(y = 7))⁠</code> becomes <code>data.table(x1 = c(1, 3), x2 = c(2, 4), y = c(3, 7))</code>.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$read_hashes(keys, fields, flatten = TRUE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>keys</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Keys of the hashes.</p>
+</dd>
+<dt><code>fields</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Fields to be read from the hashes.</p>
+</dd>
+<dt><code>flatten</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+Whether to flatten the list.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>(list of <code>list()</code>)<br>
+The outer list contains one element for each key.
+The inner list is the combination of the lists stored at the different fields.
+</p>
+
+
+<hr>
+<a id="method-Rush-read_hash"></a>
+
+
+
+<h4>Method <code>read_hash()</code>
+</h4>
+
+<p>Reads a single Redis hash and returns the values as a list named by the fields.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$read_hash(key, fields)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>key</code></dt>
+<dd>
+<p>(<code>character(1)</code>)<br>
+Key of the hash.</p>
+</dd>
+<dt><code>fields</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Fields to be read from the hash.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>(list of <code>list()</code>)<br>
+The outer list contains one element for each key.
+The inner list is the combination of the lists stored at the different fields.
+</p>
+
+
+<hr>
+<a id="method-Rush-is_running_task"></a>
+
+
+
+<h4>Method <code>is_running_task()</code>
+</h4>
+
+<p>Checks whether tasks have the status <code>"running"</code>.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$is_running_task(keys)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>keys</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Keys of the tasks.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-Rush-is_failed_task"></a>
+
+
+
+<h4>Method <code>is_failed_task()</code>
+</h4>
+
+<p>Checks whether tasks have the status <code>"failed"</code>.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$is_failed_task(keys)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>keys</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Keys of the tasks.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-Rush-tasks_with_state"></a>
+
+
+
+<h4>Method <code>tasks_with_state()</code>
+</h4>
+
+<p>Returns keys of requested states.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$tasks_with_state(states)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>states</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+States of the tasks.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>(Named list of <code>character()</code>).
+</p>
+
+
+<hr>
+<a id="method-Rush-clone"></a>
+
+
+
+<h4>Method <code>clone()</code>
+</h4>
+
+<p>The objects of this class are cloneable with this method.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Rush$clone(deep = FALSE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>deep</code></dt>
+<dd>
+<p>Whether to make a deep clone.</p>
+</dd>
+</dl>
+</div>
+
+
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># This example is not executed since Redis must be installed
+
+   config_local = redux::redis_config()
+   rush = rsh(network_id = "test_network", config = config_local)
+   rush
+
+</code></pre>
+
+
+</div>

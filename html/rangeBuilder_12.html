@@ -1,0 +1,140 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rasterStackFromPolyList</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Polygon List to rasterStack</h2>
+
+<h3>Description</h3>
+
+<p>Takes a list of polygons and creates a multi-layer SpatRaster.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rasterStackFromPolyList(
+  polyList,
+  resolution = 50000,
+  retainSmallRanges = TRUE,
+  extent = "auto"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>polyList</code></td>
+<td>
+<p>a list of spatial polygon objects, named with taxon names. 
+It is assumed that all items in last have same crs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>resolution</code></td>
+<td>
+<p>vertical and horizontal size of raster cell, in units of
+the polygons' projection</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>retainSmallRanges</code></td>
+<td>
+<p>boolean; should small ranged species be dropped or
+preserved. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extent</code></td>
+<td>
+<p>if 'auto', then the maximal extent of the polygons will be
+used.  If not auto, must be a numeric vector of length 4 with minLong,
+maxLong, minLat, maxLat.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>In the rasterization process, all cells for which the polygon covers the
+midpoint are considered as present and receive a value of 1. If
+<code>retainSmallRanges = FALSE</code>, then species whose ranges are so small
+that no cell registers as present will be dropped. If
+<code>retainSmallRanges = TRUE</code>, then the cells that the small polygon is
+found in will be considered as present.
+</p>
+
+
+<h3>Value</h3>
+
+<p>an object of class <code>SpatRaster</code> where all rasters contain
+values of either NA or 1.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Pascal Title
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+## Not run: 
+data(crotalus)
+library(sf)
+library(terra)
+
+# get 10 species occurrence sets
+uniqueSp &lt;- split(crotalus, crotalus$genSp)
+uniqueSp &lt;- lapply(uniqueSp, function(x) 
+	x[!duplicated(x[, c('decimallongitude', 'decimallatitude')]),])
+uniqueSp &lt;- names(uniqueSp[sapply(uniqueSp, nrow) &gt; 5])
+uniqueSp &lt;- uniqueSp[1:10]
+
+# create range polygons
+ranges &lt;- vector('list', length = length(uniqueSp))
+for (i in 1:length(uniqueSp)) {
+	x &lt;- crotalus[which(crotalus$genSp == uniqueSp[i]),]
+
+	ranges[[i]] &lt;- getDynamicAlphaHull(x, coordHeaders = c('decimallongitude', 
+		'decimallatitude'), clipToCoast = 'terrestrial')
+}
+
+# name the polygons
+names(ranges) &lt;- uniqueSp
+
+# keep only the polygons
+ranges &lt;- lapply(ranges, function(x) x[[1]])
+
+# Create a SpatRaster with the extent inferred from the polygons, and a cell
+# resolution of 0.2 degrees.
+# cells with the presence of a species get a value of 1, NA if absent. 
+
+rangeStack &lt;- rasterStackFromPolyList(ranges, resolution = 0.2)
+
+# calculate species richness per cell, where cell values are counts of species
+richnessRaster &lt;- app(rangeStack, fun=sum, na.rm = TRUE)
+
+# set values of 0 to NA
+richnessRaster[richnessRaster == 0] &lt;- NA
+
+#plot
+ramp &lt;- colorRampPalette(c('blue','yellow','red'))
+plot(richnessRaster, col=ramp(100))
+
+# to add a basic coastline, you can use the internal map
+# world &lt;- rangeBuilder:::loadWorldMap()
+# plot(world, add = TRUE, lwd = 0.5)
+
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

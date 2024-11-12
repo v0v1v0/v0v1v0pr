@@ -1,0 +1,339 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>generate_climate</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Generate climate dataset</h2>
+
+<h3>Description</h3>
+
+<p><code>TROLL</code> forest simulator relies on climate tables with half-hourly variations
+of a typical day and monthly variations of a typical year which are recycled
+through simulation days and years. Initially, <code>TROLL</code> climate tables were
+computed from the Nouraflux dataset. Variations in quantities of interests
+(temperatures, ...) were averaged to the target resolution (half-hour for
+daily variation or month for monthly variation). The purpose of climate
+generation functions is to compute equivalent climate tables from the ERA5
+land reanalysis dataset (Muñoz-Sabater et al. 2021). With these functions,
+<code>rcontroll</code> users only need inventories and associated functional traits to
+run <code>TROLL</code> simulations. See the corresponding vignette
+<code>vignette("climate", package = "rcontroll")</code> for further details.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">generate_climate(
+  x,
+  y,
+  tz,
+  era5land_hour,
+  era5land_month,
+  daytime_start = 7,
+  daytime_end = 19
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>num. Longitude in UTM. Can be obtained from the location name with
+<code>nominatimlite::geo_lite_sf()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>num. Latitude in UTM. Can be obtained from the location name with
+<code>nominatimlite::geo_lite_sf()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tz</code></td>
+<td>
+<p>num. Time zone. Can be obtained from the coordinates with
+<code>lutz::tz_lookup_coords()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>era5land_hour</code></td>
+<td>
+<p>str. Path to ERA5 land data monthly averaged reanalysis
+by hour of day in netCDF. See the corresponding vignette
+<code>vignette("climate", package = "rcontroll")</code> to download corresponding
+data from Copernicus in R.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>era5land_month</code></td>
+<td>
+<p>str. Path to ERA5 land data monthly averaged reanalysis
+in netCDF. See the corresponding vignette <code>vignette("climate", package
+  = "rcontroll")</code> to download corresponding data from Copernicus in R.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>daytime_start</code></td>
+<td>
+<p>int. Daytime starting hour to compute nigh and day
+variables (default 7).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>daytime_end</code></td>
+<td>
+<p>int. Daytime ending hour to compute nigh and day variables
+(default 19).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The <code>TROLL</code> forest model simulates tree growth based on ecophysiological
+processes, with an external climate forcing. Input climatic conditions are
+provided in the form of climate tables with (i) half-hourly standardised
+variation of a typical day, and (ii) monthly average values of a typical
+year, which are currently recycled through simulation. Initially, TROLL
+climate tables were computed from the Nouraflux dataset (Poncy et al., 1998).
+The variation in quantities of interest (irradiance, temperature, vapour
+pressure, rainfall, and wind speed) were averaged to the target resolution
+(half-hour for daily variation or month for monthly variation).
+</p>
+<p>The purpose of the climate generation function is to compute equivalent
+climate tables from a global climatic reanalysis dataset. With
+<code>generate_climate</code>, <code>rcontroll</code> users no longer need to format complex
+climate input fields, but can generate them from global and carefully
+documented climate distributions to run <code>TROLL</code> simulations. The selected
+input climate product for this version of <code>rcontroll</code> is ERA5-Land
+(Muñoz-Sabater et al. 2021). The ERA5-Land climate reanalysis has two main
+advantages over other climate reanalysis products: (1) the data are at a
+spatial resolution of 9km and have been available at hourly temporal
+resolution since 1950, and (2) daily or monthly averages are available and
+their uncertainties are reported.
+</p>
+
+
+<h4>Hypotheses</h4>
+
+<p>The following assumptions are made in the generation of climate data:
+</p>
+
+<ol>
+<li>
+<p> The temperature at 2m and its derivatives (<code>d2m</code>) from ERA5-land
+corresponds to air temperature measurement used as an input in <code>TROLL</code>;
+</p>
+</li>
+<li>
+<p> We can calculate the  vapour pressure deficit using the Buck equation;
+</p>
+</li>
+<li>
+<p> The extraction of standardised half-hourly values of an average day and of
+monthly average values of a year for the climate variables of interest is
+based on the decomposition of the raw time series into: (i) an overall trend
+over the study period, (ii) seasonal or daily variation across months or
+hours depending on the study level, and (iii) the remaining variation;
+</p>
+</li>
+<li>
+<p> Half-hourly values are not available for ERA5-land data. Spline functions
+are used to interpolate hourly values for downscaling to half-hourly
+resolution.
+</p>
+</li>
+</ol>
+<h4>Quantities of interest</h4>
+
+
+
+<h5>
+<code>TROLL</code> variables</h5>
+
+<p>TROLL climate tables summarise temporal variation of quantities of interest.
+These variations are called <strong>seasonal pattern</strong> and are computed from time
+series under the additive assumption :
+</p>
+<p><code class="reqn">X(t) = Trend_X(t)+Seasonal_{x,Period}(t  \mod p [mod Period]) +
+Irregular(t)</code>
+</p>
+<p>With :
+</p>
+
+<ul>
+<li> <p><code class="reqn">Trend_X(t)</code> a moving average covering one period;
+</p>
+</li>
+<li> <p><code class="reqn">Seasonal_{x,Period}(t  \mod p [mod Period])</code> the seasonal pattern
+contribution at t time modulo the period;
+</p>
+</li>
+<li> <p><code class="reqn">Irregular(t)</code> the remainder part.
+</p>
+</li>
+</ul>
+<p>The de-seasonally average of X is defined as :
+</p>
+<p><code class="reqn">mean(X)=mean(Trend_X(t))</code>
+</p>
+<p>These values of seasonal pattern and de-seasonally average are used to
+compute the climate table TROLLv3_climatedaytime12 and
+TROLLv3_daytimevar.
+</p>
+
+
+
+<h5>ERA5-Land variables</h5>
+
+<p>There is a restricted set of variables needed to generate the TROLL climate
+files:
+</p>
+
+<ul>
+<li>
+<p> t2m: Temperature at 2m in K
+</p>
+</li>
+<li>
+<p> d2m: Dew point temperature at 2m in K
+</p>
+</li>
+<li>
+<p> tp: Cumulative rainfall in m
+</p>
+</li>
+<li>
+<p> sp: Atmospheric pressure at the surface in Pa
+</p>
+</li>
+<li>
+<p> ssrd: Cumulative Net solar irradiation in J/m2
+</p>
+</li>
+<li>
+<p> u10: Zonal wind component at 10m in m/s
+</p>
+</li>
+<li>
+<p> v10: Meridional wind component at 10m in m/s
+</p>
+</li>
+</ul>
+<h4>Calculation of variables</h4>
+
+<p>The transition from ERA-Land data to <code>TROLL</code> data requires several
+transformations. The <code>TROLL</code> climate files correspond to seasonal components,
+either daily from 7am to 7pm, or monthly. The extraction of these seasonal
+components is possible by analysing the time series of the data. An additive
+decomposition of the variables allows one to obtain the pattern of interest
+at the original resolution (hourly or monthly). Interpolation of the pattern
+using spline functions of the periodic type, ensuring the boundary conditions
+(i.e. value at 0 am is the same as 12 pm), except for the <code>ssrd</code> which is not
+a continuous periodic function and which requires natural type spline
+interpolation. An evaluation of the quality of the pattern extraction is
+possible by measuring the standard deviation of the error to the original
+time series. This error can be calculated for each unit of the pattern (for
+each hour for example).
+</p>
+
+
+<h5>Wind speed</h5>
+
+<p>The wind speed is the norm of the vector generated by the u10 and v10
+components of the wind. We can therefore deduce that the wind speed
+corresponds to:
+</p>
+<p><code class="reqn">WindSpeed= \sqrt{u10^2+v10^2}</code>
+</p>
+
+
+
+<h5>Vapour pressure deficit</h5>
+
+<p>The calculation of the vapour pressure deficit can be done according to three
+variables (<code>t2m</code>, <code>d2m</code> and <code>sp</code>) using the formula of (Buck 1981):
+</p>
+<p><code class="reqn">VPD =e_{sat}(d2m,sp)-e_{obst}(2m,sp)</code>
+</p>
+<p><code class="reqn">e_*(t2m|d2m,sp)=611.21xf(t2m|d2m,sp)x(1)</code>
+</p>
+<p><code class="reqn">(1)=18.678-(t2m|d2m-273.15)/234.5x(t2m|d2m-273.15)/
+(240.97+t2m|d2m-273.15)</code>
+</p>
+<p><code class="reqn">f(t2m|d2m,sp)=1.0007+10^{-7}xspx0.032+5.9x10^{-6}x(t2m|d2m-273.15)^2</code>
+</p>
+
+
+
+<h5>Instantaneous irradiance</h5>
+
+<p>The measurement of irradiance in the ERA5 data corresponds to the
+accumulation either at hourly or daily intervals. The instantaneous
+measurement can be obtained by calculating the variation of this
+accumulation:
+</p>
+<p><code class="reqn">\Delta ssrd(t)= ssrd(t)-ssrd(t-1)</code>
+</p>
+
+
+
+
+<h4>Conclusion</h4>
+
+<p>In conclusion, despite some discrepancies between climate input generated
+from local meteorological station data and the <code>generate_climate</code> function
+that should be investigated further, the <code>generate_climate</code> function allows
+<code>rcontroll</code> users to easily obtain relevant climate data for their study. The
+discrepancies may be partly due to the unconventional situation of the
+Nouraflux station, which should not be considered as the true climate.
+</p>
+<p><strong>Warning</strong>: As <code>TROLL</code> is under constant development, some of the variables
+presented here may not be used in the current version (v 3.1.7) and may be
+left over from previous versions or may be intended for future versions.
+Furthermore, this supplementary information corresponds to the version 3.1.7
+of <code>TROLL</code> and the climate variables used by the model may change as new
+versions of <code>TROLL</code> are released. We plan to include future major
+developments of <code>TROLL</code> in <code>rcontroll</code> to keep the advances of the model
+accessible to the community, including the development of the
+<code>generate_climate</code> function. We thus invite the reader to check the
+corresponding updated vignette on GitHub
+(https://sylvainschmitt.github.io/rcontroll/articles/climate.html) according
+to the version of <code>TROLL</code> they are using in <code>rcontroll</code> (check with
+<code>TROLL.version()</code>).
+</p>
+
+
+
+<h4>References</h4>
+
+<p>Buck, Arden L. (1981) New equations for computing vapor pressure and
+enhancement factor. Journal of Applied Meteorology and Climatology, 1981,
+vol. 20, no 12, p. 1527-1532.
+</p>
+<p>Muñoz-Sabater, J., Dutra, E., Agustí-Panareda, A., Albergel, C., Arduini, G.,
+Balsamo, G., … Thépaut, J. N. (2021). ERA5-Land: A state-of-the-art global
+reanalysis dataset for land applications. Earth System Science Data, 13(9),
+4349–4383. https://doi.org/10.5194/essd-13-4349-2021
+</p>
+<p>Poncy, O., Riéra, B., Larpin, D., Belbenoit, P., Jullien, M., Hoff, M., &amp;
+Charles-Dominique, P. (1998). The permanent field research station “Les
+Nouragues” in the tropical rainforest of French Guiana: current projects and
+preliminary results on tree diversity, structure, and dynamics. Forest
+Biodiversity in North, Central and South America, and the Caribbean: Research
+and Monitoring., 385–410.
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>A list with two <code>data.frame()</code>: daytimevar and climatedaytime12.
+</p>
+
+
+</div>

@@ -1,0 +1,240 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>eossa</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>ESPRIT-based O-SSA nested decomposition</h2>
+
+<h3>Description</h3>
+
+<p>Perform ESPRIT-based O-SSA (EOSSA) algorithm.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'ssa'
+eossa(x, nested.groups, k = 2,
+      subspace = c("column", "row"),
+      dimensions = NULL,
+      solve.method = c("ls", "tls"),
+      beta = 8,
+      ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>SSA object holding SSA decomposition</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nested.groups</code></td>
+<td>
+<p>list or named list of numbers of eigentriples
+from full decomposition, describes elementary components for EOSSA nested redecomposition</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>the number of components in desired resultant decomposition</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subspace</code></td>
+<td>
+<p>which subspace will be used for oblique matrix construction</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dimensions</code></td>
+<td>
+<p>a vector of dimension indices to construct shift matrices along. 'NULL' means all dimensions</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>solve.method</code></td>
+<td>
+<p>approximate matrix equation solving method, 'ls' for least-squares, 'tls' for total-least-squares.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+<p>In multidimensional (nD) case, coefficient(s) in convex linear combination of
+shifted matrices. The length of <code>beta</code> should be <code>ndim - 1</code>,
+where <code>ndim</code> is the number of independent dimensions.
+If only one value is passed, it is expanded to a geometric progression.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments passed to <code>decompose</code>
+routines</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>EOSSA is an experimental signal separation method working in Nested Oblique SSA setting.
+As opposed to <code>iossa</code>,
+this method does not require initial approximate decomposition.
+Moreover, it can be used for initial decomposition construction for IOSSA.
+</p>
+<p>EOSSA is motivated by parametric model of finite-dimensional signal,
+however it does not exploit this model directly and does not estimate the parameters.
+Therefore, it works for wider class of time series.
+According to the experiments, it works for series that could be locally
+approximated by a series of finite dimension, but at this moment there is no any theoretical results for this.
+</p>
+<p>EOSSA constructs shift matrix estimation by the same way is in ESPRIT
+(see <code>parestimate</code>) method and
+uses its eigenspace to build separating scalar products
+(see <code>iossa</code> for more information about Oblique SSA decompositions).
+Consequently, the method ideally separates signals of finite dimension with absence of noise.
+With presence of noise it provides approximate results due to continuity.
+The method performs eigenvectors clustering inside (for now <code>hclust</code> is used),
+the number of components (argument <code>k</code>) should be passed.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Object of ‘ossa’ class.
+</p>
+
+
+<h3>References</h3>
+
+<p>Shlemov A. (2017): <em>The method of signal separation using the eigenspaces of the shift matrices (in Russian)</em>,
+In Proceedings of the SPISOK-2017 conference, April 26–28, Saint Petersburg, Russia.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>Rssa</code> for an overview of the package, as well as,
+<code>ssa-object</code>,
+<code>ESPRIT</code>,
+<code>iossa</code>,
+<code>fossa</code>,
+<code>owcor</code>,
+<code>iossa.result</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Separability of three finite-dimensional series, EOSSA vs Basic SSA
+N &lt;- 150
+L &lt;- 70
+omega1 &lt;- 0.065
+omega2 &lt;- 0.07
+omega3 &lt;- 0.02
+sigma &lt;- 0.5
+
+F1.real &lt;- 2*sin(2*pi*omega1*(1:N))
+F2.real &lt;- 4*sin(2*pi*omega2*(1:N))
+F3.real &lt;- sin(2*pi*omega3*(1:N))
+
+noise &lt;- rnorm(N, sd = sigma)
+F &lt;- F1.real + F2.real + F3.real + noise
+
+ss &lt;- ssa(F, L)
+eoss &lt;- eossa(ss, nested.groups = list(1:2, 3:4, 5:6), k = 3)
+
+print(eoss)
+
+plot(ss, type = "series", groups = list(1:2, 3:4, 5:6))
+plot(eoss, type = "series", groups = eoss$iossa.groups)
+
+plot(reconstruct(ss,
+                 groups = list(1:2, 3:4, 5:6)),
+     add.residuals = TRUE, plot.method = "xyplot", main = "",
+     xlab = "")
+
+plot(reconstruct(eoss, groups = list(1:2, 3:4, 5:6)),
+     add.residuals = TRUE, plot.method = "xyplot", main = "",
+     xlab = "")
+
+plot(reconstruct(ss,
+                 groups = list(Reconstructed = 1:6, F1 = 1:2, F2 = 3:4, F3 = 5:6)),
+     add.residuals = TRUE, plot.method = "xyplot", main = "",
+     xlab = "")
+
+plot(reconstruct(eoss,
+                 groups = list(Reconstructed = 1:6, F1 = 1:2, F2 = 3:4, F3 = 5:6)),
+     add.residuals = TRUE, plot.method = "xyplot", main = "",
+     xlab = "")
+
+rec.ideal &lt;- reconstruct(ss,
+                         groups = list(Signal = 1:6, F1 = 1:2, F2 = 3:4, F3 = 5:6))
+rec.ideal$Signal &lt;- F1.real + F2.real + F3.real
+rec.ideal$F1 &lt;- F2.real
+rec.ideal$F2 &lt;- F1.real
+rec.ideal$F3 &lt;- F3.real
+
+plot(rec.ideal,
+     add.residuals = TRUE, plot.method = "xyplot", main = "",
+     xlab = "")
+
+# Real-life example (co2), EOSSA vs Basic SSA
+sigma &lt;- 0.05 
+ss &lt;- ssa(co2)
+plot(ss, type = "vector")
+eoss &lt;- eossa(ss, 1:6, k = 4)
+eoss$iossa.groups
+
+plot(eoss)
+rec &lt;- reconstruct(eoss, groups = eoss$iossa.groups)
+plot(rec)
+
+plot(reconstruct(ss,
+                 groups = list(ET1 = 1,ET2 = 2,ET3 = 3,ET4 = 4,ET5 = 5,ET6 = 6)),
+     add.residuals = TRUE, plot.method = "xyplot", main = "",
+     xlab = "")
+
+plot(reconstruct(eoss,
+                 groups = eoss$iossa.groups),
+     add.residuals = TRUE, plot.method = "xyplot", main = "",
+     xlab = "")
+
+# Sine wave with phase shift, EOSSA vs Basic SSA
+omega1 &lt;- 0.06
+omega2 &lt;- 0.07
+sigma &lt;- 0.25
+
+F1.real &lt;- sin(2*pi*omega1*(1:N))
+F2.real &lt;- sin(2*pi*omega2*(1:N))
+v &lt;- c(F1.real,  F2.real)
+v &lt;- v + rnorm(v, sd = sigma)
+# v &lt;- c(F1.real,  F2.real)
+
+ss &lt;- ssa(v, L = 35)
+
+eoss &lt;- eossa(ss, 1:4, 2)
+ioss &lt;- iossa(ss, list(1:2, 3:4))
+
+plot(reconstruct(eoss, groups = eoss$iossa.groups))
+
+plot(reconstruct(eoss,
+     groups = eoss$iossa.groups), plot.method = "xyplot", main = "",
+     xlab = "")
+
+plot(reconstruct(ss, groups = list(1:2, 3:4)),
+     plot.method = "xyplot",
+     main = "", xlab = "")
+plot(reconstruct(ss, groups = list(1,2, 3,4)),
+     plot.method = "xyplot",
+     main = "", xlab = "")
+</code></pre>
+
+
+</div>

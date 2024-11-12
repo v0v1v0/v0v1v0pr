@@ -1,0 +1,294 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>multilevelIV</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fitting Multilevel GMM Estimation with Endogenous Regressors</h2>
+
+<h3>Description</h3>
+
+<p>Estimates multilevel models (max. 3 levels) employing the GMM approach presented in Kim and Frees (2007).
+One of the important features is that, using the hierarchical structure of the data, no external instrumental
+variables are needed, unlike traditional instrumental variable techniques. Specifically, the approach controls for
+endogeneity at higher levels in the data hierarchy. For example, for a three-level model, endogeneity can be handled
+either if present at level two, at level three or at both levels. Level one endogeneity, where the regressors are correlated
+with the structural errors (errors at level one), is not addressed. Moreover, if considered, random slopes cannot be endogenous.
+Also, the dependent variable has to have a continuous distribution.
+The function returns the coefficient estimates obtained with fixed effects, random effects and the GMM estimator proposed
+by Kim and Frees (2007), such that a comparison across models can be done.
+Asymptotically, the multilevel GMM estimators share the same properties of corresponding fixed effects estimators, but they
+allow the estimation of all the variables in the model, unlike the fixed effects counterpart.
+</p>
+<p>To facilitate the choice of the estimator to be used for the given data, the function also conducts
+omitted variable test based on the Hausman-test for panel data (Hausman, 1978). It allows to compare
+a robust estimator and an estimator that is efficient under the null hypothesis of no omitted variables,
+and to compare two robust estimators at different levels. The results of these tests are returned when
+calling <code>summary()</code> on a fitted model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">multilevelIV(
+  formula,
+  data,
+  lmer.control = lmerControl(optimizer = "Nelder_Mead", optCtrl = list(maxfun = 1e+05)),
+  verbose = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>A symbolic description of the model to be fitted. See the "Details" section for the exact notation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data.frame containing the data of all parts specified in the formula parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lmer.control</code></td>
+<td>
+<p>An output from <code>lmerControl</code> that will be used to fit the <code>lmer</code> model from which the variance and
+correlation are obtained.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Show details about the running of the function.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+
+
+<h4>Method</h4>
+
+<p>Multilevel modeling is a generalization of regression methods that recognize the existence of such data hierarchies
+by allowing for residual components at each level in the hierarchy. For example, a three-level multilevel model which
+allows for grouping of students within classrooms, over time, would include time, student and classroom residuals
+(see equation below). Thus, the residual variance is partitioned into four components:
+between-classroom (the variance of the classroom-level residuals), within-classroom (the variance of the student-level residuals),
+between student (the variance of the student-level residuals) and within-student (the variance of the time-level residuals).
+The classroom residuals represent the unobserved classroom characteristics that affect student's outcomes.
+These unobserved variables lead to correlation between outcomes for students from the same classroom.
+Similarly, the unobserved time residuals lead to correlation between a student's outcomes over time.
+A three-level model can be described as follows:
+</p>
+
+ <div style="text-align:center">y<sub>cst</sub> = Z<sup>1</sup><sub>cst</sub> β<sup>1</sup><sub>cs</sub> + X<sup>1</sup><sub>cst</sub> β<sub>1</sub> ε<sup>1</sup><sub>cst</sub>
+</div>
+<br><div style="text-align:center"> β<sup>1</sup><sub>cs</sub> =  Z<sup>2</sup><sub>cs</sub> β<sup>2</sup><sub>c</sub> + X <sup>2</sup><sub>cs</sub> β<sub>2</sub> ε<sup>2</sup><sub>cs</sub>
+</div>
+<br><div style="text-align:center"> β<sup>2</sup><sub>c</sub> = X<sup>3</sup><sub>c</sub>β<sub>3</sub> ε<sup>3</sup><sub>c</sub>
+</div>
+<p>Like in single-level regression, in multilevel models endogeneity is also a concern. The additional problem is that in multilevel models
+there are multiple independent assumptions involving various random components at different levels. Any moderate correlation between some
+predictors and a random component or error term, can result in a significant bias of the coefficients and of the variance components.
+The multilevel GMM approach for addressing endogeneity uses both the between and within variations of the exogenous variables, but only the within
+variation of the variables assumed endogenous. The assumptions in the multilevel generalized moment of moments model is that the errors at each level
+are normally distributed and independent of each other. Moreover, the slope variables are assumed exogenous. Since the model does not handle
+"level 1 dependencies", an additional assumption is that the level 1 structural error is uncorrelated with any of the regressors.
+If this assumption is not met, additional, external instruments are necessary.
+The coefficients of the explanatory variables appear in the vectors β<sub>1</sub>,
+β<sub>2</sub> and β<sub>3</sub>.
+The term β<sup>1</sup><sub>cs</sub> captures latent, unobserved characteristics that are classroom and student specific
+while β<sup>2</sup><sub>c</sub> captures latent,
+unobserved characteristics that are classroom specific. For identification, the disturbance term
+ε<sub>cst</sub> is assumed independent of
+the other variables, Z<sup>1</sup><sub>cst</sub> and X<sup>1</sup><sub>cst</sub>.
+When all model variables are assumed exogenous, the GMM estimator is the usual GLS estimator, denoted as REF. When all variables (except the variables used as slope)
+are assumed endogenous, the fixed-effects estimator is used, FE. While REF assumes all explanatory variables are uncorrelated with the
+random intercepts and slopes in the model, FE allows for endogeneity of all effects but sweeps out the random components as well as the
+explanatory variables at the same levels. The more general estimator GMM proposed by Kim and Frees (2007) allows for some of the explanatory
+variables to be endogenous and uses this information to build instrumental variables. The multilevel GMM estimator uses both the between and
+within variations of the exogenous variables, but only the within variation of the variables assumed endogenous. When all variables are assumed
+exogenous, GMM estimator equals REF. When all covariates are assume endogenous, GMM equals FE.
+</p>
+
+
+
+<h4>Formula parameter</h4>
+
+<p>The <code>formula</code> argument follows a two part notation:
+</p>
+<p>In the first part, the model is specified while in the second part, the endogenous regressors are indicated.
+These two parts are separated by a single vertical bar (<code>|</code>).
+</p>
+<p>The first RHS follows the exact same model specification as required by the <code>lmer</code>
+function of package <code>lme4</code> and internally will be used to fit a <code>lmer</code> model. In the second part,
+one or multiple endogenous regressors are indicated by passing them to the special function <code>endo</code>
+(e.g. <code>endo(X1, X2)</code>). Note that no argument to <code>endo()</code> is to be supplied as character
+but as symbols without quotation marks.
+</p>
+<p>See the example section for illustrations on how to specify the <code>formula</code> parameter.
+</p>
+
+
+
+<h3>Value</h3>
+
+<p><code>multilevelIV</code> returns an object of class "<code>rendo.multilevel</code>".
+</p>
+<p>The generic accessor functions <code>coef</code>, <code>fitted</code>, <code>residuals</code>, <code>vcov</code>, <code>confint</code>, and <code>nobs</code>, are available.
+Note that an additional argument <code>model</code> with possible values <code>"REF", "FE_L2", "FE_L3", "GMM_L2"</code>, or <code>"GMM_L3"</code> is
+available for <code>summary</code>, <code>fitted</code>, <code>residuals</code>, <code>confint</code>, and <code>vcov</code>
+to extract the features for the specified model.
+</p>
+<p>Note that the obtained coefficients are rounded with <code>round(x, digits=getOption("digits"))</code>.
+</p>
+<p>An object of class <code>rendo.multilevel</code> is returned that is a list and contains the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>the formula given to specify the model to be fitted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>num.levels</code></td>
+<td>
+<p>the number of levels detected from the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dt.model.data</code></td>
+<td>
+<p>a data.table of model data including data for slopes and level group ids</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coefficients</code></td>
+<td>
+<p>a matrix of rounded coefficients, one column per model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coefficients.se</code></td>
+<td>
+<p>a matrix of coefficients' SE, one column per model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>l.fitted</code></td>
+<td>
+<p>a named list which contains the fitted values per model sorted as the input data</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>l.residuals</code></td>
+<td>
+<p>a named list which contains the residuals per model sorted as the input data</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>l.vcov</code></td>
+<td>
+<p>a list of variance-covariance matrix, named per model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>V</code></td>
+<td>
+<p>the variance–covariance matrix V of the disturbance term.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>W</code></td>
+<td>
+<p>the weight matrix W, such that W=V^(-1/2) per highest level group.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>l.ovt</code></td>
+<td>
+<p>a list of results of the Hausman OVT, named per model.</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Hausman J (1978). “Specification Tests in Econometrics.” Econometrica, 46(6), 1251–1271.
+</p>
+<p>Kim, Jee-Seon and Frees, Edward W. (2007). "Multilevel Modeling with Correlated Effects". Psychometrika, 72(4), 505-533.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>lmer</code> for more details on how to specify the <code>formula</code> parameter
+</p>
+<p><code>lmerControl</code> for more details on how to provide the <code>lmer.control</code> parameter
+</p>
+<p><code>summary</code> for how fitted models are summarized
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+data("dataMultilevelIV")
+
+# Two levels
+res.ml.L2 &lt;- multilevelIV(y ~ X11 + X12 + X13 + X14 + X15 + X21 + X22 + X23 + X24 + X31 +
+                              X32 + X33 + (1|SID) | endo(X15),
+                          data = dataMultilevelIV, verbose = FALSE)
+
+# Three levels
+res.ml.L3 &lt;- multilevelIV(y ~ X11 + X12 + X13 + X14 + X15 + X21 + X22 + X23 + X24 + X31 +
+                              X32 + X33 + (1| CID) + (1|SID) | endo(X15),
+                          data = dataMultilevelIV, verbose = FALSE)
+
+
+# L2 with multiple endogenous regressors
+res.ml.L2 &lt;- multilevelIV(y ~ X11 + X12 + X13 + X14 + X15 + X21 + X22 + X23 + X24 + X31 +
+                              X32 + X33 + (1|SID) | endo(X15, X21, X22),
+                          data = dataMultilevelIV, verbose = FALSE)
+
+# same as above
+res.ml.L2 &lt;- multilevelIV(y ~ X11 + X12 + X13 + X14 + X15 + X21 + X22 + X23 + X24 + X31 +
+                              X32 + X33 + (1|SID) | endo(X15, X21) + endo(X22),
+                          data = dataMultilevelIV, verbose = FALSE)
+
+# Fit above model with different settings for lmer()
+lmer.control &lt;- lme4::lmerControl(optimizer="nloptwrap",
+                                  optCtrl=list(algorithm="NLOPT_LN_COBYLA",
+                                               xtol_rel=1e-6))
+res.ml.L2.cob &lt;- multilevelIV(y ~ X11 + X12 + X13 + X14 + X15 + X21 + X22 + X23 + X24 +
+                                  X31 + X32 + X33 + (1|SID) | endo(X15, X21) + endo(X22),
+                              data = dataMultilevelIV, verbose = FALSE,
+                              lmer.control = lmer.control) # use different controls for lmer
+
+
+# specify argument "model" in the S3 methods to obtain results for the respective model
+# default is "REF" for all methods
+
+summary(res.ml.L3)
+# same as above
+summary(res.ml.L3, model = "REF")
+
+# complete pval table for L3 fixed effects
+L3.FE.p &lt;- coef(summary(res.ml.L3, model = "FE_L3"))
+
+# variance covariance matrix
+L2.FE.var  &lt;- vcov(res.ml.L2, model = "FE_L2")
+L2.GMM.var &lt;- vcov(res.ml.L2, model = "GMM_L2")
+# residuals
+L3.REF.resid &lt;- resid(res.ml.L3, model = "REF")
+
+
+</code></pre>
+
+
+</div>

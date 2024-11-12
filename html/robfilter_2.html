@@ -1,0 +1,308 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>adore.filter</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>A Robust Adaptive Online Repeated Median Filter for Univariate Time Series</h2>
+
+<h3>Description</h3>
+
+ 
+<p>Procedure for robust online extraction of low frequency
+components (the <em>signal</em>) from a univariate time series by a moving window technique with
+adaptive window width selection (ADaptive Online REpeated median FILTER).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">adore.filter(y,
+             p.test=15, minNonNAs=5,
+             min.width=10, max.width=200,
+             width.search="geometric",
+             rtr=2, extrapolate=FALSE,
+             calc.qn=FALSE, sign.level=0.1)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>a numeric vector or (univariate) time series object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p.test</code></td>
+<td>
+<p>defines the number of most recent Repeated Median residuals within each window used to test the goodness of fit of the online signal level. <br>
+It can be either a value in (0.25, 0.3, 0.5), meaning that <code>floor(p.test*width)</code> residuals are considered for the goodness of fit test, where <code>width</code> is the currently used window width, or it can also be a positive integer <code>&gt;= 5</code> specifying a fixed number of most recent residuals (default).<br>
+If the number of residuals considered for the test exceeds <code>width/2</code>, the procedure sets it to <code>floor(width/2)</code>, if it is smaller than five, the number is set to five.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minNonNAs</code></td>
+<td>
+<p>a positive integer <code>&gt;= 5</code> defining the minimum number of non-missing observations within one window which is required for a ‘sensible’ estimation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min.width</code></td>
+<td>
+<p>a positive integer <code>&gt;= 5</code> specifying the minimal window width.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.width</code></td>
+<td>
+<p>a positive integer <code>&gt;= min.width</code> specifying the maximal window width.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>width.search</code></td>
+<td>
+<p>a character string defining the search algorithm used for finding an adequate window width at each point in time.
+</p>
+
+<dl>
+<dt><code>"linear"</code></dt>
+<dd>
+<p>The linear search always results in the largest window width possible and hence yields 
+the smoothest online signal. 
+However, if sudden changes (like level shifts) appear in the signal it requires a lot of computation time
+and thus, an increased variability of the extracted signal may be observed.
+</p>
+</dd>
+<dt><code>"binary"</code></dt>
+<dd>
+<p>The binary search is recommended if it can be expected that the window width needs 
+to be reduced drastically from a large to a very small value at certain times (for example at level shifts or trend changes).
+However, it may not always result in the largest possible window width.
+</p>
+</dd>
+<dt>
+<code>"geometric"</code> (default)</dt>
+<dd>
+<p>The geometric search is as fast as the binary search
+but it puts more weight on large window widths. 
+It offers a good compromise between the linear and the binary search (computation time vs. smooth output signal).
+</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rtr</code></td>
+<td>
+<p>a value in 0, 1, 2 specifying whether a 'restrict to range' rule should be applied.
+</p>
+
+<dl>
+<dt><code>rtr=0</code></dt>
+<dd>
+<p>The estimated signal level consists of the last fitted value of a Repeated Median regression fit 
+within a time window of adequate width.</p>
+</dd>
+<dt><code>rtr=1</code></dt>
+<dd>
+<p>The level estimation is restricted to the range of the observations within each time window.</p>
+</dd>
+<dt>
+<code>rtr=2</code> (default)</dt>
+<dd>
+<p>The level estimation is restricted to the range of the most recent observations 
+(specified by <code>p.test</code>) i.e., to the range of the observations which are used to evaluate the goodness of fit.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extrapolate</code></td>
+<td>
+<p>a logical indicating whether the level 
+estimations should be extrapolated to the beginning of the time series. The 
+extrapolation consists of all fitted values within the first 
+time window. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>calc.qn</code></td>
+<td>
+<p>a logical indicating whether the Qn scale (Rousseeuw, Croux, 1993) should also be calculated along with the signal level 
+as an estimate of the standard deviation in each window.
+Here, the <code>Qn</code> command from the <code>robustbase</code> library is applied with the built-in finite sample correction.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sign.level</code></td>
+<td>
+<p>significance level of the test procedure; must be a value in <code class="reqn">(0,0.5)</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The <code>adore.filter</code> works by applying Repeated Median (RM)
+regression (Siegel, 1982) to a moving time window with a length varying between 
+<code>min.width</code> and <code>max.width</code>. 
+</p>
+<p>For each point in time, the window width is adapted to the current data situation by a goodness of fit test for
+the most recent signal level estimation. 
+The test uses the absolute value of the sum of the RM residuals in the subset specified by <code>p.test</code>.
+The critical value for the test decision corresponds to a slightly modified 0.95-quantile of the 
+distribution of the test statistic and is stored in the data set <code>critvals</code>.
+</p>
+<p>A more detailed description of the filter can be found in 
+Schettlinger, Fried, Gather (2010).</p>
+
+
+<h3>Value</h3>
+
+ 
+<p><code>adore.filter</code> returns an object of class <code>adore.filter</code>.  
+An object of class <code>adore.filter</code> is a list containing the 
+following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>level</code></td>
+<td>
+<p>a numeric vector containing the signal level extracted by the RM filter 
+with adaptive window width.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>slope</code></td>
+<td>
+<p>a numeric vector containing the corresponding slope within each time window.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>width</code></td>
+<td>
+<p>a numeric vector containing the corresponding window width used for the level and slope estimations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>level.list</code></td>
+<td>
+<p>a list which contains with as many elements as the length of the input time series.
+If at time <code>t</code>, the window width was not reduced, the entry <code>level.list[[t]]</code> simply corresponds to <code>level[t]</code>.
+However, if more than one iteration took place, <code>level.list[[t]]</code> is a vector which contains all level estimations which were
+evaluated until the final estimate <code>mu[t]</code> passed the goodness of fit test and was stored.
+
+
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>slope.list</code></td>
+<td>
+<p>a list containing the slope estimations corresponding to the values in <code>level.list</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>width.list</code></td>
+<td>
+<p>a list containing the window widths used for the estimations in <code>level.list</code> and <code>slope.list</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma</code></td>
+<td>
+<p>a numeric vector containing the corresponding scale within each time window estimated by the robust Qn estimator
+(only calculated if <code>calc.qn = TRUE</code>, else <code>sigma</code> does not exist).</p>
+</td>
+</tr>
+</table>
+<p>In addition, the original input time series is returned as list 
+member <code>y</code>, and the settings used for the analysis are 
+returned as the list members <code>min.width</code>, <code>max.width</code>, <code>width.search</code>,
+<code>p.test</code>, <code>minNonNAs</code>, <code>rtr</code>, <code>extrapolate</code>, and <code>calc.qn</code>. 
+</p>
+<p>Application of the function <code>plot</code> to an object of class
+<code>aoRM</code> returns a plot showing the original time series 
+with the filtered output. 
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Karen Schettlinger</p>
+
+
+<h3>References</h3>
+
+ 
+<p>Rousseeuw, P. J., Croux, C. (1993)
+Alternatives to the Median Absolute Deviation,
+<em>Journal of the American Statistical Association</em> <b>88</b>,
+1273-1283.
+</p>
+<p>Schettlinger, K., Fried, R., Gather, U. (2010) 
+Real Time Signal Processing by Adaptive Repeated Median Filters,
+<em>International Journal of Adaptive Control and Signal Processing</em> <b>24</b>(5), 346-362.<br></p>
+<p>Siegel, A.F. (1982)
+Robust Regression Using Repeated Medians,
+<em>Biometrika</em> <b>69</b> (1), 
+242-244.<br></p>
+
+
+<h3>See Also</h3>
+
+<p><code>robreg.filter</code>, <code>wrm.filter</code>, <code>madore.filter</code>, <code>scarm.filter</code>.</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># # # # # # # # # #
+# Short and noise-free time series
+series &lt;- c(rep(0,30),rep(10,30),seq(10,5,length=20),seq(5,15,length=20))
+
+# Adaptive online signal extraction without &amp; with 'restrict to range' rule
+t.without.rtr &lt;- adore.filter(series, rtr=0)
+plot(t.without.rtr)
+t.with.rtr1 &lt;- adore.filter(series, rtr=1)
+lines(t.with.rtr1$level, col="blue")
+t.with.rtr2 &lt;- adore.filter(series)
+lines(t.with.rtr2$level, col="green3",lty=2)
+legend("top",c("Signal with rtr=1","Signal with rtr=2"),col=c("blue","green3"),lty=c(1,2),bty="n")
+
+# # # # # # # # # #
+# Short and noise-free time series + 1 outlier
+ol.series &lt;- series
+ol.series[63] &lt;- 3
+
+# Adaptive online signal extraction without &amp; with 'restrict to range' rule
+t.without.rtr &lt;- adore.filter(ol.series, rtr=0)
+plot(t.without.rtr)
+t.with.rtr1 &lt;- adore.filter(ol.series, rtr=1)
+lines(t.with.rtr1$level, col="blue")
+t.with.rtr2 &lt;- adore.filter(ol.series)
+lines(t.with.rtr2$level, col="green3",lty=2)
+legend("top",c("Signal with rtr=1","Signal with rtr=2"),col=c("blue","green3"),lty=c(1,2),bty="n")
+
+# # # # # # # # # #
+# Noisy time series with level shifts, trend changes and shifts in the scale of the error term
+true.signal  &lt;- c(rep(0,150),rep(10,150),seq(10,5,length=100),seq(5,15,length=100))
+series2      &lt;- true.signal + c(rnorm(250,sd=1), rnorm(200,sd=3), rnorm(50,sd=1))
+
+# Adaptive online signal extraction with additional Qn scale estimation
+s2 &lt;- adore.filter(series2, calc.qn=TRUE)
+par(mfrow=c(3,1))
+plot(s2)
+plot(s2$sigma,type="l",main="Corresponding Qn Scale Estimation",ylab="sigma",xlab="time")
+lines(c(rep(1,250),rep(3,200),rep(1,150)),col="grey")
+legend("topleft",c("True scale","Qn"),lty=c(1,1),col=c("grey","black"),bty="n")
+plot(s2$width,type="l",main="Corresponding Window Width",ylab="width",xlab="time")
+
+</code></pre>
+
+
+</div>

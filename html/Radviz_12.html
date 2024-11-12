@@ -1,0 +1,155 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>do.optimGraphviz</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Optimize the Dimensional Anchors Position using the Graphviz algorithm</h2>
+
+<h3>Description</h3>
+
+<p>Allows to compute the best arrangement of Dimensional Anchors so that
+visualization efficiency (i.e. maintaining graph structure) is optimized.
+The Graphviz algorithm is implemented in C++ for optimal computational efficiency.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">do.optimGraphviz(
+  x,
+  graph,
+  attractG = 1,
+  repelG = 1,
+  law = 0,
+  steps = 10,
+  springs = NULL,
+  weight = "weight"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a data.frame or matrix to be projected, with column names matching row names in springs</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>graph</code></td>
+<td>
+<p><code>igraph</code> object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>attractG</code></td>
+<td>
+<p>Number specifying the weight of the attractive forces</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>repelG</code></td>
+<td>
+<p>Number specifying the weight of the repulsive forces</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>law</code></td>
+<td>
+<p>Integer, specifying how forces change with distance: 0 = (inverse) linear, 1 = (inverse) square</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>steps</code></td>
+<td>
+<p>Number of iterations of the algorithm before re-considering convergence criterion</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>springs</code></td>
+<td>
+<p>Numeric matrix with initial anchor coordinates. When <code>NULL</code> (=default), springs are initialized by <code>make.S</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weight</code></td>
+<td>
+<p>the name of the attribute containing the edge weights to use for optimization</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Graphviz is a variant of Freeviz (<code>do.optimFreeviz</code>, applicable to a dataset for which a graph structure (i.e. <code>igraph</code> object) is available.
+Attractive forces are defined between connected nodes in the graph, and repulsive forces between all non-connected nodes.
+To better maintain the original graph structure after projection, spring constants between connected nodes are proportional to their edge weights.
+Graphviz can be used as an alternative to Freeviz when class labels are not available.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A matrix with 2 columns (x and y coordinates of dimensional anchors) and 1 line
+per dimensional anchor (so called springs).
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Nicolas Sauwen
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(iris)
+das &lt;- c('Sepal.Length','Sepal.Width','Petal.Length','Petal.Width')
+S &lt;- make.S(das)
+rv &lt;- do.radviz(iris,S)
+
+plot(rv,anchors.only=FALSE)
+
+## compute distance matrix
+d.iris &lt;- dist(iris[,das])
+
+## define a kNN matrix
+n.iris &lt;- as.matrix(d.iris)
+n.iris &lt;- apply(n.iris,1,function(x,k=12) {
+  x[order(x)&gt;(k+1)] &lt;- 0
+  return(x)
+})
+diag(n.iris) &lt;- 0
+
+## compute weights for kNN matrix
+w.iris &lt;- n.iris
+w.iris &lt;- exp(-w.iris^2/(2*median(w.iris[w.iris!=0])^2))
+w.iris[n.iris==0] &lt;- 0
+
+## create graph
+library(igraph)
+g.iris &lt;- graph.adjacency(w.iris,mode='undirected',weight=TRUE,diag=FALSE)
+
+V(g.iris)$Species &lt;- as.character(iris[,'Species'])
+V(g.iris)$color &lt;- as.numeric(iris[,'Species'])
+
+plot(g.iris,
+     vertex.label=NA)
+
+## project using Radviz
+new.S &lt;- do.optimGraphviz(iris[,das],
+                          g.iris)
+
+grv &lt;- do.radviz(iris[,das],
+                new.S,
+                graph=g.iris)
+
+library(ggplot2)
+plot(grv)+
+  geom_point(aes(color=iris[,'Species']))
+</code></pre>
+
+
+</div>

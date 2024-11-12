@@ -1,0 +1,116 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>setState</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>setState</h2>
+
+<h3>Description</h3>
+
+<p>New setState that should work with different methods
+"theta", "thetaDot":  used in PendulumApp
+"x", "vx", "y", "vy": used in ProjectileApp
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">setState(object, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>a class object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional parameters</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R"># +++++++++++++++++++++++++++++++++++++++++++++++++ application: ProjectileApp.R
+#                                                      test Projectile with RK4
+#                                                      originally uses Euler
+
+# suppressMessages(library(data.table))
+
+importFromExamples("Projectile.R")      # source the class
+
+ProjectileApp &lt;- function(verbose = FALSE) {
+    # initial values
+    x &lt;- 0; vx &lt;- 10; y &lt;- 0; vy &lt;- 10
+    state &lt;- c(x, vx, y, vy, 0)                        # state vector
+    dt &lt;- 0.01
+
+    projectile &lt;- Projectile()
+    projectile &lt;- setState(projectile, x, vx, y, vy)
+
+    projectile@odeSolver &lt;- init(projectile@odeSolver, 0.123)
+
+    # init(projectile) &lt;-  0.123
+
+    projectile@odeSolver &lt;- setStepSize(projectile@odeSolver, dt)
+    rowV &lt;- vector("list")
+    i &lt;- 1
+    while (getState(projectile)[3] &gt;= 0)    {
+        rowV[[i]] &lt;- list(t  = getState(projectile)[5],
+                          x  = getState(projectile)[1],
+                          vx = getState(projectile)[2],
+                          y  = getState(projectile)[3],     # vertical position
+                          vy = getState(projectile)[4])
+        projectile &lt;- step(projectile)
+        i &lt;- i + 1
+    }
+    DT &lt;- data.table::rbindlist(rowV)
+    return(DT)
+}
+
+
+solution &lt;- ProjectileApp()
+plot(solution)
+# ++++++++++++++++++++++++++++++++++++++++++++++++++      example: PendulumApp.R
+# Simulation of a pendulum using the EulerRichardson ODE solver
+
+suppressPackageStartupMessages(library(ggplot2))
+
+importFromExamples("Pendulum.R")      # source the class
+
+PendulumApp &lt;- function(verbose = FALSE) {
+    # initial values
+    theta &lt;- 0.2
+    thetaDot &lt;- 0
+    dt &lt;- 0.1
+    pendulum &lt;- Pendulum()
+    # pendulum@state[3] &lt;- 0      # set time to zero, t = 0
+    pendulum &lt;- setState(pendulum, theta, thetaDot)
+    pendulum &lt;- setStepSize(pendulum, dt = dt) # using stepSize in RK4
+    pendulum@odeSolver &lt;- setStepSize(pendulum@odeSolver, dt) # set new step size
+    rowvec &lt;- vector("list")
+    i &lt;- 1
+    while (getState(pendulum)[3] &lt;= 40)    {
+        rowvec[[i]] &lt;- list(t        = getState(pendulum)[3],    # time
+                            theta    = getState(pendulum)[1], # angle
+                            thetadot = getState(pendulum)[2]) # derivative of angle
+        pendulum &lt;- step(pendulum)
+        i &lt;- i + 1
+    }
+    DT &lt;- data.table::rbindlist(rowvec)
+    return(DT)
+}
+# show solution
+solution &lt;- PendulumApp()
+plot(solution)
+</code></pre>
+
+
+</div>

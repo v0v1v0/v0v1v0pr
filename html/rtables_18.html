@@ -1,0 +1,146 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>all_zero_or_na</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Trimming and pruning criteria</h2>
+
+<h3>Description</h3>
+
+<p>Criteria functions (and constructors thereof) for trimming and pruning tables.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">all_zero_or_na(tr)
+
+all_zero(tr)
+
+content_all_zeros_nas(tt, criteria = all_zero_or_na)
+
+prune_empty_level(tt)
+
+prune_zeros_only(tt)
+
+low_obs_pruner(min, type = c("sum", "mean"))
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>tr</code></td>
+<td>
+<p>(<code>TableRow</code> or related class)<br> a <code>TableRow</code> object representing a single row within a populated table.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tt</code></td>
+<td>
+<p>(<code>TableTree</code> or related class)<br> a <code>TableTree</code> object representing a populated table.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>criteria</code></td>
+<td>
+<p>(<code>function</code>)<br> function which takes a <code>TableRow</code> object and returns <code>TRUE</code> if that row
+should be removed. Defaults to <code>all_zero_or_na()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min</code></td>
+<td>
+<p>(<code>numeric(1)</code>)<br> (used by <code>low_obs_pruner</code> only). Minimum aggregate count value.
+Subtables whose combined/average count are below this threshold will be pruned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>(<code>string</code>)<br> how count values should be aggregated. Must be <code>"sum"</code> (the default) or <code>"mean"</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>all_zero_or_na</code> returns <code>TRUE</code> (and thus indicates trimming/pruning) for any <em>non-<code>LabelRow</code></em>
+<code>TableRow</code> which contain only any mix of <code>NA</code> (including <code>NaN</code>), <code>0</code>, <code>Inf</code> and <code>-Inf</code> values.
+</p>
+<p><code>all_zero</code> returns <code>TRUE</code> for any non-<code>LabelRow</code> which contains only (non-missing) zero values.
+</p>
+<p><code>content_all_zeros_nas</code> prunes a subtable if both of the following are true:
+</p>
+
+<ul>
+<li>
+<p> It has a content table with exactly one row in it.
+</p>
+</li>
+<li> <p><code>all_zero_or_na</code> returns <code>TRUE</code> for that single content row. In practice, when the default summary/content
+function is used, this represents pruning any subtable which corresponds to an empty set of the input data
+(e.g. because a factor variable was used in <code>split_rows_by()</code> but not all levels were present in the data).
+</p>
+</li>
+</ul>
+<p><code>prune_empty_level</code> combines <code>all_zero_or_na</code> behavior for <code>TableRow</code> objects, <code>content_all_zeros_nas</code> on
+<code>content_table(tt)</code> for <code>TableTree</code> objects, and an additional check that returns <code>TRUE</code> if the <code>tt</code> has no
+children.
+</p>
+<p><code>prune_zeros_only</code> behaves as <code>prune_empty_level</code> does, except that like <code>all_zero</code> it prunes
+only in the case of all non-missing zero values.
+</p>
+<p><code>low_obs_pruner</code> is a <em>constructor function</em> which, when called, returns a pruning criteria function which
+will prune on content rows by comparing sum or mean (dictated by <code>type</code>) of the count portions of the cell
+values (defined as the first value per cell regardless of how many values per cell there are) against <code>min</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A logical value indicating whether <code>tr</code> should be included (<code>TRUE</code>) or pruned (<code>FALSE</code>) during pruning.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>prune_table()</code>, <code>trim_rows()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">adsl &lt;- ex_adsl
+levels(adsl$SEX) &lt;- c(levels(ex_adsl$SEX), "OTHER")
+adsl$AGE[adsl$SEX == "UNDIFFERENTIATED"] &lt;- 0
+adsl$BMRKR1 &lt;- 0
+
+tbl_to_prune &lt;- basic_table() %&gt;%
+  analyze("BMRKR1") %&gt;%
+  split_cols_by("ARM") %&gt;%
+  split_rows_by("SEX") %&gt;%
+  summarize_row_groups() %&gt;%
+  split_rows_by("STRATA1") %&gt;%
+  summarize_row_groups() %&gt;%
+  analyze("AGE") %&gt;%
+  build_table(adsl)
+
+tbl_to_prune %&gt;% prune_table(all_zero_or_na)
+
+tbl_to_prune %&gt;% prune_table(all_zero)
+
+tbl_to_prune %&gt;% prune_table(content_all_zeros_nas)
+
+tbl_to_prune %&gt;% prune_table(prune_empty_level)
+
+tbl_to_prune %&gt;% prune_table(prune_zeros_only)
+
+min_prune &lt;- low_obs_pruner(70, "sum")
+tbl_to_prune %&gt;% prune_table(min_prune)
+
+</code></pre>
+
+
+</div>

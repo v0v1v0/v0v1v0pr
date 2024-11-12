@@ -1,0 +1,152 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rearrangement</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Rearrangement</h2>
+
+<h3>Description</h3>
+
+<p>Monotonize a step function by rearrangement. Returns a matrix or array of points which are monotonic, or a monotonic function performing linear (or constant) interpolation.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rearrangement(x,y,n=1000,stochastic=FALSE,avg=TRUE,order=1:length(x))
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a list or data frame, the entries of which are vectors containing the x values corresponding to the fitted y values</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>a vector, matrix, or three-dimensional array containing the fitted values of a model, typically the result of a regression</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>an integer denoting the number of sample points desired</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stochastic</code></td>
+<td>
+<p>logical. If TRUE, stochastic sampling will be used</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>avg</code></td>
+<td>
+<p>logical. If TRUE, the average rearrangement will be computed and outputted</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>order</code></td>
+<td>
+<p>a vector containing the desired permutation of the elements of 1:length(x). The rearrangement will be performed in the order specified if avg= FALSE, otherwise all the possible orderings are computed and the average rearrangement is reported</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function applies this rearrangement operator of Hardy, Littlewood, and Polya (1952) to the estimate of a monotone function.
+</p>
+<p>Note: <code>rearrangement</code> currently only operates on univariate, bivariate, and trivariate regressions (that is, length(x)&lt;=3). 
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>rearrangement</code> returns a matrix or array of equivalent dimension and size to y that is monotonically increasing in all of its dimensions.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Wesley Graybill, Mingli Chen, Victor Chernozhukov, Ivan Fernandez-Val, Alfred Galichon
+</p>
+
+
+<h3>References</h3>
+
+<p>Chernozhukov, V., I. Fernandez-Val, and a. Galichon. 2009. Improving point and interval estimators of monotone functions by rearrangement. Biometrika 96 (3): 559-575.
+</p>
+<p>Chernozhukov, V., I. Fernandez-Val, and a. Galichon. 2010. Quantile and Probability Curves Without Crossing. Econometrica 78(3): 1093-1125.
+</p>
+<p>Hardy, G.H., J.E. Littlewood, and G. Polya, Inequalities,2nd ed, Cambridge U. Press,1952
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>rconint</code>, <code>quantile</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">##Univariate example:
+library(splines)
+data(GrowthChart)
+attach(GrowthChart)
+
+ages &lt;- unique(sort(age))
+aknots &lt;- c(3, 5, 8, 10, 11.5, 13, 14.5, 16, 18)
+splines_age &lt;- bs(age,kn=aknots)
+sformula &lt;- height~splines_age
+sfunc &lt;- approxfun(age,lm(sformula)$fitted.values)
+splreg &lt;- sfunc(ages)
+rsplreg &lt;- rearrangement(list(ages),splreg)
+plot(age,height,pch=21,bg='gray',cex=.5,xlab="Age (years)",ylab="Height (cms)",
+     main="CEF (Regression Splines)",col='gray')
+lines(ages,splreg,col='red',lwd=3)
+lines(ages,rsplreg,col='blue',lwd=2)
+legend("topleft",c('Original','Rearranged'),lty=1,col=c('red','blue'),bty='n')
+detach(GrowthChart)
+
+##Bivariate example:
+## Not run: library(quantreg)
+data(GrowthChart)
+attach(GrowthChart)
+
+ages &lt;- unique(sort(age))
+taus &lt;- c(1:999)/1000
+nage &lt;- 2 * pi * (age - min(age)) / (max(age) - min(age))
+nages &lt;- 2 * pi * (ages - min(ages)) / (max(ages) - min(ages))
+fform &lt;- height ~ I(sin(nage))+I(cos(nage))+I(sin(2*nage))+I(cos(2*nage))+
+          I(sin(3*nage))+I(cos(3*nage))+I(sin(4*nage))+I(cos(4*nage))
+ffit &lt;- rq(fform, tau = taus)
+fcoefs &lt;- t(ffit$coef)
+freg &lt;- rbind(1, sin(nages), cos(nages), sin(2*nages), 
+              cos(2*nages),sin(3*nages), cos(3*nages), sin(4*nages), cos(4*nages) )
+fcqf &lt;- crossprod(t(fcoefs),freg)
+rrfcqf &lt;- rearrangement(list(taus,ages),fcqf, avg=TRUE)
+tdom &lt;-c(1,10*c(1:99),999)
+adom &lt;-c(1,5*c(1:floor(length(ages)/5)), length(ages))
+
+par(mfrow=c(2,1))
+persp(taus[tdom],ages[adom],rrfcqf[tdom,adom],xlab='quantile',
+      ylab='age',zlab='height',col='lightgreen',theta=315,phi=25,shade=.5)
+title("CQP: Average Quantile/Age Rearrangement")
+contour(taus,ages,rrfcqf,xlab='quantile',ylab='age',col='green',
+        levels=10*c(ceiling(min(fcqf)/10):floor(max(fcqf)/10)))
+title("CQP: Contour (RR-Quantile/Age)")
+
+detach(GrowthChart)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

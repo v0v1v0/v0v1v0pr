@@ -1,0 +1,340 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>step_harmonic</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Add sin and cos terms for harmonic analysis</h2>
+
+<h3>Description</h3>
+
+<p><code>step_harmonic()</code> creates a <em>specification</em> of a recipe step that will add
+<code>sin()</code> and <code>cos()</code> terms for harmonic analysis.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">step_harmonic(
+  recipe,
+  ...,
+  role = "predictor",
+  trained = FALSE,
+  frequency = NA_real_,
+  cycle_size = NA_real_,
+  starting_val = NA_real_,
+  keep_original_cols = FALSE,
+  columns = NULL,
+  skip = FALSE,
+  id = rand_id("harmonic")
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>recipe</code></td>
+<td>
+<p>A recipe object. The step will be added to the
+sequence of operations for this recipe.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>One or more selector functions to choose variables
+for this step. See <code>selections()</code> for more details. This will
+typically be a single variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>role</code></td>
+<td>
+<p>For model terms created by this step, what analysis role should
+they be assigned? By default, the new columns created by this step from
+the original variables will be used as <em>predictors</em> in a model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trained</code></td>
+<td>
+<p>A logical to indicate if the quantities for
+preprocessing have been estimated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>frequency</code></td>
+<td>
+<p>A numeric vector with at least one value.
+The value(s) must be greater than zero and finite.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cycle_size</code></td>
+<td>
+<p>A numeric vector with at least one value that indicates
+the size of a single cycle. <code>cycle_size</code> should have the same units as the
+input variable(s).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>starting_val</code></td>
+<td>
+<p>either <code>NA</code>, numeric, Date or POSIXt value(s) that indicates
+the reference point for the sin and cos curves for each input variable.
+If the value is a <code>Date</code> or <code>POISXt</code> the value is converted to numeric
+using <code>as.numeric</code>. This parameter may be specified to increase control
+over the signal phase.  If <code>starting_val</code> is not specified the default
+is 0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep_original_cols</code></td>
+<td>
+<p>A logical to keep the original variables in the
+output. Defaults to <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>columns</code></td>
+<td>
+<p>A character string of the selected variable names. This field
+is a placeholder and will be populated once <code>prep()</code> is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>skip</code></td>
+<td>
+<p>A logical. Should the step be skipped when the
+recipe is baked by <code>bake()</code>? While all operations are baked
+when <code>prep()</code> is run, some operations may not be able to be
+conducted on new data (e.g. processing the outcome variable(s)).
+Care should be taken when using <code>skip = TRUE</code> as it may affect
+the computations for subsequent operations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id</code></td>
+<td>
+<p>A character string that is unique to this step to identify it.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This step seeks to describe periodic components of observational
+data using a combination of sin and cos waves. To do this, each wave of a
+specified frequency is modeled using one sin and one cos term. The two
+terms for each frequency can then be used to estimate the amplitude and
+phase shift of a periodic signal in observational data. The equation
+relating cos waves of known frequency but unknown phase and amplitude to a
+sum of sin and cos terms is below:
+</p>
+<p style="text-align: center;"><code class="reqn">A_j cos(\sigma_j t_i - \Phi_j) = C_j cos(\sigma_j t_i) + S_j sin(\sigma_j t_i)</code>
+</p>
+
+<p>Solving the equation yields <code class="reqn">C_j</code> and <code class="reqn">S_j</code>. the
+amplitude can then be obtained with:
+</p>
+<p style="text-align: center;"><code class="reqn">A_j = \sqrt{C^2_j + S^2_j}</code>
+</p>
+
+<p>And the phase can be obtained with:
+</p>
+<p style="text-align: center;"><code class="reqn">\Phi_j = \arctan{(S_j / C_j)}</code>
+</p>
+
+<p>where:
+</p>
+
+<ul>
+<li> <p><code class="reqn">\sigma_j = 2 \pi (frequency / cycle\_size))</code>
+</p>
+</li>
+<li> <p><code class="reqn">A_j</code> is the amplitude of the <code class="reqn">j^{th}</code> frequency
+</p>
+</li>
+<li> <p><code class="reqn">\Phi_j</code> is the phase of the <code class="reqn">j^{th}</code> frequency
+</p>
+</li>
+<li> <p><code class="reqn">C_j</code> is the coefficient of the cos term for the <code class="reqn">j^{th}</code> frequency
+</p>
+</li>
+<li> <p><code class="reqn">S_j</code> is the coefficient of the sin term for the <code class="reqn">j^{th}</code> frequency
+</p>
+</li>
+</ul>
+<p>The periodic component is specified by <code>frequency</code> and <code>cycle_size</code>
+parameters. The cycle size relates the specified frequency to the
+input column(s) units. There are multiple ways to specify a wave of given
+frequency, for example, a <code>POSIXct</code> input column given a <code>frequency</code> of
+24 and a <code>cycle_size</code> equal to 86400 is equivalent to a <code>frequency</code> of
+1.0 with <code>cycle_size</code> equal to 3600.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An updated version of <code>recipe</code> with the new step added to the
+sequence of any existing operations.
+</p>
+
+
+<h3>Tuning Parameters</h3>
+
+<p>This step has 1 tuning parameters:
+</p>
+
+<ul><li> <p><code>frequency</code>: Harmonic Frequency (type: double, default: NA)
+</p>
+</li></ul>
+<h3>Tidying</h3>
+
+<p>When you <code>tidy()</code> this step, a tibble is returned with
+columns <code>terms</code>, <code>starting_val</code>, <code>cycle_size</code>, <code>frequency</code>, <code>key</code> , and <code>id</code>:
+</p>
+
+<dl>
+<dt>terms</dt>
+<dd>
+<p>character, the selectors or variables selected</p>
+</dd>
+<dt>starting_val</dt>
+<dd>
+<p>numeric, the starting value</p>
+</dd>
+<dt>cycle_size</dt>
+<dd>
+<p>numeric, the cycle size</p>
+</dd>
+<dt>frequency</dt>
+<dd>
+<p>numeric, the frequency</p>
+</dd>
+<dt>key</dt>
+<dd>
+<p>character, key describing the calculation</p>
+</dd>
+<dt>id</dt>
+<dd>
+<p>character, id of this step</p>
+</dd>
+</dl>
+<h3>Case weights</h3>
+
+<p>The underlying operation does not allow for case weights.
+</p>
+
+
+<h3>References</h3>
+
+<p>Doran, H. E., &amp; Quilkey, J. J. (1972).
+Harmonic analysis of seasonal data: some important properties.
+American Journal of Agricultural Economics, 54, volume 4, part 1, 646-651.
+</p>
+<p>Foreman, M. G. G., &amp; Henry, R. F. (1989).
+The harmonic analysis of tidal model time series.
+Advances in water resources, 12(3), 109-120.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other individual transformation steps: 
+<code>step_BoxCox()</code>,
+<code>step_YeoJohnson()</code>,
+<code>step_bs()</code>,
+<code>step_hyperbolic()</code>,
+<code>step_inverse()</code>,
+<code>step_invlogit()</code>,
+<code>step_log()</code>,
+<code>step_logit()</code>,
+<code>step_mutate()</code>,
+<code>step_ns()</code>,
+<code>step_percentile()</code>,
+<code>step_poly()</code>,
+<code>step_relu()</code>,
+<code>step_sqrt()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(ggplot2, quietly = TRUE)
+library(dplyr)
+
+data(sunspot.year)
+sunspots &lt;-
+  tibble(
+    year = 1700:1988,
+    n_sunspot = sunspot.year,
+    type = "measured"
+  ) %&gt;%
+  slice(1:75)
+
+# sunspots period is around 11 years, sample spacing is one year
+dat &lt;- recipe(n_sunspot ~ year, data = sunspots) %&gt;%
+  step_harmonic(year, frequency = 1 / 11, cycle_size = 1) %&gt;%
+  prep() %&gt;%
+  bake(new_data = NULL)
+
+fit &lt;- lm(n_sunspot ~ year_sin_1 + year_cos_1, data = dat)
+
+preds &lt;- tibble(
+  year = sunspots$year,
+  n_sunspot = fit$fitted.values,
+  type = "predicted"
+)
+
+bind_rows(sunspots, preds) %&gt;%
+  ggplot(aes(x = year, y = n_sunspot, color = type)) +
+  geom_line()
+
+
+# ------------------------------------------------------------------------------
+# POSIXct example
+
+date_time &lt;-
+  as.POSIXct(
+    paste0(rep(1959:1997, each = 12), "-", rep(1:12, length(1959:1997)), "-01"),
+    tz = "UTC"
+  )
+
+carbon_dioxide &lt;- tibble(
+  date_time = date_time,
+  co2 = as.numeric(co2),
+  type = "measured"
+)
+
+# yearly co2 fluctuations
+dat &lt;-
+  recipe(co2 ~ date_time,
+    data = carbon_dioxide
+  ) %&gt;%
+  step_mutate(date_time_num = as.numeric(date_time)) %&gt;%
+  step_ns(date_time_num, deg_free = 3) %&gt;%
+  step_harmonic(date_time, frequency = 1, cycle_size = 86400 * 365.24) %&gt;%
+  prep() %&gt;%
+  bake(new_data = NULL)
+
+fit &lt;- lm(co2 ~ date_time_num_ns_1 + date_time_num_ns_2 +
+  date_time_num_ns_3 + date_time_sin_1 +
+  date_time_cos_1, data = dat)
+
+preds &lt;- tibble(
+  date_time = date_time,
+  co2 = fit$fitted.values,
+  type = "predicted"
+)
+
+bind_rows(carbon_dioxide, preds) %&gt;%
+  ggplot(aes(x = date_time, y = co2, color = type)) +
+  geom_line()
+
+</code></pre>
+
+
+</div>

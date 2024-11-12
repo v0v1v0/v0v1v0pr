@@ -1,0 +1,564 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>closedpCI</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2> Customization of a Loglinear Model and Confidence Interval for Abundance 
+Estimation in Closed Population Capture-Recapture Experiments </h2>
+
+<h3>Description</h3>
+
+<p>The <code>closedpCI.t</code> and <code>closedpCI.0</code> functions fit a loglinear model specified by the user 
+and compute a confidence interval for the abundance estimation. For a normal heterogeneous model,
+a log-transformed confidence interval (Chao 1987) is produced.
+For any other model, the multinomial profile likelihood confidence interval (Cormack 1992) is produced.<br></p>
+<p>The model is identified with the argument <code>m</code> or <code>mX</code>.
+For heterogeneous models, the form of the heterogeneity is specified with the arguments 
+<code>h</code> and <code>h.control</code>. If <code>h</code> is given with <code>mX</code>, heterogeneity is added in <code>mX</code>.<br></p>
+<p>These functions extend <code>closedp.t</code> and <code>closedp.0</code> as 
+they broaden the range of models one can fit and they compute confidence intervals. 
+Unlike the <code>closedp</code> functions, it fits only one model at a time. 
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">closedpCI.t(X, dfreq=FALSE, m=c("M0","Mt","Mh","Mth"), mX=NULL,
+            h=NULL, h.control=list(), mname=NULL, alpha=0.05, 
+            fmaxSupCL=3, ...)
+
+closedpCI.0(X, dfreq=FALSE, dtype=c("hist","nbcap"), t=NULL, t0=NULL, 
+            m=c("M0","Mh"), mX=NULL, h=NULL, h.control=list(), 
+            mname=NULL, alpha=0.05, fmaxSupCL=3, ...)
+
+plotCI(x.closedpCI, main="Profile Likelihood Confidence Interval", ...)
+			
+## S3 method for class 'closedpCI'
+print(x, ...)
+
+## S3 method for class 'closedpCI'
+boxplot(x, main="Boxplots of Pearson Residuals", ...)
+
+## S3 method for class 'closedpCI'
+plot(x, main="Scatterplot of Pearson Residuals", ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p> The matrix of the observed capture histories (see <code>Rcapture-package</code> for a 
+description of the accepted formats).  </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dfreq</code></td>
+<td>
+<p> A logical. By default <code>FALSE</code>, which means that <code>X</code> has one row per unit. 
+If <code>TRUE</code>, it indicates that the matrix <code>X</code> contains frequencies in its last column.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dtype</code></td>
+<td>
+<p> A characters string, either <code>"hist"</code> or <code>"nbcap"</code>, to specify the type of data. 
+<code>"hist"</code>, the default, means that <code>X</code> contains complete observed capture histories. 
+<code>"nbcap"</code> means that <code>X</code> contains numbers of captures (see <code>Rcapture-package</code> 
+for details on data formats). </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>t</code></td>
+<td>
+<p> Requested only if <code>dtype="nbcap"</code>. A numeric specifying the total number of 
+capture occasions in the experiment. For <code>closedpCI.0</code>, the value <code>t=Inf</code>
+is accepted. It indicates that captures occur in continuous time 
+(see <code>Rcapture-package</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>t0</code></td>
+<td>
+<p> A numeric. Models are fitted considering only the frequencies of units captured 1 to <code>t0</code> times. 
+By default, if <code>t</code> is not equal to <code>Inf</code>, <code>t0=t</code>. When <code>t=Inf</code>, the default value
+of <code>t0</code> is the larger number of captures observed. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m</code></td>
+<td>
+<p> A character string indicating the model to fit. For <code>closedpCI.0</code> it can be either "M0"=M0 model 
+or "Mh"=Mh model. For <code>closedpCI.t</code> it can also be "Mt"=Mt model or "Mth"=Mth model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mX</code></td>
+<td>
+<p> The design matrix of the loglinear model. By default, the design matrix is built based
+on the <code>m</code> argument. If a <code>mX</code> argument is given, it must be a matrix  (or 
+an object that can be coerced to a matrix by <code>as.matrix</code>). The order of the capture 
+histories in the <code>mX</code> matrix must be as defined in the <code>histpos.t</code> or 
+<code>histpos.0</code> function.<br>
+For the <code>closedpCI.t</code> function only, <code>mX</code> can also be an object of class "<code>formula</code>" or a hierarchical loglinear model name. The details of a formula specification are given under <b>Details</b> and the details of a hierarchical loglinear model name specification are given in the <code>closedpMS.t</code> documentation.<br>
+An intercept is always added to the model. Therefore, <code>mX</code> must not contain a column of ones if it is a matrix. Also, if the argument <code>h</code> is not <code>NULL</code>, one or more columns for heterogeneity are added to the design matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>h</code></td>
+<td>
+<p> A character string ("LB", "Chao", "Poisson", "Darroch", "Gamma" or "Normal") or a 
+numerical <code>R</code> function specifying the form of the column(s) for heterogeneity 
+in the design matrix.<br>
+"LB" and "Chao" represents Chao's lower bound model (the default),<br> 
+"Poisson" represents the function <code class="reqn">f(k)=theta^k-1</code>,<br> 
+"Darroch" represents the function <code class="reqn">f(k)=k^2/2</code>,<br> 
+and "Gamma" represents the function <code class="reqn">f(k)=-\log(theta + k) + \log(theta)</code><br> 
+where <code class="reqn">k</code> is the number of captures and <code class="reqn">theta</code> is a parameter specified with 
+the <code>h.control</code> element <code>theta</code>.<br>
+"Normal" represents heterogeneity 
+modeled with a normal mixing distribution, as presented in Rivest (2011).<br>
+If an <code>R</code> function is given, it must be the implementation of any convex 
+mathematical function <code class="reqn">f(k)</code> (it must have only one argument).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>h.control </code></td>
+<td>
+<p> A list of elements to control the heterogeneous part of the model, if any.<br>
+For a Poisson or Gamma heterogeneous model:
+</p>
+
+<dl>
+<dt><code>theta</code></dt>
+<dd>
+<p> The value of the parameter <code class="reqn">theta</code> in <code class="reqn">f(k)=theta^k-1</code> for the Poisson model
+(the default value is 2) and in <code class="reqn">f(k)=-\log(theta + k) + \log(theta)</code> 
+for the Gamma model (the default value is 3.5). </p>
+</dd>
+</dl>
+<p>For a Chao's lower bound heterogeneous model:
+</p>
+
+<dl>
+<dt><code>neg</code></dt>
+<dd>
+<p> If this option is set to <code>TRUE</code> (the default), negative eta parameters in 
+Chao's lower bound models are set to zero. </p>
+</dd>
+</dl>
+<p>For a Normal heterogeneous model:
+</p>
+       
+<dl>
+<dt><code>initcoef</code></dt>
+<dd>
+<p> Initial values for the loglinear coefficients given to <code>optim</code>. 
+The default values are taken from Darroch's model. </p>
+</dd>
+<dt><code>initsig</code></dt>
+<dd>
+<p> Initial value for the sigma parameter of the normal mixing distribution. 
+The default is <code>0.2</code>. </p>
+</dd>
+<dt><code>method</code></dt>
+<dd>
+<p> The method to be used by <code>optim</code>. The default is <code>"BFGS"</code>.<br></p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mname</code></td>
+<td>
+<p> A character string specifying the name of the customized model. By default,
+it is derived from the arguments specifying the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p> A confidence interval with confidence level 1-<code>alpha</code> is constructed. The value of alpha 
+must be between 0 and 1; the default is 0.05.  </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fmaxSupCL</code></td>
+<td>
+<p> A numeric (by default 3). The upper end point of the interval to be searched by
+<code>uniroot</code> to find the upper bound of the multinomial profile likelihood 
+confidence interval (Cormack 1992) is defined by 
+<code>fmaxSupCL</code><code class="reqn">\times \hat{N}</code>. In 
+this product, <code>fmaxSupCL</code> is a factor multiplying <code class="reqn">\hat{N}</code>, the population 
+size estimated by Poisson regression. If the upper bound obtained is equal
+the upper end point <code>fmaxSupCL</code><code class="reqn">\times \hat{N}</code>, the 
+element <code>SupCL</code> of the output value <code>CI</code> will begin with the symbol 
+<code class="reqn">&gt;</code>. In that case, one could try to increase the value of <code>fmaxSupCL</code> 
+to find the upper bound of the multinomial profile likelihood confidence interval 
+instead of a minimum value for this upper bound. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p> Further arguments to be passed to <code>glm</code>, <code>optim</code>, 
+<code>print.default</code>, <code>plot.default</code> or <code>boxplot.default</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x.closedpCI</code></td>
+<td>
+<p> An object, produced by a <code>closedpCI</code> function, to produce a plot
+of the multinomial profile likelihood for <code class="reqn">N</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>main</code></td>
+<td>
+<p> A main title for the plot</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p> An object, produced by a <code>closedpCI</code> function, to print or to plot.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+ 
+<p>The <code>closedpCI.t</code> function fits models using the frequencies of the observable capture histories (vector of size <code class="reqn">2^t-1</code>), whereas <code>closedpCI.0</code> uses the number of units capture i times, for  <code class="reqn">i=1,\ldots,t</code> (vector of size <code class="reqn">t</code>). Thus, <code>closedpCI.0</code> can be used with data sets larger than those for <code>closedpCI.t</code>, but it cannot fit models with a temporal effect. See <code>Rcapture-package</code> for more details about the distinction between <code>.t</code> and <code>.0</code> functions.
+</p>
+<p>These functions do not work for closed population models featuring a behavioral effect, such as Mb and Mbh. The abundance estimation is calculated as the number of captured units plus the exponential of the Poisson regression intercept. However, models with a behavioral effect can by fitted with <code>closedp.t</code> (Mb and Mbh), <code>closedp.Mtb</code> and <code>closedp.bc</code>.<br></p>
+<p>CHAO'S LOWER BOUND MODELS
+</p>
+<p>Chao's lower bound models estimate a lower bound for the abundance. Rivest (2011) 
+presents a generalized loglinear model underlying this estimator. To test whether a 
+certain model for heterogeneity is adequate,
+one can conduct a likelihood ratio test by subtracting the deviance of a Chao's lower 
+bound model to the deviance of the heterogeneous model under study. The two models should
+have the same <code>mX</code> argument.  
+Under the null hypothesis of equivalence between the two models, the difference of deviances 
+follows a chi-square distribution with degrees of freedom equal to the difference between 
+the models' degrees of freedom.
+</p>
+<p>A Chao's lower bound model contains <code class="reqn">t-2</code> parameters, called
+eta parameters, for the heterogeneity. These parameters should theoretically be greater 
+or equal to zero (see Rivest and Baillargeon (2007)). When the element <code>neg</code> of
+the argument <code>h.control</code> is set to <code>TRUE</code> (the default), negative eta parameters are
+set to zero (to do so, columns are removed from the design matrix of the model). Degrees 
+of freedom of Chao's lower bound model increase when eta parameters are set to zero.<br></p>
+<p>ARGUMENT <code>mX</code> : FORMULA SPECIFICATION<br>
+For the <code>closedpCI.t</code> function, <code>mX</code>
+can be an object of class "<code>formula</code>". The only accepted variables 
+in this formula are <code>c1</code> to <code>ct</code>. The variable <code>ci</code> represents 
+a capture indicator (1 for a capture, 0 otherwise) for the <code class="reqn">i</code>th capture occasions. 
+Also, the formula must not contain a response variable since
+it is only used to construct the design matrix of the model. 
+For example, if <code>t=3</code>, the Mt model is fitted if 
+<code>mX = ~ .</code> or <code>mX = ~ c1 + c2 + c3</code>. The symbol <code>.</code> in this formula
+is a shortcut for <code>c1</code> +  <code>c2</code> + ... + <code>ct</code>. Formula <code>mX</code> arguments
+facilitate the addition of interactions between capture occasions in the model. For
+example, if <code>t=3</code>, the Mt model with an interaction between the first and
+the second capture occasion is fitted if <code>mX = ~ . + c1:c2</code>. 
+See <code>formula</code> for more details of allowed formulae.<br></p>
+<p>PLOT METHODS AND FUNCTIONS
+</p>
+<p>The <code>boxplot.closedpCI</code> function produces a boxplot of the Pearson residuals of the customized model.
+</p>
+<p>The <code>plot.closedpCI</code> function traces the scatterplot of the Pearson residuals in terms of <code class="reqn">f_i</code> 
+(number of units captured i times) for the customized model.  
+</p>
+<p>The <code>plotCI</code> function produces a plot of the multinomial profile likelihood for <code class="reqn">N</code>. 
+The value of N maximizing the profile likelihood and the bounds of the confidence interval are identified.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p> The number of captured units</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>t</code></td>
+<td>
+<p> The total number of capture occasions in the data matrix <code>X</code>.
+When captures occur in continuous time (input argument <code>t=Inf</code>),
+this output value is the larger number of captures observed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>t0</code></td>
+<td>
+<p> For <code>closedpCI.0</code> only: the value of the argument <code>t0</code> used in the computations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>results</code></td>
+<td>
+<p> A table containing, for the fitted model:
+</p>
+
+<dl>
+<dt>
+<code>abundance</code>:</dt>
+<dd>
+<p>  the estimated population size,</p>
+</dd>
+<dt>
+<code>stderr</code>:</dt>
+<dd>
+<p>  the standard error of the estimated population size,</p>
+</dd>
+<dt>
+<code>deviance</code>:</dt>
+<dd>
+<p>  the model's deviance,</p>
+</dd>
+<dt>
+<code>df</code>:</dt>
+<dd>
+<p>  the number of degrees of freedom,</p>
+</dd>
+<dt>
+<code>AIC</code>:</dt>
+<dd>
+<p>  the Akaike's information criterion,</p>
+</dd>
+<dt>
+<code>BIC</code>:</dt>
+<dd>
+<p>  the bayesian information criterion,</p>
+</dd>
+<dt>
+<code>infoFit</code>:</dt>
+<dd>
+<p>  a numerical code giving information about error or warnings 
+encountered when fitting the model (see <code>Rcapture-package</code> for details).</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bias</code></td>
+<td>
+<p> Not produced for normal heterogeneous models (<code>h="Normal"</code>): The asymptotic bias of the estimated population size.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p> The 'glm' object obtained from fitting the model except for
+normal heterogeneous models (<code>h="Normal"</code>). These models are not fitted 
+with <code>glm</code>. For them, <code>fit</code> is a list with the following elements:
+</p>
+
+<dl>
+<dt>
+<code>parameters</code>:</dt>
+<dd>
+<p>  the matrix of parameters (loglinear coefficients + sigma parameter) estimates with their standard errors,</p>
+</dd>
+<dt>
+<code>varcov</code>:</dt>
+<dd>
+<p>  the estimated variance-covariance matrix of the estimated parameters,</p>
+</dd>
+<dt>
+<code>y</code>:</dt>
+<dd>
+<p>  the y vector used to fit the model,</p>
+</dd>
+<dt>
+<code>fitted.values</code>:</dt>
+<dd>
+<p>  the model fitted values,</p>
+</dd> 
+<dt>
+<code>initparam</code>:</dt>
+<dd>
+<p>  the initial values for the parameters (loglinear coefficients + 
+sigma parameter) used by <code>optim</code>,</p>
+</dd>
+<dt>
+<code>optim</code>:</dt>
+<dd>
+<p>  the output produced by <code>optim</code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit.warn</code></td>
+<td>
+<p> A vector of character strings. If the <code>glm</code> or <code>optim</code> 
+(for normal heterogeneous models) function generates
+one or more warnings when fitting the model, a copy of these warnings are
+stored in <code>fit.warn</code>. <code>NULL</code> if no warnings occured. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>neg.eta</code></td>
+<td>
+<p> For Chao's lower bound models only: the position of the eta parameters set 
+to zero in the loglinear parameter vector, if any. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>CI</code></td>
+<td>
+<p> Not produced for normal heterogeneous models (<code>h="Normal"</code>): A table containing 
+the abundance estimation and its multinomial profile likelihood confidence interval.
+The last column of the table, named <code>infoCI</code>, contains a numerical code giving information about error or warnings encountered when calculating the confidence interval. Here is a description of the meaning of this numerical code:
+</p>
+
+<dl>
+<dt>   0</dt>
+<dd>
+<p>  no error or warning occured;</p>
+</dd>
+<dt>  -1</dt>
+<dd>
+<p>  an error occured while calculating the multinomial abundance estimation;</p>
+</dd>
+<dt>   4</dt>
+<dd>
+<p>  a warning occured while calculating the multinomial abundance estimation;</p>
+</dd> 
+<dt>   5</dt>
+<dd>
+<p>  a warning occured while calculating the lower bound of the multinomial profile likelihood confidence interval;</p>
+</dd>
+<dt>   6</dt>
+<dd>
+<p>  a warning occured while calculating the upper bound of the multinomial profile likelihood confidence interval.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>CI.err</code></td>
+<td>
+<p> Not produced for normal heterogeneous models (<code>h="Normal"</code>): If
+an error occured while calculating the multinomial abundance, a copy of the error message is
+stored in <code>CI.err</code>. <code>NULL</code> if no error occured. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>CI.warn</code></td>
+<td>
+<p> Not produced for normal heterogeneous models (<code>h="Normal"</code>): If 
+one or more warnings occur while calculating the multinomial abundance estimation or the profile likelihood confidence interval, a copy of these warnings are
+stored in <code>CI.warn</code>. <code>NULL</code> if no warnings occured.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p> 1-the confidence level of the interval.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>N.CI</code></td>
+<td>
+<p> Not produced for normal heterogeneous models (<code>h="Normal"</code>): 
+The x-coordinates for <code>plot.closedpCI.t</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loglik.CI</code></td>
+<td>
+<p> Not produced for normal heterogeneous models (<code>h="Normal"</code>): 
+The y-coordinates for <code>plot.closedpCI.t</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p> For normal heterogeneous models, the <code>closedpCI</code> functions use <code>optim</code>
+from the <span class="pkg">stats</span> package. Otherwise, models are fitted with <code>glm</code>
+and the code to compute the multinomial profile likelihood confidence interval 
+calls the functions <code>glm</code>, <code>optimize</code> and <code>uniroot</code>,
+all from the <span class="pkg">stats</span> package. </p>
+
+
+<h3>Author(s)</h3>
+
+<p> Louis-Paul Rivest <a href="mailto:Louis-Paul.Rivest@mat.ulaval.ca">Louis-Paul.Rivest@mat.ulaval.ca</a> and Sophie Baillargeon </p>
+
+
+<h3>References</h3>
+
+ 
+<p>Baillargeon, S. and Rivest, L.P. (2007) Rcapture: Loglinear models for capture-recapture in R.  <em>Journal of Statistical Software</em>, <b>19</b>(5), <a href="https://doi.org/10.18637/jss.v019.i05">doi:10.18637/jss.v019.i05</a>.
+</p>
+<p>Chao, A. (1987) Estimating the population size for capture-recapture data with unequal catchability. <em>Biometrics</em>, <b>43</b>(4), 783–791.
+</p>
+<p>Cormack, R. M. (1992) Interval estimation for mark-recapture studies of closed populations. <em>Biometrics</em>, <b>48</b>, 567–576.
+</p>
+<p>Rivest, L.P. (2011) A lower bound model for multiple record systems estimation with heterogeneous catchability. 
+<em>The International Journal of Biostatistics</em>, <b>7</b>(1), Article 23.
+</p>
+<p>Rivest, L.P. and Baillargeon, S. (2007) Applications and extensions of Chao's moment estimator for the size of a closed population. <em>Biometrics</em>, <b>63</b>(4), 999–1006.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>closedp</code>,  <code>closedp.Mtb</code></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># hare data set
+CI &lt;- closedpCI.t(hare, m = "Mth", h = "Poisson", h.control = list(theta = 2))
+CI
+plotCI(CI)
+
+# HIV data set
+mat &lt;- histpos.t(4)
+mX2 &lt;- cbind(mat, mat[, 1] * mat[ ,2])
+closedpCI.t(HIV, dfreq = TRUE, mX = mX2, mname = "Mt interaction 1,2")
+# which can be obtained more conveniently with
+closedpCI.t(HIV, dfreq = TRUE, mX = ~ . + c1:c2, mname = "Mt interaction 1,2")
+
+# BBS2001 data set
+CI0 &lt;- closedpCI.0(BBS2001, dfreq = TRUE, dtype = "nbcap", t = 50, t0 = 20,
+                   m = "Mh", h = "Gamma", h.control = list(theta = 3.5))
+CI0
+plot(CI0)
+plotCI(CI0)
+
+### As an alternative to a gamma model, one can fit a negative Poisson model.
+### It is appropriate in experiments where very small capture probabilities
+### are likely. It can lead to very large estimators of abundance. 
+
+# Third primary period of mvole data set
+period3 &lt;- mvole[, 11:15]
+psi &lt;- function(x) { 0.5^x - 1 }
+closedpCI.t(period3, m = "Mh", h = psi)
+
+### Example of normal heterogeneous models
+### diabetes data of Bruno et al. (1994)
+
+histpos &lt;- histpos.t(4)
+diabetes &lt;- cbind(histpos, c(58,157,18,104,46,650,12,709,14,20,7,74,8,182,10))
+# chosen interaction set I in Rivest (2011)
+closedpCI.t(X = diabetes, dfreq = TRUE, mX = ~ . + c1:c3 + c2:c4 + c3:c4, 
+            h = "Normal", mname = "Mth normal with I")
+
+### Example of captures in continuous time
+# Illegal immigrants data set
+closedpCI.0(ill, dtype = "nbcap", dfreq = TRUE, t = Inf, m = "Mh", h = "LB")
+</code></pre>
+
+
+</div>

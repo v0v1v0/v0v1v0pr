@@ -1,0 +1,146 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>getExactSolution</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>getExactSolution</h2>
+
+<h3>Description</h3>
+
+<p>Compare analytical and calculated solutions
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">getExactSolution(object, t, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>a class object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>t</code></td>
+<td>
+<p>time ath what we are performing the evaluation</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional parameters</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R"># ++++++++++++++++++++++++++++++++++++++++++++++++  example: ComparisonRK45App.R
+# Compares the solution by the RK45 ODE solver versus the analytical solution
+# Example file: ComparisonRK45App.R
+# ODE Solver:   Runge-Kutta 45
+# ODE class :   RK45
+# Base class:   ODETest
+
+importFromExamples("ODETest.R")
+
+ ComparisonRK45App &lt;- function(verbose = FALSE) {
+     ode &lt;- new("ODETest")                     # create an `ODETest` object
+     ode_solver &lt;- RK45(ode)                   # select the ODE solver
+     ode_solver &lt;- setStepSize(ode_solver, 1)      # set the step
+
+     # Two ways of setting the tolerance
+       # ode_solver &lt;- setTolerance(ode_solver, 1e-8)  # set the tolerance
+     setTolerance(ode_solver) &lt;-  1e-8
+
+     time &lt;-  0
+     rowVector &lt;- vector("list")
+     i &lt;- 1
+     while (time &lt; 50) {
+         rowVector[[i]] &lt;- list(t  = getState(ode)[2],
+                                s1 = getState(ode)[1],
+                                s2 = getState(ode)[2],
+                                xs = getExactSolution(ode, time),
+                                counts = getRateCounts(ode),
+                                time   = time
+                                )
+         ode_solver &lt;- step(ode_solver)           # advance one step
+         stepSize   &lt;- getStepSize(ode_solver)
+         time &lt;- time + stepSize
+         ode  &lt;- getODE(ode_solver)                     # get updated ODE object
+         i &lt;- i + 1
+     }
+     return(data.table::rbindlist(rowVector))    # a data table with the results
+ }
+# show solution
+solution &lt;- ComparisonRK45App()                          # run the example
+plot(solution)
+# ODETest.R
+# Called as base class for examples:
+#                         ComparisonRK45App.R
+#                         ComparisonRK45ODEApp.R
+
+#' ODETest as an example of ODE class inheritance
+#'
+#' ODETest is a base class for examples ComparisonRK45App.R and
+#' ComparisonRK45ODEApp.R. ODETest also uses an environment variable to store
+#' the rate counts.
+#'
+#' @rdname ODE-class-example
+#' @include ODE.R
+setClass("ODETest", slots = c(
+    n     = "numeric",           # counts the number of getRate evaluations
+    stack = "environment"        # environnment object to accumulate rate counts
+    ),
+    contains = c("ODE")
+    )
+
+setMethod("initialize", "ODETest", function(.Object, ...) {
+    .Object@stack$rateCounts &lt;-  0              # counter for rate calculations
+    .Object@state &lt;- c(5.0, 0.0)
+    return(.Object)
+})
+
+#' @rdname getExactSolution-method
+setMethod("getExactSolution", "ODETest", function(object, t, ...) {
+    return(5.0 * exp(-t))
+})
+
+#' @rdname getState-method
+setMethod("getState", "ODETest", function(object, ...) {
+    object@state
+})
+
+#' @rdname getRate-method
+setMethod("getRate", "ODETest", function(object, state, ...) {
+    object@rate[1] &lt;- - state[1]
+    object@rate[2] &lt;-  1            # rate of change of time, dt/dt
+    # accumulate how many times the rate has been called to calculate
+    object@stack$rateCounts &lt;- object@stack$rateCounts + 1
+    object@state &lt;- state
+    object@rate
+})
+
+
+#' @rdname getRateCounts-method
+setMethod("getRateCounts", "ODETest", function(object, ...) {
+    # use environment stack to accumulate rate counts
+    object@stack$rateCounts
+})
+
+# constructor
+ODETest &lt;- function() {
+    odetest &lt;- new("ODETest")
+    odetest
+}
+</code></pre>
+
+
+</div>

@@ -1,0 +1,252 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rarefit</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fit the rare feature selection model</h2>
+
+<h3>Description</h3>
+
+<p>Fit the rare feature selection model proposed in Yan and Bien (2018):
+</p>
+<p style="text-align: center;"><code class="reqn">min_{\beta, \gamma} 0.5 * ||y - X\beta - \beta_01_n||_2^2 +
+\lambda * (\alpha * ||\gamma_{-root}||_1 + (1-\alpha) * ||\beta||_1)</code>
+</p>
+
+<p>using an alternating direction method of multipliers (ADMM) algorithm
+described in Algorithm 1 of the same paper.
+The regularization path is computed over a two-dimensional grid of
+regularization parameters: <code>lambda</code> and <code>alpha</code>. Of the two,
+<code>lambda</code> controls the overall amount of regularization, and <code>alpha</code>
+controls the tradeoff between sparsity and fusion of <code class="reqn">\beta</code> (larger <code>alpha</code>
+induces more fusion in <code class="reqn">\beta</code>).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rarefit(y, X, A = NULL, Q = NULL, hc, intercept = T, lambda = NULL,
+  alpha = NULL, nlam = 50, lam.min.ratio = 1e-04, nalpha = 10,
+  rho = 0.01, eps1 = 1e-06, eps2 = 1e-05, maxite = 1e+06)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Length-<code>nobs</code> response variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p><code>nobs</code>-by-<code>nvars</code> input matrix:
+each row is an observation vector and each column stores a count covariate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>A</code></td>
+<td>
+<p><code>nvars</code>-by-<code>nnodes</code> binary matrix encoding ancestor-descendant relationships
+between leaves and tree nodes, where <code>nnodes</code> is the total number of tree nodes.
+<code>A[i,j]</code> is 1 if the <code>i</code>th leaf is a descendant of the <code>j</code>th
+node in the tree, and 0 otherwise. <code>A</code> should be in sparse matrix format
+(inherit from class <code>sparseMatrix</code> as in package <code>Matrix</code>).
+When <code>A</code> is <code>NULL</code>, the function will learn <code>A</code> from <code>hc</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Q</code></td>
+<td>
+<p><code>(nvars+nnodes)</code>-by-<code>nnodes</code> matrix with columns forming an orthonormal
+basis for the null space of <code class="reqn">[I_nvars:-A]</code>. When <code>Q</code> is <code>NULL</code>, the function will learn
+<code>Q</code> using the singular value decomposition.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hc</code></td>
+<td>
+<p>An <code>hclust</code> tree of <code>nvars</code> leaves where each leaf corresponds
+to a covariate. If the tree is not an <code>hclust</code> object, user needs to provide the matrix <code>A</code> instead.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intercept</code></td>
+<td>
+<p>Whether intercept be fitted (default = TRUE) or set to zero (FALSE).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>A user-supplied <code>lambda</code> sequence. Typical usage is to
+have the program compute its own <code>lambda</code> sequence based on
+<code>nlam</code> and <code>lam.min.ratio</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>A user-supplied <code>alpha</code> sequence. If letting the program
+compute its own <code>alpha</code> sequence, a length-<code>nalpha</code> sequence of
+equally-spaced <code>alpha</code> values between 0 and 1 will be used. In practice,
+user may want to provide a more fine <code>alpha</code> sequence to tune
+the model to its best performance (e.g., <code>alpha = c(1-exp(seq(0, log(1e-2), len = nalpha - 1)), 1)</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nlam</code></td>
+<td>
+<p>Number of <code>lambda</code> values (default = 50).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lam.min.ratio</code></td>
+<td>
+<p>Smallest value for <code>lambda</code>, as a fraction of
+<code>lambda.max</code> (i.e., the smallest value for which all coefficients are
+zero). The default value is <code>1e-4</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nalpha</code></td>
+<td>
+<p>Number of <code>alpha</code> values (default = 10).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rho</code></td>
+<td>
+<p>Penalty parameter for the quadratic penalty in the ADMM algorithm.
+The default value is <code>1e-2</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eps1</code></td>
+<td>
+<p>Convergence threshold in terms of the absolute tolerance level
+for the ADMMM algorithm. The default value is <code>1e-6</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eps2</code></td>
+<td>
+<p>Convergence threshold in terms of the relative tolerance level
+for the ADMM algorithm. The default value is <code>1e-5</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxite</code></td>
+<td>
+<p>Maximum number of passes over the data for every pair of
+(<code>lambda</code>, <code>alpha</code>). The default value is <code>1e6</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The function splits model fitting path by <code>alpha</code>. At each <code>alpha</code> value,
+the model is fit on the entire sequence of <code>lambda</code> with warm start. We recommend
+including an intercept (by setting <code>intercept=T</code>) unless the input data have been
+centered.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns regression coefficients for <code>beta</code> and <code>gamma</code> and
+intercept <code>beta0</code>. We use a <em>matrix-nested-within-list</em> structure to store the coefficients: each list
+item corresponds to an <code>alpha</code> value; matrix (or vector) in that list item stores
+coefficients at various <code>lambda</code> values by columns (or entries).
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>beta0</code></td>
+<td>
+<p>Length-<code>nalpha</code> list with each item storing
+intercept across various <code>lambda</code> in a vector: <code>beta0[[j]][i]</code>
+is intercept fitted at (<code>lambda[i]</code>, <code>alpha[j]</code>).
+If <code>intercept = FALSE</code>, <code>beta0</code> is <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+<p>Length-<code>nalpha</code> list with each item storing
+<code>beta</code> coefficient at various <code>lambda</code> in columns of a <code>nvars</code>-by-<code>nlam</code> matrix:
+<code>beta[[j]][, i]</code> is <code>beta</code> coeffcient fitted at (<code>lambda[i]</code>, <code>alpha[j]</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gamma</code></td>
+<td>
+<p>Length-<code>nalpha</code> list with each item storing
+<code>gamma</code> coefficient at various <code>lambda</code> in columns of a <code>nnodes</code>-by-<code>nlam</code> matrix:
+<code>gamma[[j]][, i]</code> is <code>gamma</code> coeffcient vector fitted at (<code>lambda[i]</code>, <code>alpha[j]</code>).
+If <code>alpha[j] = 0</code>, the problem becomes the lasso on <code>beta</code> and is solved
+with <code>glmnet</code> on <code>beta</code>, in which case <code>gamma[[j]] = NA</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>Sequence of <code>lambda</code> values used in model fit.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>Sequence of <code>alpha</code> values used in model fit.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>A</code></td>
+<td>
+<p>Binary matrix encoding ancestor-descendant relationship between leaves and nodes in the tree.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Q</code></td>
+<td>
+<p>Matrix with columns forming an orthonormal basis for the null space of <code class="reqn">[I_nvars:-A]</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intercept</code></td>
+<td>
+<p>Whether an intercept is included in model fit.</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Yan, X. and Bien, J. (2018) <em>Rare Feature Selection in High Dimensions</em>, <a href="https://arxiv.org/abs/1803.06675">https://arxiv.org/abs/1803.06675</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>rarefit.cv</code>, <code>rarefit.predict</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# See vignette for more details.
+set.seed(100)
+ts &lt;- sample(1:length(data.rating), 400) # Train set indices
+# Fit the model on train set
+ourfit &lt;- rarefit(y = data.rating[ts], X = data.dtm[ts, ], hc = data.hc, lam.min.ratio = 1e-6,
+                  nlam = 20, nalpha = 10, rho = 0.01, eps1 = 1e-5, eps2 = 1e-5, maxite = 1e4)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

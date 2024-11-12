@@ -1,0 +1,154 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>predictionInterval</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Prediction interval for effect estimate of replication study</h2>
+
+<h3>Description</h3>
+
+<p>Computes a prediction interval for the effect estimate of the replication study.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">predictionInterval(
+  thetao,
+  seo,
+  ser,
+  tau = 0,
+  conf.level = 0.95,
+  designPrior = "predictive"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>thetao</code></td>
+<td>
+<p>Numeric vector of effect estimates from original studies.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seo</code></td>
+<td>
+<p>Numeric vector of standard errors of the original effect estimates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ser</code></td>
+<td>
+<p>Numeric vector of standard errors of the replication effect estimates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tau</code></td>
+<td>
+<p>Between-study heterogeneity standard error.
+Default is <code>0</code> (no heterogeneity).
+Is only taken into account when <code>designPrior</code> is "predictive" or "EB".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>conf.level</code></td>
+<td>
+<p>The confidence level of the prediction intervals. Default is 0.95.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>designPrior</code></td>
+<td>
+<p>Either "predictive" (default), "conditional", or "EB".
+If "EB", the contribution of the original study to the predictive distribution is
+shrunken towards zero based on the evidence in the original study (with empirical Bayes).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function computes a prediction interval and a mean estimate under a
+specified predictive distribution of the replication effect estimate. Setting
+<code>designPrior = "conditional"</code> is not recommended since this ignores the
+uncertainty of the original effect estimate. See Patil, Peng, and Leek (2016)
+and Pawel and Held (2020) for details.
+</p>
+<p><code>predictionInterval</code> is the vectorized version of <code>.predictionInterval_</code>.
+<code>Vectorize</code> is used to vectorize the function.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A data frame with the following columns
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>lower</code></td>
+<td>
+<p>Lower limit of prediction interval,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mean</code></td>
+<td>
+<p>Mean of predictive distribution,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>upper</code></td>
+<td>
+<p>Upper limit of prediction interval.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Samuel Pawel
+</p>
+
+
+<h3>References</h3>
+
+<p>Patil, P., Peng, R. D., Leek, J. T. (2016).
+What should researchers expect when they replicate studies? A statistical view of
+replicability in psychological science. <em>Perspectives on Psychological Science</em>,
+<b>11</b>, 539-544.  <a href="https://doi.org/10.1177/1745691616646366">doi:10.1177/1745691616646366</a>
+</p>
+<p>Pawel, S., Held, L. (2020). Probabilistic forecasting of replication studies.
+<em>PLoS ONE</em>. <b>15</b>, e0231416. <a href="https://doi.org/10.1371/journal.pone.0231416">doi:10.1371/journal.pone.0231416</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">predictionInterval(thetao = c(1.5, 2, 5), seo = 1, ser = 0.5, designPrior = "EB")
+
+# compute prediction intervals for replication projects
+data("RProjects", package = "ReplicationSuccess")
+parOld &lt;- par(mfrow = c(2, 2))
+for (p in unique(RProjects$project)) {
+  data_project &lt;- subset(RProjects, project == p)
+  PI &lt;- predictionInterval(thetao = data_project$fiso, seo = data_project$se_fiso,
+                           ser = data_project$se_fisr)
+  PI &lt;- tanh(PI) # transforming back to correlation scale
+  within &lt;- (data_project$rr &lt; PI$upper) &amp; (data_project$rr &gt; PI$lower)
+  coverage &lt;- mean(within)
+  color &lt;- ifelse(within == TRUE, "#333333B3", "#8B0000B3")
+  study &lt;- seq(1, nrow(data_project))
+  plot(data_project$rr, study, col = color, pch = 20,
+       xlim = c(-0.5, 1), xlab = expression(italic(r)[r]),
+       main = paste0(p, ": ", round(coverage*100, 1), "% coverage"))
+  arrows(PI$lower, study, PI$upper, study, length = 0.02, angle = 90,
+         code = 3, col = color)
+  abline(v = 0, lty = 3)
+}
+par(parOld)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,158 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>grabMzxmlData</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Get mass-spectrometry data from an mzXML file</h2>
+
+<h3>Description</h3>
+
+<p>This function handles the mzXML side of things, reading in files that are
+written in the mzXML format. Much of the code is similar to the mzXML format,
+but the xpath handles are different and the mz/int array is encoded
+simultaneously rather than as two separate entries. This function has been
+exposed to the user in case per-file optimization (such as peakpicking or
+additional filtering) is desired before the full data object is returned.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">grabMzxmlData(
+  filename,
+  grab_what,
+  verbosity = 0,
+  incl_polarity = FALSE,
+  rtrange = NULL,
+  mz = NULL,
+  ppm = NULL,
+  prefilter = -1
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>filename</code></td>
+<td>
+<p>A single filename to read into R's memory. Both absolute and
+relative paths are acceptable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grab_what</code></td>
+<td>
+<p>What data should be read from the file? Options include
+"MS1" for data only from the first spectrometer, "MS2" for fragmentation
+data, "BPC" for rapid access to the base peak chromatogram, and "TIC" for
+rapid access to the total ion chromatogram. DAD and chromatogram ("DAD" and
+"chroms") are unavailable for mzXML files. Metadata can be accessed with
+"metadata", which provides information about the instrument and time the
+file was run. These options can be combined (i.e. 'grab_data=c("MS1",
+"MS2", "BPC")') or this argument can be set to "everything" to extract all
+of the above. Options "EIC" and "EIC_MS2" are useful when working with
+files whose total size exceeds working memory - it first extracts all
+relevant MS1 and MS2 data, respectively, then discards data outside of the
+mass range(s) calculated from the provided mz and ppm. The default,
+"everything", includes all MS1, MS2, BPC, TIC, and metadata.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbosity</code></td>
+<td>
+<p>Three levels of processing output to the R console are
+available, with increasing verbosity corresponding to higher integers. A
+verbosity of zero means that no output will be produced, useful when
+wrapping within larger functions. A verbosity of 1 will produce a progress
+bar using base R's txtProgressBar function. A verbosity of 2 or higher will
+produce timing output for each individual file read in.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>incl_polarity</code></td>
+<td>
+<p>Toggle this option to TRUE for mixed-polarity files. An
+additional column will be added corresponding to the polarity of the scan,
+with either a 1 or a -1 corresponding to positive and negative mode,
+respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rtrange</code></td>
+<td>
+<p>Not supported for mzXML data. Only provided here so as to
+throw a friendly warning rather than an unexpected error.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mz</code></td>
+<td>
+<p>A vector of the mass-to-charge ratio for compounds of interest.
+Only used when combined with 'grab_what = "EIC"' (see above). Multiple
+masses can be provided.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ppm</code></td>
+<td>
+<p>A single number corresponding to the mass accuracy (in parts per
+million) of the instrument on which the data was collected. Only used when
+combined with 'grab_what = "EIC"' (see above).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prefilter</code></td>
+<td>
+<p>A single number corresponding to the minimum intensity of
+interest in the MS1 data. Data points with intensities below this threshold
+will be silently dropped, which can dramatically reduce the size of the
+final object. Currently only works with MS1 data, but could be expanded
+easily to handle more.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list of 'data.table's, each named after the arguments requested in
+grab_what. E.g. $MS1 contains MS1 information, $MS2 contains fragmentation
+info, etc. MS1 data has four columns: retention time (rt), mass-to-charge
+(mz), intensity (int), and filename. MS2 data has six: retention time (rt),
+precursor m/z (premz), fragment m/z (fragmz), fragment intensity (int),
+collision energy (voltage), and filename. MS3 has an additional column to
+MS2 (prepremz) which has the original MS1 scan's m/z ratio. Data requested
+that does not exist in the provided files (such as MS2 data requested from
+MS1-only files) will return an empty (length zero) data.table. The
+data.tables extracted from each of the individual files are collected into
+one large table using data.table's 'rbindlist'. $metadata is a little
+weirder because the metadata doesn't fit neatly into a tidy format but
+things are hopefully named helpfully.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+sample_file &lt;- system.file("extdata", "LB12HL_AB.mzXML.gz", package = "RaMS")
+file_data &lt;- grabMzxmlData(sample_file, grab_what="MS1")
+## Not run: 
+# Extract MS1 data and a base peak chromatogram
+file_data &lt;- grabMzxmlData(sample_file, grab_what=c("MS1", "BPC"))
+# Extract EIC for a specific mass
+file_data &lt;- grabMzxmlData(sample_file, grab_what="EIC", mz=118.0865, ppm=5)
+# Extract EIC for several masses simultaneously
+file_data &lt;- grabMzxmlData(sample_file, grab_what="EIC", ppm=5,
+                           mz=c(118.0865, 146.118104, 189.123918))
+
+# Extract MS2 data
+sample_file &lt;- system.file("extdata", "S30657.mzXML.gz", package = "RaMS")
+MS2_data &lt;- grabMzxmlData(sample_file, grab_what="MS2")
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,189 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>load_dictionary</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Load concept dictionaries</h2>
+
+<h3>Description</h3>
+
+<p>Data concepts can be specified in JSON format as a concept dictionary which
+can be read and parsed into <code>concept</code>/<code>item</code> objects. Dictionary loading
+can either be performed on the default included dictionary or on a user-
+specified custom dictionary. Furthermore, a mechanism is provided for adding
+concepts and/or data sources to the existing dictionary (see the Details
+section).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">load_dictionary(
+  src = NULL,
+  concepts = NULL,
+  name = "concept-dict",
+  cfg_dirs = NULL
+)
+
+concept_availability(dict = NULL, include_rec = FALSE, ...)
+
+explain_dictionary(
+  dict = NULL,
+  cols = c("name", "category", "description"),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>src</code></td>
+<td>
+<p><code>NULL</code> or the name of one or several data sources</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>concepts</code></td>
+<td>
+<p>A character vector used to subset the concept dictionary or
+<code>NULL</code> indicating no subsetting</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p>Name of the dictionary to be read</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cfg_dirs</code></td>
+<td>
+<p>File name of the dictionary</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dict</code></td>
+<td>
+<p>A dictionary (<code>conncept</code> object) or <code>NULL</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>include_rec</code></td>
+<td>
+<p>Logical flag indicating whether to include <code>rec_cncpt</code>
+concepts as well</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Forwarded to <code>load_dictionary()</code> in case <code>NULL</code> is passed as
+<code>dict</code> argument</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cols</code></td>
+<td>
+<p>Columns to include in the output of <code>explain_dictionary()</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>A default dictionary is provided at
+</p>
+<div class="sourceCode"><pre>system.file(
+  file.path("extdata", "config", "concept-dict.json"),
+  package = "ricu"
+)
+</pre></div>
+<p>and can be loaded in to an R session by calling
+<code>get_config("concept-dict")</code>. The default dictionary can be extended by
+adding a file <code>concept-dict.json</code> to the path specified by the environment
+variable <code>RICU_CONFIG_PATH</code>. New concepts can be added to this file and
+existing concepts can be extended (by adding new data sources).
+Alternatively, <code>load_dictionary()</code> can be called on non-default
+dictionaries using the <code>file</code> argument.
+</p>
+<p>In order to specify a concept as JSON object, for example the numeric
+concept for glucose, is given by
+</p>
+<div class="sourceCode"><pre>{
+  "glu": {
+    "unit": "mg/dL",
+    "min": 0,
+    "max": 1000,
+    "description": "glucose",
+    "category": "chemistry",
+    "sources": {
+      "mimic_demo": [
+        {
+          "ids": [50809, 50931],
+          "table": "labevents",
+          "sub_var": "itemid"
+        }
+      ]
+    }
+  }
+}
+</pre></div>
+<p>Using such a specification, constructors for <code>cncpt</code> and
+<code>itm</code> objects are called either using default arguments or as
+specified by the JSON object, with the above corresponding to a call like
+</p>
+<div class="sourceCode"><pre>concept(
+  name = "glu",
+  items = item(
+    src = "mimic_demo", table = "labevents", sub_var = "itemid",
+    ids = list(c(50809L, 50931L))
+  ),
+  description = "glucose", category = "chemistry",
+  unit = "mg/dL", min = 0, max = 1000
+)
+</pre></div>
+<p>The arguments <code>src</code> and <code>concepts</code> can be used to only load a subset of a
+dictionary by specifying a character vector of data sources and/or concept
+names.
+</p>
+<p>A summary of item availability for a set of concepts can be created using
+<code>concept_availability()</code>. This produces a logical matrix with <code>TRUE</code> entries
+corresponding to concepts where for the given data source, at least a single
+item has been defined. If data is loaded for a combination of concept and
+data source, where the corresponding entry is <code>FALSE</code>, this will yield
+either a zero-row <code>id_tbl</code> object or an object inheriting form <code>id_tbl</code>
+where the column corresponding to the concept is <code>NA</code> throughout, depending
+on whether the concept was loaded alongside other concepts where data is
+available or not.
+</p>
+<p>Whether to include <code>rec_cncpt</code> concepts in the overview produced by
+<code>concept_availability()</code> can be controlled via the logical flag
+<code>include_rec</code>. A recursive concept is considered available simply if all its
+building blocks are available. This can, however lead to slightly confusing
+output as a recursive concept might not strictly depend on one of its
+sub-concepts but handle such missingness by design. In such a scenario, the
+availability summary might report <code>FALSE</code> even though data can still be
+produced.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>concept</code> object containing several data concepts as <code>cncpt</code>
+objects.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">if (require(mimic.demo)) {
+head(load_dictionary("mimic_demo"))
+load_dictionary("mimic_demo", c("glu", "lact"))
+}
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,146 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>read_TS</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+reads Time Series Data from Archival Tags
+</h2>
+
+<h3>Description</h3>
+
+<p>reads Time Series Data (e.g. Depth and Temperature) from Archival Tags (Supported Models: MiniPAT, sPAT, recovered mk10, mk9 from <a href="https://wildlifecomputers.com/">Wildlife Computers</a> as well as LOTEK PSAT Models <a href="https://www.lotek.com/products/psat-series/">LOTEK</a>. Models from other Manufactorers might be supported as well.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">read_TS(ts_file, header=TRUE, sep=",", skip = 0, 
+        date_format, lang_format = "en", tz = "UTC")
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>ts_file</code></td>
+<td>
+
+<p>character string indicating the name of a standard <a href="https://wildlifecomputers.com/">Wildlife Computers</a> file to read or the data.frame of a manually loaded histogram data file. The file is assumed to include the columns <code>Day</code>, <code>Time</code> (or a preformatted date-time vector termed <code>datetime</code> in "UTC" format.) as well as at one of the subsequent columns <code>DeployID</code>, <code>Ptt</code> and <code>Serial</code> to distinguish data from indiviudal tags.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>header</code></td>
+<td>
+
+<p>a logical value indicating whether the file contains the names of the variables as its first line. If missing, the value is determined from the file format: header is set to TRUE if and only if the first row contains one fewer field than the number of columns.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sep</code></td>
+<td>
+
+<p>the field separator character. Values on each line of the file are separated by this character. If sep = "" the separator is 'white space', that is one or more spaces, tabs, newlines or carriage returns.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>skip</code></td>
+<td>
+
+<p>integer: the number of lines of the data file to skip before beginning to read data.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>date_format, lang_format, tz</code></td>
+<td>
+
+<p>character strings indicating the date format, language format and the corresponding time zone, defined by the vectors Date and Time (by default: date_format="%d-%b-%Y %H:%M:%S", lang_format="en", tz='UTC')
+If formatting fails, please check as well the input language format, defined by <code>lang_format</code> (and use abbrviations such as "en" for English,"es" for Spanish, "fr" for French, etc.) as well.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function reads a time series data file from archival tags. Data sets are "completed" to facilitate an assessment of the data coverage (i.e. by ts2histos or hist_tad).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A data frame (data.frame) containing a representation of the data in the file.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Robert K. Bauer
+</p>
+
+
+<h3>See Also</h3>
+
+<p>ts2histos, hist_tad, plot_TS</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">### load sample depth and temperature time series data from miniPAT:
+ts_file &lt;- system.file("example_files/104659-Series.csv",package="RchivalTag")
+ts_df &lt;- read_TS(ts_file)
+head(ts_df)
+
+## other date_format:
+ts_file2 &lt;- system.file("example_files/104659-Series_date_format2.csv",package="RchivalTag")
+# ts_miniPAT2 &lt;- read_TS(ts_file2) # run to see error message
+ts_miniPAT2 &lt;- read_TS(ts_file2,date_format = "%d-%m-%Y %H:%M:%S")
+head(ts_miniPAT2)
+
+## other date_format and lang_format:
+ts_file_ES &lt;- system.file("example_files/104659-Series_date_format_ES.csv",package="RchivalTag")
+# ts_miniPAT_ES &lt;- read_TS(ts_file_ES) # run to see error message
+ts_miniPAT_ES &lt;- read_TS(ts_file_ES,skip=1,sep=";",header = TRUE, 
+                         date_format = "%d/%b/%y %H:%M:%S",lang_format = "es")
+head(ts_miniPAT_ES)
+
+
+## load same data in LOTEK format
+ts_file &lt;- system.file("example_files/104659_PSAT_Dive_Log.csv",package="RchivalTag")
+ts_df &lt;- read_TS(ts_file,date_format="%m/%d/%Y %H:%M:%S")
+head(ts_df) ## attention no identifier (Ptt, Serial, DeployID) included!
+ts_df$DeployID &lt;- ts_df$Ptt &lt;- "104659"
+
+## example 1) convert only DepthTS data to daily TaD frequencies:
+tad_breaks &lt;- c(0, 2, 5, 10, 20, 50, 100, 200, 300, 400, 600, 2000)
+tat_breaks &lt;- c(10,12,15,17,18,19,20,21,22,23,24,27)
+
+histos &lt;- ts2histos(ts_df, tad_breaks = tad_breaks, tat_breaks = tat_breaks)
+histos$TAD$merged$df$nperc ## check completeness of TAD data sets
+histos$TAT$merged$df$nperc ## check completeness of TAT data sets
+# histos &lt;- ts2histos(ts_df, tad_breaks = tad_breaks, tat_breaks = tat_breaks,min_perc = 90)
+
+
+### example 2) add daytime (Day vs Night) information and plot results
+# add daytime periods during plot-function call and return extended data set
+# ts_df$Lon &lt;- 5; ts_df$Lat &lt;- 43
+# plot_DepthTS(ts_df, plot_DayTimePeriods = TRUE, xlim = unique(ts_df$date)[2:3])
+# ts_df2 &lt;- plot_DepthTS(ts_df, plot_DayTimePeriods = TRUE, Return = TRUE) 
+# names(ts_df)
+# names(ts_df2)
+
+### add daytime periods before function call
+# ts_df_extended &lt;- get_DayTimeLimits(ts_df)
+# plot_DepthTS(ts_df_extended, plot_DayTimePeriods = TRUE)
+# plot_DepthTS(ts_df_extended, plot_DayTimePeriods = TRUE, twilight.set = "naut")
+
+
+</code></pre>
+
+
+</div>

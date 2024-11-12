@@ -1,0 +1,666 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>lmrob.control</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Tuning Parameters for lmrob() and Auxiliaries</h2>
+
+<h3>Description</h3>
+
+<p>Tuning parameters for <code>lmrob</code>, the MM-type regression
+estimator and the associated S-, M- and D-estimators.  Using
+<code>setting="KS2011"</code> sets the defaults as suggested by
+Koller and Stahel (2011) and analogously for <code>"KS2014"</code>.
+</p>
+<p>The <code>.M*.default</code> <code>function</code>s and
+<code>.M*.defaults</code> <code>list</code>s contain default tuning
+parameters for all the predefined <code class="reqn">\psi</code> functions, see also
+<code>Mpsi</code>, etc.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">lmrob.control(setting, seed = NULL, nResample = 500,
+              tuning.chi = NULL, bb = 0.5, tuning.psi = NULL,
+              max.it = 50, groups = 5, n.group = 400,
+              k.fast.s = 1, best.r.s = 2,
+              k.max = 200, maxit.scale = 200, k.m_s = 20,
+              refine.tol = 1e-7, rel.tol = 1e-7, scale.tol = 1e-10, solve.tol = 1e-7,
+              zero.tol = 1e-10,
+              trace.lev = 0,
+              mts = 1000, subsampling = c("nonsingular", "simple"),
+              compute.rd = FALSE, method = "MM", psi = "bisquare",
+              numpoints = 10, cov = NULL,
+              split.type = c("f", "fi", "fii"), fast.s.large.n = 2000,
+              # only for outlierStats() :
+              eps.outlier = function(nobs) 0.1 / nobs,
+              eps.x = function(maxx) .Machine$double.eps^(.75)*maxx,
+              compute.outlier.stats = method,
+              warn.limit.reject = 0.5,
+              warn.limit.meanrw = 0.5, ...)
+
+## S3 method for class 'lmrobCtrl'
+update(object, ...)
+
+.Mchi.tuning.defaults
+.Mchi.tuning.default(psi)
+.Mpsi.tuning.defaults
+.Mpsi.tuning.default(psi)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>setting</code></td>
+<td>
+<p>a string specifying alternative default values.  Leave
+empty for the defaults or use <code>"KS2011"</code> or <code>"KS2014"</code>
+for the defaults suggested by Koller and Stahel (2011, 2017).
+See <em>Details</em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p><code>NULL</code> or an integer vector compatible with
+<code>.Random.seed</code>: the seed to be used for random
+re-sampling used in obtaining candidates for the initial
+S-estimator.  The current value of <code>.Random.seed</code> will be
+preserved if <code>seed</code> is set, i.e. non-<code>NULL</code>;
+otherwise, as by default, <code>.Random.seed</code> will be used and
+modified as usual from calls to <code>runif()</code> etc.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nResample</code></td>
+<td>
+<p>number of re-sampling candidates to be
+used to find the initial S-estimator.  Currently defaults to 500
+which works well in most situations (see references).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tuning.chi</code></td>
+<td>
+<p>tuning constant vector for the S-estimator.  If
+<code>NULL</code>, as by default, sensible defaults are set (depending on
+<code>psi</code>) to yield a 50% breakdown estimator.  See <em>Details</em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bb</code></td>
+<td>
+<p>expected value under the normal model of the
+“chi” (rather <code class="reqn">\rho (rho)</code>) function with tuning
+constant equal to <code>tuning.chi</code>.  This is used to compute the
+S-estimator.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tuning.psi</code></td>
+<td>
+<p>tuning constant vector for the redescending
+M-estimator.  If <code>NULL</code>, as by default, this is set (depending
+on <code>psi</code>) to yield an estimator with asymptotic efficiency of
+95% for normal errors.  See <em>Details</em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.it</code></td>
+<td>
+<p>integer specifying the maximum number of IRWLS iterations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>groups</code></td>
+<td>
+<p>(for the fast-S algorithm): Number of
+random subsets to use when the data set is large.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.group</code></td>
+<td>
+<p>(for the fast-S algorithm): Size of each of the
+<code>groups</code> above.  Note that this must be at least <code class="reqn">p</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k.fast.s</code></td>
+<td>
+<p>(for the fast-S algorithm): Number of
+local improvement steps (“<em>I-steps</em>”) for each
+re-sampling candidate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k.m_s</code></td>
+<td>
+<p>(for the M-S algorithm): specifies after how many
+unsuccessful refinement steps the algorithm stops.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>best.r.s</code></td>
+<td>
+<p>(for the fast-S algorithm): Number of
+of best candidates to be iterated further (i.e.,
+“<em><b>r</b>efined</em>”); is denoted <code class="reqn">t</code> in
+Salibian-Barrera &amp; Yohai(2006).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k.max</code></td>
+<td>
+<p>(for the fast-S algorithm): maximal number of
+refinement steps for the “fully” iterated best candidates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxit.scale</code></td>
+<td>
+<p>integer specifying the maximum number of C level
+<code>find_scale()</code> iterations (in fast-S and M-S algorithms).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refine.tol</code></td>
+<td>
+<p>(for the fast-S algorithm): relative convergence
+tolerance for the fully iterated best candidates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rel.tol</code></td>
+<td>
+<p>(for the RWLS iterations of the MM algorithm): relative
+convergence tolerance for the parameter vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale.tol</code></td>
+<td>
+<p>(for the scale estimation iterations of the S algorithm): relative
+convergence tolerance for the <code>scale</code> <code class="reqn">\sigma(.)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>solve.tol</code></td>
+<td>
+<p>(for the S algorithm): relative
+tolerance for inversion.  Hence, this corresponds to
+<code>solve.default()</code>'s <code>tol</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zero.tol</code></td>
+<td>
+<p>for checking 0-residuals in the S algorithm, non-negative number
+<code class="reqn">\epsilon_z</code> such that
+<code class="reqn">\{i; \left|\tilde{R}_i\right| \le \epsilon_z\}</code>
+correspond to <code class="reqn">0</code>-residuals, where <code class="reqn">\tilde{R}_i</code> are standardized residuals,
+<code class="reqn">\tilde{R}_i = R_i/s_y</code> and
+<code class="reqn">s_y = \frac{1}{n} \sum_{i=1}^n \left|y_i\right|</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trace.lev</code></td>
+<td>
+<p>integer indicating if the progress of the MM-algorithm
+and the fast-S algorithms, see <code>lmrob.S</code>,
+should be traced (increasingly); default <code>trace.lev = 0</code> does
+no tracing.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mts</code></td>
+<td>
+<p>maximum number of samples to try in subsampling
+algorithm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subsampling</code></td>
+<td>
+<p>type of subsampling to be used, a string:
+<code>"simple"</code> for simple subsampling (default prior to version 0.9),
+<code>"nonsingular"</code> for nonsingular subsampling.  See also
+<code>lmrob.S</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>compute.rd</code></td>
+<td>
+<p>logical indicating if robust distances (based on
+the MCD robust covariance estimator <code>covMcd</code>) are to be
+computed for the robust diagnostic plots.  This may take some
+time to finish, particularly for large data sets, and can lead to
+singularity problems when there are <code>factor</code> explanatory
+variables (with many levels, or levels with “few”
+observations).  Hence, is <code>FALSE</code> by default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>string specifying the estimator-chain. <code>MM</code>
+is interpreted as <code>SM</code>.  See <em>Details</em> of
+<code>lmrob</code> for a description of the possible values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>psi</code></td>
+<td>
+<p>string specifying the type <code class="reqn">\psi</code>-function
+used.  See <em>Details</em> of <code>lmrob</code>.  Defaults to
+<code>"bisquare"</code> for S and MM-estimates, otherwise <code>"lqq"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>numpoints</code></td>
+<td>
+<p>number of points used in Gauss quadrature.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cov</code></td>
+<td>
+<p>function or string with function name to be used to
+calculate covariance matrix estimate.  The default is
+<code>if(method %in% c('SM', 'MM')) ".vcov.avar1" else ".vcov.w"</code>.
+See <em>Details</em> of <code>lmrob</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>split.type</code></td>
+<td>
+<p>determines how categorical and continuous variables
+are split.  See <code>splitFrame</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fast.s.large.n</code></td>
+<td>
+<p>minimum number of observations required to
+switch from ordinary “fast S” algorithm to an efficient
+“large n” strategy.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eps.outlier</code></td>
+<td>
+<p>limit on the robustness weight below which an observation
+is considered to be an outlier.
+Either a <code>numeric(1)</code> or a function that takes the number of observations as
+an argument.  Used only in <code>summary.lmrob</code> and
+<code>outlierStats</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eps.x</code></td>
+<td>
+<p>limit on the absolute value of the elements of the design matrix
+below which an element is considered zero.
+Either a <code>numeric(1)</code> or a function that takes the maximum absolute value in
+the design matrix as an argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>compute.outlier.stats</code></td>
+<td>
+<p>vector of <code>character</code>
+strings, each valid to be used as <code>method</code> argument.  Used to
+specify for which estimators outlier statistics (and warnings)
+should be produced.  Set to empty (<code>NULL</code> or <code>character(0)</code>)
+if none are required.
+<br> Note that the default is <code>method</code> which by default is either
+<code>"MM"</code>, <code>"SM"</code>, or <code>"SMDM"</code>; hence using
+<code>compute.outlier.stats = "S"</code> provides <code>outlierStats()</code>
+to a <code>lmrob.S()</code> result.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>warn.limit.reject</code></td>
+<td>
+<p>limit of ratio
+<code class="reqn">\#\mbox{rejected} / \#\mbox{obs in level}</code>
+above (<code class="reqn">\geq</code>) which a warning is produced.
+Set to <code>NULL</code> to disable warning.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>warn.limit.meanrw</code></td>
+<td>
+<p>limit of the mean robustness per factor level
+below which (<code class="reqn">\leq</code>) a warning is produced.
+Set to <code>NULL</code> to disable warning.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>an <code>"lmrobCtrl"</code> object, as resulting from a
+<code>lmrob.control(*)</code> or an <code>update(&lt;lmrobCtrl&gt;, *)</code> call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>for </p>
+
+<dl>
+<dt>
+<code>lmrob.control()</code>:</dt>
+<dd>
+<p>further arguments to be added as
+<code>list</code> components to the result, e.g., those to be used in
+<code>.vcov.w()</code>.</p>
+</dd>
+<dt>
+<code>update(object, *)</code>:</dt>
+<dd>
+<p>(named) components from
+<code>object</code>, to be <em>modified</em>, <b>not</b> <code>setting = *</code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The option <code>setting="KS2011"</code> alters the default
+arguments.  They are changed to <code>method = "SMDM"</code>, <code>psi = "lqq"</code>,
+<code>max.it = 500</code>, <code>k.max = 2000</code>, <code>cov = ".vcov.w"</code>.
+The defaults of all the remaining arguments are not changed.
+</p>
+<p>The option <code>setting="KS2014"</code> builds upon <code>setting="KS2011"</code>.
+More arguments are changed to <code>best.r.s = 20, k.fast.s = 2,
+  nResample = 1000</code>.  This setting should produce more stable estimates
+for designs with <code>factor</code>s.
+</p>
+<p>By default, and in <code>.Mpsi.tuning.default()</code> and <code>.Mchi.tuning.default()</code>,
+<code>tuning.chi</code> and <code>tuning.psi</code> are set to yield an
+MM-estimate with breakdown point <code class="reqn">0.5</code> and efficiency of 95% at
+the normal.
+</p>
+<p>If numeric <code>tuning.chi</code> or <code>tuning.psi</code> are specified, say
+<code>cc</code>, for <code>psi = "ggw"</code> or <code>"lqq"</code>,
+<code>.psi.const(cc, psi)</code> is used, see its help page.
+</p>
+<p>To get the defaults, e.g., <code>.Mpsi.tuning.default(psi)</code> is
+equivalent to but more efficient than the formerly widely used
+<code>lmrob.control(psi = psi)$tuning.psi</code>.
+</p>
+<p>These defaults are:
+</p>
+
+<table>
+<tr>
+<td style="text-align: right;">
+    <code>psi</code>     </td>
+<td style="text-align: left;">
+<code>tuning.chi</code>               </td>
+<td style="text-align: left;">
+<code>tuning.psi</code> </td>
+</tr>
+<tr>
+<td style="text-align: right;">
+    <code>bisquare</code>
+</td>
+<td style="text-align: left;">
+<code>1.54764</code>                  </td>
+<td style="text-align: left;">
+<code>4.685061</code> </td>
+</tr>
+<tr>
+<td style="text-align: right;">
+    <code>welsh</code>   </td>
+<td style="text-align: left;">
+<code>0.5773502</code>                </td>
+<td style="text-align: left;">
+<code>2.11</code> </td>
+</tr>
+<tr>
+<td style="text-align: right;">
+    <code>ggw</code> 	   </td>
+<td style="text-align: left;">
+<code>c(-0.5, 1.5, NA, 0.5)</code>    </td>
+<td style="text-align: left;">
+<code>c(-0.5, 1.5, 0.95, NA)</code> </td>
+</tr>
+<tr>
+<td style="text-align: right;">
+    <code>lqq</code>     </td>
+<td style="text-align: left;">
+<code>c(-0.5, 1.5, NA, 0.5)</code>    </td>
+<td style="text-align: left;">
+<code>c(-0.5, 1.5, 0.95, NA)</code> </td>
+</tr>
+<tr>
+<td style="text-align: right;">
+    <code>optimal</code> </td>
+<td style="text-align: left;">
+<code>0.4047</code>                   </td>
+<td style="text-align: left;">
+<code>1.060158</code> </td>
+</tr>
+<tr>
+<td style="text-align: right;">
+    <code>hampel</code>  </td>
+<td style="text-align: left;">
+<code>c(1.5, 3.5, 8)*0.2119163</code> </td>
+<td style="text-align: left;">
+<code>c(1.5, 3.5, 8)*0.9014</code>
+  </td>
+</tr>
+</table>
+<p>The values for the tuning constant for the <code>ggw</code> and <code>lqq</code>
+psi functions are specified differently here by a vector with four
+elements: minimal slope, b (controlling the bend at the maximum of the curve),
+efficiency, breakdown point.
+Use <code>NA</code> for an unspecified value of either efficiency or
+breakdown point, see examples in the tables (above and below).
+For these table examples, the respective “inner constants” are
+stored precomputed, see <code>.psi.lqq.findc</code> for more.
+</p>
+<p>The constants for the <code>"hampel"</code> psi function are chosen to have a
+redescending slope of <code class="reqn">-1/3</code>.  Constants for a slope of <code class="reqn">-1/2</code>
+would be
+</p>
+
+<table>
+<tr>
+<td style="text-align: right;">
+    <code>psi</code>     </td>
+<td style="text-align: left;">
+<code>tuning.chi</code>             </td>
+<td style="text-align: left;">
+<code>tuning.psi</code> </td>
+</tr>
+<tr>
+<td style="text-align: right;">
+    <code>"hampel"</code>
+</td>
+<td style="text-align: left;">
+<code>c(2, 4, 8) * 0.1981319</code> </td>
+<td style="text-align: left;">
+<code>c(2, 4, 8) * 0.690794</code>
+  </td>
+</tr>
+</table>
+<p>Alternative coefficients for an efficiency of 85%
+at the normal are given in the table below.
+</p>
+
+<table>
+<tr>
+<td style="text-align: right;">
+    <code>psi</code>		  </td>
+<td style="text-align: left;">
+<code>tuning.psi</code> </td>
+</tr>
+<tr>
+<td style="text-align: right;">
+    <code>bisquare</code>	  </td>
+<td style="text-align: left;">
+<code>3.443689</code> </td>
+</tr>
+<tr>
+<td style="text-align: right;">
+    <code>welsh</code>	  </td>
+<td style="text-align: left;">
+<code>1.456</code> </td>
+</tr>
+<tr>
+<td style="text-align: right;">
+    <code>ggw</code>, <code>lqq</code>
+</td>
+<td style="text-align: left;">
+<code>c(-0.5, 1.5, 0.85, NA)</code> </td>
+</tr>
+<tr>
+<td style="text-align: right;">
+    <code>optimal</code>        </td>
+<td style="text-align: left;">
+<code>0.8684</code> </td>
+</tr>
+<tr>
+<td style="text-align: right;">
+    <code>hampel</code> (-1/3)  </td>
+<td style="text-align: left;">
+<code>c(1.5, 3.5, 8)* 0.5704545</code> </td>
+</tr>
+<tr>
+<td style="text-align: right;">
+    <code>hampel</code> (-1/2)  </td>
+<td style="text-align: left;">
+<code>c( 2,  4,  8) * 0.4769578</code>
+  </td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p><code>.Mchi.tuning.default(psi)</code> and <code>.Mpsi.tuning.default(psi)</code>
+return a short <code>numeric</code> vector of tuning constants which
+are defaults for the corresponding psi-function, see the <em>Details</em>.
+They are based on the named <code>list</code>s
+<code>.Mchi.tuning.defaults</code> and <code>.Mpsi.tuning.defaults</code>,
+respectively.
+</p>
+<p><code>lmrob.control()</code> returns a named <code>list</code> with over
+twenty components, corresponding to the arguments, where
+<code>tuning.psi</code> and <code>tuning.chi</code> are typically computed, as
+<code>.Mpsi.tuning.default(psi)</code> or <code>.Mchi.tuning.default(psi)</code>,
+respectively.
+It is of <code>class</code> <code>"lmrobCtrl"</code> and we provide
+<code>print()</code>, <code>update()</code> and <code>within</code> methods.
+</p>
+<p><code>update(&lt;lmrobCtrl&gt;, ....)</code> does <em>not</em> allow a
+<code>setting="&lt;...&gt;"</code> in <code>....</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Matias Salibian-Barrera, Martin Maechler and Manuel Koller</p>
+
+
+<h3>References</h3>
+
+<p>Koller, M. and Stahel, W.A. (2011)
+Sharpening Wald-type inference in robust regression for small samples.
+<em>Computational Statistics &amp; Data Analysis</em> <b>55</b>(8), 2504–2515.
+</p>
+<p>Koller, M. and Stahel, W.A. (2017)
+Nonsingular subsampling for regression S estimators with categorical predictors,
+<em>Computational Statistics</em> <b>32</b>(2): 631–646.
+<a href="https://doi.org/10.1007/s00180-016-0679-x">doi:10.1007/s00180-016-0679-x</a>.
+Referred as <code>"KS2014"</code> everywhere in <span class="pkg">robustbase</span>;  A shorter first
+version, Koller (2012) has been available from <a href="https://arxiv.org/abs/1208.5595">https://arxiv.org/abs/1208.5595</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+  <p><code>Mpsi</code>, etc, for the (fast!) psi function computations;
+<code>lmrob</code>, also for references and examples.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Show the default settings:
+str(lmrob.control())
+
+## Artificial data for a  simple  "robust t test":
+set.seed(17)
+y &lt;- y0 &lt;- rnorm(200)
+y[sample(200,20)] &lt;- 100*rnorm(20)
+gr &lt;- as.factor(rbinom(200, 1, prob = 1/8))
+lmrob(y0 ~ 0+gr)
+
+## Use  Koller &amp; Stahel(2011)'s recommendation but a larger  'max.it':
+str(ctrl &lt;- lmrob.control("KS2011", max.it = 1000))
+
+str(.Mpsi.tuning.defaults)
+stopifnot(identical(.Mpsi.tuning.defaults,
+                   sapply(names(.Mpsi.tuning.defaults),
+                          .Mpsi.tuning.default)))
+## Containing (names!) all our (pre-defined) redescenders:
+str(.Mchi.tuning.defaults)
+
+## Difference between settings:
+Cdef &lt;- lmrob.control()
+C11 &lt;- lmrob.control("KS2011")
+C14 &lt;- lmrob.control("KS2014")
+str(C14)
+## Differences:
+diffD &lt;- names(which(!mapply(identical, Cdef,C11, ignore.environment=TRUE)))
+diffC &lt;- names(which(!mapply(identical, C11, C14, ignore.environment=TRUE)))
+## KS2011 vs KS2014:  Apart from `setting` itself, they only differ in three places:
+cbind(KS11 = unlist(C11[diffC[-1]]),
+      KS14 = unlist(C14[diffC[-1]]))
+##           KS11 KS14
+## nResample  500 1000
+## best.r.s     2   20
+## k.fast.s     1    2
+## default vs KS2011: a bit more: setting + 8
+str2simpLang &lt;-  function(x) {
+    r &lt;- if(is.null(x)) quote((NULL)) else str2lang(deparse(x))
+    if(is.call(r)) format(r) else r
+}
+cbind(deflt= lapply(Cdef[diffD], str2simpLang),
+      KS11 = lapply(C11 [diffD], str2simpLang))
+
+## update()ing a lmrob.control() , e.g.,
+C14mod &lt;- update(C14, trace.lev = 2) # the same as
+C14m.d &lt;- C14; C14m.d$trace.lev &lt;- 2
+stopifnot(identical(C14mod, C14m.d))
+## changing psi --&gt; updates tuning.{psi,chi}:
+C14mp &lt;- update(C14, psi = "hampel", seed=101)
+## updating 'method' is "smart" :
+C.SMDM &lt;- update(Cdef, method="SMDM")
+all.equal(Cdef, C.SMDM) # changed also psi, tuning.{psi,chi} and cov !
+chgd &lt;- c("method", "psi", "tuning.chi",  "tuning.psi", "cov")
+str(Cdef  [chgd])
+str(C.SMDM[chgd])
+C14m &lt;- update(C14, method="SMM")
+(ae &lt;- all.equal(C14, C14mp))# changed tuning.psi &amp; tuning.chi, too
+stopifnot(exprs = {
+    identical(C14, update(C14, method="SMDM")) # no change!
+    identical(c("psi", "seed", "tuning.chi", "tuning.psi"),
+              sort(gsub("[^.[:alpha:]]", "", sub(":.*", "", sub("^Component ", "", ae)))))
+    identical(C14m, local({C &lt;- C14; C$method &lt;- "SMM"; C}))
+})
+##
+try( update(C14, setting="KS2011") ) #--&gt; Error: .. not allowed
+
+</code></pre>
+
+
+</div>

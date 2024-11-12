@@ -1,0 +1,185 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>madore.filter</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>A multivariate adaptive online repeated median filter</h2>
+
+<h3>Description</h3>
+
+<p>Procedure for robust signal extraction from a multivariate time series by a moving window technique with adaptive window width selection (<em>m</em>ultivariate <em>ad</em>aptive <em>o</em>nline <em>re</em>peated median filter). The window width adaption is based on the univariate <code>adore.filter</code>.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">madore.filter(Y, byrow=FALSE,
+              min.width=10, max.width=200,
+              test.sample.size=min.width/2,
+              width.search="geometric",
+              rtr.size=min.width, sign.level=0.1,
+              NA.sample.size=min.width, minNonNAs=min.width/2)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>a numeric matrix or (multivariate) time series object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>byrow</code></td>
+<td>
+<p>logical. If <code>FALSE</code> (the default), the filtering is done by columns, otherwise the filtering is done by rows.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min.width</code></td>
+<td>
+<p>a positive integer <code class="reqn">\ge 10</code> specifying the minimal width of the moving time window.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.width</code></td>
+<td>
+<p>a positive integer <code class="reqn">\ge</code> <code>min.width</code> specifying the maximal width of the moving time window. If <code>min.width</code> = <code>max.width</code>, the window width is fixed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test.sample.size</code></td>
+<td>
+<p>a positive integer in [5, <code>min.width</code>] defining a test window of the rightmost <code>test.sample.size</code> time points within the current time window. The <em>Repeated Median</em> (RM) regression residuals within the test window are used for a goodness of fit test (see <code>adore.filter</code>) for finding an adequate window width. For more details about the test, see Schettlinger, Fried, Gather (2010).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>width.search</code></td>
+<td>
+<p>a character string defining the search algorithm used for finding an adequate window width at each point in time.
+</p>
+
+<dl>
+<dt><code>"linear"</code></dt>
+<dd>
+<p>The linear search always results in the largest window width possible and hence yields 
+the smoothest online signal. 
+However, if sudden changes (like level shifts) appear in the signal it requires a lot of computation time
+and thus, an increased variability of the extracted signal may be observed.
+</p>
+</dd>
+<dt><code>"binary"</code></dt>
+<dd>
+<p>The binary search is recommended if it can be expected that the window width needs 
+to be reduced drastically from a large to a very small value at certain times (for example at level shifts or trend changes).
+However, it may not always result in the largest possible window width.
+</p>
+</dd>
+<dt>
+<code>"geometric"</code> (default)</dt>
+<dd>
+<p>The geometric search is as fast as the binary search
+but it puts more weight on large window widths. 
+It offers a good compromise between the linear and the binary search (computation time vs. smooth output signal).
+</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rtr.size</code></td>
+<td>
+<p>a non-negative integer specifying the size of a subset of the most recent observations within each window. The signal estimation is restricted to the range of the observations within this subset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sign.level</code></td>
+<td>
+<p>the level of significance for the goodness of fit test (see <code>adore.filter</code>) for finding an adequate window width. For more details about the test, see Schettlinger, Fried, Gather (2010).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>NA.sample.size</code></td>
+<td>
+<p>a positive integer in [10, <code>min.width</code>] specifying the size of a subset of the most recent observations within each window. See <code>minNonNAs</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minNonNAs</code></td>
+<td>
+<p>a positive integer in [5, <code>NA.sample.size</code>]. If a variable does not offer at least <code>minNonNAs</code> non-missing observations within the subset specified by <code>NA.sample.size</code>, the signal is not estimated for this variable at this time point <code class="reqn">t</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The <code>madore.filter</code> is based on <em>Repeated Median</em> regression (Siegel, 1982) in moving time windows and serves for separating signals from noise and outliers in multivariate time series. At each time point <code class="reqn">t</code> the test procedure of the <em>adaptive online Repeated Median</em> filter (Schettlinger, Fried, Gather, 2010) is used to determine an appropriate window width <code class="reqn">n(t)</code> in [<code>min.width</code>, <code>max.width</code>]. Then the signal vector at time <code class="reqn">t</code> is estimated within the time window <code class="reqn">(t-n(t)+1,\ldots,t)</code> by a slight modification of the multivariate <em>Trimmed Repeated Median-Least Squares</em> regression (Lanius, Gather, 2010). A more detailed description of the <code>madore.filter</code> can be found in Borowski, Schettlinger, Gather (2009).</p>
+
+
+<h3>Value</h3>
+
+<p><code>madore.filter</code> returns an object of class <code>madore.filter</code>. An object of class <code>madore.filter</code> is a list containing the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>signals</code></td>
+<td>
+<p>a matrix containing the estimated signal vectors at each time point <code class="reqn">t</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>widths</code></td>
+<td>
+<p>a matrix containing the individual window widths of each variable at each time point <code class="reqn">t</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overall.width</code></td>
+<td>
+<p>a vector containing the overall window widths at each time point <code class="reqn">t</code>.</p>
+</td>
+</tr>
+</table>
+<p>In addition, the original input data is returned as list member <code>Y</code>, and the settings used for the analysis are returned as the list members <code>byrow</code>, <code>min.width</code>, <code>max.width</code>, <code>start.width</code>, <code>test.sample.size</code>, <code>width.search</code>, <code>rtr.size</code>, <code>extr.delay</code>, <code>NA.sample.size</code>, and <code>minNonNAs</code>. Application of the function <code>plot</code> to an object of class <code>madore.filter</code> returns a plot showing the original multivariate time series with the filtered output.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Matthias Borowski</p>
+
+
+<h3>References</h3>
+
+<p>Borowski, M., Schettlinger, K., Gather, U. (2009)
+Multivariate Real Time Signal Extraction by a Robust Adaptive Regression Filter, <em>Communications in Statistics - Simulation and Computation</em> <b>38</b>, 426-440.<br></p>
+<p>Lanius, V., Gather, U. (2010)
+Robust Online Signal Extraction from Multivariate Time Series, 
+<em>Computational Statistics and Data Analysis</em> <b>54</b>(4), 966-975.<br></p>
+<p>Schettlinger, K., Fried, R., Gather, U. (2010) 
+Real Time Signal Processing by Adaptive Repeated Median Filters,
+<em>International Journal of Adaptive Control and Signal Processing</em> <b>24</b>(5), 346-362.<br></p>
+<p>Siegel, A.F. (1982)
+Robust Regression Using Repeated Medians, 
+<em>Biometrika</em> <b>69</b>(1), 242-244.<br></p>
+
+
+<h3>See Also</h3>
+
+<p><code>robreg.filter</code>, <code>adore.filter</code>, <code>scarm.filter</code>, <code>mscarm.filter</code>.</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+data(multi.ts)
+extr &lt;- madore.filter(multi.ts)
+plot(extr)
+
+## End(Not run)   
+</code></pre>
+
+
+</div>

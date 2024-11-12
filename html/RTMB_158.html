@@ -1,0 +1,137 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>OSA-residuals</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Recursive quantile residuals</h2>
+
+<h3>Description</h3>
+
+<p>OSA residuals are computed using the function
+<code>oneStepPredict</code>. For this to work, you need to mark the
+observation inside the objective function using the OBS
+function. Thereafter, residual calculation is as simple as
+<code>oneStepPredict(obj)</code>. However, you probably want specify a
+<code>method</code> to use.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">oneStepPredict(
+  obj,
+  observation.name = names(obj$env$obs)[1],
+  data.term.indicator = "_RTMB_keep_",
+  ...
+)
+
+## S3 method for class 'osa'
+x[...]
+
+## S3 method for class 'osa'
+length(x)
+
+## S3 method for class 'osa'
+dim(x)
+
+## S3 method for class 'osa'
+is.array(x)
+
+## S3 method for class 'osa'
+is.matrix(x)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>obj</code></td>
+<td>
+<p>TMB model object (output from <code>MakeADFun</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>observation.name</code></td>
+<td>
+<p>Auto detected - use the default</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data.term.indicator</code></td>
+<td>
+<p>Auto detected - use the default</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Passed to <code>TMB::</code>oneStepPredict - <b>please carefully read the documentation</b>, especially the <code>method</code> argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Object of class 'osa'</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p><code>data.frame</code> with standardized residuals; Same as oneStepPredict.
+</p>
+
+
+<h3>Functions</h3>
+
+
+<ul>
+<li> <p><code>oneStepPredict()</code>: Calculate the residuals. See documentation of <code>TMB::</code>oneStepPredict.
+</p>
+</li>
+<li> <p><code>[</code>: Subset observations marked for OSA calculation.
+This function makes sure that when you subset an observation of class <code>"osa"</code> such as
+<code>obs &lt;- new("osa", x=advector(matrix(1:10,2)), keep = cbind(rep(TRUE,10),FALSE,FALSE))</code>
+the 'keep' attribute will be adjusted accordingly
+<code>obs[,1:2]</code>
+</p>
+</li>
+<li> <p><code>length(osa)</code>: Equivalent of length
+</p>
+</li>
+<li> <p><code>dim(osa)</code>: Equivalent of dim
+</p>
+</li>
+<li> <p><code>is.array(osa)</code>: Equivalent of is.array
+</p>
+</li>
+<li> <p><code>is.matrix(osa)</code>: Equivalent of is.matrix
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">set.seed(1)
+rw &lt;- cumsum(.5*rnorm(20))
+obs &lt;- rpois(20, lambda=exp(rw))
+func &lt;- function(p) {
+  obs &lt;- OBS(obs) ## Mark 'obs' for OSA calculation on request
+  ans &lt;- 0
+  jump &lt;- c(p$rw[1], diff(p$rw))
+  ans &lt;- ans - sum(dnorm(jump, sd=p$sd, log=TRUE))
+  ans &lt;- ans - sum(dpois(obs, lambda=exp(p$rw), log=TRUE))
+  ans
+}
+obj &lt;- MakeADFun(func,
+                 parameters=list(rw=rep(0,20), sd=1),
+                 random="rw")
+nlminb(obj$par, obj$fn, obj$gr)
+res &lt;- oneStepPredict(obj,
+                      method="oneStepGeneric",
+                      discrete=TRUE,
+                      range=c(0,Inf))$residual
+</code></pre>
+
+
+</div>

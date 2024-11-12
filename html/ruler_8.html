@@ -1,0 +1,117 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>cell-pack</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Cell rule pack</h2>
+
+<h3>Description</h3>
+
+<p>Cell rule pack is a rule pack which defines a set of rules for
+cells, i.e. functions which convert cells of interest to logical values. It
+should return a data frame with the following properties:
+</p>
+
+<ul>
+<li>
+<p> Number of rows equals to <strong>number of rows for checked cells</strong>.
+</p>
+</li>
+<li>
+<p> Column names should be treated as concatenation of
+<b>'column name of check cell' + 'separator' + 'rule name'</b>
+</p>
+</li>
+<li>
+<p> Values indicate whether the <strong>cell</strong> follows the rule.
+</p>
+</li>
+</ul>
+<h3>Details</h3>
+
+<p>This format is inspired by scoped variants of transmute().
+</p>
+<p>The most common way to define cell pack is by creating a
+functional sequence containing one of:
+</p>
+
+<ul>
+<li> <p><code>transmute_all(.funs = rules(...))</code>.
+</p>
+</li>
+<li> <p><code>transmute_if(.predicate, .funs = rules(...))</code>.
+</p>
+</li>
+<li> <p><code>transmute_at(.vars, .funs = rules(...))</code>.
+</p>
+</li>
+</ul>
+<p><strong>Note</strong> that (as of <code>dplyr</code> version 0.7.4) when only one column is
+transmuted, names of the output don't have a necessary structure. The 'column
+name of check cell' is missing which results (after exposure)
+into empty string in <code>var</code> column of validation report. The
+current way of dealing with this is to name the input column (see examples).
+</p>
+
+
+<h3>Using rules()</h3>
+
+<p>Using <code>rules()</code> to create list of functions for scoped <code>dplyr</code> "mutating"
+verbs (such as summarise_all() and
+transmute_all()) is recommended because:
+</p>
+
+<ul>
+<li>
+<p> It is a convenient way to ensure consistent naming of rules without manual
+name.
+</p>
+</li>
+<li>
+<p> It adds a common prefix to all rule names. This helps in defining
+separator as prefix surrounded by any number of non-alphanumeric values.
+</p>
+</li>
+</ul>
+<h3>Note about rearranging rows</h3>
+
+<p><strong>Note</strong> that during exposure packs are applied to keyed object with id key. So they
+can rearrange rows as long as it is done with functions supported by keyholder. Rows will be tracked and
+recognized as in the original data frame of interest.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Data pack, group pack, column pack, row pack.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">cell_outlier_rules &lt;- . %&gt;% dplyr::transmute_at(
+  c("disp", "qsec"),
+  rules(z_score = abs(. - mean(.)) / sd(.) &gt; 1)
+)
+
+cell_packs(outlier = cell_outlier_rules)
+
+# Dealing with one column edge case
+improper_pack &lt;- . %&gt;% dplyr::transmute_at(
+  dplyr::vars(vs),
+  rules(improper_is_neg = . &lt; 0)
+)
+
+proper_pack &lt;- . %&gt;% dplyr::transmute_at(
+  dplyr::vars(vs = vs),
+  rules(proper_is_neg = . &lt; 0)
+)
+
+mtcars[1:2, ] %&gt;%
+  expose(cell_packs(improper_pack, proper_pack)) %&gt;%
+  get_report()
+</code></pre>
+
+
+</div>

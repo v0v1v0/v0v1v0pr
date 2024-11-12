@@ -1,0 +1,99 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>findblocks_bc</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Identify NTS/SNRC codes covering a given geometry</h2>
+
+<h3>Description</h3>
+
+<p>Data layers for the province of BC are split according to the mapsheet coding system
+used by Canada's NTS/SNRC. This function identifies mapsheets intersecting with
+the geographical extent of <code>geo</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">findblocks_bc(geo = NULL, type = "character")
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>geo</code></td>
+<td>
+<p>A point, line, or polygon object of class <code>sfc</code>, or a character vector of 4-character codes</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>character, the object type to return, either 'character' or 'sfc'</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>When <code>type='character'</code>, the function returns the 4-character NTS/SNRC codes corresponding
+to mapsheets that intersect with the input geometry. When <code>type='sfc'</code>, the function returns
+the mapsheet polygons themselves.
+</p>
+<p><code>geo=NULL</code> (the default) indicates to return all mapsheet codes/polygons. Non-NULL <code>geo</code>
+must either be a character vector of codes, or else an sfc class object having a coordinate
+reference system ('crs' attribute) defined. If <code>geo</code> intersects with none of the BC mapsheets,
+(or contains unknown NTS/SNRC codes) the function returns <code>NULL</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>either a character vector or an sfc object (see details)
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># list all mapsheet codes then print the corresponding sfc object
+findblocks_bc()
+findblocks_bc(type='sfc')
+
+# define an example point by specifying latitude and longitude (in WGS84 reference system)
+input.point = sf::st_point(c(x=-120, y=50)) |&gt; sf::st_sfc(crs='EPSG:4326')
+
+# this point lies at the intersection of four mapsheets, which are in Albers projection
+blocks = findblocks_bc(input.point, type='sfc')
+blocks |&gt; sf::st_geometry() |&gt; plot()
+sf::st_transform(input.point, crs='EPSG:3005') |&gt; plot(add=TRUE)
+blocks |&gt; sf::st_geometry() |&gt; sf::st_centroid() |&gt;
+    sf::st_coordinates() |&gt; text(labels=blocks$NTS_SNRC)
+
+# nudge the point slightly so it intersects with only one mapsheet
+input.point = sf::st_point(c(x=-120.1, y=50.1)) |&gt; sf::st_sfc(crs='EPSG:4326')
+blocks |&gt; sf::st_geometry() |&gt; plot()
+sf::st_transform(input.point, crs='EPSG:3005') |&gt; plot(add=TRUE)
+blocks |&gt; sf::st_geometry() |&gt; sf::st_centroid() |&gt;
+   sf::st_coordinates() |&gt; text(labels=blocks$NTS_SNRC)
+findblocks_bc(input.point)
+
+# make a polygon (circle) from the point and repeat
+if( requireNamespace('units', quietly = TRUE) ) {
+input.polygon = input.point |&gt; sf::st_buffer(units::set_units(10, km))
+blocks |&gt; sf::st_geometry() |&gt; plot()
+sf::st_transform(input.polygon, crs='EPSG:3005') |&gt; plot(add=TRUE)
+blocks |&gt; sf::st_geometry() |&gt; sf::st_centroid() |&gt;
+   sf::st_coordinates() |&gt; text(labels=blocks$NTS_SNRC)
+findblocks_bc(input.polygon)
+}
+
+# geo can be a character vector of codes
+input.codes = c('093A', '093I', '104O')
+findblocks_bc(input.codes, type='sfc')
+
+</code></pre>
+
+
+</div>

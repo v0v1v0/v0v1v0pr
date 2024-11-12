@@ -1,0 +1,313 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>auto_rate</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Automatically determine most linear, highest, lowest and rolling oxygen
+uptake or production rates</h2>
+
+<h3>Description</h3>
+
+<p><code>auto_rate</code> performs rolling regressions on a dataset to determine the <em>most
+linear, highest, lowest, maximum, minimum, rolling</em>, and <em>interval</em> rates of
+change in oxygen against time. A rolling regression of the specified <code>width</code>
+is performed on the entire dataset, then based on the "<code>method</code>" input, the
+resulting regressions are ranked or ordered, and the output summarised.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">auto_rate(x, method = "linear", width = NULL, by = "row", plot = TRUE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>data frame, or object of class <code>inspect</code> containing oxygen~time
+data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>string. <code>"linear"</code>, <code>"highest"</code>, <code>"lowest"</code>, <code>"maximum"</code>,
+<code>"minimum"</code>, <code>"rolling"</code> or <code>"interval"</code>. Defaults to <code>"linear"</code>. See
+Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>width</code></td>
+<td>
+<p>numeric. Width of the rolling regression. For <code>by = "row"</code>,
+either a value between 0 and 1 representing a proportion of the data
+length, or an integer of 2 or greater representing an exact number of rows.
+If <code>by = "time"</code> it represents a time window in the units of the time data.
+If <code>NULL</code>, it defaults to 0.2 or a window of 20% of the data length. See
+Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>by</code></td>
+<td>
+<p>string. <code>"row"</code> or <code>"time"</code>. Defaults to <code>"row"</code>. Metric by which
+to apply the <code>width</code> input if it is above 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>logical. Defaults to TRUE. Plot the results.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Allows additional plotting controls to be passed, such as <code>pos</code>,
+<code>panel</code>, and <code>quiet = TRUE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+
+
+<h4>Ranking and ordering algorithms</h4>
+
+<p>Currently, <code>auto_rate</code> contains seven ranking and ordering algorithms that
+can be applied using the <code>method</code> input:
+</p>
+
+<ul>
+<li> <p><code>linear</code>: Uses kernel density estimation (KDE) to learn the shape of the
+entire dataset and <em>automatically identify</em> the most linear regions of the
+timeseries. This is achieved by using the smoothing bandwidth of the KDE to
+re-sample the "peaks" in the KDE to determine linear regions of the data. The
+summary output will contain only the regressions identified as coming from
+linear regions of the data, ranked by order of the KDE density analysis. This
+is present in the <code style="white-space: pre;">⁠$summary⁠</code> component of the output as <code style="white-space: pre;">⁠$density⁠</code>. Under
+this method, the <code>width</code> input is used as a starting seed value, but the
+resulting regressions may be of any width. See
+<a href="https://januarharianto.github.io/respR/articles/auto_rate">here</a> for full
+details.
+</p>
+</li>
+<li> <p><code>highest</code>: Every regression of the specified <code>width</code> across the entire
+timeseries is calculated, then ordered using <em><strong>absolute</strong></em> rate values from
+highest to lowest. Essentially, this option ignores the sign of the rate, and
+can only be used when rates all have the same sign. Rates will be ordered
+from highest to lowest in the <code style="white-space: pre;">⁠$summary⁠</code> table regardless of if they are
+oxygen uptake or oxygen production rates.
+</p>
+</li>
+<li> <p><code>lowest</code>: Every regression of the specified <code>width</code> across the entire
+timeseries is calculated, then ordered using <em><strong>absolute</strong></em> rate values from
+lowest to highest. Essentially, this option ignores the sign of the rate, and
+can only be used when rates all have the same sign. Rates will be ordered
+from lowest to highest in the <code style="white-space: pre;">⁠$summary⁠</code> table regardless of if they are
+oxygen uptake or oxygen production rates.
+</p>
+</li>
+<li> <p><code>maximum</code>: Every regression of the specified <code>width</code> across the entire
+timeseries is calculated, then ordered using <em><strong>numerical</strong></em> rate values from
+maximum to minimum. Takes <em><strong>full account of the sign of the rate</strong></em>.
+Therefore, oxygen uptake rates, which in <code>respR</code> are negative, would be
+ordered from lowest (least negative), to highest (most negative) in the
+summary table in numerical order. Therefore, generally this method should
+only be used when rates are a mix of oxygen consumption and production rates,
+such as when positive rates may result from regressions fit over flush
+periods in intermittent-flow respirometry. Generally, for most analyses where
+maximum or minimum rates are of interest the <code>"highest"</code> or <code>"lowest"</code>
+methods should be used.
+</p>
+</li>
+<li> <p><code>minimum</code>: Every regression of the specified <code>width</code> across the entire
+timeseries is calculated, then ordered using <em><strong>numerical</strong></em> rate values from
+minimum to maximum. Takes <em><strong>full account of the sign of the rate</strong></em>.
+Therefore, oxygen uptake rates, which in <code>respR</code> are negative, would be
+ordered from highest (most negative) to lowest (least negative) in the
+summary table in numerical order. Therefore, generally this method should
+only be used when rates are a mix of oxygen consumption and production rates,
+such as when positive rates may result from regressions fit over flush
+periods in intermittent-flow respirometry. Generally, for most analyses where
+maximum or minimum rates are of interest the <code>"highest"</code> or <code>"lowest"</code>
+methods should be used.
+</p>
+</li>
+<li> <p><code>rolling</code>: A rolling regression of the specified <code>width</code> is performed
+across the entire timeseries. No reordering of results is performed.
+</p>
+</li>
+<li> <p><code>interval</code>: multiple, successive, non-overlapping regressions of the
+specified <code>width</code> are extracted from the rolling regressions, ordered by
+time.
+</p>
+</li>
+</ul>
+<h4>Further selection and filtering of results</h4>
+
+<p>For further selection or subsetting of <code>auto_rate</code> results, see the dedicated
+<code>select_rate()</code> function, which allows subsetting of rates by various
+criteria, including r-squared, data region, percentiles, and more.
+</p>
+
+
+
+<h4>Units</h4>
+
+<p>There are no units involved in <code>auto_rate</code>. This is a deliberate decision.
+The units of oxygen concentration and time will be specified later in
+<code>convert_rate()</code> when rates are converted to specific output units.
+</p>
+
+
+
+<h4>The <code>width</code> and <code>by</code> inputs</h4>
+
+<p>If <code>by = "time"</code>, the <code>width</code> input represents a time window in the units of
+the time data in <code>x</code>.
+</p>
+<p>If <code>by = "row"</code> and <code>width</code> is between 0 and 1 it represents a proportion of
+the total data length, as in the equation <code style="white-space: pre;">⁠floor(width * number of data rows)⁠</code>. For example, 0.2 represents a rolling window of 20% of the data
+width. Otherwise, if entered as an integer of 2 or greater, the <code>width</code>
+represents the number of rows.
+</p>
+<p>For both <code>by</code> inputs, if left as <code>width = NULL</code> it defaults to 0.2 or a
+window of 20% of the data length.
+</p>
+<p>In most cases, <code>by</code> should be left as the default <code>"row"</code>, and the <code>width</code>
+chosen with this in mind, as it is considerably more computationally
+efficient. Changing to <code>"time"</code> causes the function to perform checks for
+irregular time intervals at every iteration of the rolling regression, which
+adds to computation time. This is to ensure the specified <code>width</code> input is
+honoured in the time units and rates correctly calculated, even if the data
+is unevenly spaced or has gaps.
+</p>
+
+
+
+<h4>Plot</h4>
+
+<p>A plot is produced (provided <code>plot = TRUE</code>) showing the original data
+timeseries of oxygen against time (bottom blue axis) and row index (top red
+axis), with the rate result region highlighted. Second panel is a close-up of
+the rate region with linear model coefficients. Third panel is a rolling rate
+plot (note the reversed y-axis so that higher oxygen uptake rates are plotted
+higher), of a rolling rate of the input <code>width</code> across the whole dataset.
+Each rate is plotted against the middle of the time and row range used to
+calculate it. The dashed line indicates the value of the current rate result
+plotted in panels 1 and 2. The fourth and fifth panels are summary plots of
+fit and residuals, and for the <code>linear</code> method the sisth panel the results of
+the kernel density analysis, with the dashed line again indicating the value
+of the current rate result plotted in panels 1 and 2.
+</p>
+
+
+
+<h4>Additional plotting options</h4>
+
+<p>If multiple rates have been calculated, by default the first (<code>pos = 1</code>) is
+plotted. Others can be plotted by changing the <code>pos</code> input either in the main
+function call, or by plotting the output, e.g. <code>plot(object, pos = 2)</code>. In
+addition, each sub-panel can be examined individually by using the <code>panel</code>
+input, e.g. <code>plot(object, panel = 2)</code>.
+</p>
+<p>Console output messages can be suppressed using <code>quiet = TRUE</code>. If axis
+labels or other text boxes obscure parts of the plot they can be suppressed
+using <code>legend = FALSE</code>. The rate in the rolling rate plot can be plotted
+<em>not</em> reversed by passing <code>rate.rev = FALSE</code>, for instance when examining
+oxygen production rates so that higher production rates appear higher. If
+axis labels (particularly y-axis) are difficult to read, <code>las = 2</code> can be
+passed to make axis labels horizontal, and <code>oma</code> (outer margins, default <code>oma = c(0.4, 1, 1.5, 0.4)</code>), and <code>mai</code> (inner margins, default <code>mai = c(0.3, 0.15, 0.35, 0.15)</code>) used to adjust plot margins.
+</p>
+
+
+
+<h4>S3 Generic Functions</h4>
+
+<p>Saved output objects can be used in the generic S3 functions <code>print()</code>,
+<code>summary()</code>, and <code>mean()</code>.
+</p>
+
+<ul>
+<li> <p><code>print()</code>: prints a single result, by default the first rate. Others can be
+printed by passing the <code>pos</code> input. e.g. <code>print(x, pos = 2)</code>
+</p>
+</li>
+<li> <p><code>summary()</code>: prints summary table of all results and metadata, or those
+specified by the <code>pos</code> input. e.g. <code>summary(x, pos = 1:5)</code>. The summary can
+be exported as a separate data frame by passing <code>export = TRUE</code>.
+</p>
+</li>
+<li> <p><code>mean()</code>: calculates the mean of all rates, or those specified by the <code>pos</code>
+input. e.g. <code>mean(x, pos = 1:5)</code> The mean can be exported as a separate value
+by passing <code>export = TRUE</code>.
+</p>
+</li>
+</ul>
+<h4>More</h4>
+
+<p>For additional help, documentation, vignettes, and more visit the <code>respR</code>
+website at <a href="https://januarharianto.github.io/respR/">https://januarharianto.github.io/respR/</a>
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>Output is a <code>list</code> object of class <code>auto_rate</code> containing input
+parameters and data, various summary data, metadata, linear models, and the
+primary output of interest <code style="white-space: pre;">⁠$rate⁠</code>, which can be background adjusted in
+<code>adjust_rate</code> or converted to units in <code>convert_rate</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Most linear section of an entire dataset
+inspect(sardine.rd, time = 1, oxygen =2) %&gt;%
+  auto_rate()
+
+# What is the lowest oxygen consumption rate over a 10 minute (600s) period?
+inspect(sardine.rd, time = 1, oxygen =2) %&gt;%
+  auto_rate(method = "lowest", width = 600, by = "time") %&gt;%
+  summary()
+
+# What is the highest oxygen consumption rate over a 10 minute (600s) period?
+inspect(sardine.rd, time = 1, oxygen =2) %&gt;%
+  auto_rate(method = "highest", width = 600, by = "time") %&gt;%
+  summary()
+
+# What is the NUMERICAL minimum oxygen consumption rate over a 5 minute (300s)
+# period in intermittent-flow respirometry data?
+# NOTE: because uptake rates are negative, this would actually be
+# the HIGHEST uptake rate.
+auto_rate(intermittent.rd, method = "minimum", width = 300, by = "time") %&gt;%
+  summary()
+
+# What is the NUMERICAL maximum oxygen consumption rate over a 20 minute
+# (1200 rows) period in respirometry data in which oxygen is declining?
+# NOTE: because uptake rates are negative, this would actually be
+# the LOWEST uptake rate.
+sardine.rd %&gt;%
+  inspect() %&gt;%
+  auto_rate(method = "maximum", width = 1200, by = "row") %&gt;%
+  summary()
+
+# Perform a rolling regression of 10 minutes width across the entire dataset.
+# Results are not ordered under this method.
+sardine.rd %&gt;%
+  inspect() %&gt;%
+  auto_rate(method = "rolling", width = 600, by = "time") %&gt;%
+  summary()
+ 
+</code></pre>
+
+
+</div>

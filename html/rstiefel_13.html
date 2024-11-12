@@ -1,0 +1,100 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rmf.matrix</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Simulate a Random Orthonormal Matrix</h2>
+
+<h3>Description</h3>
+
+<p>Simulate a random orthonormal matrix from the von Mises-Fisher distribution.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rmf.matrix(M)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>M</code></td>
+<td>
+<p>a matrix.</p>
+</td>
+</tr></table>
+<h3>Value</h3>
+
+<p>an orthonormal matrix of the same dimension as <code>M</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Peter Hoff
+</p>
+
+
+<h3>References</h3>
+
+<p>Hoff(2009)
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## The function is currently defined as
+Z&lt;-matrix(rnorm(10*5),10,5) 
+
+U&lt;-rmf.matrix(Z)
+U&lt;-rmf.matrix.gibbs(Z,U)
+
+
+function (M) 
+{
+    if (dim(M)[2] == 1) {
+        X &lt;- rmf.vector(M)
+    }
+    if (dim(M)[2] &gt; 1) {
+        svdM &lt;- svd(M)
+        H &lt;- svdM$u %*% diag(svdM$d)
+        m &lt;- dim(H)[1]
+        R &lt;- dim(H)[2]
+        cmet &lt;- FALSE
+        rej &lt;- 0
+        while (!cmet) {
+            U &lt;- matrix(0, m, R)
+            U[, 1] &lt;- rmf.vector(H[, 1])
+            lr &lt;- 0
+            for (j in seq(2, R, length = R - 1)) {
+                N &lt;- NullC(U[, seq(1, j - 1, length = j - 1)])
+                x &lt;- rmf.vector(t(N) %*% H[, j])
+                U[, j] &lt;- N %*% x
+                if (svdM$d[j] &gt; 0) {
+                  xn &lt;- sqrt(sum((t(N) %*% H[, j])^2))
+                  xd &lt;- sqrt(sum(H[, j]^2))
+                  lbr &lt;- log(besselI(xn, 0.5 * (m - j - 1), expon.scaled = TRUE)) - 
+                    log(besselI(xd, 0.5 * (m - j - 1), expon.scaled = TRUE))
+                  if (is.na(lbr)) {
+                    lbr &lt;- 0.5 * (log(xd) - log(xn))
+                  }
+                  lr &lt;- lr + lbr + (xn - xd) + 0.5 * (m - j - 
+                    1) * (log(xd) - log(xn))
+                }
+            }
+            cmet &lt;- (log(runif(1)) &lt; lr)
+            rej &lt;- rej + (1 - 1 * cmet)
+        }
+        X &lt;- U %*% t(svd(M)$v)
+    }
+    X
+  }
+
+</code></pre>
+
+
+</div>

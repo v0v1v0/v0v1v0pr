@@ -1,0 +1,135 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ecocrop_model</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+EcoCrop model
+</h2>
+
+<h3>Description</h3>
+
+<p>Create and run an EcoCrop model to asses the environmental suitability of a location for a (plant) species. 
+</p>
+<p>First create a model object with the <code>ecocrop</code> method. Then set parameters describing the environmental requirements of a species or other taxon. The <code>ecocropPars</code> method provides default parameters for 1710 taxa.
+</p>
+<p>Next, provide environmental data with the <code>staticPredictors</code> and/or <code>dynamicPredictors</code> method. Static predictors, such as soil pH, do not change throughout the year. In contrast, dynamic predictors, such as temperature and rainfall, vary over time. In the current implementation the time-step of the input data is months. Therefore, dynamic variables must have 12 values, one for much month of the year, or multiples of 12 values, to represent multiple years or locations. The computations are done in half-month time steps, by interpolating the monthly values.
+</p>
+<p>The names of the predictors much match the names in the parameters, but not vice versa. That is, parameters that are not matched by a predictor are ignored.
+</p>
+<p>The main purpose of implementing the model is to support making spatial predictions with <code>predict</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ecocrop(crop)
+## S4 method for signature 'Rcpp_EcocropModel'
+control(x, get_max=FALSE, which_max=FALSE, count_max=FALSE, lim_fact=FALSE, ...)
+## S4 method for signature 'Rcpp_EcocropModel'
+run(x, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>crop</code></td>
+<td>
+<p>list with ecocrop parameters. See <code>link[ecocropPars]</code> and <code>link[crop]</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>EcocropModel object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>get_max</code></td>
+<td>
+<p>logical. If <code>TRUE</code>, the maximum value (across the time periods of the year) is returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>which_max</code></td>
+<td>
+<p>logical. If <code>TRUE</code>, the first month with the maximum value is returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>count_max</code></td>
+<td>
+<p>logical. If <code>TRUE</code>, the number of months with the maximum value is returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lim_fact</code></td>
+<td>
+<p>logical. If <code>TRUE</code>, the options above are ignored, the most-limiting factor for each time period (or the one that is reached first if there are ties) is returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments. None implemented</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The model computes a score for each variable for the 1st and 15th day of each month. It then takes the lowest (most limiting) score for each time period. After that, the minimum score for the time periods that follow (the growing season) is computed. The lenght of the growing season is by the <code>duration</code> parameter (see <code>ecocropPars</code>). 
+</p>
+<p>You can set the output variables with <code>options</code>. If all options are <code>FALSE</code>, the 24 bi-monthly scores are returned.
+</p>
+
+
+<h3>Value</h3>
+
+<p>vector
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Get parameters
+potato &lt;- ecocropPars("potato")
+
+# create a model
+m &lt;- ecocrop(potato)
+
+# add parameters
+crop(m) &lt;- cbind(clay=c(0,0,10,20))
+
+# inspect 
+plot(m)
+
+# add predictors
+dp &lt;- cbind(tavg=c(10,12,14,16,18,20,22,20,18,16,14,12), prec=seq(50,182,12))
+t(dp)
+dynamicPredictors(m) &lt;- dp
+
+staticPredictors(m) &lt;- cbind(clay=12)
+
+# run model
+x &lt;- run(m)
+x
+
+y &lt;- matrix(round(x, 1), nrow=2)
+colnames(y) &lt;- month.abb
+rownames(y) &lt;- c("day1", "day15")
+y
+
+dates &lt;- as.Date(paste0("2000-", rep(1:12, each=2), "-", rep(c(1,15), 12)))
+plot(dates, x, las=1, ylab="suitability", xlab="")
+lines(dates, x, col="red")
+
+
+control(m, get_max=TRUE)
+run(m)
+</code></pre>
+
+
+</div>

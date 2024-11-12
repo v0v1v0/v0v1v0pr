@@ -1,0 +1,410 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>optPenalty.fused.grid</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Identify optimal ridge and fused ridge penalties</h2>
+
+<h3>Description</h3>
+
+<p>Functions to find the optimal ridge and fusion penalty parameters via
+leave-one-out cross validation. The functions support leave-one-out
+cross-validation (LOOCV), <code class="reqn">k</code>-fold CV, and two forms of approximate
+LOOCV. Depending on the used function, general numerical optimization or a
+grid-based search is used.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">optPenalty.fused.grid(
+  Ylist,
+  Tlist,
+  lambdas = 10^seq(-5, 5, length.out = 15),
+  lambdaFs = lambdas,
+  cv.method = c("LOOCV", "aLOOCV", "sLOOCV", "kCV"),
+  k = 10,
+  verbose = TRUE,
+  ...
+)
+
+optPenalty.fused.auto(
+  Ylist,
+  Tlist,
+  lambda,
+  cv.method = c("LOOCV", "aLOOCV", "sLOOCV", "kCV"),
+  k = 10,
+  verbose = TRUE,
+  lambda.init,
+  maxit.ridgeP.fused = 1000,
+  optimizer = "optim",
+  maxit.optimizer = 1000,
+  debug = FALSE,
+  optim.control = list(trace = verbose, maxit = maxit.optimizer),
+  ...
+)
+
+optPenalty.fused(
+  Ylist,
+  Tlist,
+  lambda = default.penalty(Ylist),
+  cv.method = c("LOOCV", "aLOOCV", "sLOOCV", "kCV"),
+  k = 10,
+  grid = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Ylist</code></td>
+<td>
+<p>A <code>list</code> of <code class="reqn">G</code> matrices of data with <code class="reqn">n_g</code> samples
+in the rows and <code class="reqn">p</code> variables in the columns corresponding to <code class="reqn">G</code>
+classes of data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Tlist</code></td>
+<td>
+<p>A <code>list</code> of <code class="reqn">G</code> of p.d. class target matrices of size
+<code class="reqn">p</code> times <code class="reqn">p</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambdas</code></td>
+<td>
+<p>A <code>numeric</code> vector of positive ridge penalties.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambdaFs</code></td>
+<td>
+<p>A <code>numeric</code> vector of non-negative fusion penalties.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cv.method</code></td>
+<td>
+<p><code>character</code> giving the cross-validation (CV) to use.
+The allowed values are <code>"LOOCV"</code>, <code>"aLOOCV"</code>, <code>"sLOOCV"</code>,
+<code>"kCV"</code> for leave-one-out cross validation (LOOCV), appproximate
+LOOCV, special LOOCV, and k-fold CV, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p><code>integer</code> giving the number of approximately equally sized
+parts each class is partioned into for <code class="reqn">k</code>-fold CV.  Only use if
+<code>cv.method</code> is <code>"kCV"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p><code>logical</code>. If <code>TRUE</code>, progress information is
+printed to the console.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>For <code>optPenalty.fused</code>, arguments are passed to
+<code>optPenalty.fused.grid</code> or <code>optPenalty.fused.auto</code> depending on
+the value of <code>grid</code>.  In <code>optPenalty.fused.grid</code>, arguments are
+passed to <code>ridgeP.fused</code>.  In <code>optPenalty.fused.auto</code>, arguments
+are passed to the optimizer.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>A symmetric <code>character</code> <code>matrix</code> encoding the class
+of penalty matrices to cross-validate over.  The diagonal elements
+correspond to the class-specific ridge penalties whereas the off-diagonal
+elements correspond to the fusion penalties.  The unique elements of lambda
+specify the penalties to determine by the method specified by
+<code>cv.method</code>.  The penalties can be fixed if they are coercible to
+numeric values, such as e.g. <code>"0"</code>, <code>"2.71"</code> or <code>"3.14"</code>.
+Fusion between pairs can be "left out"" using either of <code>""</code>,
+<code>NA</code>, <code>"NA"</code>, or <code>"0"</code>.  See <code>default.penalty</code>
+for help on the construction hereof and more details.  Unused and can be
+omitted if <code>grid == TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda.init</code></td>
+<td>
+<p>A <code>numeric</code> penalty <code>matrix</code> of initial values
+passed to the optimizer. If omitted, the function selects a starting values
+using a common ridge penaltiy (determined by 1D optimization) and all
+fusion penalties to zero.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxit.ridgeP.fused</code></td>
+<td>
+<p>A <code>integer</code> giving the maximum number of
+iterations allowed for each fused ridge fit.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optimizer</code></td>
+<td>
+<p><code>character</code>. Either <code>"optim"</code> or <code>"nlm"</code>
+determining which optimizer to use.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxit.optimizer</code></td>
+<td>
+<p>A <code>integer</code> giving the maximum number of
+iterations allowed in the optimization procedure.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>debug</code></td>
+<td>
+<p><code>logical</code>. If <code>TRUE</code> additional output from the
+optimizer is appended to the output as an attribute.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optim.control</code></td>
+<td>
+<p>A <code>list</code> of control arguments for
+<code>optim</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grid</code></td>
+<td>
+<p><code>logical.</code> Should a grid based search be used? Default is
+<code>FALSE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>optPenalty.fused.auto</code> serves a utilizes <code>optim</code> for
+identifying the optimal fused parameters and works for general classes of
+penalty graphs.
+</p>
+<p><code>optPenalty.fused.grid</code> gives a grid-based evaluation of the
+(approximate) LOOCV loss.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>optPenalty.fused.auto</code> returns a <code>list</code>:<br></p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>Plist</code></td>
+<td>
+<p>A
+<code>list</code> of the precision estimates for the optimal parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>The estimated optimal fused penalty matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda.unique</code></td>
+<td>
+<p>The unique entries of the <code>lambda</code>.  A more
+concise overview of <code>lambda</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>value</code></td>
+<td>
+<p>The value of the loss
+function in the estimated optimum.</p>
+</td>
+</tr>
+</table>
+<p><code>optPenalty.fused.LOOCV</code> returns a <code>list</code>:<br></p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>ridge</code></td>
+<td>
+<p>A
+<code>numeric</code> vector of grid values for the ridge penalty</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fusion</code></td>
+<td>
+<p>The <code>numeric</code> vector of grid values for the fusion
+penalty</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fcvl</code></td>
+<td>
+<p>The <code>numeric</code> <code>matrix</code> of evaluations of the
+loss function</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Anders Ellern Bilgrau, Carel F.W. Peeters &lt;carel.peeters@wur.nl&gt;,
+Wessel N. van Wieringen
+</p>
+
+
+<h3>References</h3>
+
+<p>Bilgrau, A.E., Peeters, C.F.W., Eriksen, P.S., Boegsted, M., and
+van Wieringen, W.N. (2020).  Targeted Fused Ridge Estimation of Inverse
+Covariance Matrices from Multiple High-Dimensional Data Classes.  Journal
+of Machine Learning Research, 21(26): 1-52.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>See also <code>default.penalty</code>, <code>optPenalty.LOOCV</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# Generate some (not so) high-dimensional data witn (not so) many samples
+ns &lt;- c(4, 5, 6)
+Ylist &lt;- createS(n = ns, p = 6, dataset = TRUE)
+Slist &lt;- lapply(Ylist, covML)
+Tlist &lt;- default.target.fused(Slist, ns, type = "DIAES")
+
+
+# Grid-based
+lambdas &lt;- 10^seq(-5, 3, length.out = 7)
+a &lt;- optPenalty.fused.grid(Ylist, Tlist,
+                           lambdas = lambdas,
+                           cv.method = "LOOCV", maxit = 1000)
+b &lt;- optPenalty.fused.grid(Ylist, Tlist,
+                           lambdas = lambdas,
+                           cv.method = "aLOOCV", maxit = 1000)
+c &lt;- optPenalty.fused.grid(Ylist, Tlist,
+                           lambdas = lambdas,
+                           cv.method = "sLOOCV", maxit = 1000)
+d &lt;- optPenalty.fused.grid(Ylist, Tlist,
+                           lambdas = lambdas,
+                           cv.method = "kCV", k = 2, maxit = 1000)
+
+# Numerical optimization (uses the default "optim" optimizer with method "BFGS")
+aa &lt;- optPenalty.fused.auto(Ylist, Tlist, cv.method = "LOOCV", method = "BFGS")
+print(aa)
+bb &lt;- optPenalty.fused.auto(Ylist, Tlist, cv.method = "aLOOCV", method = "BFGS")
+print(bb)
+cc &lt;- optPenalty.fused.auto(Ylist, Tlist, cv.method = "sLOOCV", method = "BFGS")
+print(cc)
+dd &lt;- optPenalty.fused.auto(Ylist, Tlist, cv.method = "kCV", k=3, method="BFGS")
+print(dd)
+
+
+#
+# Plot the results
+#
+
+# LOOCV
+# Get minimums and plot
+amin  &lt;- log(expand.grid(a$lambda, a$lambdaF))[which.min(a$fcvl), ]
+aamin &lt;- c(log(aa$lambda[1,1]), log(aa$lambda[1,2]))
+
+# Plot
+filled.contour(log(a$lambda), log(a$lambdaF), log(a$fcvl), color = heat.colors,
+               plot.axes = {points(amin[1], amin[2], pch = 16);
+                            points(aamin[1], aamin[2], pch = 16, col = "purple");
+                            axis(1); axis(2)},
+               xlab = "lambda", ylab = "lambdaF", main = "LOOCV")
+
+# Approximate LOOCV
+# Get minimums and plot
+bmin &lt;- log(expand.grid(b$lambda, b$lambdaF))[which.min(b$fcvl), ]
+bbmin &lt;- c(log(bb$lambda[1,1]), log(unique(bb$lambda[1,2])))
+
+filled.contour(log(b$lambda), log(b$lambdaF), log(b$fcvl), color = heat.colors,
+               plot.axes = {points(bmin[1], bmin[2], pch = 16);
+                            points(bbmin[1], bbmin[2], pch = 16, col ="purple");
+                            axis(1); axis(2)},
+               xlab = "lambda", ylab = "lambdaF", main = "Approximate LOOCV")
+
+
+#
+# Arbitrary penalty graphs
+#
+
+# Generate some new high-dimensional data and a 2 by 2 factorial design
+ns &lt;- c(6, 5, 3, 2)
+df &lt;- expand.grid(Factor1 = LETTERS[1:2], Factor2 = letters[3:4])
+Ylist &lt;- createS(n = ns, p = 4, dataset = TRUE)
+Tlist &lt;- lapply(lapply(Ylist, covML), default.target, type = "Null")
+
+# Construct penalty matrix
+lambda &lt;- default.penalty(df, type = "CartesianUnequal")
+
+# Find optimal parameters,
+# Using optim with method "Nelder-Mead" with "special" LOOCV
+ans1 &lt;- optPenalty.fused(Ylist, Tlist, lambda = lambda,
+                         cv.method = "sLOOCV", verbose = FALSE)
+print(ans1$lambda.unique)
+
+# By approximate LOOCV using optim with method "BFGS"
+ans2 &lt;- optPenalty.fused(Ylist, Tlist, lambda = lambda,
+                         cv.method = "aLOOCV", verbose = FALSE,
+                         method = "BFGS")
+print(ans2$lambda.unique)
+
+# By LOOCV using nlm
+lambda.init &lt;- matrix(1, 4, 4)
+lambda.init[cbind(1:4,4:1)] &lt;- 0
+ans3 &lt;- optPenalty.fused(Ylist, Tlist, lambda = lambda,
+                         lambda.init = lambda.init,
+                         cv.method = "LOOCV", verbose = FALSE,
+                         optimizer = "nlm")
+print(ans3$lambda.unique)
+
+# Quite different results!
+
+
+#
+# Arbitrary penalty graphs with fixed penalties!
+#
+
+# Generate some new high-dimensional data and a 2 by 2 factorial design
+ns &lt;- c(6, 5, 5, 5)
+df &lt;- expand.grid(DS = LETTERS[1:2], ER = letters[3:4])
+Ylist &lt;- createS(n = ns, p = 4, dataset = TRUE)
+Tlist &lt;- lapply(lapply(Ylist, covML), default.target, type = "Null")
+
+lambda &lt;- default.penalty(df, type = "Tensor")
+print(lambda)  # Say we want to penalize the pair (1,2) with strength 2.1;
+lambda[2,1] &lt;- lambda[1,2] &lt;- 2.1
+print(lambda)
+
+# Specifiying starting values is also possible:
+init &lt;- diag(length(ns))
+init[2,1] &lt;- init[1,2] &lt;- 2.1
+
+res &lt;- optPenalty.fused(Ylist, Tlist, lambda = lambda, lambda.init = init,
+                        cv.method = "aLOOCV", optimizer = "nlm")
+print(res)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

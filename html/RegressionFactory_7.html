@@ -1,0 +1,138 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fbase1.poisson.log</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Single-Parameter Base Log-likelihood Function for Poisson GLM
+</h2>
+
+<h3>Description</h3>
+
+<p>Vectorized, single-parameter base log-likelihood functions for Poisson GLM using log link function. The base function(s) can be supplied to the expander function <code>regfac.expand.1par</code> in order to obtain the full, high-dimensional log-likleihood and its derivatives.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fbase1.poisson.log(u, y, fgh=2)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>u</code></td>
+<td>
+<p>Varying parameter of the base log-likelihood function. This parameter is intended to be projected onto a high-dimensional space using the familiar regression transformation of <code>u &lt;- X%*%beta</code>. In the typical use-case where the caller is <code>regfac.expand.1par</code>, a vector of values are supplied, and return objects will have the same length as <code>u</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Fixed slot of the base distribution, corresponding to the response variable in the regression model. For <code>Poisson</code> family, it must be a vector of non-negative integers.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fgh</code></td>
+<td>
+<p>Integer with possible values 0,1,2. If <code>fgh=0</code>, the function only calculates and returns the log-likelihood vector and no derivatives. If <code>fgh=1</code>, it returns the log-likelihood and its first derivative in a list. If <code>fgh=2</code>, it returns the log-likelihood, as well as its first and second derivatives in a list.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>If <code>fgh==0</code>, the function returns <code>y*u-exp(u)-lfactorial(y)</code> for <code>log</code>. If <code>fgh==1</code>, a list is returned with elements <code>f</code> and <code>g</code>, where the latter is a vector of length <code>length(u)</code>, with each element being the first derivative of the above expressions. If <code>fgh==2</code>, the list will include an element named <code>h</code>, consisting of the second derivatives of <code>f</code> with respect to <code>u</code>.
+</p>
+
+
+<h3>Note</h3>
+
+<p>In all base log-likelihood functions, we have dropped any additive terms that are independent of the distribution parameter, e.g. constant terms or those terms that are dependent on the response variable only. This is done for computational efficiency. Therefore, these functions cannot be used to obtain the absolute values of log-likelihood functions but only in the context of optimization and/or sampling. Users can write thin wrappers around these functions to add the constant terms to the function value. (Derivatives do not need correction. For Poisson family, the <code>lfactorial(y)</code> term is dropped.)
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Alireza S. Mahani, Mansour T.A. Sharabiani
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>regfac.expand.1par</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+library(sns)
+library(MfUSampler)
+
+# using the expander framework and base distributions to define
+# log-likelihood function for Poisson regression
+loglike.poisson &lt;- function(beta, X, y, fgh) {
+  regfac.expand.1par(beta, X, y, fbase1.poisson.log, fgh)
+}
+
+# generate data for Poisson regression
+N &lt;- 1000
+K &lt;- 5
+X &lt;- matrix(runif(N*K, min=-0.5, max=+0.5), ncol=K)
+beta &lt;- runif(K, min=-0.5, max=+0.5)
+y &lt;- rpois(N, lambda = exp(X%*%beta))
+
+# obtaining glm coefficients for comparison
+beta.glm &lt;- glm(y~X-1, family="poisson")$coefficients
+
+# mcmc sampling of log-likelihood
+nsmp &lt;- 100
+
+# Slice Sampler (no derivatives needed)
+beta.smp &lt;- array(NA, dim=c(nsmp,K)) 
+beta.tmp &lt;- rep(0,K)
+for (n in 1:nsmp) {
+  beta.tmp &lt;- MfU.Sample(beta.tmp
+    , f=loglike.poisson, X=X, y=y, fgh=0)
+  beta.smp[n,] &lt;- beta.tmp
+}
+beta.slice &lt;- colMeans(beta.smp[(nsmp/2+1):nsmp,])
+
+# Adaptive Rejection Sampler
+# (only first derivative needed)
+beta.smp &lt;- array(NA, dim=c(nsmp,K)) 
+beta.tmp &lt;- rep(0,K)
+for (n in 1:nsmp) {
+  beta.tmp &lt;- MfU.Sample(beta.tmp, uni.sampler="ars"
+    , f=function(beta, X, y, grad) {
+        if (grad)
+          loglike.poisson(beta, X, y, fgh=1)$g
+        else
+          loglike.poisson(beta, X, y, fgh=0)
+      }
+    , X=X, y=y)
+  beta.smp[n,] &lt;- beta.tmp
+}
+beta.ars &lt;- colMeans(beta.smp[(nsmp/2+1):nsmp,])
+
+# SNS (Stochastic Newton Sampler)
+# (both first and second derivative needed)
+beta.smp &lt;- array(NA, dim=c(nsmp,K)) 
+beta.tmp &lt;- rep(0,K)
+for (n in 1:nsmp) {
+  beta.tmp &lt;- sns(beta.tmp, fghEval=loglike.poisson, X=X, y=y, fgh=2, rnd = n&gt;nsmp/4)
+  beta.smp[n,] &lt;- beta.tmp
+}
+beta.sns &lt;- colMeans(beta.smp[(nsmp/2+1):nsmp,])
+
+# compare results
+cbind(beta.glm, beta.slice, beta.ars, beta.sns)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

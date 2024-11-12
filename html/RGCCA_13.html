@@ -1,0 +1,663 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rgcca</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Regularized Generalized Canonical Correlation Analysis (RGCCA)</h2>
+
+<h3>Description</h3>
+
+<p>RGCCA is a general statistical framework for multiblock data analysis.
+The rgcca() function implements this framework and is the main entry point
+of the package.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rgcca(
+  blocks,
+  connection = NULL,
+  tau = 1,
+  ncomp = 1,
+  scheme = "factorial",
+  scale = TRUE,
+  init = "svd",
+  bias = TRUE,
+  tol = 1e-08,
+  verbose = FALSE,
+  scale_block = "inertia",
+  method = "rgcca",
+  sparsity = 1,
+  response = NULL,
+  superblock = FALSE,
+  NA_method = "na.ignore",
+  quiet = TRUE,
+  n_iter_max = 1000,
+  comp_orth = TRUE,
+  A = NULL,
+  C = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>blocks</code></td>
+<td>
+<p>A list that contains the <code class="reqn">J</code> blocks of variables
+<code class="reqn">\mathbf{X_1}, \mathbf{X_2}, ..., \mathbf{X_J}</code>.
+Block <code class="reqn">\mathbf{X}_j</code> is a matrix of dimension
+<code class="reqn">n \times p_j</code> where <code class="reqn">n</code> is the number of
+observations and <code class="reqn">p_j</code> the number of variables. The blocks argument can
+be also a fitted cval, rgcca or permutation object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>connection</code></td>
+<td>
+<p>A (<code class="reqn">J \times J</code>) symmetric matrix describing
+the network of connections between blocks (default value: 1-diag(J)).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tau</code></td>
+<td>
+<p>Either a numerical value, a numeric vector of size
+<code class="reqn">J</code>, or a
+numeric matrix of dimension
+<code class="reqn">\mathrm{max}(\textrm{ncomp}) \times J</code>
+containing the values of the regularization parameters
+(default: tau = 1, for each
+block and each dimension), or a string equal to "optimal".
+The regularization parameters varies from 0 (maximizing the correlation) to
+1 (maximizing the covariance).
+</p>
+<p>If tau is a numerical
+value, tau is identical across all constraints applied to all
+block weight vectors.
+</p>
+<p>If tau is a vector, tau[j] is used for the constraints applied to
+all the block weight vectors associated to block <code class="reqn">\mathbf X_j</code>.
+</p>
+<p>If tau is a matrix, tau[k, j] is associated with the constraints
+applied to the kth block weight vector corresponding to block
+<code class="reqn">\mathbf X_j</code>.
+</p>
+<p>If tau = "optimal" the regularization
+parameters are estimated for each block and each dimension using the Schafer
+and Strimmer (2005) analytical formula. The tau parameters can also be
+estimated using
+rgcca_permutation or rgcca_cv.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncomp</code></td>
+<td>
+<p>A numerical value or a vector of length <code class="reqn">J</code> indicating
+the number of components per block. If a single value is provided,
+the same number of components is extracted for every block.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scheme</code></td>
+<td>
+<p>A string or a function specifying the scheme function applied
+to
+covariance maximization among "horst" (the identity function), "factorial"
+(the square function - default value), "centroid" (the absolute value
+function). The scheme function can be any continuously differentiable convex
+function and it is possible to design explicitly the scheme function
+(e.g. function(x) x^4) as argument of the function.  See (Tenenhaus et al,
+2017) for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>A logical value indicating if variables are standardized.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init</code></td>
+<td>
+<p>A string giving the type of initialization to use in
+the RGCCA algorithm. It could be either by
+Singular Value Decompostion ("svd")
+or by random initialization ("random") (default: "svd").</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bias</code></td>
+<td>
+<p>A logical value for biased (<code class="reqn">1/n</code>) or unbiased
+(<code class="reqn">1/(n-1)</code>) estimator of the variance/covariance
+(default: bias = TRUE).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>The stopping value for the convergence of the algorithm
+(default: tol = 1e-08).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>A logical value indicating if the progress of the
+algorithm is reported while computing.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale_block</code></td>
+<td>
+<p>A logical value or a string indicating if each block is
+scaled.
+</p>
+<p>If TRUE or "inertia", each block is divided by the sum of eigenvalues
+of its empirical covariance matrix.
+</p>
+<p>If "lambda1", each block is divided by
+the square root of the highest eigenvalue of its empirical covariance matrix.
+</p>
+<p>If standardization is applied (scale = TRUE), the block scaling applies on
+the standardized blocks.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>A string specifying which multiblock component
+method to consider. Possible values are found using
+available_methods.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sparsity</code></td>
+<td>
+<p>Either a numerical value, a numeric vector of
+size <code class="reqn">J</code> or a numeric matrix
+of dimension <code class="reqn">\textrm{max}(\textrm{ncomp}) \times J</code> encoding the L1
+constraints applied to the
+block weight vectors. For block <code class="reqn">j</code>, the amount of
+sparsity varies between
+<code class="reqn">1/\textrm{sqrt}(p_j)</code> and 1 (larger values of sparsity
+correspond to less penalization).
+</p>
+<p>If sparsity is a numerical value, then sparsity is identical across
+all constraints applied to all block weight vectors.
+</p>
+<p>If sparsity is a vector, sparsity[j] is identical across the constraints
+applied to the block weight vectors associated to block
+<code class="reqn">\mathbf X_j</code>:
+</p>
+<p style="text-align: center;"><code class="reqn">
+   \forall k, \Vert a_{j,k} \Vert_{1} \le \textrm{sparsity}[j] \sqrt{p_j}.
+</code>
+</p>
+
+<p>If sparsity is a matrix, sparsity[k, j] is associated with the constraints
+applied to the kth block weight vector corresponding to block
+<code class="reqn">\mathbf X_j</code>:
+</p>
+<p style="text-align: center;"><code class="reqn">
+   \Vert a_{j,k}\Vert_{1} \le \textrm{sparsity}[k,j] \sqrt{p_j}.
+</code>
+</p>
+
+<p>The sparsity parameter can be estimated by using rgcca_permutation or
+rgcca_cv.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>response</code></td>
+<td>
+<p>A numerical value giving the position of the response block.
+When the response argument is filled, the supervised mode is automatically
+activated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>superblock</code></td>
+<td>
+<p>A logical value indicating if the
+superblock option is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>NA_method</code></td>
+<td>
+<p>A string indicating the method used for
+handling missing values ("na.ignore", "na.omit"). (default: "na.ignore").
+</p>
+
+<ul>
+<li>
+<p> "na.omit" corresponds to perform RGCCA on the fully observed
+observations (observations from which missing values have been removed).
+</p>
+</li>
+<li>
+<p> "na.ignore" corresponds to perform RGCCA algorithm on available
+data (See Tenenhaus et al, 2005).</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quiet</code></td>
+<td>
+<p>A logical value indicating if some diagnostic messages
+are reported.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_iter_max</code></td>
+<td>
+<p>Integer giving the algorithm's maximum number of
+iterations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>comp_orth</code></td>
+<td>
+<p>A logical value indicating if the deflation should lead to
+orthogonal block components or orthogonal block weight vectors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>A</code></td>
+<td>
+<p>Deprecated argument, please use blocks instead.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>C</code></td>
+<td>
+<p>Deprecated argument, please use connection instead.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Given <code class="reqn">J</code> data matrices
+<code class="reqn">\mathbf X_1, \mathbf X_2, \dots, \mathbf X_J</code>
+that represent <code class="reqn">J</code> sets of variables
+observed on the same set of <code class="reqn">n</code> individuals. These matrices
+<code class="reqn">\mathbf X_1, \mathbf X_2, \dots, \mathbf X_J</code>,
+called blocks must have the same number of rows, but may (and usually will)
+have different numbers of columns.
+</p>
+<p>RGCCA aims to study the relationships between these <code class="reqn">J</code> blocks.
+It constitutes a general framework for many multi-block component methods
+(see Tenenhaus and Tenenhaus, 2011 ; Tenenhaus et al. 2017). It combines the
+power of multi-block data analysis  methods (maximization of well identified
+criteria) and the flexibility of PLS path modeling (the researcher decides
+which blocks are connected and which are not). Hence, the use of RGCCA
+requires the construction (user specified) of a design matrix
+<code class="reqn">\mathbf C</code> that
+characterizes the connections between blocks. Elements of the (symmetric)
+design matrix <code class="reqn">\mathbf C = (c_{jk})</code>
+are positive (and usually equal to 1 if blocks <code class="reqn">j</code>
+and <code class="reqn">k</code> are connected, and 0 otherwise).
+The rgcca() function implements
+a monotone global convergent algorithm: the bounded criteria to be
+maximized increases at each step of the iterative procedure and hits, at
+convergence, a stationary point of the RGCCA optimization problem.
+</p>
+<p>Moreover,
+when the tau argument is used, depending on the dimensionality of each block
+<code class="reqn">\mathbf X_j, j = 1, \ldots, J</code>,
+the primal algorithm (when <code class="reqn">n \geq p_j</code>) or the dual algorithm
+(when <code class="reqn">n &lt; p_j</code>) is used (see Tenenhaus et al. 2015).
+</p>
+<p>When sparsity is
+specified SGCCA, extends RGCCA to address the issue of variable selection
+(Tenenhaus et al, 2014). Specifically, RGCCA is combined with an L1-penalty
+that gives rise to Sparse GCCA (SGCCA). The SGCCA algorithm is very similar
+to the RGCCA algorithm and keeps the same convergence properties (i.e. the
+bounded criteria to be maximized increases at each step of the iterative
+procedure and hits at convergence a stationary point).
+</p>
+<p>At last, a deflation strategy can be used to compute several block
+components
+(specified by ncomp) per block. Within each block, components or weight
+vectors are guaranteed to be orthogonal. It should be noted that the numbers
+of components per block can differ from one block to another.
+</p>
+<p>The rgcca() function handle missing values (punctual or blockwise missing
+structure) using the algorithm described in (Tenenhaus et al, 2005).
+</p>
+<p>Guidelines describing how to use RGCCA in practice are provided in
+(Garali et al., 2018).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A fitted rgcca object.
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>A list of <code class="reqn">J</code> elements. The jth element
+of the list <code class="reqn">Y</code>
+is a matrix that contains the block components for block j.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>a</code></td>
+<td>
+<p>A list of <code class="reqn">J</code> elements. The jth element
+of the list <code class="reqn">a</code>
+is a matrix that contains the block weight vectors for block j.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>astar</code></td>
+<td>
+<p>A list of <code class="reqn">J</code> elements. Each column of astar[[j]] is
+a vector such that Y[[j]] = blocks[[j]] %*% astar[[j]].</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>crit</code></td>
+<td>
+<p>A list of vector of length max(ncomp). Each vector of
+the list is related to one specific deflation stage and reports the values
+of the criterion for this stage across iterations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>primal_dual</code></td>
+<td>
+<p>A vector of length J. Element <code class="reqn">j</code>
+is either "primal" or "dual", depending on whether the primal or dual
+RGCCA algorithm was used for block <code class="reqn">j</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>AVE</code></td>
+<td>
+<p>A list of numerical values giving the indicators of model
+quality based on the Average Variance Explained (AVE): AVE(for each block),
+AVE(outer model), AVE(inner model).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optimal</code></td>
+<td>
+<p>A logical value indicating if the Schaffer and
+Strimmer formula was applied for estimating the optimal tau parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>opt</code></td>
+<td>
+<p>A list containing some options of
+the fitted RGCCA object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>Call of the function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>blocks</code></td>
+<td>
+<p>A list that contains the <code class="reqn">J</code>
+blocks of variables
+<code class="reqn">\mathbf X_1, \mathbf X_2, \dots, \mathbf X_J</code>.
+Block <code class="reqn">\mathbf X_j</code> is a matrix of dimension
+<code class="reqn">n \times p_j</code> where <code class="reqn">p_j</code> is the number of
+variables in <code class="reqn">\mathbf X_j</code>. These blocks are preprocessed
+according to the values of
+scale/scale_block/NA_method.</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Garali I, Adanyeguh IM, Ichou F, Perlbarg V, Seyer A, Colsch B,
+Moszer I, Guillemot V, Durr A, Mochel F, Tenenhaus A. (2018) A strategy for
+multimodal data integration: application to biomarkers identification
+in spinocerebellar ataxia. Briefings in Bioinformatics. 19(6):1356-1369.
+</p>
+<p>Tenenhaus M., Tenenhaus A. and Groenen P. J. (2017). Regularized
+generalized canonical correlation analysis: a framework for sequential
+multiblock component methods. Psychometrika, 82(3), 737-777.
+</p>
+<p>Tenenhaus A., Philippe C. and Frouin, V. (2015). Kernel
+generalized canonical correlation analysis. Computational Statistics and
+Data Analysis, 90, 114-131.
+</p>
+<p>Tenenhaus A., Philippe C., Guillemot V., Le Cao K. A., Grill J.
+and Frouin, V. (2014), Variable selection for generalized canonical
+correlation analysis, Biostatistics, 15(3), pp. 569-583.
+</p>
+<p>Tenenhaus A. and Tenenhaus M., (2011). Regularized Generalized
+Canonical Correlation Analysis, Psychometrika, 76(2), pp 257-284.
+</p>
+<p>Tenenhaus, M., Vinzi, V. E., Chatelin, Y. M., &amp; Lauro, C. (2005).
+PLS path modeling. Computational statistics &amp; data analysis, 48(1), 159-205.
+</p>
+<p>Schafer J. and Strimmer K. (2005). A shrinkage approach to
+large-scale covariance matrix estimation and implications for functional
+genomics. Statistical Applications in Genetics and Molecular Biology 4:32.
+</p>
+<p>Arnaud Gloaguen, Vincent Guillemot, Arthur Tenenhaus.
+An efficient algorithm to satisfy l1 and l2 constraints.
+49emes Journees de Statistique, May 2017, Avignon, France. (hal-01630744)
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>plot.rgcca</code>, <code>summary.rgcca</code>,
+<code>rgcca_cv</code>,
+<code>rgcca_permutation</code>
+<code>rgcca_predict</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">####################
+# Example 1: RGCCA #
+####################
+# Create the dataset
+data(Russett)
+blocks &lt;- list(
+  agriculture = Russett[, seq(3)],
+  industry = Russett[, 4:5],
+  politic = Russett[, 6:11]
+)
+
+politic &lt;- as.factor(apply(Russett[, 9:11], 1, which.max))
+
+# RGCCA with default values : Blocks are fully connected, factorial scheme
+# tau = 1 for all blocks, one component per block.
+fit_rgcca &lt;- rgcca(blocks = blocks)
+
+print(fit_rgcca)
+
+plot(fit_rgcca, type = "weight", block = 1:3)
+
+plot(fit_rgcca,
+  type = "sample", block = 1:2,
+  comp = rep(1, 2), resp = politic
+)
+
+
+############################################
+# Example 2: RGCCA and multiple components #
+############################################
+#  By default rgcca() returns orthogonal block components.
+fit_rgcca &lt;- rgcca(blocks,
+  method = "rgcca",
+  connection = 1 - diag(3),
+  superblock = FALSE,
+  tau = rep(1, 3),
+  ncomp = c(2, 2, 2),
+  scheme = "factorial",
+  comp_orth = TRUE,
+  verbose = TRUE
+)
+
+print(fit_rgcca)
+
+plot(fit_rgcca,
+  type = "sample", block = 1,
+  comp = 1:2, resp = politic
+)
+
+plot(fit_rgcca, type = "weight",
+     block = 1:3, display_order = FALSE)
+
+##############################
+# Example 3: MCOA with RGCCA #
+##############################
+
+fit_rgcca &lt;- rgcca(blocks, method = "mcoa", ncomp = 2)
+print(fit_rgcca)
+
+# biplot representation
+plot(fit_rgcca, type = "biplot", block = 4, resp = politic)
+
+## Not run: 
+  ####################################
+  # Example 4: RGCCA and permutation #
+  ####################################
+
+  # Tune the model to find the best set of tau parameters.
+  # By default, blocks are fully connected.
+
+  set.seed(27) #favorite number
+  perm_out &lt;- rgcca_permutation(blocks,
+    n_cores = 1,
+    par_type = "tau",
+    n_perms = 50
+  )
+
+  print(perm_out)
+  plot(perm_out)
+
+  # all the parameters were imported from a fitted permutation object
+  fit_rgcca &lt;- rgcca(perm_out)
+  print(fit_rgcca)
+
+
+  #######################################
+  # Example 5: RGCCA and dual algorithm #
+  #######################################
+  # Download the dataset's package at http://biodev.cea.fr/sgcca/ and install
+  # it from the package archive file.
+  # You can do it with the following R commands:
+  if (!("gliomaData" %in% rownames(installed.packages()))) {
+    destfile &lt;- tempfile()
+    download.file(
+      "http://biodev.cea.fr/sgcca/gliomaData_0.4.tar.gz", destfile
+     )
+    install.packages(destfile, repos = NULL, type = "source")
+  }
+
+  data("ge_cgh_locIGR", package = "gliomaData")
+
+  blocks &lt;- ge_cgh_locIGR$multiblocks
+  Loc &lt;- factor(ge_cgh_locIGR$y)
+  levels(Loc) &lt;- colnames(ge_cgh_locIGR$multiblocks$y)
+  blocks[[3]] &lt;- Loc
+  sapply(blocks, NCOL)
+
+  # rgcca algorithm using the dual formulation for X1 and X2
+  # and the dual formulation for X3. X3 is the group coding matrix associated
+  # with the qualitative variable Loc. This block is considered
+  # as response block and specified using the argument response.
+
+  fit_rgcca &lt;- rgcca(
+    blocks = blocks,
+    response = 3,
+    method = "rgcca",
+    tau = c(1, 1, 0),
+    ncomp = 1,
+    scheme = function(x) x^2, #factorial scheme,
+    verbose = TRUE,
+  )
+
+  fit_rgcca$primal_dual
+  print(fit_rgcca)
+
+  ###########################################
+  # Example 6: RGCCA and variable selection #
+  ###########################################
+
+  # Variable selection and RGCCA : the sgcca algorithm
+  fit_sgcca &lt;- rgcca(
+    blocks = blocks,
+    method = "sgcca",
+    response = 3,
+    sparsity = c(.071, .2, 1), ncomp = 1,
+    scheme = "factorial", verbose = TRUE,
+  )
+
+  print(fit_sgcca)
+
+
+  ############################################
+  #  Example 7: RGCCA, multiple components   #
+  #  and different penalties per component   #
+  ############################################
+
+  # S/RGCCA algorithm with multiple components and different
+  # penalties for each components (-&gt; sparsity is a matrix)
+
+  fit_rgcca &lt;- rgcca(blocks, response = 3,
+    tau = matrix(c(.5, .5, 0, 1, 1, 0), nrow = 2, byrow = TRUE),
+    ncomp = c(2, 2, 1), scheme = "factorial")
+
+  print(fit_rgcca)
+
+
+  # the same applies for SGCCA
+  fit_sgcca &lt;- rgcca(blocks, response = 3,
+    sparsity = matrix(c(.071, 0.2,  1,
+                        0.06, 0.15, 1), nrow = 2, byrow = TRUE),
+    ncomp = c(2, 2, 1), scheme = "factorial")
+
+  print(fit_sgcca)
+
+  ##################################################
+  # Example 8: Supervised mode en cross validation #
+  ##################################################
+  # Prediction of the location from GE and CGH
+
+  # Tune sparsity values based on the cross-validated accuracy.
+  set.seed(27) #favorite number
+  cv_out &lt;- rgcca_cv(blocks, response = 3,
+                     par_type = "sparsity",
+                     par_length = 10,
+                     ncomp = 1,
+                     prediction_model = "lda",
+                     metric = "Accuracy",
+                     k = 3, n_run = 5,
+                     n_cores = 2)
+  print(cv_out)
+  plot(cv_out, display_order = TRUE)
+
+  # all the parameters were imported from the fitted cval object.
+  fit_rgcca &lt;- rgcca(cv_out)
+  print(fit_rgcca)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

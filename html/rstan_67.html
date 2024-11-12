@@ -1,0 +1,160 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>expose_stan_functions</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Expose user-defined Stan functions to <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> for testing and simulation
+</h2>
+
+<h3>Description</h3>
+
+<p>The Stan modeling language allows users to define their own functions in a 
+<code>functions</code> block at the top of a Stan program. The 
+<code>expose_stan_functions</code> utility function uses
+<code>sourceCpp</code> to export those user-defined functions
+to the specified environment for testing inside <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> or for doing posterior
+predictive simulations in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> rather than in the <code>generated 
+  quantities</code> block of a Stan program.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">  expose_stan_functions(stanmodel, includes = NULL, 
+                        show_compiler_warnings = FALSE, ...)
+  get_rng(seed = 0L)
+  get_stream()
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>stanmodel</code></td>
+<td>
+
+<p>A <code>stanmodel</code> object, a <code>stanfit</code> 
+object, a list produced by <code>stanc</code> or the path to a Stan 
+program (<code>.stan</code> file). In any of these cases, the underlying Stan 
+program should contain a non-empty <code>functions</code> block.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>includes</code></td>
+<td>
+<p>If not <code>NULL</code> (the default), then a character vector of
+length one (possibly containing one or more <code>"\n"</code>) of the form 
+<code>'#include "/full/path/to/my_header.hpp"'</code>, which will be inserted
+into the C++ code in the model's namespace and can be used to provide definitions 
+of functions that are declared but not defined in <code>stanmodel</code>
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>show_compiler_warnings</code></td>
+<td>
+<p>Logical scalar defaulting to <code>FALSE</code> that
+controls whether compiler warnings, which can be numerous and have never
+been relevant, are shown</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>An integer vector of length one indicating the state of Stan's
+pseudo-random number generator</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>Further arguments passed to <code>sourceCpp</code>.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The <code>expose_stan_functions</code> function requires as much compliance with
+the C++14 standard as is implemented in the RTools toolchain for Windows.
+On Windows, you will likely need to specify <code>CXX14 = g++ -std=c++1y</code>
+in the file whose path is <code>normalizePath("~/.R/Makevars")</code> in
+order for <code>expose_stan_functions</code> to work. Outside of Windows, the
+necessary compiler flags are set programatically, which is likely to suffice.
+</p>
+<p>There are a few special types of user-defined Stan functions for which some 
+additional details are relevant:
+</p>
+
+
+<h4>(P)RNG functions</h4>
+
+<p>If a user-defined Stan function ends in <code>_rng</code>, then it can
+use the Boost pseudo-random number generator used by Stan. When exposing
+such functions to <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>, <code>base_rng__</code> and <code>pstream__</code> arguments will 
+be added to the <code>formals</code>. The <code>base_rng__</code> argument should
+be passed the result of a call to <code>get_rng</code> (perhaps specifying its
+<code>seed</code> argument for reproducibility) and the <code>pstream__</code> should
+be passed the result of a call to <code>get_stream</code>, which can be used to
+see the result of <code>print</code> and <code>reject</code> calls in the user-defined
+Stan functions. These arguments default to <code>get_stream()</code> and
+<code>get_rng()</code> respectively.
+</p>
+
+
+
+<h4>LP functions</h4>
+
+<p>If a user-defined Stan function ends in <code>_lp</code>, then it can
+modify the log-probability used by Stan to evaluate Metropolis
+proposals or as an objective function for optimization. When exposing
+such functions to <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>, a <code>lp__</code> argument will be added to the 
+<code>formals</code>. This <code>lp__</code> argument defaults to zero, but a 
+<code>double</code> precision scalar may be  passed to this argument when the 
+function is called from <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>. Such a user-defined Stan function can terminate 
+with <code>return target();</code> or can execute <code>print(target());</code> to verify that 
+the calculation is correct.
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>The names of the new functions in <code>env</code> are returned invisibly.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>sourceCpp</code> and the section in the Stan User Manual on
+user-defined functions
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+model_code &lt;-
+  '
+  functions {
+    real standard_normal_rng() {
+      return normal_rng(0,1);
+   }
+  }
+'
+expose_stan_functions(stanc(model_code = model_code))
+standard_normal_rng()
+PRNG &lt;- get_rng(seed = 3)
+o &lt;- get_stream()
+standard_normal_rng(PRNG, o)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

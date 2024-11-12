@@ -1,0 +1,399 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>overfitRR</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Testing RRphylo methods overfit</h2>
+
+<h3>Description</h3>
+
+<p>Testing the robustness of <code>search.trend</code>
+(<cite>Castiglione et al. 2019a</cite>), <code>search.shift</code>
+(<cite>Castiglione et al. 2018</cite>),  <code>search.conv</code>
+(<cite>Castiglione et al. 2019b</cite>), and <code>PGLS_fossil</code> results to
+sampling effects and phylogenetic uncertainty.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">overfitRR(RR,y,phylo.list=NULL,s=0.25,swap.args=NULL,trend.args=NULL,shift.args=NULL,
+conv.args=NULL, pgls.args=NULL,aces=NULL,x1=NULL,aces.x1=NULL,cov=NULL,
+rootV=NULL,nsim=100,clus=0.5)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>RR</code></td>
+<td>
+<p>an object produced by <code>RRphylo</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>a named vector of phenotypes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phylo.list</code></td>
+<td>
+<p>a list (or multiPhylo) of alternative phylogenies to be
+tested.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s</code></td>
+<td>
+<p>the percentage of tips to be cut off. It is set at 25% by default.
+If <code>phylo.list</code> is provided, this argument is ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>swap.args</code></td>
+<td>
+<p>a list of arguments to be passed to the function
+<code>swapONE</code>, including <code>list(si=NULL,si2=NULL,</code>
+<code>node=NULL)</code>. If <code>swap.arg</code> is unspecified, the function
+automatically sets both <code>si</code> and <code>si2</code> to 0.1. If
+<code>phylo.list</code> is provided, swapping is not performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trend.args</code></td>
+<td>
+<p>a list of arguments specific to the function
+<code>search.trend</code>, including <code>list(node=NULL,x1.residuals=FALSE)</code>.
+If a trend for the whole tree is to be tested, type <code>trend.args =
+list()</code>. No trend is tested if left unspecified.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>shift.args</code></td>
+<td>
+<p>a list of arguments specific to the function
+<code>search.shift</code>, including <code>list(node=NULL,</code> <code>state=NULL)</code>.
+Arguments <code>node</code> and <code>state</code> can be specified at the same time.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>conv.args</code></td>
+<td>
+<p>a list of arguments specific to the function
+<code>search.conv</code>, including <code>list(node=NULL,</code> <code>state=NULL,
+declust=FALSE)</code>. Arguments <code>node</code> and <code>state</code> can be specified at
+the same time.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pgls.args</code></td>
+<td>
+<p>a list of arguments specific to the function
+<code>PGLS_fossil</code>, including <code>list(modform,</code> <code>data,
+tree=FALSE,RR=TRUE,...)</code>. If <code>tree=TRUE</code>, <code>PGLS_fossil</code> is
+performed by using the RRphylo output tree as <code>tree</code> argument. If
+<code>RR=TRUE</code>, <code>PGLS_fossil</code> is performed by using the RRphylo output
+as <code>RR</code> argument. Arguments <code>tree</code> and <code>RR</code> can be
+<code>TRUE</code> at the same time. <code>...</code> are further argument passed to
+<code>PGLS_fossil</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aces</code></td>
+<td>
+<p>if used to produce the <code>RR</code> object, the vector of those
+ancestral character values at nodes known in advance must be specified.
+Names correspond to the nodes in the tree.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x1</code></td>
+<td>
+<p>the additional predictor to be specified if the RR object has been
+created using an additional predictor (i.e. multiple version of
+<code>RRphylo</code>). <code>'x1'</code> vector must be as long as the number of nodes
+plus the number of tips of the tree, which can be obtained by running
+<code>RRphylo</code> on the predictor as well, and taking the vector of ancestral
+states and tip values to form the <code>x1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aces.x1</code></td>
+<td>
+<p>a named vector of ancestral character values at nodes for
+<code>x1</code>. It must be indicated if the RR object has been created using
+both <code>aces</code> and <code>x1</code>. Names correspond to the nodes in the tree.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cov</code></td>
+<td>
+<p>if used to produce the <code>RR</code> object, the covariate must be
+specified. As in <code>RRphylo</code>, the covariate vector must be as long as
+the number of nodes plus the number of tips of the tree, which can be
+obtained by running <code>RRphylo</code> on the covariate as well, and taking the
+vector of ancestral states and tip values to form the covariate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rootV</code></td>
+<td>
+<p>if used to produce the <code>RR</code> object, the phenotypic value at
+the tree root must be specified.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nsim</code></td>
+<td>
+<p>number of simulations to be performed. It is set at 100 by
+default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>clus</code></td>
+<td>
+<p>the proportion of clusters to be used in parallel computing. To
+run the single-threaded version of <code>overfitRR</code> set <code>clus</code> = 0.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Methods using a large number of parameters risk being overfit. This
+usually translates in poor fitting with data and trees other than the those
+originally used. With <code>RRphylo</code> methods this risk is usually very low.
+However, the user can assess how robust the results got by applying
+<code>search.shift</code>, <code>search.trend</code>, <code>search.conv</code> or
+<code>PGLS_fossil</code> are by running <code>overfitRR</code>. With the latter, the
+original tree and data are subsampled by specifying a <code>s</code> parameter,
+that is the proportion of tips to be removed from the tree. In some cases,
+though, removing as many tips as imposed by <code>s</code> would delete too many
+tips right in clades and/or states under testing. In these cases, the
+function maintains no less than 5 species at least in each clade/state
+under testing (or all species if there is less), reducing the sampling
+parameter <code>s</code> if necessary. Internally, <code>overfitRR</code> further
+shuffles the tree by using the function <code>swapONE</code>. Thereby,
+both the potential for overfit and phylogenetic uncertainty are accounted
+for straight away.
+</p>
+<p>Otherwise, a list of alternative phylogenies can be supplied to
+<code>overfitRR</code>. In this case subsampling and swapping arguments are
+ignored, and robustness testing is performed on the alternative topologies
+as they are. If a clade has to be tested either in <code>search.shift</code>,
+<code>search.trend</code>, or <code>search.conv</code>, the function scans each
+alternative topology searching for the corresponding clade. If the species
+within such clade on the alternative topology differ more than 10
+species within the clade in the original tree, the identity of the clade is
+considered disrupted and the test is not performed.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The function returns a 'RRphyloList' object containing:
+</p>
+<p><strong>$mean.sampling</strong> the mean proportion of species actually
+removed from the tree over the iterations.
+</p>
+<p><strong>$tree.list</strong> a 'multiPhylo' list including the trees generated
+within <code>overfitRR</code>
+</p>
+<p><strong>$RR.list</strong> a 'RRphyloList' including the results of each
+<code>RRphylo</code> performed within <code>overfitRR</code>
+</p>
+<p><strong>$rootCI</strong> the 95% confidence interval around the root value.
+</p>
+<p><strong>$ace.regressions</strong> a 'RRphyloList' including the results of
+linear regression between ancestral state estimates before and after the
+subsampling.
+</p>
+<p><strong>$conv.results</strong> a list including results for
+<code>search.conv</code> performed under <code>clade</code> and <code>state</code>
+conditions. If a node pair is specified within <code>conv.args</code>, the
+<code>$clade</code> object contains the percentage of simulations producing
+significant p-values for convergence between the clades, and the proportion
+of tested trees (i.e. where the clades identity was preserved; always 1 if
+no <code>phylo.list</code> is supplied). If a state vector is supplied within
+<code>conv.args</code>, the object <code>$state</code> contains the percentage of
+simulations producing significant p-values for convergence within (single
+state) or between states (multiple states).
+</p>
+<p><strong>$shift.results</strong> a list including results for
+<code>search.shift</code> performed under <code>clade</code> and <code>sparse</code>
+conditions. If one or more nodes are specified within <code>shift.args</code>,
+the <code>$clade</code> object contains for each node the percentage of
+simulations producing significant p-value separated by shift sign, and the
+same figures by considering all the specified nodes as evolving under a
+single rate (all.clades). For each node the proportion of tested trees
+(i.e. where the clade identity was preserved; always 1 if no
+<code>phylo.list</code> is supplied) is also indicated. If a state vector is
+supplied within <code>shift.args</code>, the object <code>$sparse</code> contains the
+percentage of simulations producing significant p-value separated by shift
+sign ($p.states).
+</p>
+<p><strong>$trend.results</strong> a list including the percentage of
+simulations showing significant p-values for phenotypes versus age and
+absolute rates versus age regressions for the entire tree separated by
+slope sign ($tree). If one or more nodes are specified within
+<code>trend.args</code>, the list also includes the same results at nodes ($node)
+and the results for comparison between nodes ($comparison). For each node the proportion
+of tested trees (i.e. where the clade identity was preserved; always 1 if
+no <code>phylo.list</code> is supplied) is also indicated.
+</p>
+<p><strong>$pgls.results</strong> two 'RRphyloList' objects including results of
+<code>PGLS_fossil</code> performed by using the phylogeny as it is (<code>$tree</code>)
+or rescaled according to the <code>RRphylo</code> rates (<code>$RR</code>).
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Silvia Castiglione, Carmela Serio, Pasquale Raia
+</p>
+
+
+<h3>References</h3>
+
+<p>Castiglione, S., Tesone, G., Piccolo, M., Melchionna, M.,
+Mondanaro, A., Serio, C., Di Febbraro, M., &amp; Raia, P. (2018). A new method
+for testing evolutionary rate variation and shifts in phenotypic evolution.
+<em>Methods in Ecology and Evolution</em>, 9:
+974-983.doi:10.1111/2041-210X.12954
+</p>
+<p>Castiglione, S., Serio, C., Mondanaro, A., Di Febbraro, M.,
+Profico, A., Girardi, G., &amp; Raia, P. (2019a) Simultaneous detection of
+macroevolutionary patterns in phenotypic means and rate of change with and
+within phylogenetic trees including extinct species. <em>PLoS ONE</em>, 14:
+e0210101. https://doi.org/10.1371/journal.pone.0210101
+</p>
+<p>Castiglione, S., Serio, C., Tamagnini, D., Melchionna, M.,
+Mondanaro, A., Di Febbraro, M., Profico, A., Piras, P.,Barattolo, F., &amp;
+Raia, P. (2019b). A new, fast method to search for morphological
+convergence with shape data. <em>PLoS ONE</em>, 14, e0226949.
+https://doi.org/10.1371/journal.pone.0226949
+</p>
+
+
+<h3>See Also</h3>
+
+<p><a href="../doc/overfitRR.html"><code>overfitRR</code> vignette</a> ;
+<a href="../doc/search.trend.html"><code>search.trend</code> vignette</a> ;
+<a href="../doc/search.shift.html"><code>search.shift</code> vignette</a> ;
+<a href="../doc/search.conv.html"><code>search.conv</code> vignette</a> ;
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+data("DataOrnithodirans")
+DataOrnithodirans$treedino-&gt;treedino
+DataOrnithodirans$massdino-&gt;massdino
+DataOrnithodirans$statedino-&gt;statedino
+cc&lt;- 2/parallel::detectCores()
+
+# Extract Pterosaurs tree and data
+library(ape)
+extract.clade(treedino,746)-&gt;treeptero
+massdino[match(treeptero$tip.label,names(massdino))]-&gt;massptero
+massptero[match(treeptero$tip.label,names(massptero))]-&gt;massptero
+
+
+RRphylo(tree=treedino,y=massdino,clus=cc)-&gt;dinoRates
+RRphylo(tree=treeptero,y=log(massptero),clus=cc)-&gt;RRptero
+
+# Case 1 search.shift under both "clade" and "sparse" condition
+search.shift(RR=dinoRates, status.type= "clade")-&gt;SSnode
+search.shift(RR=dinoRates, status.type= "sparse", state=statedino)-&gt;SSstate
+
+overfitRR(RR=dinoRates,y=massdino,swap.args =list(si=0.2,si2=0.2),
+          shift.args = list(node=rownames(SSnode$single.clades),state=statedino),
+          nsim=10,clus=cc)-&gt;orr.ss
+
+# Case 2 search.trend on the entire tree
+search.trend(RR=RRptero, y=log(massptero),nsim=100,clus=cc,cov=NULL,node=NULL)-&gt;STtree
+
+overfitRR(RR=RRptero,y=log(massptero),swap.args =list(si=0.2,si2=0.2),
+          trend.args = list(),nsim=10,clus=cc)-&gt;orr.st1
+
+# Case 3 search.trend at specified nodescov=NULL,
+search.trend(RR=RRptero, y=log(massptero),node=143,clus=cc)-&gt;STnode
+
+overfitRR(RR=RRptero,y=log(massptero),
+          trend.args = list(node=143),nsim=10,clus=cc)-&gt;orr.st2
+
+# Case 4 overfitRR on multiple RRphylo
+data("DataCetaceans")
+DataCetaceans$treecet-&gt;treecet
+DataCetaceans$masscet-&gt;masscet
+DataCetaceans$brainmasscet-&gt;brainmasscet
+DataCetaceans$aceMyst-&gt;aceMyst
+
+ape::drop.tip(treecet,treecet$tip.label[-match(names(brainmasscet),
+                                               treecet$tip.label)])-&gt;treecet.multi
+masscet[match(treecet.multi$tip.label,names(masscet))]-&gt;masscet.multi
+
+RRphylo(tree=treecet.multi,y=masscet.multi,clus=cc)-&gt;RRmass.multi
+RRmass.multi$aces[,1]-&gt;acemass.multi
+c(acemass.multi,masscet.multi)-&gt;x1.mass
+
+RRphylo(tree=treecet.multi,y=brainmasscet,x1=x1.mass,clus=cc)-&gt;RRmulti
+search.trend(RR=RRmulti, y=brainmasscet,x1=x1.mass,clus=cc)-&gt;STcet
+overfitRR(RR=RRmulti,y=brainmasscet,trend.args = list(),
+          x1=x1.mass,nsim=10,clus=cc)-&gt;orr.st3
+
+search.trend(RR=RRmulti, y=brainmasscet,x1=x1.mass,x1.residuals=TRUE,
+             clus=cc)-&gt;STcet.resi
+overfitRR(RR=RRmulti,y=brainmasscet,trend.args = list(x1.residuals=TRUE),
+          x1=x1.mass,nsim=10,clus=cc)-&gt;orr.st4
+
+# Case 5 searching convergence between clades and within a single state
+data("DataFelids")
+DataFelids$PCscoresfel-&gt;PCscoresfel
+DataFelids$treefel-&gt;treefel
+DataFelids$statefel-&gt;statefel
+
+RRphylo(tree=treefel,y=PCscoresfel,clus=cc)-&gt;RRfel
+search.conv(RR=RRfel, y=PCscoresfel, min.dim=5, min.dist="node9",clus=cc)-&gt;SC.clade
+as.numeric(c(rownames(SC.clade[[1]])[1],as.numeric(as.character(SC.clade[[1]][1,1]))))-&gt;conv.nodes
+
+overfitRR(RR=RRfel, y=PCscoresfel,conv.args =
+list(node=conv.nodes,state=statefel,declust=TRUE),nsim=10,clus=cc)-&gt;orr.sc
+
+# Case 6 overfitRR on PGLS_fossil
+library(phytools)
+rtree(100)-&gt;tree
+fastBM(tree)-&gt;resp
+fastBM(tree,nsim=3)-&gt;resp.multi
+fastBM(tree)-&gt;pred1
+fastBM(tree)-&gt;pred2
+
+PGLS_fossil(modform=y1~x1+x2,data=list(y1=resp,x2=pred1,x1=pred2),tree=tree)-&gt;pgls_noRR
+
+RRphylo(tree,resp,clus=cc)-&gt;RR
+PGLS_fossil(modform=y1~x1+x2,data=list(y1=resp,x2=pred1,x1=pred2),tree=tree,RR=RR)-&gt;pgls_RR
+
+overfitRR(RR=RR,y=resp,
+          pgls.args=list(modform=y1~x1+x2,data=list(y1=resp,x2=pred1,x1=pred2),
+                         tree=TRUE,RR=TRUE),nsim=10,clus=cc)-&gt;orr.pgls1
+
+PGLS_fossil(modform=y1~x1+x2,data=list(y1=resp.multi,x2=pred1,x1=pred2),tree=tree)-&gt;pgls2_noRR
+
+RRphylo(tree,resp.multi,clus=cc)-&gt;RR
+PGLS_fossil(modform=y1~x1+x2,data=list(y1=resp.multi,x2=pred1,x1=pred2),tree=tree,RR=RR)-&gt;pgls2_RR
+
+overfitRR(RR=RR,y=resp.multi,
+          pgls.args=list(modform=y1~x1+x2,data=list(y1=resp.multi,x2=pred1,x1=pred2),
+                         tree=TRUE,RR=TRUE),nsim=10,clus=cc)-&gt;orr.pgls2
+
+
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,288 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>reReg</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fits Semiparametric Regression Models for Recurrent Event Data</h2>
+
+<h3>Description</h3>
+
+<p>Fits a general (joint) semiparametric regression model for the recurrent event data,
+where the rate function of the underlying recurrent event process and
+the hazard function of the terminal event can be specified as a Cox-type model,
+an accelerated mean model, an accelerated rate model, or a generalized scale-change model.
+See details for model specifications.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">reReg(
+  formula,
+  data,
+  subset,
+  model = "cox",
+  B = 0,
+  se = c("boot", "sand"),
+  control = list()
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a formula object, with the response on the left of a "~" operator,
+and the predictors on the right.
+The response must be a recurrent event survival object as returned by function <code>Recur</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>an optional data frame in which to interpret the variables occurring
+in the <code>"formula"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subset</code></td>
+<td>
+<p>an optional logical vector specifying a subset of observations to be used
+in the fitting process.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>a character string specifying the underlying model.
+The available functional form for the rate function and the hazard function include a Cox-type model,
+an accelerated mean model, an accelerated rate model, or a generalized scale-change model,
+and can be specified via "cox", "am", "ar", or "gsc", respectively.
+The rate function and hazard function separated by "<code>|</code>".
+See <b>Details</b>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B</code></td>
+<td>
+<p>a numeric value specifies the number of bootstraps for variance estimation.
+When <code>B = 0</code>, variance estimation will not be performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>se</code></td>
+<td>
+<p>a character string specifying the method for the variance estimation. See <b>Details</b>.
+</p>
+
+<dl>
+<dt><code>boot</code></dt>
+<dd>
+<p> nonparametric bootstrap approach</p>
+</dd>
+<dt><code>sand</code></dt>
+<dd>
+<p> resampling-based sandwich estimator</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>a list of control parameters. See <code>reReg.control</code> for default values.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><b>Model specification:</b>
+</p>
+<p>Suppose the recurrent event process and the failure events are
+observed in the time interval <code class="reqn">t\in[0,\tau]</code>,
+for some constant <code class="reqn">\tau</code>.
+We formulate the recurrent event rate function, <code class="reqn">\lambda(t)</code>,
+and the terminal event hazard function, <code class="reqn">h(t)</code>, 
+in the form of
+</p>
+<p style="text-align: center;"><code class="reqn">\lambda(t) = Z \lambda_0(te^{X^\top\alpha}) e^{X^\top\beta}, h(t) = Z h_0(te^{X^\top\eta})e^{X^\top\theta},</code>
+</p>
+
+<p>where <code class="reqn">\lambda_0(t)</code> is the baseline rate function,
+<code class="reqn">h_0(t)</code> is the baseline hazard function,
+<code class="reqn">X</code> is a <code class="reqn">n</code> by <code class="reqn">p</code> covariate matrix and <code class="reqn">\alpha</code>,
+<code class="reqn">Z</code> is an unobserved shared frailty variable, and
+<code class="reqn">(\alpha, \eta)</code> and <code class="reqn">(\beta, \theta)</code> correspond to the shape and size parameters,
+respectively.
+The model includes several popular semiparametric models as special cases,
+which can be specified via the <code>model</code> argument with the rate function
+and the hazard function separated by "<code>|</code>".
+For examples,
+Wang, Qin and Chiang (2001) (<code class="reqn">\alpha = \eta = \theta = 0</code>)
+can be called with <code>model = "cox"</code>;
+Huang and Wang (2004) (<code class="reqn">\alpha = \eta = 0</code>)
+can be called with <code>model = "cox|cox"</code>;
+Xu et al. (2017) (<code class="reqn">\alpha = \beta</code> and <code class="reqn">\eta = \theta</code>)
+can be called with <code>model = "am|am"</code>;
+Xu et al. (2019) (<code class="reqn">\eta = \theta = 0</code>) can be called with <code>model = "gsc"</code>.
+Users can mix the models depending on the application. For example,
+<code>model = "cox|ar"</code> postulate a Cox proportional model for the
+recurrent event rate function and an accelerated rate model for
+the terminal event hazard function (<code class="reqn">\alpha = \theta = 0</code>).
+If only one model is specified without an "<code>|</code>",
+it is used for both the rate function and the hazard function.
+For example, specifying <code>model = "cox"</code> is equivalent to <code>model = "cox|cox"</code>.
+Some models that assumes <code>Z = 1</code> and requires independent
+censoring are also implemented in <code>reReg</code>;
+these includes <code>model = "cox.LWYY"</code> for Lin et al. (2000),
+<code>model = "cox.GL"</code> for Ghosh and Lin (2002),
+and <code>model = "am.GL"</code> for Ghosh and Lin (2003).
+Additionally, an improved estimation of the proportional rate model
+(Huang and Huang 2022) can be called by <code>model = "cox.HH"</code> with
+additional <code>control</code> options to specify the underlying procedure.
+See <a href="https://www.sychiou.com/reReg/articles/reReg-reg.html">online vignette</a>
+for a detailed discussion of the implemented regression models.
+</p>
+<p><b>Variance estimation:</b>
+</p>
+<p>The available methods for variance estimation are:
+</p>
+
+<dl>
+<dt>boot</dt>
+<dd>
+<p>performs nonparametric bootstrap.</p>
+</dd>
+<dt>sand</dt>
+<dd>
+<p>performs the efficient resampling-based variance estimation.</p>
+</dd>
+</dl>
+<p><b>Improving proportional rate model:</b>
+A common semiparametric regression model for recurrent event process
+under the noninformative censoring assumption is the Cox-type proportional rate model
+(available in <code>reReg()</code> via <code>model = "cox.LWYY"</code>).
+However, the construction of the pseudo-partial score function ignores the
+dependency among recurrent events and thus could be inefficient. 
+To improve upon this popular method, Huang and Huang (2022) proposed to combine
+a system of weighted pseudo-partial score equations via the generalized method of moments (GMM)
+and empirical likelihood (EL) estimation.
+The proposed GMM and EL procedures are available in <code>reReg</code> via <code>model = "cox.HH"</code>
+with additional control specifications.
+See <a href="https://www.sychiou.com/reReg/articles/reReg-cppl.html">online vignette</a>
+for an illustration of this feature.
+</p>
+<p><b>Control options:</b>
+</p>
+<p>The <code>control</code> list consists of the following parameters:
+</p>
+
+<dl>
+<dt>tol</dt>
+<dd>
+<p>absolute error tolerance.</p>
+</dd>
+<dt>init</dt>
+<dd>
+<p>a list contains initial guesses used for root search.</p>
+</dd>
+<dt>solver</dt>
+<dd>
+<p>the equation solver used for root search.
+The available options are <code>BB::BBsolve</code>, <code>BB::dfsane</code>, <code>BB::BBoptim</code>, 
+<code>optimx::optimr</code>, <code>dfoptim::hjk</code>, <code>dfoptim::mads</code>, <code>optim</code>,
+and <code>nleqslv::nleqslv</code>.</p>
+</dd>
+<dt>eqType</dt>
+<dd>
+<p>a character string indicating whether the log-rank type estimating equation or
+the Gehan-type estimating equation (when available) will be used. </p>
+</dd>
+<dt>boot.parallel</dt>
+<dd>
+<p>an logical value indicating whether parallel computation
+will be applied when <code>se = "boot"</code> is called.</p>
+</dd>
+<dt>boot.parCl</dt>
+<dd>
+<p>an integer value specifying the number of CPU cores to be used when
+<code>parallel = TRUE</code>. The default value is half the CPU cores on the current host.</p>
+</dd>
+<dt>cppl</dt>
+<dd>
+<p>A character string indicating either to improve the proportional rate model via
+the generalized method of moments (<code>cppl = "GMM"</code>) or empirical likelihood estimation (<code>cppl = "EL"</code>).
+This option is only used when <code>model = "cox.HH"</code>.</p>
+</dd>
+<dt>cppl.wfun</dt>
+<dd>
+<p>A list of (up to two) weight functions to be combined with the weighted pseudo-partial likelihood scores.
+Available options are <code>"Gehan"</code> and <code>"cumbase"</code>,
+which correspond to the Gehan's weight and the cumulative baseline hazard function, respectively.
+Alternatively, the weight functions can be specified with function formulas.
+This option is only used when <code>model = "cox.HH"</code>.</p>
+</dd>
+<dt>trace</dt>
+<dd>
+<p>A logical variable denoting whether some of the
+intermediate results of iterations should be displayed to the user.  Default is <code>FALSE</code>.</p>
+</dd>
+</dl>
+<h3>References</h3>
+
+<p>Chiou, S.H., Xu, G., Yan, J. and Huang, C.-Y. (2023). Regression Modeling for Recurrent Events Possibly with an Informative Terminal Event Using R Package reReg.
+<em>Journal of Statistical Software</em>, <b>105</b>(5): 1–34.
+</p>
+<p>Lin, D., Wei, L., Yang, I. and Ying, Z. (2000). Semiparametric Regression for the Mean and Rate Functions of Recurrent Events.
+<em>Journal of the Royal Statistical Society: Series B (Methodological)</em>, <b>62</b>: 711–730.
+</p>
+<p>Wang, M.-C., Qin, J., and Chiang, C.-T. (2001). Analyzing Recurrent Event Data with Informative Censoring.
+<em>Journal of the American Statistical Association</em>, <b>96</b>(455): 1057–1065.
+</p>
+<p>Ghosh, D. and Lin, D.Y. (2002). Marginal Regression Models for Recurrent and Terminal Events. <em>Statistica Sinica</em>: 663–688.
+</p>
+<p>Ghosh, D. and Lin, D.Y. (2003). Semiparametric Analysis of Recurrent Events Data in the Presence of Dependent Censoring.
+<em>Biometrics</em>, <b>59</b>: 877–885.
+</p>
+<p>Huang, C.-Y. and Wang, M.-C. (2004). Joint Modeling and Estimation for Recurrent Event Processes and Failure Time Data.
+<em>Journal of the American Statistical Association</em>, <b>99</b>(468): 1153–1165.
+</p>
+<p>Xu, G., Chiou, S.H., Huang, C.-Y., Wang, M.-C. and Yan, J. (2017). Joint Scale-change Models for Recurrent Events and Failure Time.
+<em>Journal of the American Statistical Association</em>, <b>112</b>(518): 796–805.
+</p>
+<p>Xu, G., Chiou, S.H., Yan, J., Marr, K., and Huang, C.-Y. (2019). Generalized Scale-Change Models for Recurrent Event
+Processes under Informative Censoring. <em>Statistica Sinica</em>, <b>30</b>: 1773–1795.
+</p>
+<p>Huang, M.-Y. and Huang, C.-Y. (2022). Improved semiparametric estimation of the proportional rate model with recurrent event data.
+<em>Biometrics</em>, <b>79</b> 3: 1686–1700.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>Recur</code>, <code>simGSC</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(simDat)
+
+## Nonparametric estimate
+plot(reReg(Recur(t.start %to% t.stop, id, event, status) ~ 1, data = simDat, B = 50))
+
+fm &lt;- Recur(t.start %to% t.stop, id, event, status) ~ x1 + x2
+## Fit the Cox rate model
+summary(reReg(fm, data = simDat, model = "cox", B = 50))
+## Fit the joint Cox/Cox model
+summary(reReg(fm, data = simDat, model = "cox|cox", B = 50))
+## Fit the scale-change rate model
+summary(reReg(fm, data = simDat, model = "gsc", B = 50, se = "sand"))
+</code></pre>
+
+
+</div>

@@ -1,0 +1,167 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>kappaIBD</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>IBD (kappa) coefficients</h2>
+
+<h3>Description</h3>
+
+<p>Computes the three IBD coefficients summarising the relationship between two
+non-inbred individuals. Both autosomal and X chromosomal versions are
+implemented. The pedigree founders (other than the individuals in question)
+are allowed to be inbred; see <code>pedtools::founderInbreeding()</code> for how to set
+this up, and see Examples below.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">kappaIBD(x, ids = labels(x), inbredAction = 1, simplify = TRUE, Xchrom = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A pedigree in the form of a <code>ped</code> object (or a list of such).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ids</code></td>
+<td>
+<p>A character (or coercible to character) containing ID labels of
+two or more pedigree members.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inbredAction</code></td>
+<td>
+<p>An integer telling the program what to do if either of
+the <code>ids</code> individuals are inbred. Possible values are: 0 = do nothing; 1 =
+print a warning message (default); 2 = raise an error. In the first two
+cases the coefficients are reported as <code>NA</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>simplify</code></td>
+<td>
+<p>Simplify the output (to a numeric of length 3) if <code>ids</code> has
+length 2. Default: TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Xchrom</code></td>
+<td>
+<p>A logical, indicating if the autosomal (default) or
+X-chromosomal kappa coefficients should be computed.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For non-inbred individuals a and b, their autosomal IBD coefficients
+<code class="reqn">(\kappa_0, \kappa_1, \kappa_2)</code> are defined as follows: </p>
+<p style="text-align: center;"><code class="reqn">\kappa_i =
+P(\text{a and b share exactly i alleles IBD at a random autosomal locus})</code>
+</p>
+
+<p>The autosomal kappa coefficients are computed from the kinship coefficients.
+When a and b are both nonfounders, the following formulas hold:
+</p>
+
+<ul>
+<li> <p><code class="reqn">\kappa_2 = \varphi_{MM} \cdot \varphi_{FF} + \varphi_{MF} \cdot\varphi_{FM}</code>
+</p>
+</li>
+<li> <p><code class="reqn">\kappa_1 = 4 \varphi_{ab} - 2 \kappa_2</code>
+</p>
+</li>
+<li> <p><code class="reqn">\kappa_0 = 1 - \kappa_1 - \kappa_2</code>
+</p>
+</li>
+</ul>
+<p>Here <code class="reqn">\varphi_{MF}</code> denotes the kinship coefficient between the
+<strong>m</strong>other of a and the <strong>f</strong>ather of b, etc. If either a or b is a founder,
+then <code class="reqn">\kappa_2 = 0</code>, while the other two formulas remain as before.
+</p>
+<p>The X-chromosomal IBD coefficients are defined similarly to the autosomal
+case. Here <code class="reqn">\kappa_2</code> is undefined when one or both individuals are male,
+which greatly simplifies the calculations when males are involved. The
+formulas are (with <code class="reqn">\varphi_{ab}</code> now referring to the X-chromosomal
+kinship coefficient):
+</p>
+
+<ul>
+<li>
+<p> Both male: <code class="reqn">(\kappa_0, \kappa_1, \kappa_2) = (1-\varphi_{ab}, \varphi_{ab}, \text{NA})</code>
+</p>
+</li>
+<li>
+<p> One male, one female: <code class="reqn">(\kappa_0, \kappa_1, \kappa_2) = (1-2 \varphi_{ab},
+2 \varphi_{ab}, \text{NA})</code>
+</p>
+</li>
+<li>
+<p> Two females: Similar formulas as in the autosomal case.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>If <code>ids</code> has length 2 and <code>simplify = TRUE</code>: A numeric vector of
+length 3: <code class="reqn">(\kappa_0, \kappa_1, \kappa_2)</code>.
+</p>
+<p>Otherwise: A data frame with one row for each pair of individuals, and 5
+columns. The first two columns contain the ID labels, and columns 3-5
+contain the IBD coefficients.
+</p>
+<p>Kappa coefficients of inbred individuals (meaning X-inbred females if
+<code>Xchrom = T</code>) are reported as NA, unless <code>inbredAction = 2</code>.
+</p>
+<p>The X-chromosomal <code class="reqn">\kappa_2</code> is NA whenever at least one of the two
+individuals is male.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>kinship()</code>, <code>identityCoefs()</code> for coefficients allowing inbreeding,
+<code>showInTriangle()</code> for plotting kappa coefficients in the IBD triangle.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">### Siblings
+x = nuclearPed(2)
+kappaIBD(x)
+
+k = kappaIBD(x, 3:4)
+stopifnot(identical(k, c(.25, .5, .25)))
+
+### Quad half first cousins
+x = quadHalfFirstCousins()
+k = kappaIBD(x, ids = leaves(x))
+stopifnot(identical(k, c(17/32, 14/32, 1/32)))
+
+### Paternal half brothers with 100% inbred father
+# Genetically indistinguishable from an (outbred) father-son relationship
+x = halfSibPed() |&gt; setFounderInbreeding(ids = 2, value = 1)
+plot(x, hatched = 4:5)
+
+k = kappaIBD(x, 4:5)
+stopifnot(identical(k, c(0, 1, 0)))
+
+### X-chromosomal kappa
+y = nuclearPed(2, sex = 2)
+kappaIBD(y, Xchrom = TRUE)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,133 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>predict</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Spatial EcoCrop model predictions
+</h2>
+
+<h3>Description</h3>
+
+<p>Make spatial predictions with an EcoCrop model. First create a model, then provide that to the predict methods, together with SpatRaster objects as predictors.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S4 method for signature 'Rcpp_EcocropModel'
+predict(object, ..., filename="", overwrite=FALSE, wopt=list())
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>EcocropModel</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>SpatRaster objects with environmental data</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>filename</code></td>
+<td>
+<p>character. Output filename. Optional</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite</code></td>
+<td>
+<p>logical. If <code>TRUE</code>, <code>filename</code> is overwritten</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>wopt</code></td>
+<td>
+<p>list. Options for writing files as in <code>writeRaster</code></p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>SpatRaster
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Predictors 
+library(terra)
+fta &lt;- system.file("ex/ta.tif", package="Recocrop")
+fpr &lt;- system.file("ex/pr.tif", package="Recocrop")
+fph &lt;- system.file("ex/ph.tif", package="Recocrop")
+
+# monthly average temperature
+ta &lt;- rast(fta)
+# monthly precipitation
+pr &lt;- rast(fpr)
+# pH
+ph &lt;- rast(fph)
+
+# just for plotting
+preds &lt;- c(mean(ta), sum(pr), ph)
+names(preds) &lt;- c("tavg", "prec", "ph")
+plot(preds)
+
+
+## make ecocrop model
+crop &lt;- ecocropPars("maize")
+m &lt;- ecocrop(crop)
+control(m, get_max=TRUE)
+
+# run the model, make sure to match 
+# the predictor and parameter names 
+mz &lt;- predict(m, tavg=ta, prec=pr, ph=ph, wopt=list(names="maize"))
+plot(mz)
+
+# output by 15 day period
+control(m, get_max=FALSE)
+mz12 &lt;- predict(m, tavg=ta, prec=pr, ph=ph)
+plot(mz12[[14:15]])
+
+control(m, lim_fact=TRUE)
+mzlim &lt;- predict(m, tavg=ta, prec=pr+50, ph=ph)
+plot(mzlim[[14]])
+
+control(m, get_max=TRUE)
+# make the soil more acidic
+ph2 &lt;- ph - 1.25 
+control(m, get_max=TRUE)
+mzph &lt;- predict(m, tavg=ta, prec=pr, ph=ph2)
+plot(mzph)
+
+# more rainfall
+control(m, get_max=TRUE)
+pr2 &lt;- pr + 30 # for each month
+mzpr &lt;- predict(m, tavg=ta, prec=pr2, ph=ph)
+plot(mzpr)
+
+s &lt;- c(mz, mzph, mzpr)
+names(s) &lt;- c("base", "ph", "prec")
+plot(s)
+
+## another crop
+crop &lt;- ecocropPars("pearl millet")
+m &lt;- ecocrop(crop)
+control(m, get_max=TRUE)
+pm &lt;- predict(m, prec=pr, tavg=ta, wopt=list(names="Pearl millet"))
+
+crops &lt;- c(mz, pm)
+plot(crops)
+</code></pre>
+
+
+</div>

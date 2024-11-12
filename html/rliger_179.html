@@ -1,0 +1,163 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>plotCellViolin</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Generate violin/box plot(s) using liger object</h2>
+
+<h3>Description</h3>
+
+<p>This function allows for using available cell metadata, feature
+expression or factor loading to generate violin plot, and grouping the data
+with available categorical cell metadata. Available categorical cell metadata
+can be used to form the color annotation. When it is different from the
+grouping, it forms a nested grouping. Multiple y-axis variables are allowed
+from the same specification of <code>slot</code>, and this returns a list of violin
+plot for each. Users can further split the plot(s) by grouping on cells (e.g.
+datasets).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">plotCellViolin(
+  object,
+  y,
+  groupBy = NULL,
+  slot = c("cellMeta", "rawData", "normData", "scaleData", "H.norm", "H"),
+  yFunc = NULL,
+  cellIdx = NULL,
+  colorBy = NULL,
+  splitBy = NULL,
+  titles = NULL,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>liger object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Available variable name in <code>slot</code> to look for the value to
+visualize.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>groupBy, colorBy</code></td>
+<td>
+<p>Available variable name in <code>cellMeta</code> slot to
+look for categorical grouping. See details. Default <code>NULL</code> produces no
+grouping and all-black graphic elements.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>slot</code></td>
+<td>
+<p>Choose the slot to find the <code>y</code> variable. See Details.
+Default <code>"cellMeta"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yFunc</code></td>
+<td>
+<p>A function object that expects a vector/factor/data.frame
+retrieved by <code>y</code> as the only input, and returns an object of the same
+size, so that the y-axis is replaced by this output. Useful when, for
+example, users need to scale the gene expression shown on plot.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cellIdx</code></td>
+<td>
+<p>Character, logical or numeric index that can subscribe cells.
+Missing or <code>NULL</code> for all cells.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>splitBy</code></td>
+<td>
+<p>Character vector of categorical variable names in
+<code>cellMeta</code> slot. Split all cells by groupings on this/these variable(s)
+to produce a violin plot containing only the cells in each group. Default
+<code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>titles</code></td>
+<td>
+<p>Title text. A character scalar or a character vector with as
+many elements as multiple plots are supposed to be generated. Default
+<code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>More plot setting arguments. See <code>.ggCellViolin</code> and
+<code>.ggplotLigerTheme</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Available option for <code>slot</code> include: <code>"cellMeta"</code>,
+<code>"rawData"</code>, <code>"normData"</code>, <code>"scaleData"</code>, <code>"H.norm"</code>
+and <code>"H"</code>. When <code>"rawData"</code>, <code>"normData"</code> or
+<code>"scaleData"</code>, <code>y</code> has to be a character vector of feature names.
+When <code>"H.norm"</code> or <code>"H"</code>, <code>colorBy</code> can be any valid index to
+select one factor of interests. Note that character index follows
+<code>"Factor_[k]"</code> format, with replacing <code>[k]</code> with an integer.
+</p>
+<p>When <code>"cellMeta"</code>, <code>y</code> has to be an available column name in
+the table. Note that, for <code>y</code> as well as <code>groupBy</code>, <code>colorBy</code>
+and <code>splitBy</code> since a matrix object is feasible in <code>cellMeta</code>
+table, using a column (e.g. named as <code>"column1"</code> in a certain matrix
+(e.g. named as <code>"matrixVar"</code>) should follow the syntax of
+<code>"matrixVar.column1"</code>. When the matrix does not have a "colname"
+attribute, the subscription goes with <code>"matrixVar.V1"</code>,
+<code>"matrixVar.V2"</code> and etc. These are based on the nature of
+<code>as.data.frame</code> method on a <code>DataFrame</code> object.
+</p>
+<p><code>groupBy</code> is basically send to <code>ggplot2::aes(x)</code>, while
+<code>colorBy</code> is for the "colour" aesthetics. Specifying <code>colorBy</code>
+without <code>groupBy</code> visually creates grouping but there will not be
+varying values on the x-axis, so <code>boxWidth</code> will be forced to the same
+value as <code>violinWidth</code> under this situation.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A ggplot object when a single plot is intended. A list of ggplot
+objects, when multiple <code>y</code> variables and/or <code>splitBy</code> are set. When
+<code>plotly = TRUE</code>, all ggplot objects become plotly (htmlwidget) objects.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">plotCellViolin(pbmcPlot, y = "nUMI", groupBy = "dataset", slot = "cellMeta")
+plotCellViolin(pbmcPlot, y = "nUMI", groupBy = "leiden_cluster",
+               slot = "cellMeta", splitBy = "dataset",
+               colorBy = "leiden_cluster",
+               box = TRUE, dot = TRUE,
+               ylab = "Total counts per cell",
+               colorValues = RColorBrewer::brewer.pal(8, "Set1"))
+plotCellViolin(pbmcPlot, y = "S100A8", slot = "normData",
+               yFunc = function(x) log2(10000*x + 1),
+               groupBy = "dataset", colorBy = "leiden_cluster",
+               box = TRUE, ylab = "S100A8 Expression")
+</code></pre>
+
+
+</div>

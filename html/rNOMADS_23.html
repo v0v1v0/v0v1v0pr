@@ -1,0 +1,180 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>SubsetNOMADS</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Subset model data output
+</h2>
+
+<h3>Description</h3>
+
+<p>Subset data structure returned by <code>ReadGrib</code> or <code>DODSGrab</code> by variables, levels, etc.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">SubsetNOMADS(model.data, levels = NULL, variables = NULL, lon = NULL, 
+lat = NULL, ensembles = NULL, forecast.date = NULL, model.run.date = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model.data</code></td>
+<td>
+
+<p>Data structure from <code>ReadGrib</code> or <code>DODSGrab</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>levels</code></td>
+<td>
+
+<p>Vector of levels to keep</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>variables</code></td>
+<td>
+
+<p>Vector of variables to keep</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lon</code></td>
+<td>
+
+<p>Vector of longitudes of model nodes to keep</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lat</code></td>
+<td>
+
+<p>Vector of latitudes of model nodes to keep</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ensembles</code></td>
+<td>
+
+<p>Vector of ensemble runs to keep</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>forecast.date</code></td>
+<td>
+
+<p>Vector of forecast dates to keep</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model.run.date</code></td>
+<td>
+
+<p>Vector of model run dates to keep</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>model.data.sub</code></td>
+<td>
+<p>A subset of <code>model.data</code>.</p>
+</td>
+</tr></table>
+<h3>Note</h3>
+
+<p>Multiple elements in each argument vector are obviously OR (i.e. variables are “tmpprs” OR “hgtprs”) but multiple subset vectors are AND.
+Thus it is simple to construct a <code>model.data.sub</code> with variables: tmpprs and hgptprs only from ensemble runs 3 and 4, for example.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Daniel C. Bowman <a href="mailto:danny.c.bowman@gmail.com">danny.c.bowman@gmail.com</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>ReadGrib</code>, <code>DODSGrab</code>, <code>ModelGrid</code>, <code>BuildProfile</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Not run: 
+#Plot winds from 20 GENS model runs
+
+#Get the latest ensemble model run
+model.urls &lt;- GetDODSDates("gens")
+latest.model &lt;- tail(model.urls$url, 1)
+model.runs &lt;- GetDODSModelRuns(latest.model)
+model.run &lt;- tail(model.runs$model.run[grepl("all", 
+    model.runs$model.run)], 1)
+
+#Define region of interest: Chapel Hill, NC
+lon &lt;- -79.052104
+lat &lt;- 35.907553
+
+lons &lt;- seq(0, 359, by = 1)
+lats &lt;- seq(-90, 90, by = 1)
+
+lon.diff &lt;- abs(lon + 360 - lons)
+lat.diff &lt;- abs(lat - lats)
+
+model.lon.ind &lt;- which(lon.diff == min(lon.diff)) - 1
+model.lat.ind &lt;- which(lat.diff == min(lat.diff)) - 1
+
+#Set up call to NOMADS
+time &lt;- c(0, 0)      #Analysis(?) model only
+node.lon  &lt;- c(model.lon.ind - 2, model.lon.ind + 2)  #Longitude grid
+node.lat  &lt;- c(model.lat.ind - 2, model.lat.ind + 2)   #Latitude grid
+variables &lt;- c("ugrdprs", "vgrdprs", "hgtprs") #Wind speeds, and geopotential height
+levels    &lt;- c(0, 25) #All available levels
+ensembles &lt;- c(0, 20)  #All available ensembles
+
+model.data &lt;- DODSGrab(latest.model, model.run, variables, time, 
+    node.lon, node.lat, levels = levels, ensembles = ensembles)
+
+#Plot winds
+zonal.wind &lt;- NULL
+merid.wind &lt;- NULL
+height     &lt;- NULL
+
+for(k in ((ensembles[1]:ensembles[2] + 1))) {
+    model.data.sub &lt;- SubsetNOMADS(model.data, ensembles = c(k), 
+    variables = c("hgtprs", "ugrdprs", "vgrdprs"))
+    profile &lt;- BuildProfile(model.data.sub, lon + 360, lat)
+    hgt     &lt;- profile[[1]]$profile.data[, which(profile[[1]]$variables == "hgtprs"),]
+    ugrd    &lt;- profile[[1]]$profile.data[, which(profile[[1]]$variables == "ugrdprs"),]
+    vgrd    &lt;- profile[[1]]$profile.data[, which(profile[[1]]$variables == "vgrdprs"),]
+
+   synth.hgt &lt;- seq(min(hgt),
+       max(hgt), length.out = 1000)
+   ugrd.spline &lt;- splinefun(hgt, ugrd, method = "natural")
+   vgrd.spline &lt;- splinefun(hgt, vgrd, method = "natural")
+   zonal.wind[[k]] &lt;- ugrd.spline(synth.hgt)
+   merid.wind[[k]] &lt;- vgrd.spline(synth.hgt)
+   height[[k]] &lt;- synth.hgt
+}
+
+PlotWindProfile(zonal.wind, merid.wind, height, lines = TRUE,
+    points = FALSE, elev.circles = c(0, 15000, 30000), elev.labels = c(0, 15, 30),
+    radial.lines = seq(45, 360, by = 45), colorbar = TRUE, invert = FALSE,
+    point.cex = 2, pch = 19, lty = 1, lwd = 1,
+    height.range = c(0, 30000), colorbar.label = "Wind Speed (m/s)")
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,155 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>nnls</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Non-negative least squares</h2>
+
+<h3>Description</h3>
+
+<p>Solves the equation <code>a %*% x = b</code> for <code>x</code> subject to <code class="reqn">x &gt; 0</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">nnls(a, b, cd_maxit = 100L, cd_tol = 1e-08, fast_nnls = FALSE, L1 = 0)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>a</code></td>
+<td>
+<p>symmetric positive definite matrix giving coefficients of the linear system</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>b</code></td>
+<td>
+<p>matrix giving the right-hand side(s) of the linear system</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cd_maxit</code></td>
+<td>
+<p>maximum number of coordinate descent iterations</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cd_tol</code></td>
+<td>
+<p>stopping criteria, difference in <code class="reqn">x</code> across consecutive solutions over the sum of <code class="reqn">x</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fast_nnls</code></td>
+<td>
+<p>initialize coordinate descent with a FAST NNLS approximation</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>L1</code></td>
+<td>
+<p>L1/LASSO penalty to be subtracted from <code>b</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This is a very fast implementation of non-negative least squares (NNLS), suitable for very small or very large systems.
+</p>
+<p><strong>Algorithm</strong>. Sequential coordinate descent (CD) is at the core of this implementation, and requires an initialization of <code class="reqn">x</code>. There are two supported methods for initialization of <code class="reqn">x</code>:
+</p>
+
+<ol>
+<li> <p><strong>Zero-filled initialization</strong> when <code>fast_nnls = FALSE</code> and <code>cd_maxit &gt; 0</code>. This is generally very efficient for well-conditioned and small systems.
+</p>
+</li>
+<li> <p><strong>Approximation with FAST</strong> when <code>fast_nnls = TRUE</code>. Forward active set tuning (FAST), described below, finds an approximate active set using unconstrained least squares solutions found by Cholesky decomposition and substitution. To use only FAST approximation, set <code>cd_maxit = 0</code>.
+</p>
+</li>
+</ol>
+<p><code>a</code> must be symmetric positive definite if FAST NNLS is used, but this is not checked.
+</p>
+<p>See our BioRXiv manuscript (references) for benchmarking against Lawson-Hanson NNLS and for a more technical introduction to these methods.
+</p>
+<p><strong>Coordinate Descent NNLS</strong>. Least squares by <strong>sequential coordinate descent</strong> is used to ensure the solution returned is exact. This algorithm was
+introduced by Franc et al. (2005), and our implementation is a vectorized and optimized rendition of that found in the NNLM R package by Xihui Lin (2020).
+</p>
+<p><strong>FAST NNLS.</strong> Forward active set tuning (FAST) is an exact or near-exact NNLS approximation initialized by an unconstrained
+least squares solution. Negative values in this unconstrained solution are set to zero (the "active set"), and all
+other values are added  to a "feasible set". An unconstrained least squares solution is then solved for the
+"feasible set", any negative values in the resulting solution are set to zero, and the process is repeated until
+the feasible set solution is strictly positive.
+</p>
+<p>The FAST algorithm has a definite convergence guarantee because the
+feasible set will either converge or become smaller with each iteration. The result is generally exact or nearly
+exact for small well-conditioned systems (&lt; 50 variables) within 2 iterations and thus sets up coordinate
+descent for very rapid convergence. The FAST method is similar to the first phase of the so-called "TNT-NN" algorithm (Myre et al., 2017),
+but the latter half of that method relies heavily on heuristics to refine the approximate active set, which we avoid by using
+coordinate descent instead.
+</p>
+
+
+<h3>Value</h3>
+
+<p>vector or matrix giving solution for <code>x</code>
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Zach DeBruine
+</p>
+
+
+<h3>References</h3>
+
+<p>DeBruine, ZJ, Melcher, K, and Triche, TJ. (2021). "High-performance non-negative matrix factorization for large single-cell data." BioRXiv.
+</p>
+<p>Franc, VC, Hlavac, VC, and Navara, M. (2005). "Sequential Coordinate-Wise Algorithm for the Non-negative Least Squares Problem. Proc. Int'l Conf. Computer Analysis of Images and Patterns."
+</p>
+<p>Lin, X, and Boutros, PC (2020). "Optimization and expansion of non-negative matrix factorization." BMC Bioinformatics.
+</p>
+<p>Myre, JM, Frahm, E, Lilja DJ, and Saar, MO. (2017) "TNT-NN: A Fast Active Set Method for Solving Large Non-Negative Least Squares Problems". Proc. Computer Science.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>nmf</code>, <code>project</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# compare solution to base::solve for a random system
+X &lt;- matrix(runif(100), 10, 10)
+a &lt;- crossprod(X)
+b &lt;- crossprod(X, runif(10))
+unconstrained_soln &lt;- solve(a, b)
+nonneg_soln &lt;- nnls(a, b)
+unconstrained_err &lt;- mean((a %*% unconstrained_soln - b)^2)
+nonnegative_err &lt;- mean((a %*% nonneg_soln - b)^2)
+unconstrained_err
+nonnegative_err
+all.equal(solve(a, b), nnls(a, b))
+
+# example adapted from multiway::fnnls example 1
+X &lt;- matrix(1:100,50,2)
+y &lt;- matrix(101:150,50,1)
+beta &lt;- solve(crossprod(X)) %*% crossprod(X, y)
+beta
+beta &lt;- nnls(crossprod(X), crossprod(X, y))
+beta
+
+## End(Not run)
+</code></pre>
+
+
+</div>

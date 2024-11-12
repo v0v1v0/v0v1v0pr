@@ -1,0 +1,155 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>epiWeights</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Calculate EpiLink weights
+</h2>
+
+<h3>Description</h3>
+
+<p>Calculates weights for record pairs based on the EpiLink approach
+(see references).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">  epiWeights(rpairs, e = 0.01, f, ...)
+
+  ## S4 method for signature 'RecLinkData'
+epiWeights(rpairs, e = 0.01, f = rpairs$frequencies)
+
+  ## S4 method for signature 'RLBigData'
+epiWeights(rpairs, e = 0.01, f = getFrequencies(rpairs),
+    withProgressBar = (sink.number()==0))
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>rpairs</code></td>
+<td>
+<p>The record pairs for which to
+compute weights. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>e</code></td>
+<td>
+
+<p>Numeric vector. Estimated error rate(s).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>f</code></td>
+<td>
+
+<p>Numeric vector. Average frequency of attribute values.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>withProgressBar</code></td>
+<td>
+<p>Whether to display a progress bar</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Placeholder for method-specific arguments.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function calculates weights for record pairs based on the approach used by Contiero et alia in the EpiLink record linkage software (see references).
+</p>
+<p>Since package version 0.3, this is a generic function with methods for S3 objects of class <code>RecLinkData</code>
+as well as S4 objects of classes  <code>"RLBigDataDedup"</code> and
+<code>"RLBigDataLinkage"</code>.
+</p>
+<p>The weight for a record pair <code class="reqn">(x^{1},x^{2})</code> is computed by the formula 
+</p>
+<p style="text-align: center;"><code class="reqn">\frac{\sum_{i}w_{i}s(x^{1}_{i},x^{2}_{i})}{\sum_{i}w_{i}}</code>
+</p>
+
+<p>where <code class="reqn">s(x^{1}_{i},x^{2}_{i})</code> is the value of a string comparison of
+records <code class="reqn">x^{1}</code> and <code class="reqn">x^{2}</code> in the i-th field and <code class="reqn">w_{i}</code> is a weighting factor computed by 
+</p>
+<p style="text-align: center;"><code class="reqn">w_{i}=\log_{2}(1-e_{i})/f_{i}</code>
+</p>
+<p>,  where <code class="reqn">f_{i}</code> denotes the average frequency of values and <code class="reqn">e_{i}</code> the estimated error rate for field <code class="reqn">i</code>. 
+</p>
+<p>String comparison values are taken from the record pairs as they were generated with <code>compare.dedup</code> or <code>compare.linkage</code>. The use of binary patterns is possible, but in general yields poor results.
+</p>
+<p>The average frequency of values is by default taken from the object   <code>rpairs</code>. Both frequency and error rate <code>e</code> can be set to a single value, which will be recycled, or to a vector with distinct error rates for every field. 
+</p>
+<p>The error rate(s) and frequencie(s) must satisfy 
+<code class="reqn">e_{i}\leq{}1-f_{i}</code> for all <code class="reqn">i</code>, otherwise the functions fails. Also, some other rare combinations can result in weights with illegal values (NaN, less than 0 or greater than 1). In this case a  warning is issued.
+</p>
+<p>By default, the <code>"RLBigDataDedup"</code> method displays a progress bar unless output is diverted by <code>sink</code>, e.g. when processing a Sweave file.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A copy of <code>rpairs</code> with the weights attached. See the class documentation
+(<code>RecLinkData</code>, <code>"RLBigDataDedup"</code> and
+<code>"RLBigDataLinkage"</code>) on how weights are stored.
+</p>
+<p>For the <code>"RLBigData"</code> method, the returned object is only a shallow
+copy in the sense that it links to the same ff data files as database file as
+<code>rpairs</code>.
+</p>
+
+
+<h3>Side effects</h3>
+
+<p>The <code>"RLBigData"</code> method creates a <code>"ffvector"</code> object,
+for which a disk file is created.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Andreas Borg, Murat Sariyar
+</p>
+
+
+<h3>References</h3>
+
+<p>P. Contiero et al., The EpiLink record linkage software, in: Methods of 
+Information in Medicine 2005, 44 (1), 66–71.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>epiClassify</code> for classification based on EpiLink weights.
+<code>emWeights</code> for a different approach for weight calculation.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># generate record pairs
+data(RLdata500)
+p=compare.dedup(RLdata500,strcmp=TRUE ,strcmpfun=levenshteinSim,
+  identity=identity.RLdata500, blockfld=list("by", "bm", "bd"))
+
+# calculate weights
+p=epiWeights(p)
+
+# classify and show results
+summary(epiClassify(p,0.6))
+</code></pre>
+
+
+</div>

@@ -1,0 +1,465 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>detect</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Detect heatwaves and cold-spells.</h2>
+
+<h3>Description</h3>
+
+<p>Applies the Hobday et al. (2016) marine heat wave definition to an input time
+series of temperature along with a daily date vector.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">detect(data, doy = doy, x = t, y = temp, climatology_start,
+  climatology_end, pctile = 90, window_half_width = 5,
+  smooth_percentile = TRUE, smooth_percentile_width = 31,
+  clim_only = FALSE, min_duration = 5, join_across_gaps = TRUE,
+  max_gap = 2, max_pad_length = 3, cold_spells = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame with three columns. In the default setting (i.e. ommitting
+the arguments <code>doy</code>, <code>x</code> and <code>y</code>; see immediately below), the
+data set is expected to have the headers <code>doy</code>, <code>t</code> and <code>temp</code>.
+<code>doy</code> is the Julian day running from 1 to 366, but modified so that the
+day-of-year (doy) vector for non-leap-years runs 1...59 and then 61...366.
+For leap years the 60th day is February 29. The <code>t</code> column is a vector
+of dates of class <code>Date</code>, while <code>temp</code> is the measured variable (by
+default it is assumed to be temperature). Data of the appropriate format are
+created by the function <code>make_whole</code>, but your own data can be supplied
+if they meet the criteria specified by <code>make_whole</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>doy</code></td>
+<td>
+<p>If a column headed <code>doy</code> is not available, another column with
+Julian dates can be supplied. This argument accepts the name of that column. The
+default name is, of course, <code>doy</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>This column is expected to contain a vector of dates as per the
+specification of <code>make_whole</code>. If a column headed <code>t</code> is present in
+the dataframe, this argument may be ommitted; otherwise, specify the name of
+the column with dates here.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>This is a column containing the measurement variable. If the column
+name differs from the default (i.e. <code>temp</code>), specify the name here.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>climatology_start</code></td>
+<td>
+<p>Required. The start date for the period across which
+the (varying by day-of-year) seasonal cycle and extremes threshold are
+calculated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>climatology_end</code></td>
+<td>
+<p>Required. The end date for the period across which
+the (varying by day-of-year) seasonal cycle and extremes threshold are
+calculated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pctile</code></td>
+<td>
+<p>Threshold percentile (%) for detection of extreme values.
+Default is <code>90</code>th percentile. Please see <code>cold_spells</code> for more
+information about the calculation of marine cold spells.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>window_half_width</code></td>
+<td>
+<p>Width of sliding window about day-of-year (to one
+side of the center day-of-year) used for the pooling of values and
+calculation of climatology and threshold percentile. Default is <code>5</code>
+days, which gives a window width of 11 days centered on the 6th day of the
+series of 11 days.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>smooth_percentile</code></td>
+<td>
+<p>Boolean switch selecting whether to smooth the
+climatology and threshold percentile timeseries with a moving average of
+width <code>smooth_percentile</code>. Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>smooth_percentile_width</code></td>
+<td>
+<p>Full width of moving average window for smoothing
+climatology and threshold. Default is <code>31</code> days.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>clim_only</code></td>
+<td>
+<p>Choose to calculate only the climatologies and not the
+events. Default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min_duration</code></td>
+<td>
+<p>Minimum duration for acceptance of detected MHWs.
+Default is <code>5</code> days.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>join_across_gaps</code></td>
+<td>
+<p>Boolean switch indicating whether to join MHWs which
+occur before/after a short gap as specified by <code>max_gap</code>. Default
+is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_gap</code></td>
+<td>
+<p>Maximum length of gap allowed for the joining of MHWs. Default
+is <code>2</code> days.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_pad_length</code></td>
+<td>
+<p>Specifies the maximum length of days over which to
+interpolate (pad) missing data (specified as <code>NA</code>) in the input
+temperature time series; i.e., any consecutive blocks of NAs with length
+greater than <code>max_pad_length</code> will be left as <code>NA</code>. Set as an
+integer. Default is <code>3</code> days.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cold_spells</code></td>
+<td>
+<p>Boolean specifying if the code should detect cold events
+instead of heat events. Default is <code>FALSE</code>. Please note that the
+climatological thresholds for cold-spells are calculated the same as for
+heatwaves, meaning that <code>pctile</code> should be set the same regardless
+if one is calculating heatwaves or cold-spells. For example, if one wants
+to calculate heatwaves above the 90th percentile threshold
+(the default) one sets <code>pctile = 90</code>. Likewise, if one would like
+identify the most intense cold-spells one must also set <code>pctile = 90</code>,
+even though cold spells are in fact simply the coldest extreme events in a
+time series, which statistically equate to values below the 10th percentile.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+
+<ol>
+<li>
+<p> This function assumes that the input time series consists of continuous
+daily values with few missing values. Time ranges which start and end
+part-way through the calendar year are supported. The accompanying function
+<code>make_whole</code> aids in the preparation of a time series that is
+suitable for use with <code>detect</code>, although this may also be accomplished
+'by hand' as long as the criteria are met as discussed in the documentation
+to <code>make_whole</code>.
+</p>
+</li>
+<li>
+<p> It is recommended that a climatology period of at least 30 years is
+specified in order to capture decadal thermal periodicities. It is further
+advised that full the start and end dates for the climatology period result
+in full years, e.g. "1982-01-01" to "2011-12-31" or "1982-07-01" to
+"2012-06-30"; if not, this may result in an unequal weighting of data
+belonging with certain months within a time series.
+</p>
+</li>
+<li>
+<p> This function supports leap years. This is done by ignoring Feb 29s
+for the initial calculation of the climatology and threshold. The values for
+Feb 29 are then linearly interpolated from the values for Feb 28 and Mar 1.
+</p>
+</li>
+<li>
+<p> The calculation of onset and decline rates assumes that the events
+started a half-day before the start day and ended a half-day after the
+end-day. This is consistent with the duration definition as implemented,
+which assumes duration = end day - start day + 1. As of version 0.15.7, an
+event that is already present at the beginning of a time series, or an event
+that is still present at the end of a time series, will report the rate of
+onset or the rate of decline as <code>NA</code>, as it is impossible to know what
+the temperature half a day before or after the start or end of the event is.
+This may be a departure from the python marineHeatWaves function.
+</p>
+</li>
+<li>
+<p> For the purposes of event detection, any missing temperature values not
+interpolated over (through optional <code>max_pad_length</code>) will be set equal
+to the seasonal climatology. This means they will trigger the end/start of
+any adjacent temperature values which satisfy the event definition criteria.
+</p>
+</li>
+<li>
+<p> If the code is used to detect cold events (<code>coldSpells</code> = TRUE),
+then it works just as for heat waves except that events are detected as
+deviations below the (100 - pctile)th percentile  (e.g., the 10th instead of
+90th) for at least 5 days. Intensities are reported as negative values and
+represent the temperature anomaly below climatology.
+</p>
+</li>
+<li>
+<p> If only the climatology for the time series is required, and not the
+events themselves, this may be done by setting <code>clim_only</code> = TRUE.
+</p>
+</li>
+</ol>
+<p>The original Python algorithm was written by Eric Oliver, Institute for
+Marine and Antarctic Studies, University of Tasmania, Feb 2015, and is
+documented by Hobday et al. (2016). The marine cold spell option was
+implemented in version 0.13 (21 Nov 2015) of the Python module as a result
+of our preparation of Schlegel et al. (submitted), wherein the cold events
+receive a brief overview.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The function will return a list of two tibbles (see the <code>tidyverse</code>),
+<code>clim</code> and <code>event</code>, which are the climatology and events,
+respectively. The climatology contains the full time series of daily temperatures,
+as well as the the seasonal climatology, the threshold and various aspects of the
+events that were detected. The software was designed for detecting extreme
+thermal events, and the units specified below reflect that intended purpose.
+However, the various other kinds of extreme events may be detected according
+to the 'marine heat wave' specifications, and if that is the case, the appropriate
+units need to be determined by the user.
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>doy</code></td>
+<td>
+<p>Julian day (day-of-year). For non-leap years it runs 1...59 and
+61...366, while leap years run 1...366. This column will be named differently if
+another name was specified to the <code>doy</code> argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>t</code></td>
+<td>
+<p>The date of the temperature measurement. This column will be
+named differently if another name was specified to the <code>x</code> argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>temp</code></td>
+<td>
+<p>If the software was used for the purpose for which it was designed,
+seawater temperature [deg. C] on the specified date will be returned. This
+column will of course be named differently if another kind of measurement was
+specified to the <code>y</code> argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seas_clim_year</code></td>
+<td>
+<p>Climatological seasonal cycle [deg. C].</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thresh_clim_year</code></td>
+<td>
+<p>Seasonally varying threshold (e.g., 90th
+percentile) [deg. C].</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>var_clim_year</code></td>
+<td>
+<p>Seasonally varying variance (standard deviation) [deg. C].</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thresh_criterion</code></td>
+<td>
+<p>Boolean indicating if <code>temp</code> exceeds
+<code>thresh_clim_year</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>duration_criterion</code></td>
+<td>
+<p>Boolean indicating whether periods of consecutive
+<code>thresh_criterion</code> are &gt;= <code>min_duration</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>event</code></td>
+<td>
+<p>Boolean indicating if all criteria that define a MHW or MCS are
+met.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>event_no</code></td>
+<td>
+<p>A sequential number indicating the ID and order of
+occurence of the MHWs or MCSs.</p>
+</td>
+</tr>
+</table>
+<p>The events are summarised using a range of event metrics:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>index_start</code></td>
+<td>
+<p>Start index of event.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>index_stop</code></td>
+<td>
+<p>Stop index of event.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>event_no</code></td>
+<td>
+<p>A sequential number indicating the ID and order of
+the events.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>duration</code></td>
+<td>
+<p>Duration of event [days].</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>date_start</code></td>
+<td>
+<p>Start date of event [date].</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>date_stop</code></td>
+<td>
+<p>Stop date of event [date].</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>date_peak</code></td>
+<td>
+<p>Date of event peak [date].</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>int_mean</code></td>
+<td>
+<p>Mean intensity [deg. C].</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>int_max</code></td>
+<td>
+<p>Maximum (peak) intensity [deg. C].</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>int_var</code></td>
+<td>
+<p>Intensity variability (standard deviation) [deg. C].</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>int_cum</code></td>
+<td>
+<p>Cumulative intensity [deg. C x days].</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rate_onset</code></td>
+<td>
+<p>Onset rate of event [deg. C / day].</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rate_decline</code></td>
+<td>
+<p>Decline rate of event [deg. C / day].</p>
+</td>
+</tr>
+</table>
+<p><code>int_max_rel_thresh</code>, <code>int_mean_rel_thresh</code>,
+<code>int_var_rel_thresh</code>, and <code>int_cum_rel_thresh</code>
+are as above except relative to the threshold (e.g., 90th percentile) rather
+than the seasonal climatology.
+</p>
+<p><code>int_max_abs</code>, <code>int_mean_abs</code>, <code>int_var_abs</code>, and
+<code>int_cum_abs</code> are as above except as absolute magnitudes
+rather than relative to the seasonal climatology or threshold.
+</p>
+<p><code>int_max_norm</code> and <code>int_mean_norm</code> are as above except
+units are in multiples of threshold exceedances, i.e., a value of 1.5
+indicates the event intensity (relative to the climatology) was 1.5 times the
+value of the threshold (relative to climatology,
+i.e., threshold - climatology.)
+</p>
+<p>Note that <code>rate_onset</code> and <code>rate_decline</code> will return <code>NA</code>
+when the event begins/ends on the first/last day of the time series. This
+may be particularly evident when the function is applied to large gridded
+data sets. Although the other metrics do not contain any errors and
+provide sensible values, please take this into account in its
+interpretation.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Albertus J. Smit, Robert W. Schlegel, Eric C. J. Oliver
+</p>
+
+
+<h3>References</h3>
+
+<p>Hobday, A.J. et al. (2016). A hierarchical approach to defining
+marine heatwaves, Progress in Oceanography, 141, pp. 227-238,
+doi:10.1016/j.pocean.2015.12.014
+</p>
+<p>Schlegel, R. W., Oliver, C. J., Wernberg, T. W., Smit, A. J. (2017).
+Coastal and offshore co-occurrences of marine heatwaves and cold-spells.
+Progress in Oceanography, 151, pp. 189-205, doi:10.1016/j.pocean.2017.01.004
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">ts_dat &lt;- make_whole(sst_WA)
+res &lt;- detect(ts_dat, climatology_start = "1983-01-01",
+              climatology_end = "2012-12-31")
+# show a portion of the climatology:
+res$clim[1:10, ]
+# show some of the heat waves:
+res$event[1:5, 1:10]
+</code></pre>
+
+
+</div>

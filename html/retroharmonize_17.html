@@ -1,0 +1,115 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>harmonize_waves</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Harmonize waves</h2>
+
+<h3>Description</h3>
+
+<p>Harmonize the values of surveys.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">harmonize_waves(waves, .f, status_message = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>waves</code></td>
+<td>
+<p>A list of surveys</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.f</code></td>
+<td>
+<p>A function to apply for the harmonization.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>status_message</code></td>
+<td>
+<p>Defaults to <code>FALSE</code>. If set to <code>TRUE</code>
+it shows the id of the survey that is being joined.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The functions binds together variables
+that are all present in the surveys, and applies a 
+harmonization function <code>.f</code> on them.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A natural full join of all surveys in a single data frame.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other variable label harmonization functions: 
+<code>harmonize_values()</code>,
+<code>label_normalize()</code>,
+<code>na_range_to_values()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+examples_dir &lt;- system.file("examples", package = "retroharmonize")
+survey_list &lt;- dir(examples_dir)[grepl("\\.rds", dir(examples_dir))]
+
+example_surveys &lt;- read_surveys(
+  file.path( examples_dir, survey_list), 
+  save_to_rds = FALSE)
+
+metadata &lt;- lapply ( X = example_surveys, FUN = metadata_create )
+metadata &lt;- do.call(rbind, metadata)
+
+to_harmonize &lt;- metadata %&gt;%
+  dplyr::filter ( var_name_orig %in% 
+                  c("rowid", "w1") |
+                  grepl("trust ", label_orig ) ) %&gt;%
+  dplyr::mutate ( var_label = var_label_normalize(label_orig)) %&gt;%
+  dplyr::mutate ( var_name = val_label_normalize(var_label))
+
+harmonize_eb_trust &lt;- function(x) {
+  label_list &lt;- list(
+    from = c("^tend\\snot", "^cannot", "^tend\\sto", "^can\\srely",
+             "^dk", "^inap", "na"), 
+   to = c("not_trust", "not_trust", "trust", "trust",
+           "do_not_know", "inap", "inap"), 
+    numeric_values = c(0,0,1,1, 99997,99999,99999)
+  )
+  
+  harmonize_values(x, 
+                   harmonize_labels = label_list, 
+                   na_values = c("do_not_know"=99997,
+                                 "declined"=99998,
+                                 "inap"=99999)
+                   )
+}
+
+merged_surveys &lt;- merge_waves ( example_surveys, var_harmonization = to_harmonize  )
+
+harmonized &lt;- harmonize_waves(waves = merged_surveys, 
+                              .f = harmonize_eb_trust,
+                              status_message = FALSE)
+                              
+# For details see Afrobarometer and Eurobarometer Case Study vignettes.
+
+</code></pre>
+
+
+</div>

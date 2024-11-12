@@ -1,0 +1,342 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>find_lambda_rcpp</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Selecting the Box-Cox parameter for general d using Rcpp</h2>
+
+<h3>Description</h3>
+
+<p>Finds a value of the Box-Cox transformation parameter lambda for which
+the (positive) random variable with log-density <code class="reqn">\log f</code> has a
+density closer to that of a Gaussian random variable.
+In the following we use <code>theta</code> (<code class="reqn">\theta</code>) to denote the argument
+of <code>logf</code> on the original scale and <code>phi</code> (<code class="reqn">\phi</code>) on the
+Box-Cox transformed scale.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">find_lambda_rcpp(
+  logf,
+  ...,
+  d = 1,
+  n_grid = NULL,
+  ep_bc = 1e-04,
+  min_phi = rep(ep_bc, d),
+  max_phi = rep(10, d),
+  which_lam = 1:d,
+  lambda_range = c(-3, 3),
+  init_lambda = NULL,
+  phi_to_theta = NULL,
+  log_j = NULL,
+  user_args = list()
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>logf</code></td>
+<td>
+<p>A pointer to a compiled C++ function returning the log
+of the target density <code class="reqn">f</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments to be passed to <code>logf</code> and related
+functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d</code></td>
+<td>
+<p>A numeric scalar. Dimension of <code class="reqn">f</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_grid</code></td>
+<td>
+<p>A numeric scalar.  Number of ordinates for each variable in
+<code>phi</code>.  If this is not supplied a default value of
+<code>ceiling(2501 ^ (1 / d))</code> is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ep_bc</code></td>
+<td>
+<p>A (positive) numeric scalar. Smallest possible value of
+<code>phi</code> to consider.  Used to avoid negative values of <code>phi</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min_phi, max_phi</code></td>
+<td>
+<p>Numeric vectors.  Smallest and largest values
+of <code>phi</code> at which to evaluate <code>logf</code>, i.e., the range of values
+of <code>phi</code> over which to evaluate <code>logf</code>. Any components in
+<code>min_phi</code> that are not positive are set to <code>ep_bc</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>which_lam</code></td>
+<td>
+<p>A numeric vector.  Contains the indices of the components
+of <code>phi</code> that ARE to be Box-Cox transformed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda_range</code></td>
+<td>
+<p>A numeric vector of length 2.  Range of lambda over
+which to optimise.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init_lambda</code></td>
+<td>
+<p>A numeric vector of length 1 or <code>d</code>.  Initial value
+of lambda used in the search for the best lambda.  If <code>init_lambda</code>
+is a scalar then <code>rep(init_lambda, d)</code> is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phi_to_theta</code></td>
+<td>
+<p>A pointer to a compiled C++ function returning
+(the inverse) of the transformation from <code>theta</code> to <code>phi</code> used
+to ensure positivity of <code>phi</code> prior to Box-Cox transformation.  The
+argument is <code>phi</code> and the returned value is <code>theta</code>.  If
+<code>phi_to_theta</code> is undefined at the input value then the function
+should return <code>NA</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>log_j</code></td>
+<td>
+<p>A pointer to a compiled C++ function returning the log of
+the Jacobian of the transformation from <code>theta</code> to <code>phi</code>, i.e.,
+based on derivatives of <code class="reqn">phi</code> with respect to <code class="reqn">theta</code>. Takes
+<code>theta</code> as its argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>user_args</code></td>
+<td>
+<p>A list of numeric components providing arguments to
+the user-supplied functions <code>phi_to_theta</code> and <code>log_j</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The general idea is to evaluate the density <code class="reqn">f</code> on a
+<code>d</code>-dimensional grid, with <code>n_grid</code> ordinates for each of the
+<code>d</code> variables.
+We treat each combination of the variables in the grid as a data point
+and perform an estimation of the Box-Cox transformation parameter
+<code>lambda</code>, in which each data point is weighted by the density
+at that point.  The vectors <code>min_phi</code> and <code>max_phi</code> define the
+limits of the grid and <code>which_lam</code> can be used to specify that only
+certain components of <code>phi</code> are to be transformed.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list containing the following components
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>A numeric vector.  The value of <code>lambda</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gm</code></td>
+<td>
+<p>A numeric vector.  Box-Cox scaling parameter, estimated by the
+geometric mean of the values of phi used in the optimisation to find
+the value of lambda, weighted by the values of f evaluated at phi.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init_psi</code></td>
+<td>
+<p>A numeric vector.  An initial estimate of the mode of the
+Box-Cox transformed density</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sd_psi</code></td>
+<td>
+<p>A numeric vector.  Estimates of the marginal standard
+deviations of the Box-Cox transformed variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phi_to_theta</code></td>
+<td>
+<p>as detailed above (only if <code>phi_to_theta</code> is
+supplied)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>log_j</code></td>
+<td>
+<p>as detailed above (only if <code>log_j</code> is supplied)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>user_args</code></td>
+<td>
+<p>as detailed above (only if <code>user_args</code> is supplied)</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Box, G. and Cox, D. R. (1964) An Analysis of Transformations.
+Journal of the Royal Statistical Society. Series B (Methodological), 26(2),
+211-252.
+</p>
+<p>Andrews, D. F. and Gnanadesikan, R. and Warner, J. L. (1971)
+Transformations of Multivariate Data, Biometrics, 27(4).
+</p>
+<p>Eddelbuettel, D. and Francois, R. (2011). Rcpp: Seamless
+R and C++ Integration. <em>Journal of Statistical Software</em>,
+<strong>40</strong>(8), 1-18. <a href="https://doi.org/10.18637/jss.v040.i08">doi:10.18637/jss.v040.i08</a>
+</p>
+<p>Eddelbuettel, D. (2013). <em>Seamless R and C++ Integration
+with Rcpp</em>, Springer, New York. ISBN 978-1-4614-6867-7.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>ru_rcpp</code> to perform ratio-of-uniforms sampling.
+</p>
+<p><code>find_lambda_one_d_rcpp</code> to produce (somewhat)
+automatically a list for the argument <code>lambda</code> of <code>ru</code> for the
+<code>d</code> = 1 case.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Log-normal density ===================
+# Note: the default value max_phi = 10 is OK here but this will not always
+# be the case
+ptr_lnorm &lt;- create_xptr("logdlnorm")
+mu &lt;- 0
+sigma &lt;- 1
+lambda &lt;- find_lambda_rcpp(logf = ptr_lnorm, mu = mu, sigma = sigma)
+lambda
+x &lt;- ru_rcpp(logf = ptr_lnorm, mu = mu, sigma = sigma, d = 1, n = 1000,
+             trans = "BC", lambda = lambda)
+
+# Gamma density ===================
+alpha &lt;- 1
+#  Choose a sensible value of max_phi
+max_phi &lt;- qgamma(0.999, shape = alpha)
+# [Of course, typically the quantile function won't be available.  However,
+# In practice the value of lambda chosen is quite insensitive to the choice
+# of max_phi, provided that max_phi is not far too large or far too small.]
+
+ptr_gam &lt;- create_xptr("logdgamma")
+lambda &lt;- find_lambda_rcpp(logf = ptr_gam, alpha = alpha, max_phi = max_phi)
+lambda
+x &lt;- ru_rcpp(logf = ptr_gam, alpha = alpha, d = 1, n = 1000, trans = "BC",
+             lambda = lambda)
+
+
+# Generalized Pareto posterior distribution ===================
+
+n &lt;- 1000
+# Sample data from a GP(sigma, xi) distribution
+gpd_data &lt;- rgpd(m = 100, xi = -0.5, sigma = 1)
+# Calculate summary statistics for use in the log-likelihood
+ss &lt;- gpd_sum_stats(gpd_data)
+# Calculate an initial estimate
+init &lt;- c(mean(gpd_data), 0)
+
+n &lt;- 1000
+# Sample on original scale, with no rotation ----------------
+ptr_gp &lt;- create_xptr("loggp")
+for_ru_rcpp &lt;- c(list(logf = ptr_gp, init = init, d = 2, n = n,
+                     lower = c(0, -Inf)), ss, rotate = FALSE)
+x1 &lt;- do.call(ru_rcpp, for_ru_rcpp)
+plot(x1, xlab = "sigma", ylab = "xi")
+# Parameter constraint line xi &gt; -sigma/max(data)
+# [This may not appear if the sample is far from the constraint.]
+abline(a = 0, b = -1 / ss$xm)
+summary(x1)
+
+# Sample on original scale, with rotation ----------------
+for_ru_rcpp &lt;- c(list(logf = ptr_gp, init = init, d = 2, n = n,
+                      lower = c(0, -Inf)), ss)
+x2 &lt;- do.call(ru_rcpp, for_ru_rcpp)
+plot(x2, xlab = "sigma", ylab = "xi")
+abline(a = 0, b = -1 / ss$xm)
+summary(x2)
+
+# Sample on Box-Cox transformed scale ----------------
+
+# Find initial estimates for phi = (phi1, phi2),
+# where phi1 = sigma
+#   and phi2 = xi + sigma / max(x),
+# and ranges of phi1 and phi2 over over which to evaluate
+# the posterior to find a suitable value of lambda.
+temp &lt;- do.call(gpd_init, ss)
+min_phi &lt;- pmax(0, temp$init_phi - 2 * temp$se_phi)
+max_phi &lt;- pmax(0, temp$init_phi + 2 * temp$se_phi)
+
+# Set phi_to_theta() that ensures positivity of phi
+# We use phi1 = sigma and phi2 = xi + sigma / max(data)
+
+# Create an external pointer to this C++ function
+ptr_phi_to_theta_gp &lt;- create_phi_to_theta_xptr("gp")
+# Note: log_j is set to zero by default inside find_lambda_rcpp()
+lambda &lt;- find_lambda_rcpp(logf = ptr_gp, ss = ss, d = 2, min_phi = min_phi,
+                           max_phi = max_phi, user_args = list(xm = ss$xm),
+                           phi_to_theta = ptr_phi_to_theta_gp)
+lambda
+
+# Sample on Box-Cox transformed, without rotation
+x3 &lt;- ru_rcpp(logf = ptr_gp, ss = ss, d = 2, n = n, trans = "BC",
+              lambda = lambda, rotate = FALSE)
+plot(x3, xlab = "sigma", ylab = "xi")
+abline(a = 0, b = -1 / ss$xm)
+summary(x3)
+
+# Sample on Box-Cox transformed, with rotation
+x4 &lt;- ru_rcpp(logf = ptr_gp, ss = ss, d = 2, n = n, trans = "BC",
+              lambda = lambda)
+plot(x4, xlab = "sigma", ylab = "xi")
+abline(a = 0, b = -1 / ss$xm)
+summary(x4)
+
+def_par &lt;- graphics::par(no.readonly = TRUE)
+par(mfrow = c(2,2), mar = c(4, 4, 1.5, 1))
+plot(x1, xlab = "sigma", ylab = "xi", ru_scale = TRUE,
+  main = "mode relocation")
+plot(x2, xlab = "sigma", ylab = "xi", ru_scale = TRUE,
+  main = "mode relocation and rotation")
+plot(x3, xlab = "sigma", ylab = "xi", ru_scale = TRUE,
+  main = "Box-Cox and mode relocation")
+plot(x4, xlab = "sigma", ylab = "xi", ru_scale = TRUE,
+  main = "Box-Cox, mode relocation and rotation")
+graphics::par(def_par)
+
+</code></pre>
+
+
+</div>

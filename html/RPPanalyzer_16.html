@@ -1,0 +1,127 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>correctDilinterc</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Dilution series intersect correction
+</h2>
+
+<h3>Description</h3>
+
+<p>Consists of 3 functions: <code>getIntercepts()</code>, <code>analyzeIntercepts()</code> and <code>getSignals()</code>.
+The first one derives intercepts of dilution series in dependence of dilSeriesID (column in sampledescription.txt) and slide/pad/incubationRun/spottingRun number (colnames of arraydescription). A smoothing spline is used to extrapolate to 0. Nonparametric bootstrap is used to estimate uncertainty of the intercept estimate.
+The second function is used in the last one and does Analysis of Variances for nested models.
+The last one updates the original timeseries signal to (foreground expression - intercept).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">	correctDilinterc(dilseries, arraydesc, timeseries, exportNo) 
+    getIntercepts(dilseries, arraydesc)
+    analyzeIntercepts(intercepts, test="F", export)
+    getSignals(timeseries, intercepts, arraydesc, exportNo)
+	as.my(v)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>dilseries</code></td>
+<td>
+<p>foreground signal matrix as result of <code>write.Data</code> and import of resulting txt file, but just sample_type "control", i.e. dilution series</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>arraydesc</code></td>
+<td>
+<p>"arraydescription" matrix of the RPPA data set list</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>timeseries</code></td>
+<td>
+<p>foreground signal matrix as result of <code>write.Data</code> and import of resulting txt file, but just sample_type "measurement"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exportNo</code></td>
+<td>
+<p>integer of 1-4 which of the linear fits should be exported to the attribute of the result, variable for <code>analyzeIntercepts()</code>, 1: constant, 2: antibody, 3: antibody + slide (default) or antibody + slide + sample (<code>dilSeriesID</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intercepts</code></td>
+<td>
+<p>output of <code>getIntercepts()</code>, data frame with columns for dilSeriesID and slide/pad/incubationRun/spottingRun number as well as antibody, estimated intercept and estimated error of intercept</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test</code></td>
+<td>
+<p>test parameter for ANOVA (see documentation of <code>anova</code>), default is "F"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>export</code></td>
+<td>
+<p>see <code>exportNo</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>v</code></td>
+<td>
+<p>some variable</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>matrix with adapted signal intensities via subtraction of dilution intercept at concentration 0
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Daniel Kaschek, Silvia von der Heyde
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+library(RPPanalyzer)
+
+
+# read data
+dataDir &lt;- system.file("extdata", package="RPPanalyzer")
+setwd(dataDir)
+rawdata &lt;- read.Data(blocksperarray=12, spotter="aushon", printFlags=FALSE)
+# write data
+write.Data(rawdata,FileNameExtension="test_data")
+# import raw data
+fgRaw.tmp &lt;- read.delim("test_dataexpression.txt",
+stringsAsFactors=FALSE, row.names=NULL, header=TRUE)
+fgRaw &lt;- read.delim("test_dataexpression.txt", skip=max(which(fgRaw.tmp[,1]==""))+1,
+stringsAsFactors=FALSE, row.names=NULL, header=TRUE)
+# remove NAs
+fgNAVec &lt;- which(is.na(fgRaw[,"ID"]))
+if(length(fgNAVec) &gt; 0){
+fgRaw &lt;- fgRaw[-fgNAVec,]
+}
+colnames(fgRaw) &lt;- sub("X","", gsub("\\.","-", colnames(fgRaw)))
+# correct data for BG noise
+correctedData &lt;- correctDilinterc(dilseries=fgRaw[which(fgRaw$sample_type=="control" &amp;
+!is.na(fgRaw$dilSeriesID)),], arraydesc=rawdata$arraydescription,
+timeseries=fgRaw[which(fgRaw$sample_type=="measurement"),], exportNo=2)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

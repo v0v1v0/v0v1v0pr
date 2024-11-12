@@ -1,0 +1,441 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>getSimulationMeans</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Get Simulation Means</h2>
+
+<h3>Description</h3>
+
+<p>Returns the simulated power, stopping probabilities, conditional power, and expected sample size
+for testing means in a one or two treatment groups testing situation.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">getSimulationMeans(
+  design = NULL,
+  ...,
+  groups = 2L,
+  normalApproximation = TRUE,
+  meanRatio = FALSE,
+  thetaH0 = ifelse(meanRatio, 1, 0),
+  alternative = seq(0, 1, 0.2),
+  stDev = 1,
+  plannedSubjects = NA_real_,
+  directionUpper = NA,
+  allocationRatioPlanned = NA_real_,
+  minNumberOfSubjectsPerStage = NA_real_,
+  maxNumberOfSubjectsPerStage = NA_real_,
+  conditionalPower = NA_real_,
+  thetaH1 = NA_real_,
+  stDevH1 = NA_real_,
+  maxNumberOfIterations = 1000L,
+  seed = NA_real_,
+  calcSubjectsFunction = NULL,
+  showStatistics = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>design</code></td>
+<td>
+<p>The trial design. If no trial design is specified, a fixed sample size design is used.
+In this case, Type I error rate <code>alpha</code>, Type II error rate <code>beta</code>, <code>twoSidedPower</code>,
+and <code>sided</code> can be directly entered as argument where necessary.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Ensures that all arguments (starting from the "...") are to be named and
+that a warning will be displayed if unknown arguments are passed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>groups</code></td>
+<td>
+<p>The number of treatment groups (1 or 2), default is <code>2</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>normalApproximation</code></td>
+<td>
+<p>The type of computation of the p-values. Default is <code>TRUE</code>,
+i.e., normally distributed test statistics are generated.
+If <code>FALSE</code>, the t test is used for calculating the p-values,
+i.e., t distributed test statistics are generated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>meanRatio</code></td>
+<td>
+<p>If <code>TRUE</code>, the design characteristics for
+one-sided testing of H0: <code>mu1 / mu2 = thetaH0</code> are simulated, default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thetaH0</code></td>
+<td>
+<p>The null hypothesis value,
+default is <code>0</code> for the normal and the binary case (testing means and rates, respectively),
+it is <code>1</code> for the survival case (testing the hazard ratio).<br><br>
+For non-inferiority designs, <code>thetaH0</code> is the non-inferiority bound.
+That is, in case of (one-sided) testing of
+</p>
+
+<ul>
+<li> <p><em>means</em>: a value <code>!= 0</code>
+(or a value <code>!= 1</code> for testing the mean ratio) can be specified.
+</p>
+</li>
+<li> <p><em>rates</em>: a value <code>!= 0</code>
+(or a value <code>!= 1</code> for testing the risk ratio <code>pi1 / pi2</code>) can be specified.
+</p>
+</li>
+<li> <p><em>survival data</em>: a bound for testing H0: <code>hazard ratio = thetaH0 != 1</code> can be specified.
+</p>
+</li>
+<li> <p><em>count data</em>: a bound for testing H0: <code>lambda1 / lambda2 = thetaH0 != 1</code> can be specified.
+</p>
+</li>
+</ul>
+<p>For testing a rate in one sample, a value <code>thetaH0</code> in (0, 1) has to be specified for
+defining the null hypothesis H0: <code>pi = thetaH0</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alternative</code></td>
+<td>
+<p>The alternative hypothesis value for testing means under which the data is simulated.
+This can be a vector of assumed alternatives, default is <code>seq(0, 1, 0.2)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stDev</code></td>
+<td>
+<p>The standard deviation under which the data is simulated,
+default is <code>1</code>.
+If <code>meanRatio = TRUE</code> is specified, <code>stDev</code> defines
+the coefficient of variation <code>sigma / mu2</code>. Must be a positive numeric of length 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plannedSubjects</code></td>
+<td>
+<p><code>plannedSubjects</code> is a numeric vector of length <code>kMax</code> (the number of stages of the design)
+that determines the number of cumulated (overall) subjects when the interim stages are planned.
+For two treatment arms, it is the number of subjects for both treatment arms.
+For multi-arm designs, <code>plannedSubjects</code> refers to the number of subjects per selected active arm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>directionUpper</code></td>
+<td>
+<p>Logical. Specifies the direction of the alternative,
+only applicable for one-sided testing; default is <code>TRUE</code>
+which means that larger values of the test statistics yield smaller p-values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>allocationRatioPlanned</code></td>
+<td>
+<p>The planned allocation ratio <code>n1 / n2</code> for a two treatment groups
+design, default is <code>1</code>. For multi-arm designs, it is the allocation ratio relating the active arm(s) to the control.
+For simulating means and rates for a two treatment groups design, it can be a vector of length <code>kMax</code>, the number of stages.
+It can be a vector of length kMax, too, for multi-arm and enrichment designs.
+In these cases, a change of allocating subjects to treatment groups over the stages can be assessed.
+Note that internally <code>allocationRatioPlanned</code> is treated as a vector of length <code>kMax</code>, not a scalar.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minNumberOfSubjectsPerStage</code></td>
+<td>
+<p>When performing a data driven sample size recalculation,
+the numeric vector <code>minNumberOfSubjectsPerStage</code> with length <code>kMax</code> determines the
+minimum number of subjects per stage (i.e., not cumulated), the first element
+is not taken into account. For two treatment arms, it is the number of subjects for both treatment arms.
+For multi-arm designs <code>minNumberOfSubjectsPerStage</code> refers
+to the minimum number of subjects per selected active arm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxNumberOfSubjectsPerStage</code></td>
+<td>
+<p>When performing a data driven sample size recalculation,
+the numeric vector <code>maxNumberOfSubjectsPerStage</code> with length <code>kMax</code> determines the maximum number
+of subjects per stage (i.e., not cumulated), the first element is not taken into account.
+For two treatment arms, it is the number of subjects for both treatment arms.
+For multi-arm designs <code>maxNumberOfSubjectsPerStage</code> refers
+to the maximum number of subjects per selected active arm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>conditionalPower</code></td>
+<td>
+<p>If <code>conditionalPower</code> together with <code>minNumberOfSubjectsPerStage</code> and
+<code>maxNumberOfSubjectsPerStage</code> (or <code>minNumberOfEventsPerStage</code> and <code>maxNumberOfEventsPerStage</code>
+for survival designs) is specified, a sample size recalculation based on the specified conditional power is performed.
+It is defined as the power for the subsequent stage given the current data. By default,
+the conditional power will be calculated under the observed effect size. Optionally, you can also specify <code>thetaH1</code> and
+<code>stDevH1</code> (for simulating means), <code>pi1H1</code> and <code>pi2H1</code> (for simulating rates), or <code>thetaH1</code> (for simulating
+hazard ratios) as parameters under which it is calculated and the sample size recalculation is performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thetaH1</code></td>
+<td>
+<p>If specified, the value of the alternative under which
+the conditional power or sample size recalculation calculation is performed. Must be a numeric of length 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stDevH1</code></td>
+<td>
+<p>If specified, the value of the standard deviation under which
+the conditional power or sample size recalculation calculation is performed,
+default is the value of <code>stDev</code>. Must be a positive numeric of length 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxNumberOfIterations</code></td>
+<td>
+<p>The number of simulation iterations, default is <code>1000</code>. Must be a positive integer of length 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>The seed to reproduce the simulation, default is a random seed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>calcSubjectsFunction</code></td>
+<td>
+<p>Optionally, a function can be entered that defines the way of performing the sample size
+recalculation. By default, sample size recalculation is performed with conditional power and specified
+<code>minNumberOfSubjectsPerStage</code> and <code>maxNumberOfSubjectsPerStage</code> (see details and examples).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>showStatistics</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, summary statistics of the simulated data
+are displayed for the <code>print</code> command, otherwise the output is suppressed, default
+is <code>FALSE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>At given design the function simulates the power, stopping probabilities, conditional power, and expected
+sample size at given number of subjects and parameter configuration.
+Additionally, an allocation ratio = n1/n2 can be specified where n1 and n2 are the number
+of subjects in the two treatment groups.
+</p>
+<p>The definition of <code>thetaH1</code> makes only sense if <code>kMax</code> &gt; 1
+and if <code>conditionalPower</code>, <code>minNumberOfSubjectsPerStage</code>, and
+<code>maxNumberOfSubjectsPerStage</code> (or <code>calcSubjectsFunction</code>) are defined.
+</p>
+<p><code>calcSubjectsFunction</code><br>
+This function returns the number of subjects at given conditional power and conditional critical value for specified
+testing situation. The function might depend on variables
+<code>stage</code>,
+<code>meanRatio</code>,
+<code>thetaH0</code>,
+<code>groups</code>,
+<code>plannedSubjects</code>,
+<code>sampleSizesPerStage</code>,
+<code>directionUpper</code>,
+<code>allocationRatioPlanned</code>,
+<code>minNumberOfSubjectsPerStage</code>,
+<code>maxNumberOfSubjectsPerStage</code>,
+<code>conditionalPower</code>,
+<code>conditionalCriticalValue</code>,
+<code>thetaH1</code>, and
+<code>stDevH1</code>.
+The function has to contain the three-dots argument '...' (see examples).
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns a <code>SimulationResults</code> object.
+The following generics (R generic functions) are available for this object:
+</p>
+
+<ul>
+<li> <p><code>names()</code> to obtain the field names,
+</p>
+</li>
+<li> <p><code>print()</code> to print the object,
+</p>
+</li>
+<li> <p><code>summary()</code> to display a summary of the object,
+</p>
+</li>
+<li> <p><code>plot()</code> to plot the object,
+</p>
+</li>
+<li> <p><code>as.data.frame()</code> to coerce the object to a <code>data.frame</code>,
+</p>
+</li>
+<li> <p><code>as.matrix()</code> to coerce the object to a <code>matrix</code>.
+</p>
+</li>
+</ul>
+<h3>Simulation Data</h3>
+
+<p>The summary statistics "Simulated data" contains the following parameters: median range; mean +/-sd<br></p>
+<p><code>$show(showStatistics = FALSE)</code> or <code>$setShowStatistics(FALSE)</code> can be used to disable
+the output of the aggregated simulated data.<br></p>
+<p>Example 1: <br><code>simulationResults &lt;- getSimulationMeans(plannedSubjects = 40)</code> <br><code>simulationResults$show(showStatistics = FALSE)</code><br></p>
+<p>Example 2: <br><code>simulationResults &lt;- getSimulationMeans(plannedSubjects = 40)</code> <br><code>simulationResults$setShowStatistics(FALSE)</code><br><code>simulationResults</code><br></p>
+<p><code>getData()</code> can be used to get the aggregated simulated data from the
+object as <code>data.frame</code>. The data frame contains the following columns:
+</p>
+
+<ol>
+<li> <p><code>iterationNumber</code>: The number of the simulation iteration.
+</p>
+</li>
+<li> <p><code>stageNumber</code>: The stage.
+</p>
+</li>
+<li> <p><code>alternative</code>: The alternative hypothesis value.
+</p>
+</li>
+<li> <p><code>numberOfSubjects</code>: The number of subjects under consideration when the
+(interim) analysis takes place.
+</p>
+</li>
+<li> <p><code>rejectPerStage</code>: 1 if null hypothesis can be rejected, 0 otherwise.
+</p>
+</li>
+<li> <p><code>futilityPerStage</code>: 1 if study should be stopped for futility, 0 otherwise.
+</p>
+</li>
+<li> <p><code>testStatistic</code>: The test statistic that is used for the test decision,
+depends on which design was chosen (group sequential, inverse normal, or Fisher's combination test).
+</p>
+</li>
+<li> <p><code>testStatisticsPerStage</code>: The test statistic for each stage if only data from
+the considered stage is taken into account.
+</p>
+</li>
+<li> <p><code>effectEstimate</code>: Overall simulated standardized effect estimate.
+</p>
+</li>
+<li> <p><code>trialStop</code>: <code>TRUE</code> if study should be stopped for efficacy or futility or final stage, <code>FALSE</code> otherwise.
+</p>
+</li>
+<li> <p><code>conditionalPowerAchieved</code>: The conditional power for the subsequent stage of the trial for
+selected sample size and effect. The effect is either estimated from the data or can be
+user defined with <code>thetaH1</code>.
+</p>
+</li>
+</ol>
+<h3>How to get help for generic functions</h3>
+
+<p>Click on the link of a generic in the list above to go directly to the help documentation of
+the <code>rpact</code> specific implementation of the generic.
+Note that you can use the R function <code>methods</code> to get all the methods of a generic and
+to identify the object specific name of it, e.g.,
+use <code>methods("plot")</code> to get all the methods for the <code>plot</code> generic.
+There you can find, e.g., <code>plot.AnalysisResults</code> and
+obtain the specific help documentation linked above by typing <code>?plot.AnalysisResults</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# Fixed sample size design with two groups, total sample size 40,
+# alternative = c(0, 0.2, 0.4, 0.8, 1), and standard deviation = 1 (the default)
+getSimulationMeans(plannedSubjects = 40, maxNumberOfIterations = 10)
+
+# Increase number of simulation iterations and compare results
+# with power calculator using normal approximation
+getSimulationMeans(
+    alternative = 0:4, stDev = 5,
+    plannedSubjects = 40, maxNumberOfIterations = 1000
+)
+getPowerMeans(
+    alternative = 0:4, stDev = 5,
+    maxNumberOfSubjects = 40, normalApproximation = TRUE
+)
+
+# Do the same for a three-stage O'Brien&amp;Fleming inverse
+# normal group sequential design with non-binding futility stops
+designIN &lt;- getDesignInverseNormal(typeOfDesign = "OF", futilityBounds = c(0, 0))
+x &lt;- getSimulationMeans(designIN,
+    alternative = c(0:4), stDev = 5,
+    plannedSubjects = c(20, 40, 60), maxNumberOfIterations = 1000
+)
+getPowerMeans(designIN,
+    alternative = 0:4, stDev = 5,
+    maxNumberOfSubjects = 60, normalApproximation = TRUE
+)
+
+# Assess power and average sample size if a sample size increase is foreseen
+# at conditional power 80% for each subsequent stage based on observed overall
+# effect and specified minNumberOfSubjectsPerStage and
+# maxNumberOfSubjectsPerStage
+getSimulationMeans(designIN,
+    alternative = 0:4, stDev = 5,
+    plannedSubjects = c(20, 40, 60),
+    minNumberOfSubjectsPerStage = c(NA, 20, 20),
+    maxNumberOfSubjectsPerStage = c(NA, 80, 80),
+    conditionalPower = 0.8,
+    maxNumberOfIterations = 50
+)
+
+# Do the same under the assumption that a sample size increase only takes
+# place at the first interim. The sample size for the third stage is set equal
+# to the second stage sample size.
+mySampleSizeCalculationFunction &lt;- function(..., stage,
+        minNumberOfSubjectsPerStage,
+        maxNumberOfSubjectsPerStage,
+        sampleSizesPerStage,
+        conditionalPower,
+        conditionalCriticalValue,
+        allocationRatioPlanned,
+        thetaH1,
+        stDevH1) {
+    if (stage &lt;= 2) {
+        # Note that allocationRatioPlanned is as a vector of length kMax
+        stageSubjects &lt;- (1 + allocationRatioPlanned[stage])^2 / 
+            allocationRatioPlanned[stage] *
+            (max(0, conditionalCriticalValue + stats::qnorm(conditionalPower)))^2 /
+            (max(1e-12, thetaH1 / stDevH1))^2
+        stageSubjects &lt;- min(max(
+            minNumberOfSubjectsPerStage[stage],
+            stageSubjects
+        ), maxNumberOfSubjectsPerStage[stage])
+    } else {
+        stageSubjects &lt;- sampleSizesPerStage[stage - 1]
+    }
+    return(stageSubjects)
+}
+getSimulationMeans(designIN,
+    alternative = 0:4, stDev = 5,
+    plannedSubjects = c(20, 40, 60),
+    minNumberOfSubjectsPerStage = c(NA, 20, 20),
+    maxNumberOfSubjectsPerStage = c(NA, 80, 80),
+    conditionalPower = 0.8,
+    calcSubjectsFunction = mySampleSizeCalculationFunction,
+    maxNumberOfIterations = 50
+)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

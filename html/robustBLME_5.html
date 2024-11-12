@@ -1,0 +1,139 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>tune.h</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Tune ABC distance bandwidth</h2>
+
+<h3>Description</h3>
+
+<p>Tunes the bandwidth <code class="reqn">h</code> of the ABC distance to get the desired level of acceptance rate specified via <code>acc.rate</code>. Besides tuning <code class="reqn">h</code>, the function also builds the relevant quantities needed for running <code>rblme</code>. For generating such quantities an internal call to <code>lmer</code> is performed.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">tune.h(formula, data, ..., n.samp = 1e+5, n.sim.HJ = 500, acc.rate, grid.h, prior,
+       cHub = 1.345, cHub2 = 2.07,
+       init, n.cores = 1, use.h)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>two-sided linear formula object describing the
+fixed-effects part of the model, with the response on the left of
+a <code>~</code> operator and the terms, separated by <code>+</code>
+operators on the right.  The <code>"|"</code> character separates an
+expression for a model matrix and a grouping factor.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>optional data frame containing the variables named
+in <code>formula</code>. By default the variables are taken from the
+environment of <code>lmer</code> called internally.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>other arguments to be passed to <code>lmer</code>. Currently none is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.samp</code></td>
+<td>
+<p>number of pilot posterior samples to be drawn with ABC for each value of <code>grid.h</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.sim.HJ</code></td>
+<td>
+<p>number of simulations to be used for computing the sensitivity and variability matrices.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>acc.rate</code></td>
+<td>
+<p>desired acceptance rate of the ABC-MCMC algorithm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grid.h</code></td>
+<td>
+<p>grid of <code class="reqn">h</code> values within which the "optimal" value is to be found.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior</code></td>
+<td>
+<p>named list of user-defined prior hyper-parameters. See "Details" below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cHub</code></td>
+<td>
+<p>tuning constant of the Huber function for the location parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cHub2</code></td>
+<td>
+<p>tuning constant of the Huber proposal 2 function for the scale parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init</code></td>
+<td>
+<p>optional object to use for starting values. Currently ignored as initial values are taken from <code>lmer</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.cores</code></td>
+<td>
+<p>number of cores for parallel computation on non Windows machines.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use.h</code></td>
+<td>
+<p>bandwidth to be used for the ABC distance. If provided, no tuning for <code class="reqn">h</code> is performed and <code>acc.rate</code> is ignored.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Given a specification of the <code>formula</code> and <code>data</code> the function calls internally <code>rlmer</code> and extracts from the resulting object all the necessary quantities. Then proceeds by finding the solution of the REML II robust estimating equations (Richardson &amp; Welsh 1995), with the REML estimate used as starting point. The sensitivity and the variability matrices are computed by simulation at the solution of the robust REML II estimating equation. Depending on whether <code>use.h</code> or <code>acc.rate</code> and <code>grid.h</code> are specified, the function has a different behaviour. If <code>acc.rate</code> and <code>grid.h</code> are provided, then an adaptive step is performed in order to get an "optimal" <code class="reqn">h</code> which gives the desired acceptance rate <code>acc.rate</code>. IN particular, for each value of <code>grid.h</code>, the function draws <code>n.samp</code> posterior samples with the ABC-MCMC algorithm and saves the resulting acceptance rate. Lastly, a function is built via a smoothing spline with acceptance rates being the <code class="reqn">x</code>s and <code>grid.h</code> being the <code class="reqn">y</code>s. The "optimal" value of <code class="reqn">h</code> is found, within <code>grid.h</code>, as the prediction the spline function at <code>acc.rate</code>. If you already have an <code class="reqn">h</code> value in mind then specify it via <code>use.h</code> and leave <code>grid.h</code> and <code>acc.rate</code> unspecified. Note that, in this case the acceptance rate of the ABC-MCMC algorithm may not be the one you wish to obtain since it depends in some complicated way also from <code class="reqn">use.h</code>. Currently, the prior for the <code class="reqn">q</code> fixed effects is the product of <code class="reqn">q</code> scalar normals with mean zero and user-specified variance <code>beta.sd</code> (see Examples) equal for all the parameters. For the variance components the prior is a halfCauchy with user-specified scale <code>s2.scale</code>. Both variance parameters are assumed to have equal prior scale.
+</p>
+
+
+<h3>Value</h3>
+
+<p>list.
+</p>
+
+
+<h3>References</h3>
+
+<p>Ruli E., Sartori N. &amp; Ventura L. (2017)
+Robust approximate Bayesian inference with an application to linear mixed models.
+<a href="https://arxiv.org/abs/1706.01752">https://arxiv.org/abs/1706.01752</a>
+</p>
+<p>Richardson A. M. &amp; Welsh A. H. (1995) Robust restricted maximum likelihood in mixed linear models. <em>Biometrics</em> <b>51</b>, 1429-1439.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>rblme</code>, <code>ergoStool</code>.
+</p>
+
+
+</div>

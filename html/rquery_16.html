@@ -1,0 +1,102 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>complete_design</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Complete an experimental design.</h2>
+
+<h3>Description</h3>
+
+<p>Complete an experimental design.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">complete_design(design_table, data_table)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>design_table</code></td>
+<td>
+<p>optree or for experimental design.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data_table</code></td>
+<td>
+<p>optree for data.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>joined and annotated table optree.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+if (requireNamespace("DBI", quietly = TRUE) &amp;&amp;
+    requireNamespace("RSQLite", quietly = TRUE)) {
+  my_db &lt;- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+
+  # example experimental design
+  values &lt;- list(nums = 1:3, lets = c("a", "b"))
+  design &lt;- expand_grid(my_db, values)
+
+  # not quite matching data
+  data &lt;- build_frame(
+    "nums", "lets"   |
+      1L    , "a"    |
+      1L    , "b"    |
+      77L   , "a"    |  # out of place ID
+      2L    , "b"    |
+      3L    , "a"    |
+      3L    , "a"    | # duplicated
+      3L    , "b"    )
+  data$row_number &lt;- seq_len(nrow(data))
+  data &lt;- rq_copy_to(my_db, "data", data)
+
+  # compare/augment
+  res &lt;- complete_design(design, data)
+  cat(format(res))
+  res &lt;- materialize(my_db, res)
+
+  print("completed data design")
+  print(execute(my_db, res))
+
+  # look for dups (can use extende_se(partation) on
+  # databases with window fns.
+  print("duplicate key rows:")
+  res %.&gt;%
+    project_se(.,
+               groupby = column_names(design),
+               "count" %:=% "SUM(1)") %.&gt;%
+    select_rows_se(., "count&gt;1") %.&gt;%
+    execute(my_db, .) %.&gt;%
+    print(.)
+
+  # look for data that was not in design
+  print("data rows not in design:")
+  data %.&gt;%
+    natural_join(., res,
+                 jointype = "LEFT",
+                 by = column_names(design)) %.&gt;%
+    select_rows_se(., "is.na(row_in_design_table)") %.&gt;%
+    execute(my_db, .) %.&gt;%
+    print(.)
+
+  DBI::dbDisconnect(my_db)
+}
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,255 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>robyn_refresh</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Build Refresh Model</h2>
+
+<h3>Description</h3>
+
+<p><code>robyn_refresh()</code> builds updated models based on
+the previously built models saved in the <code>Robyn.RDS</code> object specified
+in <code>robyn_object</code>. For example, when updating the initial build with 4
+weeks of new data, <code>robyn_refresh()</code> consumes the selected model of
+the initial build, sets lower and upper bounds of hyperparameters for the
+new build around the selected hyperparameters of the previous build,
+stabilizes the effect of baseline variables across old and new builds, and
+regulates the new effect share of media variables towards the latest
+spend level. It returns the aggregated results with all previous builds for
+reporting purposes and produces reporting plots.
+</p>
+<p>You must run <code>robyn_save()</code> to select and save an initial model first,
+before refreshing.
+</p>
+<p><strong>When should <code>robyn_refresh()</code> NOT be used:</strong>
+The <code>robyn_refresh()</code> function is suitable for
+updating within "reasonable periods". Two situations are considered better
+to rebuild model instead of refreshing:
+</p>
+<p>1. Most data is new: If initial model was trained with 100 weeks worth of
+data but we add +50 weeks of new data.
+</p>
+<p>2. New variables are added: If initial model had less variables than the ones
+we want to start using on new refresh model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">robyn_refresh(
+  json_file = NULL,
+  robyn_object = NULL,
+  dt_input = NULL,
+  dt_holidays = Robyn::dt_prophet_holidays,
+  refresh_steps = 4,
+  refresh_mode = "manual",
+  refresh_iters = 1000,
+  refresh_trials = 3,
+  bounds_freedom = NULL,
+  plot_folder = NULL,
+  plot_pareto = TRUE,
+  version_prompt = FALSE,
+  export = TRUE,
+  calibration_input = NULL,
+  objective_weights = NULL,
+  ...
+)
+
+## S3 method for class 'robyn_refresh'
+print(x, ...)
+
+## S3 method for class 'robyn_refresh'
+plot(x, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>json_file</code></td>
+<td>
+<p>Character. JSON file to import previously exported inputs or
+recreate a model. To generate this file, use <code>robyn_write()</code>.
+If you didn't export your data in the json file as "raw_data",
+<code>dt_input</code> must be provided; <code>dt_holidays</code> input is optional.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>robyn_object</code></td>
+<td>
+<p>Character or List. Path of the <code>Robyn.RDS</code> object
+that contains all previous modeling information or the imported list.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dt_input</code></td>
+<td>
+<p>data.frame. Should include all previous data and newly added
+data for the refresh.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dt_holidays</code></td>
+<td>
+<p>data.frame. Raw input holiday data. Load standard
+Prophet holidays using <code>data("dt_prophet_holidays")</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refresh_steps</code></td>
+<td>
+<p>Integer. It controls how many time units the refresh
+model build move forward. For example, <code>refresh_steps = 4</code> on weekly data
+means the <code>InputCollect$window_start</code> &amp; <code>InputCollect$window_end</code>
+move forward 4 weeks. If <code>refresh_steps</code> is smaller than the number of
+newly provided data points, then Robyn would only use the first N steps of the
+new data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refresh_mode</code></td>
+<td>
+<p>Character. Options are "auto" and "manual". In auto mode,
+the <code>robyn_refresh()</code> function builds refresh models with given
+<code>refresh_steps</code> repeatedly until there's no more data available. I
+manual mode, the <code>robyn_refresh()</code> only moves forward <code>refresh_steps</code>
+only once. "auto" mode has been deprecated when using <code>json_file</code> input.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refresh_iters</code></td>
+<td>
+<p>Integer. Iterations per refresh. Rule of thumb is, the
+more new data added, the more iterations needed. More reliable recommendation
+still needs to be investigated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refresh_trials</code></td>
+<td>
+<p>Integer. Trials per refresh. Defaults to 5 trials.
+More reliable recommendation still needs to be investigated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bounds_freedom</code></td>
+<td>
+<p>Numeric. Percentage of freedom we'd like to allow for the
+new hyperparameters values compared with the model to be refreshed.
+If set to NULL (default) the value will be calculated as
+refresh_steps / rollingWindowLength. Applies to all hyperparameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot_folder</code></td>
+<td>
+<p>Character. Path for saving plots and files. Default
+to <code>robyn_object</code> and saves plot in the same directory as <code>robyn_object</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot_pareto</code></td>
+<td>
+<p>Boolean. Set to <code>FALSE</code> to deactivate plotting
+and saving model one-pagers. Used when testing models.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>version_prompt</code></td>
+<td>
+<p>Logical. If FALSE, the model refresh version will be
+selected based on the smallest combined error of normalized NRMSE, DECOMP.RSSD, MAPE.
+If <code>TRUE</code>, a prompt will be presented to the user to select one of the refreshed
+models (one-pagers and Pareto CSV files will already be generated).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>export</code></td>
+<td>
+<p>Boolean. Export outcomes into local files?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>calibration_input</code></td>
+<td>
+<p>data.frame. Optional. Provide experimental results to
+calibrate. Your input should include the following values for each experiment:
+channel, liftStartDate, liftEndDate, liftAbs, spend, confidence, metric.
+You can calibrate any spend or organic variable with a well designed experiment.
+You can also use experimental results from multiple channels; to do so,
+provide concatenated channel value, i.e. "channel_A+channel_B".
+Check "Guide for calibration source" section.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>objective_weights</code></td>
+<td>
+<p>Numeric vector. Default to NULL to give equal weights
+to all objective functions. Order: NRMSE, DECOMP.RSSD, MAPE (when calibration
+data is provided). When you are not calibrating, only the first 2 values for
+<code>objective_weights</code> must be defined, i.e. set c(2, 1) to give double weight
+to the 1st (NRMSE). This is an experimental feature. There's no research on
+optimal weight setting. Subjective weights might strongly bias modeling results.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional parameters to overwrite original custom parameters
+passed into initial model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><code>robyn_refresh()</code> output.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>List. The Robyn object, class <code>robyn_refresh</code>.
+</p>
+<p>List. Same as <code>robyn_run()</code> but with refreshed models.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# Loading dummy data
+data("dt_simulated_weekly")
+data("dt_prophet_holidays")
+# Set the (pre-trained and exported) Robyn model JSON file
+json_file &lt;- "~/Robyn_202208081444_init/RobynModel-2_55_4.json"
+
+# Run \code{robyn_refresh()} with 13 weeks cadence in auto mode
+Robyn &lt;- robyn_refresh(
+  json_file = json_file,
+  dt_input = dt_simulated_weekly,
+  dt_holidays = Robyn::dt_prophet_holidays,
+  refresh_steps = 13,
+  refresh_mode = "auto",
+  refresh_iters = 200,
+  refresh_trials = 5
+)
+
+# Run \code{robyn_refresh()} with 4 weeks cadence in manual mode
+json_file2 &lt;- "~/Robyn_202208081444_init/Robyn_202208090847_rf/RobynModel-1_2_3.json"
+Robyn &lt;- robyn_refresh(
+  json_file = json_file2,
+  dt_input = dt_simulated_weekly,
+  dt_holidays = Robyn::dt_prophet_holidays,
+  refresh_steps = 4,
+  refresh_mode = "manual",
+  refresh_iters = 200,
+  refresh_trials = 5
+)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

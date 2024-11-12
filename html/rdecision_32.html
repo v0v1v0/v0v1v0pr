@@ -1,0 +1,1070 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>SemiMarkovModel</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>A semi-Markov model for cohort simulation</h2>
+
+<h3>Description</h3>
+
+<p>An R6 class representing a semi-Markov model for
+cohort simulation.
+</p>
+
+
+<h3>Details</h3>
+
+<p>A class to represent a continuous time semi-Markov chain, modelled
+using cohort simulation. As interpreted in <span class="pkg">rdecision</span>, semi-Markov
+models
+may include temporary states and transitions are defined by per-cycle
+probabilities. Although used widely in health economic modelling, the
+differences between semi-Markov models and Markov processes introduce
+some caveats for modellers:
+</p>
+
+<ul>
+<li>
+<p>If there are temporary states, the result will depend on cycle length.
+</p>
+</li>
+<li>
+<p>Transitions are specified by their conditional probability, which
+is a <em>per-cycle</em> probability of starting a cycle in one state and
+ending it in another; if the cycle length changes, the probabilities should
+change, too.
+</p>
+</li>
+<li>
+<p>Probabilities and rates cannot be linked by the Kolmogorov forward
+equation, where the per-cycle probabilities are given by the matrix
+exponential of the transition rate matrix, because this equation does not
+apply if there are temporary states. In creating semi-Markov models, it is
+the  modeller's task to estimate probabilities from published data on
+event rates.
+</p>
+</li>
+<li>
+<p>The cycle time cannot be changed during the simulation.
+</p>
+</li>
+</ul>
+<h3>Graph theory</h3>
+
+<p>A Markov model is a directed multidigraph permitting loops (a loop
+multidigraph), optionally labelled, or a <dfn>quiver</dfn>. It is a
+multidigraph because there are potentially two edges between each pair of
+nodes {A,B} representing the transition probabilities from A to B and
+<em>vice versa</em>. It is a directed graph because the transition
+probabilities refer to transitions in one direction. Each edge can be
+optionally labelled. It permits self-loops (edges whose source and target
+are the same node) to represent patients that remain in the same state
+between cycles.
+</p>
+
+
+<h3>Transition rates and probabilities</h3>
+
+
+
+<h4>Why semi-Markov?</h4>
+
+<p>Beck and Pauker (1983) and later Sonnenberg and Beck (1993) proposed the
+use of Markov processes to model the health economics of medical
+interventions. Further, they introduced the additional concept of temporary
+states, to which patients who transition remain for exactly one cycle. This
+breaks the principle that Markov processes are memoryless
+and thus the underlying mathematical formalism, first
+developed by Kolmogorov, is not applicable. For example, ensuring that all
+patients leave a temporary state requires its transition rate to be infinite.
+Hence, such models are usually labelled as semi-Markov processes.
+</p>
+
+
+
+<h4>Rates and probabilities</h4>
+
+<p>Miller and Homan (1994) and Fleurence &amp; Hollenbeak (2007) provide advice
+on estimating probabilities from rates. Jones (2017) and Welton (2005)
+describe methods for estimating probabilities in multi-state,
+multi-transition models, although those methods may not apply to
+semi-Markov models with temporary states. In particular, note that the
+"simple" equation, <code class="reqn">p = 1-e^{-rt}</code> (Briggs 2006) applies only in a
+two-state, one transition model.
+</p>
+
+
+
+<h4>Uncertainty in rates</h4>
+
+<p>In semi-Markov models, the conditional probabilities of the transitions
+from each state are usually modelled by a Dirichlet distribution. In
+<span class="pkg">rdecision</span>, create a Dirichlet distribution for each state and
+optionally create model variables for each conditional probability
+(<code class="reqn">\rho_{ij}</code>) linked to an applicable Dirichlet distribution.
+</p>
+
+
+
+<h3>Super classes</h3>
+
+<p><code>rdecision::Graph</code> -&gt; <code>rdecision::Digraph</code> -&gt; <code>SemiMarkovModel</code>
+</p>
+
+
+<h3>Methods</h3>
+
+
+
+<h4>Public methods</h4>
+
+
+<ul>
+<li> <p><a href="#method-SemiMarkovModel-new"><code>SemiMarkovModel$new()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-SemiMarkovModel-set_probabilities"><code>SemiMarkovModel$set_probabilities()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-SemiMarkovModel-transition_probabilities"><code>SemiMarkovModel$transition_probabilities()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-SemiMarkovModel-transition_cost"><code>SemiMarkovModel$transition_cost()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-SemiMarkovModel-get_statenames"><code>SemiMarkovModel$get_statenames()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-SemiMarkovModel-reset"><code>SemiMarkovModel$reset()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-SemiMarkovModel-get_populations"><code>SemiMarkovModel$get_populations()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-SemiMarkovModel-get_cycle"><code>SemiMarkovModel$get_cycle()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-SemiMarkovModel-get_tcycle"><code>SemiMarkovModel$get_tcycle()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-SemiMarkovModel-get_elapsed"><code>SemiMarkovModel$get_elapsed()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-SemiMarkovModel-tabulate_states"><code>SemiMarkovModel$tabulate_states()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-SemiMarkovModel-cycle"><code>SemiMarkovModel$cycle()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-SemiMarkovModel-cycles"><code>SemiMarkovModel$cycles()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-SemiMarkovModel-modvars"><code>SemiMarkovModel$modvars()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-SemiMarkovModel-modvar_table"><code>SemiMarkovModel$modvar_table()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-SemiMarkovModel-clone"><code>SemiMarkovModel$clone()</code></a>
+</p>
+</li>
+</ul>
+<details><summary>Inherited methods</summary><ul>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Graph" data-id="degree"><a href="../../rdecision/html/Graph.html#method-Graph-degree"><code>rdecision::Graph$degree()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Graph" data-id="edge_along"><a href="../../rdecision/html/Graph.html#method-Graph-edge_along"><code>rdecision::Graph$edge_along()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Graph" data-id="edge_at"><a href="../../rdecision/html/Graph.html#method-Graph-edge_at"><code>rdecision::Graph$edge_at()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Graph" data-id="edge_index"><a href="../../rdecision/html/Graph.html#method-Graph-edge_index"><code>rdecision::Graph$edge_index()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Graph" data-id="edge_label"><a href="../../rdecision/html/Graph.html#method-Graph-edge_label"><code>rdecision::Graph$edge_label()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Graph" data-id="edges"><a href="../../rdecision/html/Graph.html#method-Graph-edges"><code>rdecision::Graph$edges()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Graph" data-id="graph_adjacency_matrix"><a href="../../rdecision/html/Graph.html#method-Graph-graph_adjacency_matrix"><code>rdecision::Graph$graph_adjacency_matrix()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Graph" data-id="has_edge"><a href="../../rdecision/html/Graph.html#method-Graph-has_edge"><code>rdecision::Graph$has_edge()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Graph" data-id="has_vertex"><a href="../../rdecision/html/Graph.html#method-Graph-has_vertex"><code>rdecision::Graph$has_vertex()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Graph" data-id="is_simple"><a href="../../rdecision/html/Graph.html#method-Graph-is_simple"><code>rdecision::Graph$is_simple()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Graph" data-id="neighbours"><a href="../../rdecision/html/Graph.html#method-Graph-neighbours"><code>rdecision::Graph$neighbours()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Graph" data-id="order"><a href="../../rdecision/html/Graph.html#method-Graph-order"><code>rdecision::Graph$order()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Graph" data-id="size"><a href="../../rdecision/html/Graph.html#method-Graph-size"><code>rdecision::Graph$size()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Graph" data-id="vertex_along"><a href="../../rdecision/html/Graph.html#method-Graph-vertex_along"><code>rdecision::Graph$vertex_along()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Graph" data-id="vertex_at"><a href="../../rdecision/html/Graph.html#method-Graph-vertex_at"><code>rdecision::Graph$vertex_at()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Graph" data-id="vertex_index"><a href="../../rdecision/html/Graph.html#method-Graph-vertex_index"><code>rdecision::Graph$vertex_index()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Graph" data-id="vertex_label"><a href="../../rdecision/html/Graph.html#method-Graph-vertex_label"><code>rdecision::Graph$vertex_label()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Graph" data-id="vertexes"><a href="../../rdecision/html/Graph.html#method-Graph-vertexes"><code>rdecision::Graph$vertexes()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Digraph" data-id="arrow_source"><a href="../../rdecision/html/Digraph.html#method-Digraph-arrow_source"><code>rdecision::Digraph$arrow_source()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Digraph" data-id="arrow_target"><a href="../../rdecision/html/Digraph.html#method-Digraph-arrow_target"><code>rdecision::Digraph$arrow_target()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Digraph" data-id="as_DOT"><a href="../../rdecision/html/Digraph.html#method-Digraph-as_DOT"><code>rdecision::Digraph$as_DOT()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Digraph" data-id="digraph_adjacency_matrix"><a href="../../rdecision/html/Digraph.html#method-Digraph-digraph_adjacency_matrix"><code>rdecision::Digraph$digraph_adjacency_matrix()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Digraph" data-id="digraph_incidence_matrix"><a href="../../rdecision/html/Digraph.html#method-Digraph-digraph_incidence_matrix"><code>rdecision::Digraph$digraph_incidence_matrix()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Digraph" data-id="direct_predecessors"><a href="../../rdecision/html/Digraph.html#method-Digraph-direct_predecessors"><code>rdecision::Digraph$direct_predecessors()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Digraph" data-id="direct_successors"><a href="../../rdecision/html/Digraph.html#method-Digraph-direct_successors"><code>rdecision::Digraph$direct_successors()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Digraph" data-id="is_acyclic"><a href="../../rdecision/html/Digraph.html#method-Digraph-is_acyclic"><code>rdecision::Digraph$is_acyclic()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Digraph" data-id="is_arborescence"><a href="../../rdecision/html/Digraph.html#method-Digraph-is_arborescence"><code>rdecision::Digraph$is_arborescence()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Digraph" data-id="is_connected"><a href="../../rdecision/html/Digraph.html#method-Digraph-is_connected"><code>rdecision::Digraph$is_connected()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Digraph" data-id="is_polytree"><a href="../../rdecision/html/Digraph.html#method-Digraph-is_polytree"><code>rdecision::Digraph$is_polytree()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Digraph" data-id="is_tree"><a href="../../rdecision/html/Digraph.html#method-Digraph-is_tree"><code>rdecision::Digraph$is_tree()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Digraph" data-id="is_weakly_connected"><a href="../../rdecision/html/Digraph.html#method-Digraph-is_weakly_connected"><code>rdecision::Digraph$is_weakly_connected()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Digraph" data-id="paths"><a href="../../rdecision/html/Digraph.html#method-Digraph-paths"><code>rdecision::Digraph$paths()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Digraph" data-id="topological_sort"><a href="../../rdecision/html/Digraph.html#method-Digraph-topological_sort"><code>rdecision::Digraph$topological_sort()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="rdecision" data-topic="Digraph" data-id="walk"><a href="../../rdecision/html/Digraph.html#method-Digraph-walk"><code>rdecision::Digraph$walk()</code></a></span></li>
+</ul></details><hr>
+<a id="method-SemiMarkovModel-new"></a>
+
+
+
+<h4>Method <code>new()</code>
+</h4>
+
+<p>Creates a semi-Markov model for cohort simulation.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>SemiMarkovModel$new(
+  V,
+  E,
+  tcycle = as.difftime(365.25, units = "days"),
+  discount.cost = 0,
+  discount.utility = 0
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>V</code></dt>
+<dd>
+<p>A list of nodes (<code>MarkovState</code>s).</p>
+</dd>
+<dt><code>E</code></dt>
+<dd>
+<p>A list of edges (<code>Transition</code>s).</p>
+</dd>
+<dt><code>tcycle</code></dt>
+<dd>
+<p>Cycle length, expressed as an R <code>difftime</code> object.</p>
+</dd>
+<dt><code>discount.cost</code></dt>
+<dd>
+<p>Annual discount rate for future costs. Note this
+is a rate, not a probability (i.e. use 0.035 for 3.5%).</p>
+</dd>
+<dt><code>discount.utility</code></dt>
+<dd>
+<p>Annual discount rate for future incremental
+utility. Note this is a rate, not a probability (i.e. use 0.035
+for 3.5%).</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Details</h5>
+
+<p>A semi-Markov model must meet the following conditions:
+</p>
+
+<ol>
+<li>
+<p> It must have at least one node and at least one edge.
+</p>
+</li>
+<li>
+<p> All nodes must be of class <code>MarkovState</code>;
+</p>
+</li>
+<li>
+<p> All edges must be of class <code>Transition</code>;
+</p>
+</li>
+<li>
+<p> The nodes and edges must form a digraph whose underlying
+graph is connected;
+</p>
+</li>
+<li>
+<p> Each state must have at least one outgoing transition (for
+absorbing states this is a self-loop);
+</p>
+</li>
+<li>
+<p> For each state the sum of outgoing conditional transition
+probabilities must be one. For convenience, one outgoing transition
+probability from each state may be set to NA when the
+probabilities are defined. Typically, probabilities for self
+loops would be set to NA. Transition probabilities in <code class="reqn">Pt</code>
+associated with transitions that are not defined as edges in the
+graph are zero. Probabilities can be changed between cycles.
+</p>
+</li>
+<li>
+<p> No two edges may share the same source and target nodes (i.e.
+the digraph may not have multiple edges). This is to ensure that there
+are no more transitions than cells in the transition matrix.
+</p>
+</li>
+<li>
+<p> The node labels must be unique to the graph.
+</p>
+</li>
+</ol>
+<h5>Returns</h5>
+
+<p>A <code>SemiMarkovModel</code> object. The population of the first
+state is set to 1000 and from each state there is an equal
+conditional probability of each allowed transition.
+</p>
+
+
+<hr>
+<a id="method-SemiMarkovModel-set_probabilities"></a>
+
+
+
+<h4>Method <code>set_probabilities()</code>
+</h4>
+
+<p>Sets transition probabilities.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>SemiMarkovModel$set_probabilities(Pt)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>Pt</code></dt>
+<dd>
+<p>Per-cycle transition probability matrix. The row and
+column labels must be the state names and each row must sum to one.
+Non-zero probabilities for undefined transitions are not allowed. At
+most one <code>NA</code> may appear in each row. If an NA is present in a row,
+it is replaced by 1 minus the sum of the defined probabilities.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>Updated <code>SemiMarkovModel</code> object
+</p>
+
+
+<hr>
+<a id="method-SemiMarkovModel-transition_probabilities"></a>
+
+
+
+<h4>Method <code>transition_probabilities()</code>
+</h4>
+
+<p>Per-cycle transition probability matrix for the model.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>SemiMarkovModel$transition_probabilities()</pre></div>
+
+
+
+<h5>Returns</h5>
+
+<p>A square matrix of size equal to the number of states. If all
+states are labelled, the dimnames take the names of the states.
+</p>
+
+
+<hr>
+<a id="method-SemiMarkovModel-transition_cost"></a>
+
+
+
+<h4>Method <code>transition_cost()</code>
+</h4>
+
+<p>Return the per-cycle transition costs for the model.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>SemiMarkovModel$transition_cost()</pre></div>
+
+
+
+<h5>Returns</h5>
+
+<p>A square matrix of size equal to the number of states. If all
+states are labelled, the dimnames take the names of the states.
+</p>
+
+
+<hr>
+<a id="method-SemiMarkovModel-get_statenames"></a>
+
+
+
+<h4>Method <code>get_statenames()</code>
+</h4>
+
+<p>Returns a character list of state names.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>SemiMarkovModel$get_statenames()</pre></div>
+
+
+
+<h5>Returns</h5>
+
+<p>List of the names of each state.
+</p>
+
+
+<hr>
+<a id="method-SemiMarkovModel-reset"></a>
+
+
+
+<h4>Method <code>reset()</code>
+</h4>
+
+<p>Resets the model counters.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>SemiMarkovModel$reset(
+  populations = NULL,
+  icycle = 0L,
+  elapsed = as.difftime(0, units = "days")
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>populations</code></dt>
+<dd>
+<p>A named vector of populations for
+the start of the state. The names should be the state names.
+Due to the R implementation of matrix algebra, <code>populations</code>
+must be a numeric type and is not restricted to being an integer. If
+NULL, the population of all states is set to zero.</p>
+</dd>
+<dt><code>icycle</code></dt>
+<dd>
+<p>Cycle number at which to start/restart.</p>
+</dd>
+<dt><code>elapsed</code></dt>
+<dd>
+<p>Elapsed time since the index (reference) time used for
+discounting as an R <code>difftime</code> object.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Details</h5>
+
+<p>Resets the state populations, next cycle number and elapsed time
+of the model. By default the model is returned to its ground state (zero
+people in the all states; next cycle is labelled
+zero; elapsed time (years) is zero). Any or all of these can be set via
+this function. <code>icycle</code> is simply an integer counter label for each
+cycle, <code>elapsed</code> sets the elapsed time in years from the index time
+from which discounting is assumed to apply.
+</p>
+
+
+
+<h5>Returns</h5>
+
+<p>Updated <code>SemiMarkovModel</code> object.
+</p>
+
+
+<hr>
+<a id="method-SemiMarkovModel-get_populations"></a>
+
+
+
+<h4>Method <code>get_populations()</code>
+</h4>
+
+<p>Gets the occupancy of each state.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>SemiMarkovModel$get_populations()</pre></div>
+
+
+
+<h5>Returns</h5>
+
+<p>A numeric vector of populations, named with state names.
+</p>
+
+
+<hr>
+<a id="method-SemiMarkovModel-get_cycle"></a>
+
+
+
+<h4>Method <code>get_cycle()</code>
+</h4>
+
+<p>Gets the current cycle number.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>SemiMarkovModel$get_cycle()</pre></div>
+
+
+
+<h5>Returns</h5>
+
+<p>Current cycle count, as an integer.
+</p>
+
+
+<hr>
+<a id="method-SemiMarkovModel-get_tcycle"></a>
+
+
+
+<h4>Method <code>get_tcycle()</code>
+</h4>
+
+<p>Gets the cycle duration.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>SemiMarkovModel$get_tcycle()</pre></div>
+
+
+
+<h5>Returns</h5>
+
+<p>Current cycle duration, as a difftime object.
+</p>
+
+
+<hr>
+<a id="method-SemiMarkovModel-get_elapsed"></a>
+
+
+
+<h4>Method <code>get_elapsed()</code>
+</h4>
+
+<p>Gets the current elapsed time.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>SemiMarkovModel$get_elapsed()</pre></div>
+
+
+
+<h5>Details</h5>
+
+<p>The elapsed time is defined as the difference between the
+current time in the model and an index time used as the reference
+time for applying discounting. By default the elapsed time starts at
+zero. It can be set directly by calling <code>reset</code>. It is incremented
+after each call to <code>cycle</code> by the cycle duration to the time at the
+end of the cycle (even if half cycle correction is used). Thus, via the
+<code>reset</code> and <code>cycle</code> methods, the time of each cycle relative
+to the discounting index and its duration can be controlled arbitrarily.
+</p>
+
+
+
+<h5>Returns</h5>
+
+<p>Elapsed time as an R <code>difftime</code> object.
+</p>
+
+
+<hr>
+<a id="method-SemiMarkovModel-tabulate_states"></a>
+
+
+
+<h4>Method <code>tabulate_states()</code>
+</h4>
+
+<p>Tabulation of states
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>SemiMarkovModel$tabulate_states()</pre></div>
+
+
+
+<h5>Details</h5>
+
+<p>Creates a data frame summary of each state in the model.
+</p>
+
+
+
+<h5>Returns</h5>
+
+<p>A data frame with the following columns:
+</p>
+
+<dl>
+<dt>Name</dt>
+<dd>
+<p>State name</p>
+</dd>
+<dt>Cost</dt>
+<dd>
+<p>Annual cost of occupying the state</p>
+</dd>
+<dt>Utility</dt>
+<dd>
+<p>Incremental utility associated with being in the state.</p>
+</dd>
+</dl>
+<hr>
+<a id="method-SemiMarkovModel-cycle"></a>
+
+
+
+<h4>Method <code>cycle()</code>
+</h4>
+
+<p>Applies one cycle of the model.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>SemiMarkovModel$cycle(hcc.pop = TRUE, hcc.cost = TRUE, hcc.QALY = TRUE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>hcc.pop</code></dt>
+<dd>
+<p>Determines the state populations returned by this
+function. If FALSE, the end of cycle populations apply; if TRUE the
+mid-cycle populations and time apply. The mid-cycle populations are
+taken as the mean of the start and end populations and the discount
+time as the mid-point. The value of this parameter does not affect the
+state populations or elapsed time passed to the next cycle or available
+via <code>get_populations</code>; those are always the end cycle values.</p>
+</dd>
+<dt><code>hcc.cost</code></dt>
+<dd>
+<p>Determines the state occupancy costs returned by this
+function and the time at which the cost discount is applied to the
+occupancy costs and the entry costs. If FALSE, the end of cycle
+populations and time apply; if TRUE the mid-cycle populations and time
+apply, as per <code>hcc.pop</code>. The value of this parameter does not affect
+the state populations or elapsed time passed to the next cycle or
+available via <code>get_populations</code>; those are always the end cycle
+values.</p>
+</dd>
+<dt><code>hcc.QALY</code></dt>
+<dd>
+<p>Determines the incremental quality adjusted life years
+returned by this function and the time at which the utility discount is
+applied. If FALSE, the end of cycle population and reference time are
+applied to the utilities of each state; if TRUE the mid-cycle populations
+and time are applied to the state utilities. The value of this parameter
+does not affect the state populations or elapsed time passed to the next
+cycle or available via <code>get_populations</code>; those are always the
+end cycle values.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>Calculated values, one row per state, as a data frame with the
+following columns:
+</p>
+
+<dl>
+<dt><code>State</code></dt>
+<dd>
+<p>Name of the state.</p>
+</dd>
+<dt><code>Cycle</code></dt>
+<dd>
+<p>The cycle number.</p>
+</dd>
+<dt><code>Time</code></dt>
+<dd>
+<p>Clock time in years of the end of the cycle.</p>
+</dd>
+<dt><code>Population</code></dt>
+<dd>
+<p>Populations of the states; see <code>hcc.pop</code>.</p>
+</dd>
+<dt><code>OccCost</code></dt>
+<dd>
+<p>Cost of the population occupying the state for
+the cycle. Discounting and half cycle correction is applied, if those
+options are set. The costs are normalized by the model population. The
+cycle costs are derived from the annual occupancy costs of the
+<code>MarkovState</code>s.</p>
+</dd>
+<dt><code>EntryCost</code></dt>
+<dd>
+<p>Cost of the transitions <em>into</em> the state
+during the cycle. Discounting is applied, if the option is set.
+The result is normalized by the model population. The cycle costs
+are derived from <code>Transition</code> costs.</p>
+</dd>
+<dt><code>Cost</code></dt>
+<dd>
+<p>Total cost, normalized by model population.</p>
+</dd>
+<dt><code>QALY</code></dt>
+<dd>
+<p>Quality adjusted life years gained by occupancy of
+the states during the cycle. Half cycle correction and discounting are
+applied, if these options are set. Normalized by the model population.</p>
+</dd>
+</dl>
+<hr>
+<a id="method-SemiMarkovModel-cycles"></a>
+
+
+
+<h4>Method <code>cycles()</code>
+</h4>
+
+<p>Applies multiple cycles of the model.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>SemiMarkovModel$cycles(
+  ncycles = 2L,
+  hcc.pop = TRUE,
+  hcc.cost = TRUE,
+  hcc.QALY = TRUE
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>ncycles</code></dt>
+<dd>
+<p>Number of cycles to run; default is 2.</p>
+</dd>
+<dt><code>hcc.pop</code></dt>
+<dd>
+<p>Determines the state populations returned by this
+function. If FALSE, the end of cycle populations apply; if TRUE the
+mid-cycle populations and time apply. The mid-cycle populations are
+taken as the mean of the start and end populations and the discount
+time as the mid-point. The value of this parameter does not affect the
+state populations or elapsed time passed to the next cycle or available
+via <code>get_populations</code>; those are always the end cycle values.</p>
+</dd>
+<dt><code>hcc.cost</code></dt>
+<dd>
+<p>Determines the state occupancy costs returned by this
+function and the time at which the cost discount is applied to the
+occupancy costs and the entry costs. If FALSE, the end of cycle
+populations and time apply; if TRUE the mid-cycle populations and time
+apply, as per <code>hcc.pop</code>. The value of this parameter does not affect
+the state populations or elapsed time passed to the next cycle or
+available via <code>get_populations</code>; those are always the end cycle
+values.</p>
+</dd>
+<dt><code>hcc.QALY</code></dt>
+<dd>
+<p>Determines the incremental quality adjusted life years
+returned by this function and the time at which the utility discount is
+applied. If FALSE, the end of cycle population and reference time are
+applied to the utilities of each state; if TRUE the mid-cycle populations
+and time are applied to the state utilities. The value of this parameter
+does not affect the state populations or elapsed time passed to the next
+cycle or available via <code>get_populations</code>; those are always the
+end cycle values.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Details</h5>
+
+<p>The starting populations are redistributed through the
+transition probabilities and the state occupancy costs are
+calculated, using function <code>cycle</code>. The end populations are
+then fed back into the model for a further cycle and the
+process is repeated. For each cycle, the state populations and
+the aggregated occupancy costs are saved in one row of the
+returned data frame, with the cycle number. If the cycle count
+for the model is zero when called, the first cycle reported
+will be cycle zero, i.e. the distribution of patients to starting
+states.
+</p>
+
+
+
+<h5>Returns</h5>
+
+<p>Data frame with cycle results, with the following columns:
+</p>
+
+<dl>
+<dt><code>Cycle</code></dt>
+<dd>
+<p>The cycle number.</p>
+</dd>
+<dt><code>Years</code></dt>
+<dd>
+<p>Elapsed time at end of cycle, years</p>
+</dd>
+<dt><code>Cost</code></dt>
+<dd>
+<p>Cost associated with occupancy and transitions between
+states during the cycle.</p>
+</dd>
+<dt><code>QALY</code></dt>
+<dd>
+<p>Quality adjusted life years associated with occupancy
+of the states in the cycle.</p>
+</dd>
+<dt><code>&lt;name&gt;</code></dt>
+<dd>
+<p>Population of state <code>&lt;name&gt;</code> at the end of
+the cycle.</p>
+</dd>
+</dl>
+<hr>
+<a id="method-SemiMarkovModel-modvars"></a>
+
+
+
+<h4>Method <code>modvars()</code>
+</h4>
+
+<p>Find all the model variables in the Markov model.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>SemiMarkovModel$modvars()</pre></div>
+
+
+
+<h5>Details</h5>
+
+<p>Returns variables of type <code>ModVar</code> that have been
+specified as values associated with transition rates and costs and
+the state occupancy costs and utilities.
+</p>
+
+
+
+<h5>Returns</h5>
+
+<p>A list of <code>ModVar</code>s.
+</p>
+
+
+<hr>
+<a id="method-SemiMarkovModel-modvar_table"></a>
+
+
+
+<h4>Method <code>modvar_table()</code>
+</h4>
+
+<p>Tabulate the model variables in the Markov model.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>SemiMarkovModel$modvar_table(expressions = TRUE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>expressions</code></dt>
+<dd>
+<p>A logical that defines whether expression model
+variables should be included in the tabulation.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>Data frame with one row per model variable, as follows:
+</p>
+
+<dl>
+<dt><code>Description</code></dt>
+<dd>
+<p>As given at initialization.</p>
+</dd>
+<dt><code>Units</code></dt>
+<dd>
+<p>Units of the variable.</p>
+</dd>
+<dt><code>Distribution</code></dt>
+<dd>
+<p>Either the uncertainty distribution, if
+it is a regular model variable, or the expression used to create it,
+if it is an <code>ExprModVar</code>.</p>
+</dd>
+<dt><code>Mean</code></dt>
+<dd>
+<p>Mean; calculated from means of operands if
+an expression.</p>
+</dd>
+<dt><code>E</code></dt>
+<dd>
+<p>Expectation; estimated from random sample if expression,
+mean otherwise.</p>
+</dd>
+<dt><code>SD</code></dt>
+<dd>
+<p>Standard deviation; estimated from random sample if
+expression, exact value otherwise.</p>
+</dd>
+<dt><code>Q2.5</code></dt>
+<dd>
+<p>p=0.025 quantile; estimated from random sample if
+expression, exact value otherwise.</p>
+</dd>
+<dt><code>Q97.5</code></dt>
+<dd>
+<p>p=0.975 quantile; estimated from random sample if
+expression, exact value otherwise.</p>
+</dd>
+<dt><code>Est</code></dt>
+<dd>
+<p>TRUE if the quantiles and SD have been estimated by
+random sampling.</p>
+</dd>
+</dl>
+<hr>
+<a id="method-SemiMarkovModel-clone"></a>
+
+
+
+<h4>Method <code>clone()</code>
+</h4>
+
+<p>The objects of this class are cloneable with this method.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>SemiMarkovModel$clone(deep = FALSE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>deep</code></dt>
+<dd>
+<p>Whether to make a deep clone.</p>
+</dd>
+</dl>
+</div>
+
+
+
+
+<h3>Author(s)</h3>
+
+<p>Andrew J. Sims <a href="mailto:andrew.sims@newcastle.ac.uk">andrew.sims@newcastle.ac.uk</a>
+</p>
+
+
+<h3>References</h3>
+
+
+<p>Beck JR and Pauker SG. The Markov Process in Medical Prognosis.
+<em>Med Decision Making</em>, 1983;<strong>3</strong>:419–458.
+</p>
+<p>Briggs A, Claxton K, Sculpher M. Decision modelling for health economic
+evaluation. Oxford, UK: Oxford University Press; 2006.
+</p>
+<p>Fleurence RL and Hollenbeak CS. Rates and probabilities in economic
+modelling. <em>PharmacoEconomics</em>, 2007;<strong>25</strong>:3–6.
+</p>
+<p>Jones E, Epstein D and García-Mochón L. A procedure for deriving
+formulas to convert transition rates to probabilities for multistate
+Markov models. <em>Medical Decision Making</em> 2017;<strong>37</strong>:779–789.
+</p>
+<p>Miller DK and Homan SM. Determining transition probabilities: confusion
+and suggestions. <em>Medical Decision Making</em> 1994;<strong>14</strong>:52-58.
+</p>
+<p>Sonnenberg FA, Beck JR. Markov models in medical decision making: a
+practical guide. <em>Medical Decision Making</em>, 1993:<strong>13</strong>:322.
+</p>
+<p>Welton NJ and Ades A. Estimation of Markov chain transition probabilities
+and rates from fully and partially observed data: uncertainty
+propagation, evidence synthesis, and model calibration.
+<em>Medical Decision Making</em>, 2005;<strong>25</strong>:633-645.
+
+</p>
+
+
+</div>

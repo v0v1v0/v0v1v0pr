@@ -1,0 +1,179 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>RRlin</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Linear randomized response regression</h2>
+
+<h3>Description</h3>
+
+<p>Linear regression for a continuous criterion, using randomized-response (RR)
+variables as predictors.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">RRlin(
+  formula,
+  data,
+  models,
+  p.list,
+  group = NULL,
+  Kukrep = 1,
+  bs.n = 0,
+  nCPU = 1,
+  maxit = 1000,
+  fit.n = 3,
+  pibeta = 0.05
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a continuous criterion is predicted by one or more categorical
+RR variables defined by <code>models</code>. If the number of predictors exceeds
+the number defined by the vector <code>models</code>, the remaining predictors
+are treated as non-randomized variables (e.g., direct questions).
+Interactions including any of the RR variables cannot be included.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>an optional data frame, list or environment, containing the
+variables in the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>models</code></td>
+<td>
+<p>character vector specifying RR model(s) in order of appearance
+in formula. Available models: <code>"Warner"</code>, <code>"UQTknown"</code>,
+<code>"UQTunknown"</code>, <code>"Mangat"</code>, <code>"Kuk"</code>, <code>"FR"</code>,
+<code>"Crosswise"</code>, <code>"Triangular"</code>, <code>"CDM"</code>, <code>"CDMsym"</code>,
+<code>"SLD"</code>, <code>"custom"</code> (custom: a randomization matrix must be
+specified in the corresponding element of <code>p.list</code>, where the entry
+<code>p[i,j]</code> defines the probability of responding i (i-th row) given a
+true state of j (j-th column)).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p.list</code></td>
+<td>
+<p>list of randomization probabilities for RR models in the same
+order as specified in <code>models</code>. Note, that the randomization
+probabilities p must be provided in a <code>list</code>, e.g.,
+<code>list(p=c(.2, .3))</code>. See <code>RRuni</code> for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group</code></td>
+<td>
+<p>vector or matrix specifying group membership by the indices 1
+and 2. Only for multigroup RR models, e.g., <code>UQTunknown</code>, <code>CDM</code>
+or <code>SLD</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Kukrep</code></td>
+<td>
+<p>defines the number of repetitions in Kuk's card playing method</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bs.n</code></td>
+<td>
+<p>Number of samples used for the non-parametric bootstrap</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nCPU</code></td>
+<td>
+<p>only relevant for the bootstrap: either the number of CPU cores
+or a cluster initialized via <code>makeCluster</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxit</code></td>
+<td>
+<p>maximum number of iterations in optimization routine</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit.n</code></td>
+<td>
+<p>number of fitting runs with random starting values</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pibeta</code></td>
+<td>
+<p>approximate ratio of probabilities pi to regression weights
+beta (to adjust scaling). Can be used for speeding-up and fine-tuning ML
+estimation (i.e., choosing a smaller value for larger beta values).</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Returns an object <code>RRlin</code> which can be analysed by the generic
+method <code>summary</code>
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Daniel W. Heck
+</p>
+
+
+<h3>References</h3>
+
+<p>van den Hout, A., &amp; Kooiman, P. (2006). Estimating the linear
+regression model with categorical covariates subject to randomized
+response. <em>Computational Statistics &amp; Data Analysis, 50</em>, 3311-3323.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>vignette('RRreg')</code> or
+<a href="https://www.dwheck.de/vignettes/RRreg.html">https://www.dwheck.de/vignettes/RRreg.html</a> for a
+detailed description of the RR models and the appropriate definition of
+<code>p</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># generate two RR predictors
+dat &lt;- RRgen(n = 500, pi = .4, model = "Warner", p = .3)
+dat2 &lt;- RRgen(n = 500, pi = c(.4, .6), model = "FR", p = c(.1, .15))
+dat$FR &lt;- dat2$response
+dat$trueFR &lt;- dat2$true
+
+# generate a third predictor and continuous dependent variables
+dat$nonRR &lt;- rnorm(500, 5, 1)
+dat$depvar &lt;- 2 * dat$true - 3 * dat2$true +
+  .5 * dat$nonRR + rnorm(500, 1, 7)
+
+# use RRlin and compare to regression on non-RR variables
+linreg &lt;- RRlin(depvar ~ response + FR + nonRR,
+  data = dat,
+  models = c("Warner", "FR"),
+  p.list = list(.3, c(.1, .15)), fit.n = 1
+)
+summary(linreg)
+summary(lm(depvar ~ true + trueFR + nonRR, data = dat))
+
+</code></pre>
+
+
+</div>

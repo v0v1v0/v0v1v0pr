@@ -1,0 +1,241 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>setse_bicomp</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>SETSe embedding on each bi-connected component using setse_auto</h2>
+
+<h3>Description</h3>
+
+<p>Embeds/smooths a feature network using the SETSe algorithm automatically finding convergence parameters using a grid search. In addition it breaks
+the network into bi-connected component solves each sub-component inidividually and re-assembles them back into a single network. 
+This is the most reliable method to perform SETSe embeddings and can be substantially quicker on certain network topologies.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">setse_bicomp(
+  g,
+  force = "force",
+  distance = "distance",
+  edge_name = "edge_name",
+  k = "k",
+  tstep = 0.02,
+  tol = 0.01,
+  max_iter = 20000,
+  mass = NULL,
+  sparse = FALSE,
+  sample = 100,
+  static_limit = NULL,
+  hyper_iters = 100,
+  hyper_tol = 0.1,
+  hyper_max = 30000,
+  drag_min = 0.01,
+  drag_max = 100,
+  tstep_change = 0.2,
+  verbose = FALSE,
+  noisy_termination = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>g</code></td>
+<td>
+<p>An igraph object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>force</code></td>
+<td>
+<p>A character string. This is the node attribute that contains the force the nodes exert on the network.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>distance</code></td>
+<td>
+<p>A character string. The edge attribute that contains the original/horizontal distance between nodes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>edge_name</code></td>
+<td>
+<p>A character string. This is the edge attribute that contains the edge_name of the edges.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>A character string. This is k for the moment don't change it.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tstep</code></td>
+<td>
+<p>A numeric. The time interval used to iterate through the network dynamics.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>A numeric. The tolerance factor for early stopping.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_iter</code></td>
+<td>
+<p>An integer. The maximum number of iterations before stopping. Larger networks usually need more iterations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mass</code></td>
+<td>
+<p>A numeric. This is the mass constant of the nodes in normalised networks. 
+Default is set to NULL and call mass_adjuster to set the mass for each biconnected component</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sparse</code></td>
+<td>
+<p>Logical. Whether sparse matrices will be used. This becomes valuable for larger networks</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sample</code></td>
+<td>
+<p>Integer. The dynamics will be stored only if the iteration number is a multiple of the sample. 
+This can greatly reduce the size of the results file for large numbers of iterations. Must be a multiple of the max_iter</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>static_limit</code></td>
+<td>
+<p>Numeric. The maximum value the static force can reach before the algorithm terminates early. This
+prevents calculation in a diverging system. The value should be set to some multiple greater than one of the force in the system.
+If left blank the static limit is the system absolute mean force.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hyper_iters</code></td>
+<td>
+<p>integer. The hyper parameter that determines the number of iterations allowed to find an acceptable convergence value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hyper_tol</code></td>
+<td>
+<p>numeric. The convergence tolerance when trying to find the minimum value</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hyper_max</code></td>
+<td>
+<p>integer. The maximum number of iterations that SETSe will go through whilst searching for the minimum.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drag_min</code></td>
+<td>
+<p>integer. A power of ten. The lowest drag value to be used in the search</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drag_max</code></td>
+<td>
+<p>integer. A power of ten. if the drag exceeds this value the tstep is reduced</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tstep_change</code></td>
+<td>
+<p>numeric. A value between 0 and 1 that determines how much the time step will be reduced by default value is 0.5</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Logical. This value sets whether messages generated during the process are suppressed or not.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>noisy_termination</code></td>
+<td>
+<p>Stop the process if the static force does not monotonically decrease.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Embedding the network by solving each bi-connected component then re-assembling can be faster for larger graphs, graphs with many nodes of degree 2, 
+or networks with a low clustering coefficient.
+This is because although SETSe is very efficient the topology of larger graphs make them more difficult to converge.
+Large graph tend to be made of 1 very large biconnected component and many very small biconnected components. As the mass of the 
+system is concentrated in the major biconnected component smaller ones can be knocked around by minor movements of the largest component. This
+can lead to long convergence times. By solving all biconnected components separately and then reassembling the block tree at the end,
+the system can be converged considerably faster. 
+</p>
+<p>Setting mass to the absolute system force divided by the total nodes, often leads to faster convergence. As such
+When mass is left to the default of NULL, the mean absolute force value is used.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list containing 5 dataframes.
+</p>
+
+<ol>
+<li>
+<p> The node embeddings. Includes all data on the nodes the forces exerted on them position and dynamics at simulation termination
+</p>
+</li>
+<li>
+<p> The network dynamics describing several key figures of the network during the convergence process, this includes the static_force
+</p>
+</li>
+<li>
+<p> memory_df A dataframe recording the iteration history of the convergence of each component.
+</p>
+</li>
+<li>
+<p> Time taken. A data frame giving the time taken for the simulation as well as the number of nodes and edges. Node and edge data is given
+as this may differ from the total number of nodes and edges in the network depending on the method used for convergence.
+For example if setse_bicomp is used then some simulations may contain as little as two nodes and 1 edge
+</p>
+</li>
+<li>
+<p> The edge embeddings. Includes all data on the edges as well as the strain and tension values.
+</p>
+</li>
+</ol>
+<h3>See Also</h3>
+
+<p>Other setse: 
+<code>setse_auto_hd()</code>,
+<code>setse_auto()</code>,
+<code>setse_expanded()</code>,
+<code>setse()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">set.seed(234) #set the random see for generating the network
+g &lt;- generate_peels_network(type = "E")
+embeddings &lt;- g %&gt;%
+prepare_edges(k = 500, distance = 1) %&gt;%
+#prepare the network for a binary embedding
+prepare_categorical_force(., node_names = "name",
+                     force_var = "class") %&gt;%
+#embed the network
+  setse_bicomp(., force = "class_A")
+  
+</code></pre>
+
+
+</div>

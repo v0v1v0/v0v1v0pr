@@ -1,0 +1,160 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Gamma.like</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Gamma.like - Gamma distance function</h2>
+
+<h3>Description</h3>
+
+<p>Computes the gamma likelihood, 
+scaled appropriately, for use as a likelihood 
+in estimating a distance function.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">Gamma.like(
+  a,
+  dist,
+  covars = NULL,
+  w.lo = units::set_units(0, "m"),
+  w.hi = max(dist),
+  series = "cosine",
+  expansions = 0,
+  scale = TRUE,
+  pointSurvey = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>a</code></td>
+<td>
+<p>A vector of likelihood parameter values. Length and meaning depend on <code>series</code> and <code>expansions</code>. If no expansion terms were called for
+(i.e., <code>expansions = 0</code>), the distance likelihoods contain one or two canonical parameters (see Details). If one or more expansions are called for,
+coefficients for the expansion terms follow coefficients for the canonical parameters.  If <code>p</code> is the number of canonical parameters, coefficients
+for the expansion terms are <code>a[(p+1):length(a)]</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dist</code></td>
+<td>
+<p>A numeric vector containing the observed distances.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covars</code></td>
+<td>
+<p>Data frame containing values of covariates at each observation in <code>dist</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w.lo</code></td>
+<td>
+<p>Scalar value of the lowest observable distance.  This is the <em>left truncation</em> of sighting distances in <code>dist</code>. Same units as <code>dist</code>.
+Values less than <code>w.lo</code> are allowed in <code>dist</code>, but are ignored and their contribution to the likelihood is set to <code>NA</code> in the output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w.hi</code></td>
+<td>
+<p>Scalar value of the largest observable distance.
+This is the <em>right truncation</em> of sighting distances in 
+<code>dist</code>.  Same units as <code>dist</code>.
+Values greater than <code>w.hi</code> are allowed in <code>dist</code>, but are ignored and their contribution to the likelihood is set to <code>NA</code> in the output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>series</code></td>
+<td>
+<p>A string specifying the type of expansion to use.  Currently, valid values are 'simple', 'hermite', and 'cosine'; but, see 
+<code>dfuncEstim</code> about defining other series.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>expansions</code></td>
+<td>
+<p>A scalar specifying the number of terms in <code>series</code>. Depending on the series, this could be 0 through 5.
+The default of 0 equates to no expansion terms of any type.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>Logical scalar indicating whether or not to scale the likelihood so it integrates to 1. This parameter is used to stop recursion in other functions.
+If <code>scale</code> equals TRUE, a numerical integration routine (<code>integration.constant</code>) is called, which in turn calls this likelihood function again
+with <code>scale</code> = FALSE. Thus, this routine knows when its values are being used to compute the likelihood and when its value is being used to compute the 
+constant of integration.  All user defined likelihoods must have and use this parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pointSurvey</code></td>
+<td>
+<p>Boolean. TRUE if <code>dist</code> is point transect data, FALSE if line transect data.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function utilizes the built-in R function <code>dgamma</code> to evaluate the gamma density function.  Using the parameterization of <code>dgamma</code>, 
+the gamma shape parameter is <code>a[1]</code> while the gamma scale parameter is <code>(a[2]/gamma(r)) * (((r - 1)/exp(1))^(r - 1))</code>. Currently, this function 
+implements a non-covariate version of the gamma detection function used by Becker and Quang (2009).  In future, linear equations will relate covariate values 
+to values of the gamma parameters.  This future implementation will fully replicate the distance functions of Becker and Quang (2009).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A numeric vector the same length and order as <code>dist</code> containing the likelihood contribution for distances in <code>dist</code>.  Assuming 
+<code>L=gamma.like(c(r,lam),dist)</code>, the full log likelihood of all the data is <code>-sum(log(L), na.rm=T)</code>. Note that the returned likelihood value for 
+distances less than <code>w.lo</code> or greater than <code>w.hi</code> is <code>NA</code>, and thus it is prudent to use <code>na.rm=TRUE</code> in the sum. If <code>scale</code> = TRUE, 
+the integral of the likelihood from <code>w.lo</code> to <code>w.hi</code> is 1.0. If <code>scale</code> = FALSE, the integral of the likelihood is an arbitrary constant.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, E. F., and P. X. Quang, 2009. <em>A Gamma-Shaped Detection Function for Line-Transect Surveys with Mark-Recapture and Covariate Data.</em>
+Journal of Agricultural, Biological, and Environmental Statistics 14(2):207-223.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>dfuncEstim</code>, <code>halfnorm.like</code>, <code>hazrate.like</code>, <code>uniform.like</code>, <code>negexp.like</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+set.seed(238642)
+x &lt;- seq(0, 100, length=100)
+
+# Plots showing effects of changes in shape
+plot(x, Gamma.like(c(20,20), x), type="l", col="red")
+plot(x, Gamma.like(c(40,20), x), type="l", col="blue")
+
+# Plots showing effects of changes in scale
+plot(x, Gamma.like(c(20,20), x), type="l", col="red")
+plot(x, Gamma.like(c(20,40), x), type="l", col="blue")
+
+# Estimate 'Gamma' distance function
+r &lt;- 5
+lam &lt;- 10
+b &lt;- (1/gamma(r)) * (((r - 1)/exp(1))^(r - 1))
+x &lt;- rgamma(1000, shape=r, scale=b*lam)
+dfunc &lt;- dfuncEstim(x~1, likelihood="Gamma", x.scl="max")
+plot(dfunc)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

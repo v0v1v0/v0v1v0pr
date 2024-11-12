@@ -1,0 +1,158 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>wilcoxtest</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calibrated Wilcoxon rank sum and signed rank tests</h2>
+
+<h3>Description</h3>
+
+<p>Compares the distribution between two random variables by testing if one variable tends to take larger (or smaller) values than the other. The test
+works for independent and paired variables by using corrected versions of the Wilcoxon (or equivalently Mann-Whitney in the two-sample case) for one and two-sample tests.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">wilcoxtest(
+  x,
+  y = NULL,
+  alternative = "two.sided",
+  ties.break = "none",
+  paired = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x, y</code></td>
+<td>
+<p>two continuous variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alternative</code></td>
+<td>
+<p>indicates the alternative hypothesis and must be one of "two.sided", "greater" or "less".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ties.break</code></td>
+<td>
+<p>the method used to break ties in case there are ties in the x or y vectors. Can be <code>"none"</code> or <code>"random"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>paired</code></td>
+<td>
+<p>a logical value. If <code>paired=TRUE</code>, you must provide values for <code>x</code> and <code>y</code> (of same length)
+and the paired test is implemented. If <code>paired=FALSE</code>, the paired test is implemented when <code>y</code> is null and
+only <code>x</code> is provided and the two sample test (for independent variables) is implemented when both <code>x</code> and <code>y</code> are provided.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>it is possible to use a formula with or without specifying a dataset
+from the commands <code>wilcoxtest(x~y)</code> or <code>wilcoxtest(x~y,data=dataset)</code> with dataset the name of the data.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For two independent samples, the null hypothesis for the corrected Wilcoxon (Mann-Whitney) test is: H0 Med(X-Y)=0 where Med represents the median.
+The alternative is specified by the <code>alternative</code> argument: "<code>greater</code>" means that Med(X-Y)&gt;0 and "<code>less</code>"
+means that Med(X-Y)&lt;0. The null hypothesis for the paired Wilcoxon test is: H0 Med(D1+D2)=0 where D1 is the difference
+between X1 and Y1 taken on the same pair (same with D2 on a different pair). Both tests are asymptotically well calibrated in the sense that the rejection probability under the
+null hypothesis is asymptotically equal to the level of the test.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns the result of the test with its corresponding p-value and the value of the test statistic.
+</p>
+
+
+<h3>Note</h3>
+
+<p>The function can also be called using formulas: type <code>wilcoxtest(x~y,data)</code> with x the quantitative variable
+and y a factor variable with two levels. The option <code>ties.break</code> handles ties in the Wilcoxon test. If <code>ties.break="none"</code> the ties are ignored, if
+<code>ties.break="random"</code> they are randomly broken. For the Wilcoxon rank sum test the ties between the <code>x</code> and <code>y</code> are
+detected and broken (but the ties inside the <code>x</code> and <code>y</code> vectors are not changed). For the signed rank test, the ties in the
+vector <code>x-y</code> (or in the <code>x</code> vector in case <code>y=NULL</code>) are randomly broken.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>cortest</code>, <code>indeptest</code>, <code>mediantest</code>, <code>vartest</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#Application on the Evans dataset
+data(Evans)
+#Description of this dataset is available in the lbreg package
+with(Evans,wilcox.test(CHL[CDH==0],CHL[CDH==1]))
+with(Evans,wilcoxtest(CHL[CDH==0],CHL[CDH==1]))
+wilcoxtest(CHL~CDH,data=Evans) #using formulas
+wilcoxtest(CHL~CDH,data=Evans,ties.break="random")
+#the same test where ties are randomly broken
+
+
+#For independent samples
+n=100 #sample size
+M=1000 #number of replications
+testone=function(n){
+X=runif(n,-0.5,0.5)
+Y=rnorm(3*n,0,0.04)
+list(test1=wilcoxtest(X,Y)$p.value,test2=wilcox.test(X,Y)$p.value)
+#wilcox.test is the standard Wilcoxon test
+}
+
+#Simulation under the null hypothesis
+#(note that P(X&gt;Y)=0.5)
+#Takes a few seconds to run
+res1=res2=rep(NA,M)
+for (i in 1:M)
+{
+result=testone(n)
+res1[i]=result$test1
+res2[i]=result$test2
+}
+mean(res1&lt;0.05)
+mean(res2&lt;0.05)
+
+#For paired samples
+#We use the value of the median of a Gamma distributed variable with shape
+#parameter equal to 1/5 and scale parameter equal to 1. This value is
+#computed from the command qgamma(shape=1/5, scale=1, 0.5)
+n=100 #sample size
+M=1000 #number of replications
+testone=function(n){
+D=rgamma(n,shape=1/10,scale=1)-qgamma(shape=1/5, scale=1, 0.5)/2
+list(test1=wilcoxtest(D,ties.break = "random")$p.value,test2=wilcox.test(D)$p.value)
+#wilcox.test is the standard paired Wilcoxon test
+}
+#Simulation under the null hypothesis
+#(note that Med(D_1+D_2)=0)
+#Takes a few seconds to run
+for (i in 1:M)
+{
+result=testone(n)
+res1[i]=result$test1
+res2[i]=result$test2
+}
+mean(res1&lt;0.05)
+mean(res2&lt;0.05)
+</code></pre>
+
+
+</div>

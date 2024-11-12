@@ -1,0 +1,272 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rvine_structure</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>R-vine structure</h2>
+
+<h3>Description</h3>
+
+<p>R-vine structures are compressed representations encoding the tree structure
+of the vine, i.e. the conditioned/conditioning variables of each edge. The
+functions <code style="white-space: pre;">⁠[cvine_structure()]⁠</code> or <code style="white-space: pre;">⁠[dvine_structure()]⁠</code> give a simpler way
+to construct C-vines (every tree is a star) and D-vines (every tree is a
+path), respectively (see <em>Examples</em>).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rvine_structure(order, struct_array = list(), is_natural_order = FALSE)
+
+cvine_structure(order, trunc_lvl = Inf)
+
+dvine_structure(order, trunc_lvl = Inf)
+
+rvine_matrix(matrix)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>order</code></td>
+<td>
+<p>a vector of positive integers.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>struct_array</code></td>
+<td>
+<p>a list of vectors of positive integers. The vectors
+represent rows of the r-rvine structure and the number of elements have to
+be compatible with the <code>order</code> vector. If empty, the model is 0-truncated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>is_natural_order</code></td>
+<td>
+<p>whether <code>struct_array</code> is assumed to be provided in
+natural order already (a structure is in natural order if the anti-
+diagonal is 1, .., d from bottom left to top right).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trunc_lvl</code></td>
+<td>
+<p>the truncation level</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>matrix</code></td>
+<td>
+<p>an R-vine matrix, see <em>Details</em>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The R-vine structure is essentially a lower-triangular matrix/triangular
+array, with a notation that differs from the one in the VineCopula package.
+An example array is
+</p>
+<div class="sourceCode"><pre>4 4 4 4
+3 3 3
+2 2
+1
+</pre></div>
+<p>which encodes the following pair-copulas:
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+tree </td>
+<td style="text-align: left;">  edge </td>
+<td style="text-align: left;"> pair-copulas   </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+0    </td>
+<td style="text-align: left;">  0    </td>
+<td style="text-align: left;"> <code style="white-space: pre;">⁠(1, 4)⁠</code>       </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+<td style="text-align: left;">  1    </td>
+<td style="text-align: left;"> <code style="white-space: pre;">⁠(2, 4)⁠</code>       </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+<td style="text-align: left;">  2    </td>
+<td style="text-align: left;"> <code style="white-space: pre;">⁠(3, 4)⁠</code>       </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+1    </td>
+<td style="text-align: left;">  0    </td>
+<td style="text-align: left;"> <code style="white-space: pre;">⁠(1, 3; 4)⁠</code>    </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+<td style="text-align: left;">  1    </td>
+<td style="text-align: left;"> <code style="white-space: pre;">⁠(2, 3; 4)⁠</code>    </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+2    </td>
+<td style="text-align: left;">  0    </td>
+<td style="text-align: left;"> <code style="white-space: pre;">⁠(1, 2; 3, 4)⁠</code>
+</td>
+</tr>
+</table>
+<p>An R-vine structure can be converted to an R-vine matrix using
+<code>as_rvine_matrix()</code>, which encodes the same model with a square matrix filled
+with zeros. For instance, the matrix corresponding to the structure above is:
+</p>
+<div class="sourceCode"><pre>4 4 4 4
+3 3 3 0
+2 2 0 0
+1 0 0 0
+</pre></div>
+<p>Similarly, an R-vine matrix can be converted to an R-vine structure using
+<code>as_rvine_structure()</code>.
+</p>
+<p>Denoting by <code>M[i, j]</code> the array entry in row <code>i</code> and column <code>j</code> (the
+pair-copula index for edge <code>e</code> in tree <code>t</code> of a <code>d</code> dimensional vine is
+<code style="white-space: pre;">⁠(M[d + 1 - e, e], M[t, e]; M[t - 1, e], ..., M[1, e])⁠</code>. Less formally,
+</p>
+
+<ol>
+<li>
+<p> Start with the counter-diagonal element of column <code>e</code> (first conditioned
+variable).
+</p>
+</li>
+<li>
+<p> Jump up to the element in row <code>t</code> (second conditioned variable).
+</p>
+</li>
+<li>
+<p> Gather all entries further up in column <code>e</code> (conditioning set).
+</p>
+</li>
+</ol>
+<p>Internally, the diagonal is stored separately from the off-diagonal elements,
+which are stored as a triangular array. For instance, the off-diagonal
+elements off the structure above are stored as
+</p>
+<div class="sourceCode"><pre>4 4 4
+3 3
+2
+</pre></div>
+<p>for the structure above. The reason is that it allows for parsimonious
+representations of truncated models. For instance, the 2-truncated model is
+represented by the same diagonal and the following truncated triangular
+array:
+</p>
+<div class="sourceCode"><pre>4 4 4
+3 3
+</pre></div>
+<p>A valid R-vine structure or matrix must satisfy several conditions which are
+checked when <code>rvine_structure()</code>, <code>rvine_matrix()</code>, or some coercion methods
+(see <code>as_rvine_structure()</code> and <code style="white-space: pre;">⁠as_rvine_matrix(⁠</code>) are called:
+</p>
+
+<ol>
+<li>
+<p> It can only contain numbers between 1 and d (and additionally zeros for
+R-vine matrices).
+</p>
+</li>
+<li>
+<p> The anti-diagonal must contain the numbers 1, ..., d.
+</p>
+</li>
+<li>
+<p> The anti-diagonal entry of a column must not be contained in any column
+further to the right.
+</p>
+</li>
+<li>
+<p> The entries of a column must be contained in all columns to the left.
+</p>
+</li>
+<li>
+<p> The proximity condition must hold: For all t = 1, ..., d - 2 and e = 1,
+..., d - t there must exist an index j &gt; d, such that
+<code style="white-space: pre;">⁠(M[t, e], {M[1, e], ..., M[t - 1, e]})⁠</code> equals either
+<code style="white-space: pre;">⁠(M[d + 1 - j, j], {M[1, j], ..., M[t - 1, j]})⁠</code> or
+<code style="white-space: pre;">⁠(M[t - 1, j], {M[d + 1 - j, j], M[1, j], ..., M[t - 2, j]})⁠</code>.
+</p>
+</li>
+</ol>
+<p>Condition 5 already implies conditions 2-4, but is more difficult to check by
+hand.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Either an <code>rvine_structure</code> or an <code>rvine_matrix</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>as_rvine_structure()</code>, <code>as_rvine_matrix()</code>,
+<code>plot.rvine_structure()</code>, <code>plot.rvine_matrix()</code>,
+<code>rvine_structure_sim()</code>, <code>rvine_matrix_sim()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# R-vine structures can be constructed from the order vector and struct_array
+rvine_structure(order = 1:4, struct_array = list(
+  c(4, 4, 4),
+  c(3, 3),
+  2
+))
+
+# R-vine matrices can be constructed from standard matrices
+mat &lt;- matrix(c(4, 3, 2, 1, 4, 3, 2, 0, 4, 3, 0, 0, 4, 0, 0, 0), 4, 4)
+rvine_matrix(mat)
+
+# coerce to R-vine structure
+str(as_rvine_structure(mat))
+
+# truncate and construct the R-vine matrix
+mat[3, 1] &lt;- 0
+rvine_matrix(mat)
+
+# or use directly the R-vine structure constructor
+rvine_structure(order = 1:4, struct_array = list(
+  c(4, 4, 4),
+  c(3, 3)
+))
+
+# throws an error
+mat[3, 1] &lt;- 5
+try(rvine_matrix(mat))
+
+# C-vine structure
+cvine &lt;- cvine_structure(1:5)
+cvine
+plot(cvine)
+
+# D-vine structure
+dvine &lt;- dvine_structure(c(1, 4, 2, 3, 5))
+dvine
+plot(dvine)
+
+</code></pre>
+
+
+</div>

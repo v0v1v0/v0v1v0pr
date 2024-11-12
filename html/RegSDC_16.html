@@ -1,0 +1,290 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>RegSDChybrid</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Regression-based SDC Tools - Generalized microaggregation</h2>
+
+<h3>Description</h3>
+
+<p>Implementation of the methodology in section 6 in the paper
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">RegSDChybrid(
+  y,
+  clusters = NULL,
+  xLocal = NULL,
+  xGlobal = NULL,
+  clusterPieces = NULL,
+  xClusterPieces = NULL,
+  groupedClusters = NULL,
+  xGroupedClusters = NULL,
+  alternative = NULL,
+  alpha = NULL,
+  ySim = NULL,
+  returnParts = FALSE,
+  epsAlpha = 1e-07,
+  makeunique = TRUE,
+  tolerance = sqrt(.Machine$double.eps)
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Matrix of confidential variables</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>clusters</code></td>
+<td>
+<p>Vector of cluster coding</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xLocal</code></td>
+<td>
+<p>Matrix of x-variables to be crossed with clusters</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xGlobal</code></td>
+<td>
+<p>Matrix of x-variables NOT to be crossed with clusters</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>clusterPieces</code></td>
+<td>
+<p>Vector of coding of cluster pieces</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xClusterPieces</code></td>
+<td>
+<p>Matrix of x-variables to be crossed with cluster pieces</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>groupedClusters</code></td>
+<td>
+<p>Vector of coding of grouped clusters</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xGroupedClusters</code></td>
+<td>
+<p>Matrix of x-variables to be crossed with grouped clusters</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alternative</code></td>
+<td>
+<p>One of "" (default), "a", "b" or "c"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>Possible to specify parameter used internally by alternative "c"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ySim</code></td>
+<td>
+<p>Possible to specify the internally simulated data manually</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>returnParts</code></td>
+<td>
+<p>Alternative output six matrices:
+y1 and y2 (fitted),    e3s and e4s (new residuals),   e3 and e4 (original residuals)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>epsAlpha</code></td>
+<td>
+<p>Precision constant for alpha calculation</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>makeunique</code></td>
+<td>
+<p>Parameter to be used in GenQR</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tolerance</code></td>
+<td>
+<p>Parameter to <code>Cdiff</code> used within the algorithm</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Input matrices are subjected to <code>EnsureMatrix</code>.
+Necessary constant terms (intercept) are automatically included. 
+That is, a column of ones is not needed in the input matrices.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Generated version of y
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Øyvind Langsrud
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#################################################
+# Generate example data for introductory examples
+################################################# 
+y &lt;- matrix(rnorm(30) + 1:30, 10, 3)
+x &lt;- matrix(1:10, 10, 1)  # x &lt;- 1:10 is equivalent
+
+# Same as RegSDCipso(y)
+yOut &lt;- RegSDChybrid(y)
+
+# With a single cluster both are same as RegSDCipso(y, x)
+yOut &lt;- RegSDChybrid(y, xLocal = x)
+yOut &lt;- RegSDChybrid(y, xGlobal = x)
+
+# Define two clusters
+clust &lt;- rep(1:2, each = 5)
+
+# MHa and MHb in paper
+yMHa &lt;- RegSDChybrid(y, clusters = clust, xLocal = x)
+yMHb &lt;- RegSDChybrid(y, clusterPieces = clust, xLocal = x)
+
+# An extended variant of MHb as mentioned in paper paragraph below definition of MHa/MHb
+yMHbExt &lt;- RegSDChybrid(y, clusterPieces = clust, xClusterPieces = x)
+
+# Identical means within clusters
+aggregate(y, list(clust = clust), mean)
+aggregate(yMHa, list(clust = clust), mean)
+aggregate(yMHb, list(clust = clust), mean)
+aggregate(yMHbExt, list(clust = clust), mean)
+
+# Identical global regression results
+summary(lm(y[, 1] ~ x))
+summary(lm(yMHa[, 1] ~ x))
+summary(lm(yMHb[, 1] ~ x))
+summary(lm(yMHbExt[, 1] ~ x))
+
+# MHa: Identical local regression results
+summary(lm(y[, 1] ~ x, subset = clust == 1))
+summary(lm(yMHa[, 1] ~ x, subset = clust == 1))
+
+# MHb: Different results
+summary(lm(yMHb[, 1] ~ x, subset = clust == 1))
+
+# MHbExt: Same estimates and different std. errors
+summary(lm(yMHbExt[, 1] ~ x, subset = clust == 1))
+
+###################################################
+#  Generate example data for more advanced examples
+###################################################
+x &lt;- matrix((1:90) * (1 + runif(90)), 30, 3)
+x1 &lt;- x[, 1]
+x2 &lt;- x[, 2]
+x3 &lt;- x[, 3]
+y &lt;- matrix(rnorm(90), 30, 3) + x
+clust &lt;- paste("c", rep(1:3, each = 10), sep = "")
+
+######## Run main algorithm
+z0 &lt;- RegSDChybrid(y, clusters = clust, xLocal = x3, xGlobal = cbind(x1, x2))
+
+# Corresponding models by lm
+lmy &lt;- lm(y ~ clust + x1 + x2 + x3:clust)
+lm0 &lt;- lm(z0 ~ clust + x1 + x2 + x3:clust)
+
+# Preserved regression coef (x3 within clusters)
+coef(lmy) - coef(lm0)
+
+# Preservation of x3 coef locally can also be seen by local regression
+coef(lm(y ~ x3, subset = clust == "c2")) - coef(lm(z0 ~ x3, subset = clust == "c2"))
+
+# Covariance matrix preserved
+cov(resid(lmy)) - cov(resid(lm0))
+
+# But not preserved within clusters
+cov(resid(lmy)[clust == "c2", ]) - cov(resid(lm0)[clust == "c2", ])
+
+######## Modification (a)
+za &lt;- RegSDChybrid(y, clusters = clust, xLocal = x3, xGlobal = cbind(x1, x2), alternative = "a")
+lma &lt;- lm(za ~ clust + x1 + x2 + x3:clust)
+
+# Now covariance matrices preserved within clusters
+cov(resid(lmy)[clust == "c2", ]) - cov(resid(lma)[clust == "c2", ])
+
+# If we estimate coef for x1 and x2 within clusters, 
+# they become identical and identical to global estimates
+coef(lma)
+coef(lm(za ~ clust + x1:clust + x2:clust + x3:clust))
+
+######## Modification (c) with automatic calculation of alpha 
+# The result depends on the randomly generated data
+# When the result is that alpha=1, modification (b) is equivalent
+zc &lt;- RegSDChybrid(y, clusters = clust, xLocal = x3, xGlobal = cbind(x1, x2), alternative = "c")
+lmc &lt;- lm(zc ~ clust + x1 + x2 + x3:clust)
+
+# Preserved regression coef as above
+coef(lmy) - coef(lmc)
+
+# Again covariance matrices preserved within clusters
+cov(resid(lmy)[clust == "c2", ]) - cov(resid(lmc)[clust == "c2", ])
+
+# If we estimate coef for x1 and x2 within clusters, 
+# results are different from modification (a) above
+coef(lmc)
+coef(lm(zc ~ clust + x1:clust + x2:clust + x3:clust))
+
+
+####################################################
+# Make groups of clusters (d) and cluster pieces (e)
+####################################################
+clustGr &lt;- paste("gr", ceiling(rep(1:3, each = 10)/2 + 0.1), sep = "")
+clustP &lt;- c("a", "a", rep("b", 28))
+
+######## Modifications (c), (d) and (e)
+zGrP &lt;- RegSDChybrid(y, clusters = clust, clusterPieces = clustP, groupedClusters = clustGr,
+                     xLocal = x3, xGroupedClusters = x2, xGlobal = x1, alternative = "c")
+
+# Corresponding models by lm
+lmGrP &lt;- lm(zGrP ~ clust:clustP + x1 + x2:clustGr + x3:clust - 1)
+lmY &lt;- lm(y ~ clust:clustP + x1 + x2:clustGr + x3:clust - 1)
+
+# Preserved regression coef
+coef(lmY) - coef(lmGrP)
+
+# Identical means within cluster pieces
+aggregate(y, list(clust = clust, clustP = clustP), mean)
+aggregate(zGrP, list(clust = clust, clustP = clustP), mean)
+
+# Covariance matrix preserved
+cov(resid(lmY)) - cov(resid(lmGrP))
+
+# Covariance matrices preserved within clusters
+cov(resid(lmY)[clust == "c2", ]) - cov(resid(lmGrP)[clust == "c2", ])
+
+# Covariance matrices not preserved within cluster pieces
+cov(resid(lmY)[clustP == "a", ]) - cov(resid(lmGrP)[clustP == "a", ])
+</code></pre>
+
+
+</div>

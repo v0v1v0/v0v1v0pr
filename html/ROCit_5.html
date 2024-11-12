@@ -1,0 +1,162 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ciROC.rocit</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Confidence Interval of ROC curve</h2>
+
+<h3>Description</h3>
+
+<p><code>ciROC</code> constructs confidence interval
+of receiver operating characteristic (ROC)
+curve. This is an S3 method defined for object of class <code>"rocit"</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'rocit'
+ciROC(object, level = 0.95, nboot = 500, ... = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>An object of class <code>"rocit"</code>, returned by
+<code>rocit</code>. Supports <code>"empirical"</code> and <code>"binormal"</code>
+ROC curve.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>level</code></td>
+<td>
+<p>Level of confidence, must be within the range (0 1).
+Default is 0.95.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nboot</code></td>
+<td>
+<p>Number of bootstrap samples, used to estimate <code>var(A)</code>,
+<code>var(B)</code>, <code>cov(A,B)</code>. Only used for <code>method = "binomial"</code>.
+See 'Details'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p><code>NULL</code>. Used for S3 generic/method consistency.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For large values of <code class="reqn">n_Y</code> and <code class="reqn">n_{\bar{Y}}</code>,
+the distribution of <code class="reqn">TPR(c)</code> at
+<code class="reqn">FPR(c)</code> can be approximated as a normal distribution
+with following mean and variance:
+</p>
+<p style="text-align: center;"><code class="reqn">\mu_{TPR(c)}=\sum_{i=1}^{n_Y}I(D_{Y_i}\geq c)/n_Y</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">V ( TPR(c) )=	\frac{  TPR(c) ( 1-  TPR(c))  }{n_Y}
++ ( \frac{g(c^*)}{f(c^*) } )^2 * K </code>
+</p>
+
+<p>where <code class="reqn">K=\frac{ FPR(c) (1-FPR(c))}{n_{\bar{Y}} } </code>, <code class="reqn">g</code>
+and <code class="reqn">f</code> are the probability distribution functions  of
+the diagnostic variable in positive and negative groups
+(with corresponding cumulative distribution functions <code class="reqn">G</code> and <code class="reqn">F</code>),
+<code class="reqn">c^*=S^{-1}_{D_{\bar{ Y}}}( FPR(c) )</code>, and <code class="reqn">S</code> is the survival
+function given by: <code class="reqn">S(t)=P(T&gt;t)=1-F(t)</code>. <code>density</code> and
+<code>approxfun</code> were used to approximate PDF and CDF
+of the diagnostic score in the two groups and the inverse survival
+of the diagnostic in the negative responses.
+</p>
+<p>For <code>"binomial"</code> type, variance of <code class="reqn">A+BZ_x</code> is given by
+<code class="reqn">V(A)+Z_x^2V(B)+2Z_xCov(A, B)</code>. Bootstrap method was used to estimate
+<code class="reqn">V(A)</code>, <code class="reqn">V(B)</code> and <code class="reqn">Cov{A,B}</code>. The lower and upper limit of
+<code class="reqn">A+BZ_x</code> are inverse probit transformed to obtain the confidence interval
+of the ROC curve.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list of class <code>"rocci"</code>, having following elements:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>'ROC estimation method“</code></td>
+<td>
+<p>The method applied to estimate ROC curve in the
+<code>rocit</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>'Confidence level'</code></td>
+<td>
+<p>Level of confidence as supplied as argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>FPR</code></td>
+<td>
+<p>An array containing all the FPR values,
+for which TPR and confidence
+interval of TPR were estimated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>TPR</code></td>
+<td>
+<p>Array containing the TPR values associated with the FPR values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>LowerTPR</code></td>
+<td>
+<p>Lower limits of the TPR values. Forced to zero for
+<code>type = "empirical"</code>, where empirical TPR is zero.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>UpperTPR</code></td>
+<td>
+<p>Upper limits of the TPR values. Forced to one for
+<code>type = "empirical"</code>, where empirical TPR is one.</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Pepe, Margaret Sullivan. <em>The statistical evaluation
+of medical tests for classification and prediction.</em> Medicine, 2003.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>plot.rocci</code>, <code>rocit</code>, <code>ciAUC.rocit</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data("Loan")
+score &lt;- Loan$Score
+class &lt;- ifelse(Loan$Status == "CO", 1, 0)
+rocit_emp &lt;- rocit(score = score, class = class, method = "emp")
+# ------------------------------------------------
+ciROC_emp90 &lt;- ciROC(rocit_emp, level = 0.9)
+plot(ciROC_emp90, egend = TRUE)
+
+</code></pre>
+
+
+</div>

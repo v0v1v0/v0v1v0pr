@@ -1,0 +1,201 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>gev2Ren</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Translate a vector of GEV parameters into renewal  model
+</h2>
+
+<h3>Description</h3>
+
+<p>Translate a (named) vector of GEV parameters into a renewal
+model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">gev2Ren(parGev,
+        threshold = NULL,
+        lambda = NULL,
+        w = 1,
+        distname.y = c("gpd", "GPD", "lomax", "maxlo"),
+        vcovGev = NULL,
+        jacobian = TRUE,
+        plot = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>parGev</code></td>
+<td>
+
+<p>Named vector of GEV coefficients. This must be
+a vector of length 3, with names <code>"loc"</code>, <code>"scale"</code>
+and <code>"shape"</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threshold</code></td>
+<td>
+
+<p>The threshold of the renewal model.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+
+<p>The rate of the renewal model.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w</code></td>
+<td>
+
+<p>The duration corresponding to the GEV parameters. Positive numeric
+scalar assumed to be in years.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>distname.y</code></td>
+<td>
+
+<p>The name of the distributions for the excesses in the
+renewal model. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vcovGev</code></td>
+<td>
+
+<p>A (co)variance matrix for the parameter. This must be a
+symmetric positive matrix with 3 rows and 3 columns,
+with rownames in correspondence with the parameter names.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>jacobian</code></td>
+<td>
+
+<p>Logical. If <code>TRUE</code> a Jacobian matrix
+will be returned as a <code>"jacobian"</code> attribute of the
+result.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+
+<p>If <code>TRUE</code> a rough plot will be produced to check
+the accordance of the GEV and the renewal models. It
+is a return level plot with the two return level curves
+shown.
+</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A vector of parameters similar to the coefficient vector of an object
+with class <code>"Renouv"</code>.  This vector has an element named
+<code>"lambda"</code> corresponding to the rate of the Homogeneous Poisson
+Process. The other elements are the parameters for the distribution
+of POT excesses.
+</p>
+<p>The result has attributes named <code>"distname.y"</code> and
+<code>"threshold"</code> which can be used to build a <code>Renouv</code> object
+using the <code>RenouvNoEst</code> function.  The result may as well
+have attributes <code>"jacobian"</code> and <code>"vcov"</code> according to the
+arguments values. These objects should be used with attention to their
+element names, since the parameter order may not be the one you
+expect.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Yves Deville
+</p>
+
+
+<h3>See Also</h3>
+
+<p>The <code>Ren2gev</code> function provide a reciprocal
+transformation.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## GEV parameters and block duration
+set.seed(1234)
+muGev &lt;- rnorm(1); sigmaGev &lt;- rgamma(1, shape = 5)
+xiGev &lt;- runif(1, min = -0.2, max = 0.3)
+parGev &lt;- c("loc" = muGev, "scale" = sigmaGev, "shape" = xiGev)
+parRen &lt;- gev2Ren(parGev, lambda = 1, jacobian = TRUE, plot = TRUE)
+## check by reverse transform
+parGevCheck &lt;- Ren2gev(parRen, threshold = attr(parRen, "threshold"))
+rbind(parGev, parGevCheck)
+
+##=======================================================================
+## slightly positive shape convert to "gpd" and "lomax" distributions
+##=======================================================================
+x &lt;- rgev(n = 100, loc = 3500, scale = 1000, shape = 0.1)
+fit.gev &lt;- fgev(x, start = list("loc" = 3000, "scale" = 1000, "shape" = 0.1))
+distNames &lt;- c("gpd", "lomax")
+namesRen &lt;- c("lambda", "scale", "shape") # works for the 2 target dists
+fitNew &lt;- list()
+opar &lt;- par(mfrow = c(3, 1))
+for (nm in distNames) {  
+  parRen &lt;- gev2Ren(parGev = fit.gev$estimate, threshold = 2800,
+                    vcov = fit.gev$var.cov, distname.y = nm)
+  namesRen &lt;- c("lambda", "scale", "shape")
+  myVcov &lt;- attr(parRen, "vcov")[namesRen, namesRen]
+  fitNew[[nm]] &lt;- RenouvNoEst(threshold = attr(parRen, "threshold"),
+                              estimate = parRen,
+                              distname.y = attr(parRen, "distname.y"),
+                              cov = myVcov)
+  plot(fitNew[[nm]], Tlim = c(1, 200))
+}
+plot(fit.gev, which = 4)
+par(opar)
+##=======================================================================
+## slightly negative shape convert to "gpd" and "maxlo" distribution
+##=======================================================================
+x &lt;- rgev(n = 100, loc = 3500, scale = 1000, shape = -0.2)
+fit.gev &lt;- fgev(x, start = list("loc" = 3000, "scale" = 1000, "shape" = 0.1))
+distNames &lt;- c("gpd", "maxlo")
+namesRen &lt;- c("lambda", "scale", "shape") # works for the 2 target dists
+fitNew &lt;- list()
+opar &lt;- par(mfrow = c(3, 1))
+for (nm in distNames) {
+  parRen &lt;- gev2Ren(parGev = fit.gev$estimate, threshold = 2800,
+                    vcov = fit.gev$var.cov, distname.y = nm)
+  myVcov &lt;- attr(parRen, "vcov")[namesRen, namesRen]
+  fitNew[[nm]] &lt;- RenouvNoEst(threshold = attr(parRen, "threshold"),
+                              estimate = parRen,
+                              distname.y = attr(parRen, "distname.y"),
+                              cov = myVcov)
+  plot(fitNew[[nm]], Tlim = c(1, 200))
+}
+plot(fit.gev, which = 4)
+par(opar)
+
+
+</code></pre>
+
+
+</div>

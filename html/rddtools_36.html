@@ -1,0 +1,146 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rdd_reg_lm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Parametric polynomial estimator of the regression discontinuity</h2>
+
+<h3>Description</h3>
+
+<p>Compute a parametric polynomial regression of the ATE, 
+possibly on the range specified by bandwidth
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rdd_reg_lm(
+  rdd_object,
+  covariates = NULL,
+  order = 1,
+  bw = NULL,
+  slope = c("separate", "same"),
+  covar.opt = list(strategy = c("include", "residual"), slope = c("same", "separate"),
+    bw = NULL),
+  covar.strat = c("include", "residual"),
+  weights
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>rdd_object</code></td>
+<td>
+<p>Object of class rdd_data created by <code>rdd_data</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covariates</code></td>
+<td>
+<p>Formula to include covariates</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>order</code></td>
+<td>
+<p>Order of the polynomial regression.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bw</code></td>
+<td>
+<p>A bandwidth to specify the subset on which the parametric regression is estimated</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>slope</code></td>
+<td>
+<p>Whether slopes should be different on left or right (separate), or the same.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covar.opt</code></td>
+<td>
+<p>Options for the inclusion of covariates. Way to include covariates, either in the main regression (<code>include</code>) or as regressors of y in a first step (<code>residual</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covar.strat</code></td>
+<td>
+<p>DEPRECATED, use covar.opt instead.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>Optional weights to pass to the lm function. Note this cannot be entered together with <code>bw</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function estimates the standard <em>discontinuity regression</em>:
+</p>
+<p style="text-align: center;"><code class="reqn">Y=\alpha+\tau D+\beta_{1}(X-c)+\beta_{2}D(X-c)+\epsilon</code>
+</p>
+
+<p>with <code class="reqn">\tau</code> the main parameter of interest. Several versions of the regression can be estimated, either restricting the slopes to be the same, 
+i.e <code class="reqn">\beta_{1}=\beta_{2}</code> (argument <code>slope</code>). The order of the polynomial in <code class="reqn">X-c</code> can also be adjusted with argument <code>order</code>. 
+Note that a value of zero can be used, which corresponds to the simple <em>difference in means</em>, that one would use if the samples were random. 
+Covariates can also be added in the regression, according to the two strategies discussed in Lee and Lemieux (2010, sec 4.5), through argument <code>covar.strat</code>:
+</p>
+
+<dl>
+<dt>include</dt>
+<dd>
+<p>Covariates are simply added as supplementary regressors in the RD equation</p>
+</dd>
+<dt>residual</dt>
+<dd>
+<p>The dependent variable is first regressed on the covariates only, then the RDD equation is applied on the residuals from this first step</p>
+</dd>
+</dl>
+<p>The regression can also be estimated in a neighborhood of the cutpoint with the argument <code>bw</code>. This make the parametric regression resemble 
+the non-parametric local kernel <code>rdd_reg_np</code>. Similarly, weights can also be provided (but not simultaneously to <code>bw</code>). 
+</p>
+<p>The returned object is a classical <code>lm</code> object, augmented with a <code>RDDslot</code>, so usual methods can be applied. As is done in general in R, 
+heteroskeadsticity-robust inference can be done later on with the usual function from package <span class="pkg">sandwich</span>. For the case of clustered observations
+a specific function <code>clusterInf</code> is provided.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class rdd_reg_lm and class lm, with specific print and plot methods
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Step 0: prepare data
+data(house)
+house_rdd &lt;- rdd_data(y=house$y, x=house$x, cutpoint=0)
+## Step 2: regression
+# Simple polynomial of order 1:
+reg_para &lt;- rdd_reg_lm(rdd_object=house_rdd)
+print(reg_para)
+plot(reg_para)
+
+# Simple polynomial of order 4:
+reg_para4 &lt;- rdd_reg_lm(rdd_object=house_rdd, order=4)
+reg_para4
+plot(reg_para4)
+
+# Restrict sample to bandwidth area:
+bw_ik &lt;- rdd_bw_ik(house_rdd)
+reg_para_ik &lt;- rdd_reg_lm(rdd_object=house_rdd, bw=bw_ik, order=4)
+reg_para_ik
+plot(reg_para_ik)
+</code></pre>
+
+
+</div>

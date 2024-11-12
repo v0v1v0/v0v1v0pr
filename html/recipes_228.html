@@ -1,0 +1,235 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>step_profile</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create a profiling version of a data set</h2>
+
+<h3>Description</h3>
+
+<p><code>step_profile()</code> creates a <em>specification</em> of a recipe step that will fix the
+levels of all variables but one and will create a sequence of values for the
+remaining variable. This step can be helpful when creating partial regression
+plots for additive models.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">step_profile(
+  recipe,
+  ...,
+  profile = NULL,
+  pct = 0.5,
+  index = 1,
+  grid = list(pctl = TRUE, len = 100),
+  columns = NULL,
+  role = NA,
+  trained = FALSE,
+  skip = FALSE,
+  id = rand_id("profile")
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>recipe</code></td>
+<td>
+<p>A recipe object. The step will be added to the
+sequence of operations for this recipe.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>One or more selector functions to choose variables
+for this step. See <code>selections()</code> for more details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>profile</code></td>
+<td>
+<p>A call to <code>dplyr::vars()</code>) to specify which
+variable will be profiled (see <code>selections()</code>). If a column is
+included in both lists to be fixed and to be profiled, an error
+is thrown.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pct</code></td>
+<td>
+<p>A value between 0 and 1 that is the percentile to
+fix continuous variables. This is applied to all continuous
+variables captured by the selectors. For date variables, either
+the minimum, median, or maximum used based on their distance to
+<code>pct</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>index</code></td>
+<td>
+<p>The level that qualitative variables will be
+fixed. If the variables are character (not factors), this will
+be the index of the sorted unique values. This is applied to all
+qualitative variables captured by the selectors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grid</code></td>
+<td>
+<p>A named list with elements <code>pctl</code> (a logical) and
+<code>len</code> (an integer). If <code>pctl = TRUE</code>, then <code>len</code> denotes how
+many percentiles to use to create the profiling grid. This
+creates a grid between 0 and 1 and the profile is determined by
+the percentiles of the data. For example, if <code>pctl = TRUE</code> and
+<code>len = 3</code>, the profile would contain the minimum, median, and
+maximum values. If <code>pctl = FALSE</code>, it defines how many grid
+points between the minimum and maximum values should be created.
+This parameter is ignored for qualitative variables (since all
+of their possible levels are profiled). In the case of date
+variables, <code>pctl = FALSE</code> will always be used since there is no
+quantile method for dates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>columns</code></td>
+<td>
+<p>A character string of the selected variable names. This field
+is a placeholder and will be populated once <code>prep()</code> is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>role</code></td>
+<td>
+<p>Not used by this step since no new variables are
+created.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trained</code></td>
+<td>
+<p>A logical to indicate if the quantities for
+preprocessing have been estimated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>skip</code></td>
+<td>
+<p>A logical. Should the step be skipped when the
+recipe is baked by <code>bake()</code>? While all operations are baked
+when <code>prep()</code> is run, some operations may not be able to be
+conducted on new data (e.g. processing the outcome variable(s)).
+Care should be taken when using <code>skip = TRUE</code> as it may affect
+the computations for subsequent operations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id</code></td>
+<td>
+<p>A character string that is unique to this step to identify it.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This step is atypical in that, when baked, the
+<code>new_data</code> argument is ignored; the resulting data set is
+based on the fixed and profiled variable's information.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An updated version of <code>recipe</code> with the new step added to the
+sequence of any existing operations.
+</p>
+
+
+<h3>Tidying</h3>
+
+<p>When you <code>tidy()</code> this step, a tibble is returned with
+columns <code>terms</code>, <code>type</code> , and <code>id</code>:
+</p>
+
+<dl>
+<dt>terms</dt>
+<dd>
+<p>character, the selectors or variables selected</p>
+</dd>
+<dt>type</dt>
+<dd>
+<p>character, <code>"fixed"</code> or <code>"profiled"</code></p>
+</dd>
+<dt>id</dt>
+<dd>
+<p>character, id of this step</p>
+</dd>
+</dl>
+<h3>Case weights</h3>
+
+<p>The underlying operation does not allow for case weights.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+data(Sacramento, package = "modeldata")
+
+# Setup a grid across beds but keep the other values fixed
+recipe(~ city + price + beds, data = Sacramento) %&gt;%
+  step_profile(-beds, profile = vars(beds)) %&gt;%
+  prep(training = Sacramento) %&gt;%
+  bake(new_data = NULL)
+
+##########
+
+# An *additive* model; not for use when there are interactions or
+# other functional relationships between predictors
+
+lin_mod &lt;- lm(mpg ~ poly(disp, 2) + cyl + hp, data = mtcars)
+
+# Show the difference in the two grid creation methods
+
+disp_pctl &lt;- recipe(~ disp + cyl + hp, data = mtcars) %&gt;%
+  step_profile(-disp, profile = vars(disp)) %&gt;%
+  prep(training = mtcars)
+
+disp_grid &lt;- recipe(~ disp + cyl + hp, data = mtcars) %&gt;%
+  step_profile(
+    -disp,
+    profile = vars(disp),
+    grid = list(pctl = FALSE, len = 100)
+  ) %&gt;%
+  prep(training = mtcars)
+
+grid_data &lt;- bake(disp_grid, new_data = NULL)
+grid_data &lt;- grid_data %&gt;%
+  mutate(
+    pred = predict(lin_mod, grid_data),
+    method = "grid"
+  )
+
+pctl_data &lt;- bake(disp_pctl, new_data = NULL)
+pctl_data &lt;- pctl_data %&gt;%
+  mutate(
+    pred = predict(lin_mod, pctl_data),
+    method = "percentile"
+  )
+
+plot_data &lt;- bind_rows(grid_data, pctl_data)
+
+library(ggplot2)
+
+ggplot(plot_data, aes(x = disp, y = pred)) +
+  geom_point(alpha = .5, cex = 1) +
+  facet_wrap(~method)
+
+</code></pre>
+
+
+</div>

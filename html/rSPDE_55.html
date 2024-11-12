@@ -1,0 +1,208 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rSPDE.matern.loglike</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Object-based log-likelihood function for latent Gaussian fractional
+SPDE model using the rational approximations</h2>
+
+<h3>Description</h3>
+
+<p>This function evaluates the log-likelihood function for a
+Gaussian process with a Matern covariance
+function, that is observed under Gaussian measurement noise:
+<code class="reqn">Y_i = u(s_i) + \epsilon_i</code>, where
+<code class="reqn">\epsilon_i</code> are
+iid mean-zero Gaussian variables. The latent model is approximated using
+the a rational approximation
+of the fractional SPDE model corresponding to the Gaussian process.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rSPDE.matern.loglike(
+  object,
+  Y,
+  A,
+  sigma.e,
+  mu = 0,
+  user_nu = NULL,
+  user_kappa = NULL,
+  user_sigma = NULL,
+  user_range = NULL,
+  user_tau = NULL,
+  user_m = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>The rational SPDE approximation,
+computed using <code>matern.operators()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>The observations, either a vector or a matrix where
+the columns correspond to independent replicates of observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>A</code></td>
+<td>
+<p>An observation matrix that links the measurement location to the
+finite element basis.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma.e</code></td>
+<td>
+<p>The standard deviation of the measurement noise.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mu</code></td>
+<td>
+<p>Expectation vector of the latent field (default = 0).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>user_nu</code></td>
+<td>
+<p>If non-null, update the shape parameter of the covariance
+function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>user_kappa</code></td>
+<td>
+<p>If non-null, update the range parameter of the covariance
+function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>user_sigma</code></td>
+<td>
+<p>If non-null, update the standard deviation of
+the covariance function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>user_range</code></td>
+<td>
+<p>If non-null, update the range parameter
+of the covariance function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>user_tau</code></td>
+<td>
+<p>If non-null, update the parameter tau.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>user_m</code></td>
+<td>
+<p>If non-null, update the order of the rational approximation,
+which needs to be a positive integer.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The log-likelihood value.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>matern.operators()</code>, <code>predict.CBrSPDEobj()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># this example illustrates how the function can be used for maximum
+# likelihood estimation
+
+set.seed(123)
+# Sample a Gaussian Matern process on R using a rational approximation
+nu &lt;- 0.8
+kappa &lt;- 5
+sigma &lt;- 1
+sigma.e &lt;- 0.1
+n.rep &lt;- 10
+n.obs &lt;- 100
+n.x &lt;- 51
+range &lt;- 0.2
+
+# create mass and stiffness matrices for a FEM discretization
+x &lt;- seq(from = 0, to = 1, length.out = n.x)
+fem &lt;- rSPDE.fem1d(x)
+
+tau &lt;- sqrt(gamma(nu) / (sigma^2 * kappa^(2 * nu) *
+(4 * pi)^(1 / 2) * gamma(nu + 1 / 2)))
+
+# Compute the covariance-based rational approximation
+op_cov &lt;- matern.operators(
+  loc_mesh = x, nu = nu,
+  range = range, sigma = sigma, d = 1, m = 2,
+ parameterization = "matern"
+)
+
+# Sample the model
+u &lt;- simulate(op_cov, n.rep)
+
+# Create some data
+obs.loc &lt;- runif(n = n.obs, min = 0, max = 1)
+A &lt;- rSPDE.A1d(x, obs.loc)
+noise &lt;- rnorm(n.obs * n.rep)
+dim(noise) &lt;- c(n.obs, n.rep)
+Y &lt;- as.matrix(A %*% u + sigma.e * noise)
+
+# Define the negative likelihood function for optimization
+# using CBrSPDE.matern.loglike
+
+# Notice that we are also using sigma instead of tau, so it can be compared
+# to matern.loglike()
+mlik_cov &lt;- function(theta, Y, A, op_cov) {
+  kappa &lt;- exp(theta[1])
+  sigma &lt;- exp(theta[2])
+  nu &lt;- exp(theta[3])
+  return(-rSPDE.matern.loglike(
+    object = op_cov, Y = Y,
+    A = A, user_kappa = kappa, user_sigma = sigma,
+    user_nu = nu, sigma.e = exp(theta[4])
+  ))
+}
+
+# The parameters can now be estimated by minimizing mlik with optim
+
+# Choose some reasonable starting values depending on the size of the domain
+theta0 &lt;- log(c(sqrt(8), 1 / sqrt(var(c(Y))), 0.9, 0.01))
+
+# run estimation and display the results
+theta &lt;- optim(theta0, mlik_cov,
+  Y = Y, A = A, op_cov = op_cov,
+  method = "L-BFGS-B"
+)
+
+print(data.frame(
+  range = c(range, exp(theta$par[1])), sigma = c(sigma, exp(theta$par[2])),
+  nu = c(nu, exp(theta$par[3])), sigma.e = c(sigma.e, exp(theta$par[4])),
+  row.names = c("Truth", "Estimates")
+))
+
+
+</code></pre>
+
+
+</div>

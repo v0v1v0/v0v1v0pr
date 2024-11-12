@@ -1,0 +1,388 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>prepare_search_graph</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Convert a nearest neighbor graph into a search graph</h2>
+
+<h3>Description</h3>
+
+<p>Create a graph using existing nearest neighbor data to balance search
+speed and accuracy using the occlusion pruning and truncation strategies
+of Harwood and Drummond (2016). The resulting search graph should be more
+efficient for querying new data than the original nearest neighbor graph.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">prepare_search_graph(
+  data,
+  graph,
+  metric = "euclidean",
+  use_alt_metric = TRUE,
+  diversify_prob = 1,
+  pruning_degree_multiplier = 1.5,
+  prune_reverse = FALSE,
+  n_threads = 0,
+  verbose = FALSE,
+  obs = "R"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>Matrix of <code>n</code> items, with observations in the rows and features
+in the columns. Optionally, input can be passed with observations in the
+columns, by setting <code>obs = "C"</code>, which should be more efficient. Possible
+formats are <code>base::data.frame()</code>, <code>base::matrix()</code> or
+<code>Matrix::sparseMatrix()</code>. Sparse matrices should be in <code>dgCMatrix</code> format.
+Dataframes will be converted to <code>numerical</code> matrix format internally, so if
+your data columns are <code>logical</code> and intended to be used with the
+specialized binary <code>metric</code>s, you should convert it to a logical matrix
+first (otherwise you will get the slower dense numerical version).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>graph</code></td>
+<td>
+<p>neighbor graph for <code>data</code>, a list containing:
+</p>
+
+<ul>
+<li> <p><code>idx</code> an <code>n</code> by <code>k</code> matrix containing the nearest neighbor indices of
+the data in <code>data</code>.
+</p>
+</li>
+<li> <p><code>dist</code> an <code>n</code> by <code>k</code> matrix containing the nearest neighbor distances.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>metric</code></td>
+<td>
+<p>Type of distance calculation to use. One of:
+</p>
+
+<ul>
+<li> <p><code>"braycurtis"</code>
+</p>
+</li>
+<li> <p><code>"canberra"</code>
+</p>
+</li>
+<li> <p><code>"chebyshev"</code>
+</p>
+</li>
+<li> <p><code>"correlation"</code> (1 minus the Pearson correlation)
+</p>
+</li>
+<li> <p><code>"cosine"</code>
+</p>
+</li>
+<li> <p><code>"dice"</code>
+</p>
+</li>
+<li> <p><code>"euclidean"</code>
+</p>
+</li>
+<li> <p><code>"hamming"</code>
+</p>
+</li>
+<li> <p><code>"hellinger"</code>
+</p>
+</li>
+<li> <p><code>"jaccard"</code>
+</p>
+</li>
+<li> <p><code>"jensenshannon"</code>
+</p>
+</li>
+<li> <p><code>"kulsinski"</code>
+</p>
+</li>
+<li> <p><code>"sqeuclidean"</code> (squared Euclidean)
+</p>
+</li>
+<li> <p><code>"manhattan"</code>
+</p>
+</li>
+<li> <p><code>"rogerstanimoto"</code>
+</p>
+</li>
+<li> <p><code>"russellrao"</code>
+</p>
+</li>
+<li> <p><code>"sokalmichener"</code>
+</p>
+</li>
+<li> <p><code>"sokalsneath"</code>
+</p>
+</li>
+<li> <p><code>"spearmanr"</code> (1 minus the Spearman rank correlation)
+</p>
+</li>
+<li> <p><code>"symmetrickl"</code> (symmetric Kullback-Leibler divergence)
+</p>
+</li>
+<li> <p><code>"tsss"</code> (Triangle Area Similarity-Sector Area Similarity or TS-SS
+metric)
+</p>
+</li>
+<li> <p><code>"yule"</code>
+</p>
+</li>
+</ul>
+<p>For non-sparse data, the following variants are available with
+preprocessing: this trades memory for a potential speed up during the
+distance calculation. Some minor numerical differences should be expected
+compared to the non-preprocessed versions:
+</p>
+
+<ul>
+<li> <p><code>"cosine-preprocess"</code>: <code>cosine</code> with preprocessing.
+</p>
+</li>
+<li> <p><code>"correlation-preprocess"</code>: <code>correlation</code> with preprocessing.
+</p>
+</li>
+</ul>
+<p>For non-sparse binary data passed as a <code>logical</code> matrix, the following
+metrics have specialized variants which should be substantially faster than
+the non-binary variants (in other cases the logical data will be treated as
+a dense numeric vector of 0s and 1s):
+</p>
+
+<ul>
+<li> <p><code>"dice"</code>
+</p>
+</li>
+<li> <p><code>"hamming"</code>
+</p>
+</li>
+<li> <p><code>"jaccard"</code>
+</p>
+</li>
+<li> <p><code>"kulsinski"</code>
+</p>
+</li>
+<li> <p><code>"matching"</code>
+</p>
+</li>
+<li> <p><code>"rogerstanimoto"</code>
+</p>
+</li>
+<li> <p><code>"russellrao"</code>
+</p>
+</li>
+<li> <p><code>"sokalmichener"</code>
+</p>
+</li>
+<li> <p><code>"sokalsneath"</code>
+</p>
+</li>
+<li> <p><code>"yule"</code>
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use_alt_metric</code></td>
+<td>
+<p>If <code>TRUE</code>, use faster metrics that maintain the
+ordering of distances internally (e.g. squared Euclidean distances if using
+<code>metric = "euclidean"</code>), then apply a correction at the end. Probably
+the only reason to set this to <code>FALSE</code> is if you suspect that some
+sort of numeric issue is occurring with your data in the alternative code
+path.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>diversify_prob</code></td>
+<td>
+<p>the degree of diversification of the search graph
+by removing unnecessary edges through occlusion pruning. This should take a
+value between <code>0</code> (no diversification) and <code>1</code> (remove as many edges as
+possible) and is treated as the probability of a neighbor being removed if
+it is found to be an "occlusion". If item <code>p</code> and <code>q</code>, two members of the
+neighbor list of item <code>i</code>, are closer to each other than they are to <code>i</code>,
+then the nearer neighbor <code>p</code> is said to "occlude" <code>q</code>. It is likely that
+<code>q</code> will be in the neighbor list of <code>p</code> so there is no need to retain it in
+the neighbor list of <code>i</code>. You may also set this to <code>NULL</code> to skip any
+occlusion pruning. Note that occlusion pruning is carried out twice, once
+to the forward neighbors, and once to the reverse neighbors. Reducing this
+value will result in a more dense graph. This is similar to increasing the
+"alpha" parameter used by in the DiskAnn pruning method of Subramanya and
+co-workers (2014).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pruning_degree_multiplier</code></td>
+<td>
+<p>How strongly to truncate the final neighbor
+list for each item. The neighbor list of each item will be truncated to
+retain only the closest <code>d</code> neighbors, where
+<code>d = k * pruning_degree_multiplier</code>, and <code>k</code> is the
+original number of neighbors per item in <code>graph</code>. Roughly, values
+larger than <code>1</code> will keep all the nearest neighbors of an item, plus
+the given fraction of reverse neighbors (if they exist). For example,
+setting this to <code>1.5</code> will keep all the forward neighbors and then
+half as many of the reverse neighbors, although exactly which neighbors are
+retained is also dependent on any occlusion pruning that occurs. Set this
+to <code>NULL</code> to skip this step.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prune_reverse</code></td>
+<td>
+<p>If <code>TRUE</code>, prune the reverse neighbors of each item
+before the reverse graph diversification step using
+<code>pruning_degree_multiplier</code>. Because the number of reverse neighbors can be
+much larger than the number of forward neighbors, this can help to avoid
+excessive computation during the diversification step, with little overall
+effect on the final search graph. Default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_threads</code></td>
+<td>
+<p>Number of threads to use.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>If <code>TRUE</code>, log information to the console.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>obs</code></td>
+<td>
+<p>set to <code>"C"</code> to indicate that the input <code>data</code> orientation stores
+each observation as a column. The default <code>"R"</code> means that observations are
+stored in each row. Storing the data by row is usually more convenient, but
+internally your data will be converted to column storage. Passing it
+already column-oriented will save some memory and (a small amount of) CPU
+usage.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>An approximate nearest neighbor graph is not very useful for querying via
+<code>graph_knn_query()</code>, especially if the query data is initialized randomly:
+some items in the data set may not be in the nearest neighbor list of any
+other item and can therefore never be returned as a neighbor, no matter how
+close they are to the query. Even those which do appear in at least one
+neighbor list may not be reachable by expanding an arbitrary starting list if
+the neighbor graph contains disconnected components.
+</p>
+<p>Converting the directed graph represented by the neighbor graph to an
+undirected graph by adding an edge from item <code>j</code> to <code>i</code> if
+an edge exists from <code>i</code> to <code>j</code> (i.e. creating the mutual neighbor
+graph) solves the problems above, but can result in inefficient searches.
+Although the out-degree of each item is restricted to the number of neighbors
+the in-degree has no such restrictions: a given item could be very "popular"
+and in a large number of neighbors lists. Therefore mutualizing the neighbor
+graph can result in some items with a large number of neighbors to search.
+These usually have very similar neighborhoods so there is nothing to be
+gained from searching all of them.
+</p>
+<p>To balance accuracy and search time, the following procedure is carried out:
+</p>
+
+<ol>
+<li>
+<p> The graph is "diversified" by occlusion pruning.
+</p>
+</li>
+<li>
+<p> The reverse graph is formed by reversing the direction of all edges in
+the pruned graph.
+</p>
+</li>
+<li>
+<p> The reverse graph is diversified by occlusion pruning.
+</p>
+</li>
+<li>
+<p> The pruned forward and pruned reverse graph are merged.
+</p>
+</li>
+<li>
+<p> The outdegree of each node in the merged graph is truncated.
+</p>
+</li>
+<li>
+<p> The truncated merged graph is returned as the prepared search graph.
+</p>
+</li>
+</ol>
+<p>Explicit zero distances in the <code>graph</code> will be converted to a small positive
+number to avoid being dropped in the sparse representation. The one exception
+is the "self" distance, i.e. any edge in the <code>graph</code> which links a node to
+itself (the diagonal of the sparse distance matrix). These trivial edges
+aren't useful for search purposes and are always dropped.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a search graph for <code>data</code> based on <code>graph</code>, represented as a sparse
+matrix, suitable for use with <code>graph_knn_query()</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Harwood, B., &amp; Drummond, T. (2016).
+Fanng: Fast approximate nearest neighbour graphs.
+In <em>Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition</em>
+(pp. 5713-5722).
+</p>
+<p>Jayaram Subramanya, S., Devvrit, F., Simhadri, H. V., Krishnawamy, R., &amp; Kadekodi, R. (2019).
+Diskann: Fast accurate billion-point nearest neighbor search on a single node.
+<em>Advances in Neural Information Processing Systems</em>, <em>32</em>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>graph_knn_query()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># 100 reference iris items
+iris_ref &lt;- iris[iris$Species %in% c("setosa", "versicolor"), ]
+
+# 50 query items
+iris_query &lt;- iris[iris$Species == "versicolor", ]
+
+# First, find the approximate 4-nearest neighbor graph for the references:
+ref_ann_graph &lt;- nnd_knn(iris_ref, k = 4)
+
+# Create a graph for querying with
+ref_search_graph &lt;- prepare_search_graph(iris_ref, ref_ann_graph)
+
+# Using the search graph rather than the ref_ann_graph directly may give
+# more accurate or faster results
+iris_query_nn &lt;- graph_knn_query(
+  query = iris_query, reference = iris_ref,
+  reference_graph = ref_search_graph, k = 4, metric = "euclidean",
+  verbose = TRUE
+)
+</code></pre>
+
+
+</div>

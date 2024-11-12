@@ -1,0 +1,147 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>call2</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create a call</h2>
+
+<h3>Description</h3>
+
+<p>Quoted function calls are one of the two types of
+symbolic objects in R. They represent the action of
+calling a function, possibly with arguments. There are two ways of
+creating a quoted call:
+</p>
+
+<ul>
+<li>
+<p> By quoting it. Quoting prevents functions from being
+called. Instead, you get the description of the function call as
+an R object. That is, a quoted function call.
+</p>
+</li>
+<li>
+<p> By constructing it with <code>base::call()</code>, <code>base::as.call()</code>, or
+<code>call2()</code>. In this case, you pass the call elements (the function
+to call and the arguments to call it with) separately.
+</p>
+</li>
+</ul>
+<p>See section below for the difference between <code>call2()</code> and the base
+constructors.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">call2(.fn, ..., .ns = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>.fn</code></td>
+<td>
+<p>Function to call. Must be a callable object: a string,
+symbol, call, or a function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>&lt;dynamic&gt; Arguments for the function
+call. Empty arguments are preserved.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.ns</code></td>
+<td>
+<p>Namespace with which to prefix <code>.fn</code>. Must be a string
+or symbol.</p>
+</td>
+</tr>
+</table>
+<h3>Difference with base constructors</h3>
+
+<p><code>call2()</code> is more flexible than <code>base::call()</code>:
+</p>
+
+<ul>
+<li>
+<p> The function to call can be a string or a callable
+object: a symbol, another call (e.g. a <code>$</code> or <code>[[</code> call), or a
+function to inline. <code>base::call()</code> only supports strings and you
+need to use <code>base::as.call()</code> to construct a call with a callable
+object.
+</p>
+<div class="sourceCode"><pre>call2(list, 1, 2)
+
+as.call(list(list, 1, 2))
+</pre></div>
+</li>
+<li>
+<p> The <code>.ns</code> argument is convenient for creating namespaced calls.
+</p>
+<div class="sourceCode"><pre>call2("list", 1, 2, .ns = "base")
+
+# Equivalent to
+ns_call &lt;- call("::", as.symbol("list"), as.symbol("base"))
+as.call(list(ns_call, 1, 2))
+</pre></div>
+</li>
+<li> <p><code>call2()</code> has dynamic dots support. You can splice lists
+of arguments with <code style="white-space: pre;">⁠!!!⁠</code> or unquote an argument name with glue
+syntax.
+</p>
+<div class="sourceCode"><pre>args &lt;- list(na.rm = TRUE, trim = 0)
+
+call2("mean", 1:10, !!!args)
+
+# Equivalent to
+as.call(c(list(as.symbol("mean"), 1:10), args))
+</pre></div>
+</li>
+</ul>
+<h3>Caveats of inlining objects in calls</h3>
+
+<p><code>call2()</code> makes it possible to inline objects in calls, both in
+function and argument positions. Inlining an object or a function
+has the advantage that the correct object is used in all
+environments. If all components of the code are inlined, you can
+even evaluate in the empty environment.
+</p>
+<p>However inlining also has drawbacks. It can cause issues with NSE
+functions that expect symbolic arguments. The objects may also leak
+in representations of the call stack, such as <code>traceback()</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>call_modify()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># fn can either be a string, a symbol or a call
+call2("f", a = 1)
+call2(quote(f), a = 1)
+call2(quote(f()), a = 1)
+
+#' Can supply arguments individually or in a list
+call2(quote(f), a = 1, b = 2)
+call2(quote(f), !!!list(a = 1, b = 2))
+
+# Creating namespaced calls is easy:
+call2("fun", arg = quote(baz), .ns = "mypkg")
+
+# Empty arguments are preserved:
+call2("[", quote(x), , drop = )
+</code></pre>
+
+
+</div>

@@ -1,0 +1,147 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>regfac.expand.2par</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Expander Function for Two-Parameter Base Distributions
+</h2>
+
+<h3>Description</h3>
+
+<p>This function produces the full, high-dimensional gradient and Hessian from the base-distribution derivatives for linear transformations of the arguments of a two-parameter base distribution.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">regfac.expand.2par(coeff, X, Z=matrix(1.0, nrow=nrow(X), ncol=1)
+  , y, fbase2, fgh=2, block.diag=FALSE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>coeff</code></td>
+<td>
+<p>Vector of coefficients in the regression model. The first <code>ncol(X)</code> elements correspond to the first parameter of the base distribution <code>fbase2(u, v, y, ...)</code>, and the next <code>ncol(Z)</code> elements corresponds to the second parameter of the base distribution <code>fbase2(u, v, y, ...)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>Matrix of covariates corresponding to the first parameter of the base distribution <code>fbase2(u, v, y, ...)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Z</code></td>
+<td>
+<p>Matrix of covariates corresponding to the second parameter of the base distribution <code>fbase2(u, v, y, ...)</code>. Default is a single column of 1's, corresponding to an intercept-only model for the second parameter, i.e. assuming the second parameter is constant across all observations. Note that <code>nrow(Z)</code> must be equal to <code>nrow(X)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Vector of response variables. Note that <code>length(y)</code> must be equal to <code>nrow(X)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fbase2</code></td>
+<td>
+<p>Base distribution function <code>fbase2(u, v, y, ...)</code> for the regression model. It must return a list with elements <code>f,g,h</code> corresponding to the function and its first and second derivatives relative to its first two argument, <code>u,v</code>. The gradient must be a matrix of dimensions <code>nrow(X)</code>-by-2, where the first column is the gradient of the log-likelihood function with respect to its first parameter (fbase2_u), evaluated at each of the <code>nrow(X)</code> observations, and the second column is the gradient of the log-likelihood function with repsect to its second parameter (fbase2_v), also evaluated at each observation point. Similarly, the Hessian must be a matrix of dimensions <code>nrow(X)</code>-by-3, with elements being equal to fbase2_uu, fbase2_vv and fbase2_uv evaluated at each observation point (taking advantage of the Hessian being symmetric).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fgh</code></td>
+<td>
+<p>Integer with possible values 0,1,2. If <code>fgh=0</code>, the function only calculates and returns the log-likelihood function. If <code>fgh=1</code>, it returns the log-likelihood and its gradient vector. If <code>fgh=2</code>, it returns the log-likelihood, the gradient vector and the Hessian matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>block.diag</code></td>
+<td>
+<p>If <code>TRUE</code>, Hessian matrix is block-diagonalized by setting cross-terms between <code>beta</code> and <code>gamma</code> to zero. This can be useful if the full - i.e. non-block-diagonalized - Hessian is not negative definite, but block-diagonalization leads to definiteness. If <code>TRUE</code>, third element of the Hessian of <code>fbase</code> is not needed and thus it can be vector of length 2 instead of 3.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Other arguments to be passed to <code>fbase2</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list with elements <code>f,g,h</code> corresponding to the function, gradient vector, and Hessian matrix of the function <code>fbase2(X%*%beta, Z%*%gamma, y, ...)</code>, where <code>beta=coeff[1:ncol(X)]</code> and <code>gamma=coeff[ncol(X)+1:ncol(Z)]</code>. (Derivatives are evaluated relative to <code>coeff</code>.) In other words, the base function <code>fbase2(u, v, y, ...)</code> is projected onto the high-dimensional space of <code>c(beta, gamma)</code> through the linear transformations of its first argument (<code>u &lt;- X%*%beta</code>) and its second argument (<code>v &lt;- Z%*%gamma</code>).
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Alireza S. Mahani, Mansour T.A. Sharabiani
+</p>
+
+
+<h3>References</h3>
+
+<p>Mahani, Alireza S. and Sharabiani, Mansour T.A. (2013)
+<em>Metropolis-Hastings Sampling Using Multivariate Gaussian Tangents</em>
+<a href="https://arxiv.org/pdf/1308.0657v1.pdf">https://arxiv.org/pdf/1308.0657v1.pdf</a> 
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>regfac.expand.1par</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+library(dglm)
+library(sns)
+
+# defining log-likelihood function
+loglike.linreg &lt;- function(coeff, X, y) {
+  regfac.expand.2par(coeff = coeff, X = X, Z = X, y = y
+    , fbase2 = fbase2.gaussian.identity.log, fgh = 2, block.diag = T)
+}
+
+# simulating data according to generative model
+N &lt;- 1000 # number of observations
+K &lt;- 5 # number of covariates
+X &lt;- matrix(runif(N*K, min=-0.5, max=+0.5), ncol=K)
+beta &lt;- runif(K, min=-0.5, max=+0.5)
+gamma &lt;- runif(K, min=-0.5, max=+0.5)
+mean.vec &lt;- X%*%beta
+sd.vec &lt;- exp(X%*%gamma)
+y &lt;- rnorm(N, mean.vec, sd.vec)
+
+# estimation using dglm
+est.dglm &lt;- dglm(y~X-1, dformula = ~X-1, family = "gaussian", dlink = "log")
+beta.dglm &lt;- est.dglm$coefficients
+gamma.dglm &lt;- est.dglm$dispersion.fit$coefficients
+
+# estimation using RegressionFactory
+coeff.tmp &lt;- rep(0, 2*K)
+for (n in 1:10) {
+  coeff.tmp &lt;- sns(coeff.tmp, fghEval=loglike.linreg
+    , X=X, y=y, rnd = F)
+}
+beta.regfac.vd &lt;- coeff.tmp[1:K]
+gamma.regfac.vd &lt;- coeff.tmp[K+1:K]
+
+# comparing dglm and RegressionFactory results
+# neither beta's nor gamma's will match exactly
+cbind(beta.dglm, beta.regfac.vd)
+cbind(gamma.dglm, gamma.regfac.vd)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,201 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rrscale</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Re-scale a data matrix</h2>
+
+<h3>Description</h3>
+
+<p>This transformation is three steps (1) Gaussianize the data, (2) z-score Transform the data, and (3) remove extreme outliers from the data. The sequence of these transformations helps focus further analyses on consequential variance in the data rather than having it be focused on variation resulting from the feature's measurement scale or outliers.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rrscale(
+  Y,
+  trans_list = list(box_cox_negative = box_cox_negative, asinh = asinh),
+  lims_list = list(box_cox_negative = c(-100, 100), asinh = list(0, 100)),
+  opt_control = NULL,
+  opt_method = "DEoptim",
+  z = 4,
+  q = 0.001,
+  verbose = FALSE,
+  log_dir = ".rrscale/",
+  zeros = FALSE,
+  opts = FALSE,
+  seed = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>Data matrix, data.frame, or list of vectors, to be transformed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trans_list</code></td>
+<td>
+<p>List of transformations to be considered. See function list_transformations. Each element of the list should be a list containing the transformation function as the first element and the derivative of the transformation function as the second argument. The first argument of each function should be the data, the second the transformation parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lims_list</code></td>
+<td>
+<p>List of optimization limits for each transformation from trans_list. This should be a list the same length as <code>trans_list</code>. Each element of the list is a two-element vector that sets the optimization limits for the parameter of each transformation family.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>opt_control</code></td>
+<td>
+<p>Optional optimization controlling parameters for DEoptim control argument. See the DEoptim package for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>opt_method</code></td>
+<td>
+<p>Which optimization method to use. Defaults to DEoptim. Other choice is nloptr.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>z</code></td>
+<td>
+<p>The O-step cutoff value. Points are removed if their robust z-score is above z in magnitude.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>q</code></td>
+<td>
+<p>The Z-step winsorizing quantile cutoff. The quantile at which to winsorize the data when calculating the robust z-scores.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>a boolean, if TRUE then save optimization output in log_dir.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>log_dir</code></td>
+<td>
+<p>directory for verbose output. Defaults to ".rrscale/"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zeros</code></td>
+<td>
+<p>How to deal with zeros in the data set. If set to FALSE the algorithm will fail if it encounters a zero. If set to a number or 'NA' then the zeros are replaced by this number or 'NA'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>opts</code></td>
+<td>
+<p>Boolean determining if optimization output is returned. Defaults to FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>Sets the seed before running any other analyses.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list of output:
+</p>
+
+<ul>
+<li>
+<p>opts: the optimization output for all transformation families and all columns
+</p>
+</li>
+<li>
+<p>pars: the optimal parameters for each column for the optimal family
+</p>
+</li>
+<li>
+<p>par_hat: the estimated optimal paramter
+</p>
+</li>
+<li>
+<p>NT: the original data
+</p>
+</li>
+<li>
+<p>RR: the robust-rescaled data
+</p>
+</li>
+<li>
+<p>G: gaussianized data
+</p>
+</li>
+<li>
+<p>Z: robust z-transformed data
+</p>
+</li>
+<li>
+<p>O: data with outliers removed
+</p>
+</li>
+<li>
+<p>rr_fn: a function to apply the estimated RR transformation to new data. Takes arguments
+</p>
+
+<ul>
+<li> <p>Y: the data,
+</p>
+</li>
+<li> <p>z: the z-score cutoff (defaults to 4),
+</p>
+</li>
+<li> <p>q: the winsorizing quantile cutoff (defaults to 0.001),
+</p>
+</li>
+<li> <p>lambda: the transformation parameter to use (defaults to the estimated one),
+</p>
+</li>
+<li> <p>T: the transformation function family (defaults to the optimal estimated family),
+</p>
+</li>
+<li> <p>mu: the mean to be used in the robust z-score step (re-estimates if NULL)
+</p>
+</li>
+<li> <p>sigma: the s.d. to be used in the robust z-score step (re-estimates if NULL)
+</p>
+</li>
+</ul>
+</li>
+<li>
+<p>T: the optimal family
+</p>
+</li>
+<li>
+<p>T_deriv: the derivative of the optimal family
+</p>
+</li>
+<li>
+<p>T_name: name of the optimal family
+</p>
+</li>
+<li>
+<p>alg_control: the parameters passed to the algorithm
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">Y &lt;- rlnorm(10)%*%t(rlnorm(10))
+rr.out &lt;- rrscale(Y)
+Yt &lt;- rr.out$RR
+</code></pre>
+
+
+</div>

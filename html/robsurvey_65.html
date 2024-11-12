@@ -1,0 +1,189 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>svymean-m-estimator</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Weighted Huber and Tukey Mean and Total (M-Estimator) – Robust
+Horvitz-Thompson Estimator</h2>
+
+<h3>Description</h3>
+
+<p>Weighted Huber and Tukey <em>M</em>-estimator of the population mean and
+total (robust Horvitz-Thompson estimator)
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">svymean_huber(x, design, k, type = "rwm", asym = FALSE, na.rm = FALSE,
+              verbose = TRUE, ...)
+svytotal_huber(x, design, k, type = "rwm", asym = FALSE, na.rm = FALSE,
+               verbose = TRUE, ...)
+svymean_tukey(x, design, k, type = "rwm", na.rm = FALSE, verbose = TRUE, ...)
+svytotal_tukey(x, design, k, type = "rwm", na.rm = FALSE, verbose = TRUE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a one-sided <code>[formula]</code>, e.g., <code>~myVariable</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>design</code></td>
+<td>
+<p>an object of class <code>survey.design</code>; see
+<code>svydesign</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p><code>[double]</code> robustness tuning constant
+(<code class="reqn">0 &lt; k \leq \infty</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p><code>[character]</code> type of method: <code>"rwm"</code> or
+<code>"rht"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>asym</code></td>
+<td>
+<p><code>[logical]</code> if <code>TRUE</code>, an asymmetric Huber
+psi-function is used (default: <code>FALSE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na.rm</code></td>
+<td>
+<p><code>[logical]</code> indicating whether <code>NA</code> values should
+be removed before the computation proceeds (default: <code>FALSE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p><code>[logical]</code> indicating whether additional information
+is printed to the console (default: <code>TRUE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments passed to the method (e.g., <code>maxit</code>:
+maxit number of iterations, etc.; see <code>svyreg_control</code>).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Package <span class="pkg">survey</span> must be attached to the search path in order to use
+the functions (see <code>library</code> or <code>require</code>).
+</p>
+
+<dl>
+<dt>Methods/ types</dt>
+<dd>
+<p><code>type = "rht"</code> or <code>type = "rwm"</code>; see
+<code>weighted_mean_huber</code> or
+<code>weighted_mean_tukey</code> for more details.</p>
+</dd>
+<dt>Variance estimation.</dt>
+<dd>
+<p>Taylor linearization (residual variance
+estimator).</p>
+</dd>
+<dt>Utility functions</dt>
+<dd>
+<p><code>summary</code>,
+<code>coef</code>, <code>SE</code>,
+<code>vcov</code>,
+<code>residuals</code>,
+<code>fitted</code>,
+<code>robweights</code>.</p>
+</dd>
+<dt>Bare-bone functions</dt>
+<dd>
+<p>See <code>weighted_mean_huber</code>
+<code>weighted_mean_tukey</code>,
+<code>weighted_total_huber</code>, and
+<code>weighted_total_tukey</code>.</p>
+</dd>
+</dl>
+<h3>Value</h3>
+
+<p>Object of class <code>svystat_rob</code>
+</p>
+
+
+<h3>Failure of convergence</h3>
+
+<p>By default, the method assumes a maximum number of <code>maxit = 100</code>
+iterations and a numerical tolerance criterion to stop the iterations of
+<code>tol = 1e-05</code>. If the algorithm fails to converge, you may
+consider changing the default values; see <code>svyreg_control</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Hulliger, B. (1995). Outlier Robust Horvitz-Thompson Estimators.
+<em>Survey Methodology</em> <b>21</b>, 79–87.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Overview (of all implemented functions)
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">head(workplace)
+
+library(survey)
+# Survey design for stratified simple random sampling without replacement
+dn &lt;- if (packageVersion("survey") &gt;= "4.2") {
+        # survey design with pre-calibrated weights
+        svydesign(ids = ~ID, strata = ~strat, fpc = ~fpc, weights = ~weight,
+                  data = workplace, calibrate.formula = ~-1 + strat)
+    } else {
+        # legacy mode
+        svydesign(ids = ~ID, strata = ~strat, fpc = ~fpc, weights = ~weight,
+                  data = workplace)
+    }
+
+# Robust Horvitz-Thompson M-estimator of the population total
+svytotal_huber(~employment, dn, k = 9, type = "rht")
+
+# Robust weighted M-estimator of the population mean
+m &lt;- svymean_huber(~employment, dn, k = 12, type = "rwm")
+
+# Summary statistic
+summary(m)
+
+# Plot of the robustness weights of the M-estimate against its residuals
+plot(residuals(m), robweights(m))
+
+# Extract estimate
+coef(m)
+
+# Extract estimate of scale
+scale(m)
+
+# Extract estimated standard error
+SE(m)
+</code></pre>
+
+
+</div>

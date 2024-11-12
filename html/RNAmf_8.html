@@ -1,0 +1,167 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>RNAmf_two_level</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fitting the Recursive non-additive model with two fidelity levels.</h2>
+
+<h3>Description</h3>
+
+<p>The function fits RNA models with designs of two fidelity levels.
+The estimation method is based on MLE.
+Possible kernel choices are squared exponential, Matern kernel with smoothness parameter 1.5 and 2.5.
+The function returns fitted model at level 1 and 2, whether constant mean or not, and kernel choice.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">RNAmf_two_level(X1, y1, X2, y2, kernel = "sqex", constant = TRUE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X1</code></td>
+<td>
+<p>vector or matrix of input locations for the low fidelity level.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y1</code></td>
+<td>
+<p>vector of response values for the low fidelity level.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X2</code></td>
+<td>
+<p>vector or matrix of input locations for the high fidelity level.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y2</code></td>
+<td>
+<p>vector of response values for the high fidelity level.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kernel</code></td>
+<td>
+<p>character specifying kernel type to be used, to be chosen between <code>"sqex"</code>(squared exponential), <code>"matern1.5"</code>, or <code>"matern2.5"</code>. Default is <code>"sqex"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>constant</code></td>
+<td>
+<p>logical indicating for constant mean of GP (<code>constant=TRUE</code>) or zero mean (<code>constant=FALSE</code>). Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>for compatibility with <code>optim</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Consider the model
+<code class="reqn">\begin{cases}
+&amp; f_1(\bm{x}) = W_1(\bm{x}),\\
+&amp; f_2(\bm{x}) = W_2(\bm{x}, f_1(\bm{x})),
+\end{cases}</code>
+where <code class="reqn">f_l</code> is the simulation code at fidelity level <code class="reqn">l</code>, and
+<code class="reqn">W_l(\bm{x}) \sim GP(\alpha_l, \tau_l^2 K_l(\bm{x}, \bm{x}'))</code> is GP model.
+Hyperparameters <code class="reqn">(\alpha_l, \tau_l^2, \bm{\theta_l})</code> are estimated by
+maximizing the log-likelihood via an optimization algorithm "L-BFGS-B".
+For <code>constant=FALSE</code>, <code class="reqn">\alpha_l=0</code>.
+</p>
+<p>Covariance kernel is defined as:
+<code class="reqn">K_l(\bm{x}, \bm{x}')=\prod^d_{j=1}\phi(x_j,x'_j;\theta_{lj})</code> with
+<code class="reqn">\phi(x, x';\theta) = \exp \left( -\frac{ \left( x - x' \right)^2}{\theta}  \right)</code>
+for squared exponential kernel; <code>kernel="sqex"</code>,
+<code class="reqn">\phi(x,x';\theta) =\left( 1+\frac{\sqrt{3}|x- x'|}{\theta} \right) \exp \left( -\frac{\sqrt{3}|x- x'|}{\theta} \right)</code>
+for Matern kernel with the smoothness parameter of 1.5; <code>kernel="matern1.5"</code> and
+<code class="reqn">\phi(x, x';\theta) =  \left( 1+\frac{\sqrt{5}|x-x'|}{\theta} +\frac{5(x-x')^2}{3\theta^2} \right) \exp \left( -\frac{\sqrt{5}|x-x'|}{\theta} \right)</code>
+for Matern kernel with the smoothness parameter of 2.5; <code>kernel="matern2.5"</code>.
+</p>
+<p>For details, see Heo and Sung (2024, &lt;<a href="https://doi.org/10.1080/00401706.2024.2376173">doi:10.1080/00401706.2024.2376173</a>&gt;).
+</p>
+
+
+<h3>Value</h3>
+
+
+<ul>
+<li> <p><code>fit1</code>: list of fitted model for <code class="reqn">(X_1, y_1)</code>.
+</p>
+</li>
+<li> <p><code>fit2</code>: list of fitted model for <code class="reqn">((X_2, f_1(X_2)), y_2)</code>.
+</p>
+</li>
+<li> <p><code>constant</code>: copy of <code>constant</code>.
+</p>
+</li>
+<li> <p><code>kernel</code>: copy of <code>kernel</code>.
+</p>
+</li>
+<li> <p><code>level</code>: a level of the fidelity. It returns 2.
+</p>
+</li>
+<li> <p><code>time</code>: a scalar of the time for the computation.
+</p>
+</li>
+</ul>
+<h3>See Also</h3>
+
+<p><code>predict.RNAmf</code> for prediction.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+### two levels example ###
+library(lhs)
+
+### Perdikaris function ###
+f1 &lt;- function(x) {
+  sin(8 * pi * x)
+}
+
+f2 &lt;- function(x) {
+  (x - sqrt(2)) * (sin(8 * pi * x))^2
+}
+
+### training data ###
+n1 &lt;- 13
+n2 &lt;- 8
+
+### fix seed to reproduce the result ###
+set.seed(1)
+
+### generate initial nested design ###
+X &lt;- NestedX(c(n1, n2), 1)
+X1 &lt;- X[[1]]
+X2 &lt;- X[[2]]
+
+### n1 and n2 might be changed from NestedX ###
+### assign n1 and n2 again ###
+n1 &lt;- nrow(X1)
+n2 &lt;- nrow(X2)
+
+y1 &lt;- f1(X1)
+y2 &lt;- f2(X2)
+
+### fit an RNAmf ###
+fit.RNAmf &lt;- RNAmf_two_level(X1, y1, X2, y2, kernel = "sqex")
+
+
+</code></pre>
+
+
+</div>

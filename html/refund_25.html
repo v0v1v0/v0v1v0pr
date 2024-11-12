@@ -1,0 +1,383 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fosr</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Function-on-scalar regression</h2>
+
+<h3>Description</h3>
+
+<p>Fit linear regression with functional responses and scalar predictors, with
+efficient selection of optimal smoothing parameters.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fosr(
+  formula = NULL,
+  Y = NULL,
+  fdobj = NULL,
+  data = NULL,
+  X,
+  con = NULL,
+  argvals = NULL,
+  method = c("OLS", "GLS", "mix"),
+  gam.method = c("REML", "ML", "GCV.Cp", "GACV.Cp", "P-REML", "P-ML"),
+  cov.method = c("naive", "mod.chol"),
+  lambda = NULL,
+  nbasis = 15,
+  norder = 4,
+  pen.order = 2,
+  multi.sp = ifelse(method == "OLS", FALSE, TRUE),
+  pve = 0.99,
+  max.iter = 1,
+  maxlam = NULL,
+  cv1 = FALSE,
+  scale = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>Formula for fitting fosr. If used, data argument must not be null.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y, fdobj</code></td>
+<td>
+<p>the functional responses, given as either an <code class="reqn">n\times d</code>
+matrix <code>Y</code> or a functional data object (class <code>"[fda]{fd}"</code>)
+as in the <span class="pkg">fda</span> package.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>data frame containing the predictors and responses.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>the model matrix, whose columns represent scalar predictors.
+Should ordinarily include a column of 1s.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>con</code></td>
+<td>
+<p>a row vector or matrix of linear contrasts of the coefficient
+functions, to be constrained to equal zero.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>argvals</code></td>
+<td>
+<p>the <code class="reqn">d</code> argument values at which the coefficient
+functions will be evaluated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>estimation method: <code>"OLS"</code> for penalized ordinary least
+squares, <code>"GLS"</code> for penalized generalized least squares, <code>"mix"</code>
+for mixed effect models.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gam.method</code></td>
+<td>
+<p>smoothing parameter selection method, to be passed to
+<code>[mgcv]{gam}</code>: <code>"REML"</code> for restricted maximum likelihood,
+<code>"GCV.Cp"</code> for generalized cross-validation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cov.method</code></td>
+<td>
+<p>covariance estimation method: the current options are
+naive or modified Cholesky. See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>smoothing parameter value.  If <code>NULL</code>, the smoothing
+parameter(s) will be estimated.  See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nbasis, norder</code></td>
+<td>
+<p>number of basis functions, and order of splines (the
+default, 4, gives cubic splines), for the B-spline basis used to represent
+the coefficient functions. When the functional responses are supplied using
+<code>fdobj</code>, these arguments are ignored in favor of the values pertaining
+to the supplied object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pen.order</code></td>
+<td>
+<p>order of derivative penalty.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>multi.sp</code></td>
+<td>
+<p>a logical value indicating whether separate smoothing
+parameters should be estimated for each coefficient function.  Currently
+must be <code>FALSE</code> if <code>method = "OLS"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pve</code></td>
+<td>
+<p>if <code>method = 'mix'</code>, the percentage of variance explained
+by the principal components; defaults to 0.99.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.iter</code></td>
+<td>
+<p>maximum number of iterations if <code>method = "GLS"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxlam</code></td>
+<td>
+<p>maximum smoothing parameter value to consider (when
+<code>lamvec=NULL</code>; see <code>{lofocv}</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cv1</code></td>
+<td>
+<p>logical value indicating whether a cross-validation score should
+be computed even if a single fixed <code>lambda</code> is specified (when
+<code>method = "OLS"</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>logical value or vector determining scaling of the matrix
+<code>X</code> (see <code>{scale}</code>, to which the value of this argument is
+passed).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The GLS method requires estimating the residual covariance matrix, which
+has dimension <code class="reqn">d\times d</code> when the responses are given by <code>Y</code>, or
+<code class="reqn">nbasis\times nbasis</code> when they are given by <code>fdobj</code>. When
+<code>cov.method = "naive"</code>, the ordinary sample covariance is used. But
+this will be singular, or nonsingular but unstable, in high-dimensional
+settings, which are typical. <code>cov.method = "mod.chol"</code> implements the
+modified Cholesky method of Pourahmadi (1999) for estimation of covariance
+matrices whose inverse is banded. The number of bands is chosen to maximize
+the p-value for a sphericity test (Ledoit and Wolf, 2002) applied to the
+"prewhitened" residuals. Note, however, that the banded inverse covariance
+assumption is sometimes inappropriate, e.g., for periodic functional
+responses.
+</p>
+<p>There are three types of values for argument <code>lambda</code>:</p>
+<ol>
+<li>
+<p>if <code>NULL</code>, the smoothing parameter is estimated by
+<code>[mgcv]{gam}</code> (package <span class="pkg">mgcv</span>) if <code>method = "GLS"</code>, or
+by <code>optimize</code> if <code>method = "OLS"</code>; </p>
+</li>
+<li>
+<p> if a scalar, this value
+is used as the smoothing parameter (but only for the initial model, if
+<code>method = "GLS"</code>); </p>
+</li>
+<li>
+<p> if a vector, this is used as a grid of values
+for optimizing the cross-validation score (provided <code>method = "OLS"</code>;
+otherwise an error message is issued).</p>
+</li>
+</ol>
+<p>Please note that currently, if <code>multi.sp = TRUE</code>, then <code>lambda</code>
+must be <code>NULL</code> and <code>method</code> must be <code>"GLS"</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>fosr</code>, which is a list with the following
+elements: </p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>fd</code></td>
+<td>
+<p>object of class <code>"{fd}"</code> representing the
+estimated coefficient functions. Its main components are a basis and a
+matrix of coefficients with respect to that basis.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pca.resid</code></td>
+<td>
+<p>if
+<code>method = "mix"</code>, an object representing a functional PCA of the
+residuals, performed by <code>{fpca.sc}</code> if the responses are in raw
+form or by <code>[fda]{pca.fd}</code> if in functional-data-object form.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>U</code></td>
+<td>
+<p>if <code>method = "mix"</code>, an <code class="reqn">n\times m</code> matrix of random
+effects, where <code class="reqn">m</code> is the number of functional PC's needed to explain
+proportion <code>pve</code> of the residual variance. These random effects can be
+interpreted as shrunken FPC scores.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yhat, resid</code></td>
+<td>
+<p>objects of the same
+form as the functional responses (see arguments <code>Y</code> and <code>fdobj</code>),
+giving the fitted values and residuals.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>est.func</code></td>
+<td>
+<p>matrix of values
+of the coefficient function estimates at the points given by
+<code>argvals</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>se.func</code></td>
+<td>
+<p>matrix of values of the standard error
+estimates for the coefficient functions, at the points given by
+<code>argvals</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>argvals</code></td>
+<td>
+<p>points at which the coefficient functions
+are evaluated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>fit object outputted by <code>{amc}</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>edf</code></td>
+<td>
+<p>effective degrees of freedom of the fit.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>smoothing parameter, or vector of smoothing parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cv</code></td>
+<td>
+<p>cross-validated integrated squared error if <code>method="OLS"</code>,
+otherwise <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>roughness</code></td>
+<td>
+<p>value of the roughness penalty.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>resp.type</code></td>
+<td>
+<p><code>"raw"</code> or <code>"fd"</code>, indicating whether the
+responses were supplied in raw or functional-data-object form.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Philip Reiss <a href="mailto:phil.reiss@nyumc.org">phil.reiss@nyumc.org</a>, Lan Huo, and Fabian
+Scheipl
+</p>
+
+
+<h3>References</h3>
+
+<p>Ledoit, O., and Wolf, M. (2002). Some hypothesis tests for the
+covariance matrix when the dimension is large compared to the sample size.
+<em>Annals of Statistics</em>, 30(4), 1081–1102.
+</p>
+<p>Pourahmadi, M. (1999). Joint mean-covariance models with applications to
+longitudinal data: unconstrained parameterisation. <em>Biometrika</em>,
+86(3), 677–690.
+</p>
+<p>Ramsay, J. O., and Silverman, B. W. (2005).  <em>Functional Data
+Analysis</em>, 2nd ed., Chapter 13.  New York: Springer.
+</p>
+<p>Reiss, P. T., Huang, L., and Mennes, M. (2010).  Fast function-on-scalar
+regression with penalized basis expansions.  <em>International Journal of
+Biostatistics</em>, 6(1), article 28.  Available at
+<a href="https://pubmed.ncbi.nlm.nih.gov/21969982/">https://pubmed.ncbi.nlm.nih.gov/21969982/</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>{plot.fosr}</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+require(fda)
+# The first two lines, adapted from help(fRegress) in package fda,
+# set up a functional data object representing daily average
+# temperatures at 35 sites in Canada
+daybasis25 &lt;- create.fourier.basis(rangeval=c(0, 365), nbasis=25,
+                  axes=list('axesIntervals'))
+Temp.fd &lt;- with(CanadianWeather, smooth.basisPar(day.5,
+                dailyAv[,,'Temperature.C'], daybasis25)$fd)
+
+modmat = cbind(1, model.matrix(~ factor(CanadianWeather$region) - 1))
+constraints = matrix(c(0,1,1,1,1), 1)
+
+# Penalized OLS with smoothing parameter chosen by grid search
+olsmod = fosr(fdobj = Temp.fd, X = modmat, con = constraints, method="OLS", lambda=100*10:30)
+plot(olsmod, 1)
+
+# Test use formula to fit fosr
+set.seed(2121)
+data1 &lt;- pffrSim(scenario="ff", n=40)
+formod = fosr(Y~xlin+xsmoo, data=data1)
+plot(formod, 1)
+
+# Penalized GLS
+glsmod = fosr(fdobj = Temp.fd, X = modmat, con = constraints, method="GLS")
+plot(glsmod, 1)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

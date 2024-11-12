@@ -1,0 +1,166 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>summarize_row_groups</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Add a content row of summary counts</h2>
+
+<h3>Description</h3>
+
+<p>Add a content row of summary counts
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">summarize_row_groups(
+  lyt,
+  var = "",
+  label_fstr = "%s",
+  format = "xx (xx.x%)",
+  na_str = "-",
+  cfun = NULL,
+  indent_mod = 0L,
+  extra_args = list()
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>lyt</code></td>
+<td>
+<p>(<code>PreDataTableLayouts</code>)<br> layout object pre-data used for tabulation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>var</code></td>
+<td>
+<p>(<code>string</code>)<br> variable name.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>label_fstr</code></td>
+<td>
+<p>(<code>string</code>)<br> a <code>sprintf</code> style format string. For non-comparison splits, it can contain up to
+one <code>"\%s"</code> which takes the current split value and generates the row/column label. For comparison-based splits
+it can contain up to two <code>"\%s"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>format</code></td>
+<td>
+<p>(<code>string</code>, <code>function</code>, or <code>list</code>)<br> format associated with this split. Formats can be declared via
+strings (<code>"xx.x"</code>) or function. In cases such as <code>analyze</code> calls, they can be character vectors or lists of
+functions. See <code>formatters::list_valid_format_labels()</code> for a list of all available format strings.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na_str</code></td>
+<td>
+<p>(<code>string</code>)<br> string that should be displayed when the value of <code>x</code> is missing. Defaults to <code>"NA"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cfun</code></td>
+<td>
+<p>(<code>list</code>, <code>function</code>, or <code>NULL</code>)<br> tabulation function(s) for creating content rows. Must accept <code>x</code>
+or <code>df</code> as first parameter. Must accept <code>labelstr</code> as the second argument. Can optionally accept all optional
+arguments accepted by analysis functions. See <code>analyze()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>indent_mod</code></td>
+<td>
+<p>(<code>numeric</code>)<br> modifier for the default indent position for the structure created by this
+function (subtable, content table, or row) <em>and all of that structure's children</em>. Defaults to 0, which
+corresponds to the unmodified default behavior.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extra_args</code></td>
+<td>
+<p>(<code>list</code>)<br> extra arguments to be passed to the tabulation function. Element position in the list
+corresponds to the children of this split. Named elements in the child-specific lists are ignored if they do
+not match a formal argument of the tabulation function.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>If <code>format</code> expects 1 value (i.e. it is specified as a format string and <code>xx</code> appears for two values
+(i.e. <code>xx</code> appears twice in the format string) or is specified as a function, then both raw and percent of
+column total counts are calculated. If <code>format</code> is a format string where <code>xx</code> appears only one time, only
+raw counts are used.
+</p>
+<p><code>cfun</code> must accept <code>x</code> or <code>df</code> as its first argument. For the <code>df</code> argument <code>cfun</code> will receive the subset
+<code>data.frame</code> corresponding with the row- and column-splitting for the cell being calculated. Must accept
+<code>labelstr</code> as the second parameter, which accepts the <code>label</code> of the level of the parent split currently
+being summarized. Can additionally take any optional argument supported by analysis functions. (see <code>analyze()</code>).
+</p>
+<p>In addition, if complex custom functions are needed, we suggest checking the available additional_fun_params
+that can be used in <code>cfun</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>PreDataTableLayouts</code> object suitable for passing to further layouting functions, and to <code>build_table()</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Gabriel Becker
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">DM2 &lt;- subset(DM, COUNTRY %in% c("USA", "CAN", "CHN"))
+
+lyt &lt;- basic_table() %&gt;%
+  split_cols_by("ARM") %&gt;%
+  split_rows_by("COUNTRY", split_fun = drop_split_levels) %&gt;%
+  summarize_row_groups(label_fstr = "%s (n)") %&gt;%
+  analyze("AGE", afun = list_wrap_x(summary), format = "xx.xx")
+lyt
+
+tbl &lt;- build_table(lyt, DM2)
+tbl
+
+row_paths_summary(tbl) # summary count is a content table
+
+## use a cfun and extra_args to customize summarization
+## behavior
+sfun &lt;- function(x, labelstr, trim) {
+  in_rows(
+    c(mean(x, trim = trim), trim),
+    .formats = "xx.x (xx.x%)",
+    .labels = sprintf(
+      "%s (Trimmed mean and trim %%)",
+      labelstr
+    )
+  )
+}
+
+lyt2 &lt;- basic_table(show_colcounts = TRUE) %&gt;%
+  split_cols_by("ARM") %&gt;%
+  split_rows_by("COUNTRY", split_fun = drop_split_levels) %&gt;%
+  summarize_row_groups("AGE",
+    cfun = sfun,
+    extra_args = list(trim = .2)
+  ) %&gt;%
+  analyze("AGE", afun = list_wrap_x(summary), format = "xx.xx") %&gt;%
+  append_topleft(c("Country", "  Age"))
+
+tbl2 &lt;- build_table(lyt2, DM2)
+tbl2
+
+</code></pre>
+
+
+</div>

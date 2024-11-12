@@ -1,0 +1,310 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>load_dicom</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Loads DICOM images to RIA image format</h2>
+
+<h3>Description</h3>
+
+<p>Loads DICOM images to a <em>RIA_image</em> object.
+<em>RIA_image</em> is a  list with three mandatory attributes.
+</p>
+
+<ul>
+<li> <p><b>RIA_data</b> is a <em>RIA_data</em> object, which has two potential slots.
+<em>$orig</em> contains the original image after loading and is a 3D array of integers
+created with <code>create3D</code>.
+<em>$modif</em> contains the image that has been modified using functions.
+</p>
+</li>
+<li> <p><b>RIA_header</b> is a <em>RIA_header</em> object, which is list of DICOM header information.
+</p>
+</li>
+<li> <p><b>RIA_log</b> is a <em>RIA_log</em> object, which is a list updated by RIA functions
+and acts as a log and possible input for some functions.
+</p>
+</li>
+</ul>
+<p>Further attributes may also be added by RIA functions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">load_dicom(
+  filename,
+  mask_filename = NULL,
+  keep_mask_values = 1,
+  switch_z = FALSE,
+  crop_in = TRUE,
+  replace_in = TRUE,
+  center_in = TRUE,
+  zero_value = NULL,
+  min_to = -1024,
+  header_add = NULL,
+  header_exclude = NULL,
+  verbose_in = TRUE,
+  recursive_in = TRUE,
+  exclude_in = "sql",
+  mode_in = "integer",
+  transpose_in = TRUE,
+  pixelData_in = TRUE,
+  mosaic_in = FALSE,
+  mosaicXY_in = NULL,
+  sequence_in = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>filename</code></td>
+<td>
+<p>string, file path to directory containing <em>dcm</em> files.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mask_filename</code></td>
+<td>
+<p>string vector, file path to optional directory containing <em>dcm</em> files
+of mask image. If multiple are supplied, then those voxels are kept which have one of the values of <em>keep_mask_values</em>
+in any of the supplied masks.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep_mask_values</code></td>
+<td>
+<p>integer vector or string, indicates which value or values of the mask image
+to use as indicator to identify voxels wished to be processed. Usually 1-s indicate voxels
+wished to be processed. However, one mask image might contain several segmentations, in which
+case supplying several integers is allowed. Furthermore, if the same string is supplied to
+<em>filename</em> and <em>mask_filename</em>, then the integers in <em>keep_mask_values</em> are used
+to specify which voxel values to analyze. This way the provided image can be segmented to specific
+components. For example, if you wish to analyze only the low-density non-calcified component
+of coronary plaques, then <em>keep_mask_values</em> can specify this by setting it to: -100:30.
+If  a single string is provided, then each element of the mask will be examined against the statement in the string.
+For example, if <em>'&gt;0.5'</em> is provided i.e. the mask is probabilities after a DL algorithm, then all
+voxels with values &gt;0.5 in the mask image will be kept. This can be a complex logical expression.
+The data on which the expression is executed is called <em>data</em> or <em>data_mask</em>, depending on whether
+you wish to filter the original image, that is the original image is supplied as a mask, or if you have
+unique mask files respectively. Therefore for complex logical expressions you can define for example:
+<em>'&gt;-100 &amp; data&lt;30'</em> to consider data values between -100 and 30, or <em>'&gt;0.5 &amp; data_mask&lt;0.75'</em>
+to select voxels based-on mask values between 0.5 and 0.75 for example if they represent a probability mask.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>switch_z</code></td>
+<td>
+<p>logical, indicating whether to change the orientation of the images in the Z axis. Some
+software reverse the order of the manipulated image in the Z axis, and therefore the images of the mask
+image need to be reversed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>crop_in</code></td>
+<td>
+<p>logical, indicating whether to crop <em>RIA_image</em> to smallest bounding box.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>replace_in</code></td>
+<td>
+<p>logical, whether to replace smallest values indicated by <em>zero_value</em>,
+which are considered to indicate no signal, to NA.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>center_in</code></td>
+<td>
+<p>logical, whether to shift data so smallest value
+is equal to <em>min_to</em> input parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zero_value</code></td>
+<td>
+<p>integer, indicating voxels values which are considered
+not to have any information. If left empty,
+then the smallest HU value in the image will be used, if <em>replace_in</em> is TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min_to</code></td>
+<td>
+<p>integer, value to which data is shifted to if <em>center_in</em> is TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>header_add</code></td>
+<td>
+<p>dataframe, with three columns: Name, Group and Element containing the name,
+the group and the element code of the DICOM fields wished to be added to the<em>RIA_header</em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>header_exclude</code></td>
+<td>
+<p>dataframe, with three columns: Name, Group and Element containing the name,
+the group and the element code of the DICOM fields wished to be excluded
+from the default header elements present in <em>DICOM_codes</em> rda file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose_in</code></td>
+<td>
+<p>logical, indicating whether to print detailed information.
+Most prints can also be suppresed using the <code>suppressMessages</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>recursive_in</code></td>
+<td>
+<p><em>recursive</em> parameter input of <code>readDICOM</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exclude_in</code></td>
+<td>
+<p><em>exclude</em> parameter input of <code>readDICOM</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mode_in</code></td>
+<td>
+<p><em>mode</em> parameter input of <code>create3D</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>transpose_in</code></td>
+<td>
+<p><em>transpose</em> parameter input of <code>create3D</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pixelData_in</code></td>
+<td>
+<p><em>pixelData</em> parameter input of <code>create3D</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mosaic_in</code></td>
+<td>
+<p><em>mosaic</em> parameter input of <code>create3D</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mosaicXY_in</code></td>
+<td>
+<p><em>mosaicXY</em> parameter input of <code>create3D</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sequence_in</code></td>
+<td>
+<p><em>sequence</em> parameter input of <code>create3D</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments to  <code>readDICOM</code>,
+<code>readDICOMFile</code> and <code>create3D</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><em>load_dicom</em> is used to transform DICOM datasets into the RIA environment.
+<em>RIA_image</em> object was developed to facilitate and simplify radiomics calculations by keeping
+all necessary information in one place.
+<br><br><em>RIA_data</em> stores the DICOM image that is converted to numerical 3D arrays using
+<code>readDICOM</code> and <code>create3D</code>.
+The function stores the original loaded image in  <em>RIA_data$orig</em>,
+while all modified images are stored in <em>RIA_data$modif</em>.
+By default, the original image <em>RIA_data$orig</em> is untouched by functions
+other than those operating in <em>load_dicom</em>. While other functions
+operate on the <em>RIA_data$modif</em> image by default.
+<br>
+Due to memory concerns, there can only be one <em>RIA_data$orig</em> and <em>RIA_data$modif</em>
+image present at one time in a <em>RIA_image</em>. Therefore, if image manipulations are performed,
+then the <em>RIA_data$modif</em> will be overwritten. However, functions can save images
+into new slots of <em>RIA_image</em>, for example discretized images can be saved to the <em>discretized</em> slot of <em>RIA_image</em>.
+<br><em>load_dicom</em> not only loads the DICOM image based on parameters that can be set for
+<code>readDICOM</code> and <code>create3D</code>, but also can perform
+minimal manipulations on the image itself.
+<br><em>crop_in</em> logical variable is used to indicate, whether to crop the image to the
+smallest bounding box still containing all the information. If TRUE, then all X, Y and potentially
+Z slices containing no information will be removed. This allows significant reduction of necessary
+memory to store image data.
+<br><em>zero_value</em> parameter is used to indicate HU values which contain no information. If left empty,
+then the smallest value will be considered as indicating voxels without a signal.
+<br><em>replace_in</em> logical can be used to change values that are considered to have no signal to NA.
+This is necessary to receive proper statistical values later on.
+<br><em>center_in</em> logical is used to indicate whether the values should be shifted.
+Some vendors save HU values as positive integers to spare memory and minimalize file sizes.
+Therefore, in some instances shift of the scale is needed. By default,
+the values are shifted by -1024, but in other cases a different constant might be required,
+which can be set using the <em>min_to</em> input.
+<br><br><em>RIA_header</em> is a list containing the most basic patient and examination information
+needed for further analysis. The default DICOM set is present in <em>DICOM_codes</em>,
+which can be edited to anyones needs. But if we wish only to add of remove specific
+DICOM header rows, then the <em>header_add</em> and <em>header_exclude</em> can be used.
+<br><br><em>RIA_log</em> is a list of variables, which give an overview of what has been done with the image.
+If the whole <em>RIA_image</em> is supplied to a function, the information regarding the manipulations
+are written into the <em>$events</em> array in chronological order. Furthermore, some additional
+information is also saved in the log, which might be needed for further analysis.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns a <em>RIA_image</em> object. <em>RIA_image</em> is a list with three mandatory attributes.
+</p>
+
+<ul>
+<li> <p><b>RIA_data</b> is a <em>RIA_data</em> object containing the image in <em>$orig</em> slot.
+</p>
+</li>
+<li> <p><b>RIA_header</b> is a <em>RIA_header</em> object, which is s list of DICOM information.
+</p>
+</li>
+<li> <p><b>RIA_log</b> is a <em>RIA_log</em> object, which is a list updated by RIA functions
+and acts as a log and possible input for some functions.
+</p>
+</li>
+</ul>
+<h3>References</h3>
+
+<p>Márton KOLOSSVÁRY et al.
+Radiomic Features Are Superior to Conventional Quantitative Computed Tomographic
+Metrics to Identify Coronary Plaques With Napkin-Ring Sign
+Circulation: Cardiovascular Imaging (2017).
+DOI: 10.1161/circimaging.117.006843
+<a href="https://pubmed.ncbi.nlm.nih.gov/29233836/">https://pubmed.ncbi.nlm.nih.gov/29233836/</a>
+</p>
+<p>Márton KOLOSSVÁRY et al.
+Cardiac Computed Tomography Radiomics: A Comprehensive Review on Radiomic Techniques.
+Journal of Thoracic Imaging (2018).
+DOI: 10.1097/RTI.0000000000000268
+<a href="https://pubmed.ncbi.nlm.nih.gov/28346329/">https://pubmed.ncbi.nlm.nih.gov/28346329/</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+ #Image will be croped to smallest bounding box, and smallest values will be changed to NA,
+ while 1024 will be substracted from all other data points.
+ RIA_image &lt;- load_dicom("/Users/Test/Documents/Radiomics/John_Smith/DICOM_folder/")
+ 
+## End(Not run)
+ 
+</code></pre>
+
+
+</div>

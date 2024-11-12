@@ -1,0 +1,141 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>stoiCheck</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Validation of a Stoichiometry Matrix</h2>
+
+<h3>Description</h3>
+
+<p>Validates the stoichiometry matrix by checking for conservation of mass
+(more typically conservation of moles).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">stoiCheck(stoi, comp, env = globalenv(), zero = .Machine$double.eps * 2)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>stoi</code></td>
+<td>
+<p>Stoichiometry matrix either in evaluated
+(<code>numeric</code>) or non-evaluated
+(<code>character</code>) form. A suitable matrix can be created with
+<code>stoiCreate</code>, for example.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>comp</code></td>
+<td>
+<p>Matrix defining the elemental composition of compounds.
+Column names of <code>comp</code> need to match column names of <code>stoi</code> (but
+additional columns are allowed and columns can be in different order).
+There must be one row per element whose balance is to be checked and the
+elements' names must appear as row names. The elements of the matrix
+specify how much of an element is contained in a certain amount of a
+compound. Typically, these are molar ratios. If one works with mass ratios
+(not being a good idea), the information in <code>stoi</code> must be based on mass
+concentrations as well.
+The elements of <code>comp</code> are treated as mathematical expressions. Any
+variables, functions, or operators needed to evaluate those expressions
+must be provided by the specified environment <code>env</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>env</code></td>
+<td>
+<p>An environment or list supplying constants, functions, and
+operators needed to evaluate expressions in <code>comp</code> or <code>stoi</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zero</code></td>
+<td>
+<p>A number close to zero. If the absolute result value of a mass
+balance computation is less than this, the result is set to 0 (exactly).</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A numeric matrix with the following properties:
+</p>
+
+<ul>
+<li>
+<p>There is one row for each process, thus the number and names of rows
+are the same as in <code>stoi</code>.
+</p>
+</li>
+<li>
+<p>There is one column per checked element, hence column names are
+equal to the row names of <code>comp</code>.
+</p>
+</li>
+<li>
+<p>A matrix element at position <code class="reqn">[i,k]</code> represent the mass balance
+for the process in row <code class="reqn">i</code> with respect to the element in column
+<code class="reqn">k</code>. A value of zero indicates a close balance. Positive (negative)
+values indicate that mass is gained (lost) in the respective process.
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>David Kneis <a href="mailto:david.kneis@tu-dresden.de">david.kneis@tu-dresden.de</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Use <code>stoiCreate</code> to create a stoichiometry matrix
+from a set of reactions in common notation.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Eq. 1 and 2 are from Soetaert et al. (1996), Geochimica et Cosmochimica
+# Acta, 60 (6), 1019-1040. 'OM' is organic matter. Constants 'nc' and 'pc'
+# represent the nitrogen/carbon and phosphorus/carbon ratio, respectively.
+reactions &lt;- c(
+  oxicDegrad= "OM + O2 -&gt; CO2 + nc * NH3 + pc * H3PO4 + H2O",
+  denitrific= "OM + 0.8*HNO3 -&gt; CO2 + nc*NH3 + 0.4*N2 + pc*H3PO4 + 1.4*H2O",
+  dissPhosp1= "H3PO4 &lt;-&gt; H + H2PO4",
+  dissPhosp2= "H2PO4 &lt;-&gt; H + HPO4"
+)
+# Non-evaluated stoichiometry matrix
+stoi &lt;- stoiCreate(reactions, toRight="_f", toLeft="_b")
+# Parameters ('nc' and 'pc' according to Redfield ratio)
+pars &lt;- list(nc=16/106, pc=1/106)
+# Elemental composition
+comp &lt;- rbind(
+  OM=    c(C=1, N="nc", P="pc", H="2 + 3*nc + 3*pc"),
+  O2=    c(C=0, N=0,    P=0,    H=0),
+  CO2=   c(C=1, N=0,    P=0,    H=0),
+  NH3=   c(C=0, N=1,    P=0,    H=3),
+  H3PO4= c(C=0, N=0,    P=1,    H=3),
+  H2PO4= c(C=0, N=0,    P=1,    H=2),
+  HPO4=  c(C=0, N=0,    P=1,    H=1),
+  H2O=   c(C=0, N=0,    P=0,    H=2),
+  HNO3=  c(C=0, N=1,    P=0,    H=1),
+  N2=    c(C=0, N=2,    P=0,    H=0),
+  H=     c(C=0, N=0,    P=0,    H=1)
+)
+# We need the transposed form
+comp &lt;- t(comp)
+# Mass balance check
+bal &lt;- stoiCheck(stoi, comp=comp, env=pars)
+print(bal)
+print(colSums(bal) == 0)
+</code></pre>
+
+
+</div>

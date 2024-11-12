@@ -1,0 +1,117 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ee_table_to_asset</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Creates a task to export a FeatureCollection to an EE table asset.</h2>
+
+<h3>Description</h3>
+
+<p>Creates a task to export a FeatureCollection to an EE table asset.
+This function is a wrapper around <code>ee$batch$Export$table$toAsset(...)</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ee_table_to_asset(
+  collection,
+  description = "myExportTableTask",
+  assetId = NULL,
+  overwrite = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>collection</code></td>
+<td>
+<p>The feature collection to be exported.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>description</code></td>
+<td>
+<p>Human-readable name of the task.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>assetId</code></td>
+<td>
+<p>The destination asset ID. **kwargs: Holds other
+keyword arguments that may have been deprecated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite</code></td>
+<td>
+<p>Logical. If TRUE, the assetId will be overwritten if
+it exists.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An unstarted Task that exports the table to Earth Engine Asset.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other vector export task creator: 
+<code>ee_table_to_drive()</code>,
+<code>ee_table_to_gcs()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+library(rgee)
+library(stars)
+library(sf)
+
+ee_users()
+ee_Initialize()
+
+# Define study area (local -&gt; earth engine)
+# Communal Reserve Amarakaeri - Peru
+rlist &lt;- list(xmin = -71.13, xmax = -70.95,ymin = -12.89, ymax = -12.73)
+ROI &lt;- c(rlist$xmin, rlist$ymin,
+         rlist$xmax, rlist$ymin,
+         rlist$xmax, rlist$ymax,
+         rlist$xmin, rlist$ymax,
+         rlist$xmin, rlist$ymin)
+ee_ROI &lt;- matrix(ROI, ncol = 2, byrow = TRUE) %&gt;%
+  list() %&gt;%
+  st_polygon() %&gt;%
+  st_sfc() %&gt;%
+  st_set_crs(4326) %&gt;%
+  sf_as_ee()
+
+amk_fc &lt;- ee$FeatureCollection(
+  list(ee$Feature(ee_ROI, list(name = "Amarakaeri")))
+)
+
+assetid &lt;- paste0(ee_get_assethome(), '/geom_Amarakaeri')
+task_vector &lt;- ee_table_to_asset(
+  collection = amk_fc,
+  overwrite = TRUE,
+  assetId = assetid
+)
+task_vector$start()
+ee_monitoring(task_vector) # optional
+
+ee_fc &lt;- ee$FeatureCollection(assetid)
+Map$centerObject(ee_fc)
+Map$addLayer(ee_fc)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

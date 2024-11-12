@@ -1,0 +1,268 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>conduct_ri</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Conduct Randomization Inference</h2>
+
+<h3>Description</h3>
+
+<p>This function makes it easy to conduct three kinds of randomization inference.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">conduct_ri(
+  formula = NULL,
+  model_1 = NULL,
+  model_2 = NULL,
+  test_function = NULL,
+  assignment = "Z",
+  outcome = NULL,
+  declaration = NULL,
+  sharp_hypothesis = 0,
+  studentize = FALSE,
+  IPW = TRUE,
+  IPW_weights = NULL,
+  sampling_weights = NULL,
+  permutation_matrix = NULL,
+  data,
+  sims = 1000,
+  progress_bar = FALSE,
+  p = "two-tailed"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>an object of class formula, as in <code>lm</code>. Use formula when conducting significance tests of an Average Treatment Effect estimate under a sharp null hypothesis. For the difference-in-means estimate, do not include covariates. For the OLS covariate-adjusted estimate, include covariates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model_1</code></td>
+<td>
+<p>an object of class formula, as in <code>lm</code>. Models 1 and 2 must be "nested." model_1 should be the "restricted" model and model_2 should be the "unrestricted" model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model_2</code></td>
+<td>
+<p>an object of class formula, as in <code>lm</code>. Models 1 and 2 must be "nested." model_1 should be the "restricted" model and model_2 should be the "unrestricted" model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test_function</code></td>
+<td>
+<p>A function that takes data and returns a scalar test statistic.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>assignment</code></td>
+<td>
+<p>a character string that indicates which variable is randomly assigned. Defaults to "Z".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outcome</code></td>
+<td>
+<p>a character string that indicates which variable is the outcome variable. Defaults to NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>declaration</code></td>
+<td>
+<p>A random assignment declaration, created by <code>declare_ra</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sharp_hypothesis</code></td>
+<td>
+<p>either a numeric scalar or a numeric vector of length k - 1, where k is the number of treatment conditions. In a two-arm trial, this number is the *hypothesized* difference between the treated and untreated potential potential outcomes for each unit.. In a multi-arm trial, each number in the vector is the hypothesized difference in potential outcomes between the baseline condition and each successive treatment condition.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>studentize</code></td>
+<td>
+<p>logical, defaults to FALSE. Should the test statistic be the t-ratio rather than the estimated ATE? T-ratios will be calculated using HC2 robust standard errors or their clustered equivalent. CLUSTERING NOT YET IMPLEMENTED.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>IPW</code></td>
+<td>
+<p>logical, defaults to TRUE. Should inverse probability weights be calculated?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>IPW_weights</code></td>
+<td>
+<p>a character string that indicates which variable is the existing inverse probability weights vector. Usually unnecessary, as IPW weights will be incorporated automatically if IPW = TRUE. Defaults to NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sampling_weights</code></td>
+<td>
+<p>a character string that indicates which variable is the sampling weights vector. Optional, defaults to NULL. NOT YET IMPLEMENTED</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>permutation_matrix</code></td>
+<td>
+<p>An optional matrix of random assignments, typically created by <code>obtain_permutation_matrix</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data.frame.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sims</code></td>
+<td>
+<p>the number of simulations. Defaults to 1000.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>progress_bar</code></td>
+<td>
+<p>logical, defaults to FALSE.  Should a progress bar be displayed in the console?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>Should "two-tailed", "upper", or "lower" p-values be reported? Defaults to "two-tailed".  For two-tailed p-values, whether or not a simulated value is as large or larger than the observed value is determined with respect to the distance to the sharp null.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>1. Conduct hypothesis tests under the sharp null when the test statistic is the difference-in-means or covariate-adjusted average treatment effect estimate.
+2. Conduct "ANOVA" style hypothesis tests, where the f-statistic from two nested models is the test statistic. This procedure is especially helpful when testing interaction terms under null of constant effects.
+3. Arbitrary (scalar) test statistics
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Data from Gerber and Green Table 2.2
+
+
+# Randomization Inference for the Average Treatment Effect
+
+table_2.2 &lt;-
+    data.frame(d = c(1, 0, 0, 0, 0, 0, 1),
+               y = c(15, 15, 20, 20, 10, 15, 30))
+
+## Declare randomization procedure
+declaration &lt;- declare_ra(N = 7, m = 2)
+
+## Conduct Randomization Inference
+out &lt;- conduct_ri(y ~ d,
+                  declaration = declaration,
+                  assignment = "d",
+                  sharp_hypothesis = 0,
+                  data = table_2.2)
+
+summary(out)
+plot(out)
+tidy(out)
+
+# Using a custom permutation matrix
+
+permutation_matrix &lt;-
+ matrix(c(0, 0, 0, 0, 0, 0, 1,
+          0, 0, 0, 0, 0, 1, 0,
+          0, 0, 0, 0, 1, 0, 0,
+          0, 0, 0, 1, 0, 0, 0,
+          0, 0, 1, 0, 0, 0, 0,
+          0, 1, 0, 0, 0, 0, 0,
+          1, 0, 0, 0, 0, 0, 0),
+        ncol = 7)
+
+conduct_ri(y ~d, assignment = "d", data = table_2.2,
+                   permutation_matrix = permutation_matrix)
+
+
+
+
+# Randomization Inference for an Interaction
+
+
+N &lt;- 100
+declaration &lt;- randomizr::declare_ra(N = N, m = 50)
+
+Z &lt;- randomizr::conduct_ra(declaration)
+X &lt;- rnorm(N)
+Y &lt;- .9 * X + .2 * Z + 1 * X * Z + rnorm(N)
+dat &lt;- data.frame(Y, X, Z)
+
+ate_obs &lt;- coef(lm(Y ~ Z, data = dat))[2]
+
+out &lt;-
+  conduct_ri(
+    model_1 = Y ~ Z + X,
+    model_2 = Y ~ Z + X + Z * X,
+    declaration = declaration,
+    assignment = "Z",
+    sharp_hypothesis = ate_obs,
+    data = dat, sims = 100
+  )
+
+plot(out)
+summary(out)
+
+summary(out, p = "two-tailed")
+summary(out, p = "upper")
+summary(out, p = "lower")
+
+tidy(out)
+
+# Randomization Inference for arbitrary test statistics
+
+## In this example we're conducting a randomization check (in this case, a balance test).
+
+N &lt;- 100
+declaration &lt;- randomizr::declare_ra(N = N, m = 50)
+
+Z &lt;- randomizr::conduct_ra(declaration)
+X &lt;- rnorm(N)
+Y &lt;- .9 * X + .2 * Z + rnorm(N)
+dat &lt;- data.frame(Y, X, Z)
+
+balance_fun &lt;- function(data) {
+    f_stat &lt;- summary(lm(Z ~ X, data = data))$f[1]
+    names(f_stat) &lt;- NULL
+    return(f_stat)
+}
+
+## confirm function works as expected
+balance_fun(dat)
+
+## conduct randomization inference
+
+out &lt;-
+  conduct_ri(
+    test_function = balance_fun,
+    declaration = declaration,
+    assignment = "Z",
+    sharp_hypothesis = 0,
+    data = dat, sims = 100
+  )
+
+plot(out)
+summary(out)
+tidy(out)
+
+</code></pre>
+
+
+</div>

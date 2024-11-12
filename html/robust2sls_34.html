@@ -1,0 +1,264 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>outlier_detection</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Outlier detection algorithms</h2>
+
+<h3>Description</h3>
+
+<p><code>outlier_detection</code> provides different types of outlier detection
+algorithms depending on the arguments provided. The decision whether to
+classify an observations as an outlier or not is based on its standardised
+residual in comparison to some user-specified reference distribution. <br>
+The algorithms differ mainly in two ways. First, they can differ by the use
+of initial estimator, i.e. the estimator based on which the first
+classification as outliers is made. Second, the algorithm can either be
+iterated a fixed number of times or until the difference in coefficient
+estimates between the most recent model and the previous one is smaller than
+some user-specified convergence criterion. The difference is measured by
+the L2 norm.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">outlier_detection(
+  data,
+  formula,
+  ref_dist = c("normal"),
+  sign_level,
+  initial_est = c("robustified", "saturated", "user", "iis"),
+  user_model = NULL,
+  iterations = 1,
+  convergence_criterion = NULL,
+  max_iter = NULL,
+  shuffle = FALSE,
+  shuffle_seed = NULL,
+  split = 0.5,
+  verbose = FALSE,
+  iis_args = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A dataframe.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>A formula for the <code>ivreg</code> function, i.e. in
+the format <code>y ~ x1 + x2 | x1 + z2</code> where <code>y</code> is the dependent
+variable, <code>x1</code> are the exogenous regressors, <code>x2</code> the endogenous
+regressors, and <code>z2</code> the outside instruments.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ref_dist</code></td>
+<td>
+<p>A character vector that specifies the reference distribution
+against which observations are classified as outliers. <code>"normal"</code> refers
+to the normal distribution.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sign_level</code></td>
+<td>
+<p>A numeric value between 0 and 1 that determines the cutoff
+in the reference distribution against which observations are judged as
+outliers or not.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>initial_est</code></td>
+<td>
+<p>A character vector that specifies the initial estimator
+for the outlier detection algorithm. <code>"robustified"</code> means that the
+full sample 2SLS is used as initial estimator. <code>"saturated"</code> splits
+the sample into two parts and estimates a 2SLS on each subsample. The
+coefficients of one subsample are used to calculate residuals and determine
+outliers in the other subsample. <code>"user"</code> allows the user to specify a
+model based on which observations are classified as outliers. <code>"iis"</code>
+applies impulse indicator saturation (IIS) as implemented in
+<code>ivisat</code>. See section "Warning" for more information
+and conditions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>user_model</code></td>
+<td>
+<p>A model object of class ivreg. Only
+required if argument <code>initial_est</code> is set to <code>"user"</code>, otherwise
+<code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iterations</code></td>
+<td>
+<p>Either an integer &gt;= 0 that specifies how often the outlier
+detection algorithm is iterated, or the character vector
+<code>"convergence"</code>. In the former case, the value <code>0</code> means that only
+outlier classification based on the initial estimator is done. In the latter,
+the algorithm is iterated until it converges, i.e. when the difference in
+coefficient estimates between the most recent model and the previous one is
+smaller than some user-specified convergence criterion.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>convergence_criterion</code></td>
+<td>
+<p>A numeric value or NULL. The algorithm stops as
+soon as the difference in coefficient estimates between the most recent model
+and the previous one is smaller than <code>convergence_criterion</code>. The
+difference is measured by the L2 norm. If the argument is set to a numeric
+value but <code>iterations</code> is an integer &gt; 0 then the algorithm stops either
+when it converged or when <code>iterations</code> is reached.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_iter</code></td>
+<td>
+<p>A numeric value &gt;= 1 or NULL. If
+<code>iterations = "convergence"</code> is chosen, then the algorithm is stopped
+after at most <code>max_iter</code> iterations. If also a
+<code>convergence_criterion</code> is chosen then the algorithm stops when either
+the criterion is fulfilled or the maximum number of iterations is reached.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>shuffle</code></td>
+<td>
+<p>A logical value or <code>NULL</code>. Only used if
+<code>initial_est == "saturated"</code>. If <code>TRUE</code> then the sample is shuffled
+before creating the subsamples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>shuffle_seed</code></td>
+<td>
+<p>An integer value that will set the seed for shuffling the
+sample or <code>NULL</code>. Only used if <code>initial_est == "saturated"</code> and
+<code>shuffle == TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>split</code></td>
+<td>
+<p>A numeric value strictly between 0 and 1 that determines
+in which proportions the sample will be split.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>A logical value whether progress during estimation should be
+reported.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iis_args</code></td>
+<td>
+<p>A list with named entries corresponding to the arguments for
+<code>iis_init</code> (<code>t.pval</code>, <code>do.pet</code>,
+<code>normality.JarqueB</code>, <code>turbo</code>, <code>overid</code>, <code>weak</code>). Can be
+<code>NULL</code> if <code>initial_est != "iis"</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p><code>outlier_detection</code> returns an object of class
+<code>"robust2sls"</code>, which is a list with the following components:
+</p>
+
+<dl>
+<dt><code>$cons</code></dt>
+<dd>
+<p>A list which stores high-level information about the
+function call and some results. <code>$call</code> is the captured function call,
+<code>$formula</code> the formula argument, <code>$data</code> the original data set,
+<code>$reference</code> the chosen reference distribution to classify outliers,
+<code>$sign_level</code> the significance level, <code>$psi</code> the probability that
+an observation is not classified as an outlier under the null hypothesis
+of no outliers, <code>$cutoff</code> the cutoff used to classify outliers if
+their standardised residuals are larger than that value, <code>$bias_corr</code>
+a bias correction factor to account for potential false positives
+(observations classified as outliers even though they are not). There are
+three further elements that are lists themselves. <br><br><code>$initial</code> stores settings about the initial estimator:
+<code>$estimator</code> is the type of the initial estimator (e.g. robustified or
+saturated), <code>$split</code> how the sample is split (<code>NULL</code> if argument
+not used), <code>$shuffle</code> whether the sample is shuffled before splitting
+(<code>NULL</code> if argument not used), <code>$shuffle_seed</code> the value of the
+random seed (<code>NULL</code> if argument not used). <br><br><code>$convergence</code> stores information about the convergence of the
+outlier-detection algorithm:
+<code>$criterion</code> is the user-specified convergence criterion (<code>NULL</code>
+if argument not used), <code>$difference</code> is the L2 norm between the last
+coefficient estimates and the previous ones (<code>NULL</code> if argument not
+used or only initial estimator calculated). <code>$converged</code> is a logical
+value indicating whether the algorithm has converged, i.e. whether the
+difference is smaller than the convergence criterion (<code>NULL</code> if
+argument not used). <code>$max_iter</code> is the maximum iteration set by the
+user (<code>NULL</code> if argument not used or not set). <br><br><code>$iterations</code> contains information about the user-specified iterations
+argument (<code>$setting</code>) and the actual number of iterations that were
+done (<code>$actual</code>). The actual number can be lower if the algorithm
+converged already before the user-specified number of iterations were
+reached.</p>
+</dd>
+<dt><code>$model</code></dt>
+<dd>
+<p>A list storing the model objects of class
+ivreg for each iteration. Each model is stored under
+<code>$m0</code>, <code>$m1</code>, ...</p>
+</dd>
+<dt><code>$res</code></dt>
+<dd>
+<p>A list storing the residuals of all observations for
+each iteration. Residuals of observations where any of the y, x, or z
+variables used in the 2SLS model are missing are set to NA. Each vector is
+stored under <code>$m0</code>, <code>$m1</code>, ...</p>
+</dd>
+<dt><code>$stdres</code></dt>
+<dd>
+<p>A list storing the standardised residuals of all
+observations for each iteration. Standardised residuals of observations
+where any of the y, x, or z variables used in the 2SLS model are missing
+are set to NA. Standardisation is done by dividing by sigma, which is not
+adjusted for degrees of freedom. Each vector is stored under <code>$m0</code>,
+<code>$m1</code>, ...</p>
+</dd>
+<dt><code>$sel</code></dt>
+<dd>
+<p>A list of logical vectors storing whether an observation
+is included in the estimation or not. Observations are excluded (FALSE) if
+they either have missing values in any of the x, y, or z variables needed
+in the model or when they are classified as outliers based on the model.
+Each vector is stored under <code>$m0</code>, <code>$m1</code>, ...</p>
+</dd>
+<dt><code>$type</code></dt>
+<dd>
+<p>A list of integer vectors indicating whether an
+observation has any missing values in x, y, or z (<code>-1</code>), whether it is
+classified as an outlier (<code>0</code>) or not (<code>1</code>). Each vector is
+stored under <code>$m0</code>, <code>$m1</code>, ...</p>
+</dd>
+</dl>
+<h3>Warning</h3>
+
+<p>Check <a href="https://drive.google.com/file/d/1qPxDJnLlzLqdk94X9wwVASptf1MPpI2w/view">Jiao (2019)</a>
+(as well as forthcoming working paper in the future) about conditions on the
+initial estimator that should be satisfied for the initial estimator when
+using <code>initial_est == "user"</code> (e.g. they have to be Op(1)).
+IIS is a generalisation of <code>Saturated 2SLS</code> with
+multiple block search but no asymptotic theory exists for IIS.
+</p>
+
+
+</div>

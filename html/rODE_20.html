@@ -1,0 +1,123 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>doStep</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>doStep</h2>
+
+<h3>Description</h3>
+
+<p>Perform a step
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">doStep(object, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>a class object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional parameters</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R"># ++++++++++++++++++++++++++++++++++++++++++++++++++++++++  example: PlanetApp.R
+# Simulation of Earth orbiting around the SUn using the Euler ODE solver
+
+importFromExamples("Planet.R")      # source the class
+
+PlanetApp &lt;- function(verbose = FALSE) {
+    # x =  1, AU or Astronomical Units. Length of semimajor axis or the orbit
+    # of the Earth around the Sun.
+    x &lt;- 1; vx &lt;- 0; y &lt;- 0; vy &lt;- 6.28; t &lt;- 0
+    state &lt;- c(x, vx, y, vy, t)
+    dt &lt;-  0.01
+    planet &lt;- Planet()
+    planet@odeSolver &lt;- setStepSize(planet@odeSolver, dt)
+    planet &lt;- init(planet, initState = state)
+    rowvec &lt;- vector("list")
+    i &lt;- 1
+    # run infinite loop. stop with ESCAPE.
+    while (getState(planet)[5] &lt;= 90) {     # Earth orbit is 365 days around the sun
+        rowvec[[i]] &lt;- list(t  = getState(planet)[5],     # just doing 3 months
+                            x  = getState(planet)[1],     # to speed up for CRAN
+                            vx = getState(planet)[2],
+                            y  = getState(planet)[3],
+                            vy = getState(planet)[4])
+        for (j in 1:5) {                 # advances time
+            planet &lt;- doStep(planet)
+        }
+        i &lt;- i + 1
+    }
+    DT &lt;- data.table::rbindlist(rowvec)
+    return(DT)
+}
+# run the application
+solution &lt;- PlanetApp()
+select_rows &lt;- seq(1, nrow(solution), 10)      # do not overplot
+solution &lt;- solution[select_rows,]
+plot(solution)
+
+# +++++++++++++++++++++++++++++++++++++++++++++++++++   application:  Logistic.R
+# Simulates the logistic equation
+importFromExamples("Logistic.R")
+
+# Run the application
+LogisticApp &lt;- function(verbose = FALSE) {
+    x  &lt;- 0.1
+    vx &lt;- 0
+    r  &lt;- 2        # Malthusian parameter (rate of maximum population growth)
+    K  &lt;- 10.0     # carrying capacity of the environment
+    dt   &lt;- 0.01; tol  &lt;- 1e-3; tmax &lt;- 10
+
+    population &lt;- Logistic()                # create a Logistic ODE object
+
+    # Two ways of initializing the object
+      # population &lt;- init(population, c(x, vx, 0), r, K)
+    init(population) &lt;-  list(initState = c(x, vx, 0),
+                              r = r,
+                              K = K)
+
+    odeSolver &lt;- Verlet(population)        # select the solver
+
+    # Two ways of initializing the solver
+      # odeSolver &lt;- init(odeSolver, dt)
+    init(odeSolver) &lt;-  dt
+
+    population@odeSolver &lt;- odeSolver
+    # setSolver(population) &lt;-  odeSolver
+
+    rowVector &lt;- vector("list")
+    i &lt;- 1
+    while (getTime(population) &lt;= tmax) {
+        rowVector[[i]] &lt;- list(t = getTime(population),
+                               s1 = getState(population)[1],
+                               s2 = getState(population)[2])
+        population &lt;- doStep(population)
+        i &lt;- i + 1
+    }
+    DT &lt;- data.table::rbindlist(rowVector)
+    return(DT)
+}
+# show solution
+solution &lt;- LogisticApp()
+plot(solution)
+</code></pre>
+
+
+</div>

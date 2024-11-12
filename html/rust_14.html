@@ -1,0 +1,262 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>find_lambda_one_d</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Selecting the Box-Cox parameter in the 1D case</h2>
+
+<h3>Description</h3>
+
+<p>Finds a value of the Box-Cox transformation parameter lambda (<code class="reqn">\lambda</code>)
+for which the (positive univariate) random variable with log-density
+<code class="reqn">\log f</code> has a density closer to that of a Gaussian random
+variable. Works by estimating a set of quantiles of the distribution implied
+by <code class="reqn">\log f</code> and treating those quantiles as data in a standard
+Box-Cox analysis.  In the following we use <code>theta</code> (<code class="reqn">\theta</code>) to
+denote the argument of <code class="reqn">\log f</code> on the original scale and
+<code>phi</code> (<code class="reqn">\phi</code>) on the Box-Cox transformed scale.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">find_lambda_one_d(
+  logf,
+  ...,
+  ep_bc = 1e-04,
+  min_phi = ep_bc,
+  max_phi = 10,
+  num = 1001,
+  xdiv = 100,
+  probs = seq(0.01, 0.99, by = 0.01),
+  lambda_range = c(-3, 3),
+  phi_to_theta = NULL,
+  log_j = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>logf</code></td>
+<td>
+<p>A function returning the log of the target density <code class="reqn">f</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments to be passed to <code>logf</code> and related
+functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ep_bc</code></td>
+<td>
+<p>A (positive) numeric scalar. Smallest possible value of
+<code>phi</code> to consider.  Used to avoid negative values of <code>phi</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min_phi, max_phi</code></td>
+<td>
+<p>Numeric scalars.  Smallest and largest values
+of <code>phi</code> at which to evaluate <code>logf</code>, i.e., the range of values
+of <code>phi</code> over which to evaluate <code>logf</code>. Any components in
+<code>min_phi</code> that are not positive are set to <code>ep_bc</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>num</code></td>
+<td>
+<p>A numeric scalar. Number of values at which to evaluate
+<code>logf</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xdiv</code></td>
+<td>
+<p>A numeric scalar.  Only values of <code>phi</code> at which the
+density <code class="reqn">f</code> is greater than the (maximum of <code class="reqn">f</code>) / <code>xdiv</code> are
+used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>probs</code></td>
+<td>
+<p>A numeric scalar. Probabilities at which to estimate the
+quantiles of that will be used as data to find lambda.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda_range</code></td>
+<td>
+<p>A numeric vector of length 2.  Range of lambda
+over which to optimise.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phi_to_theta</code></td>
+<td>
+<p>A function returning (inverse) of the transformation
+from <code>theta</code> to <code>phi</code> used to ensure positivity of <code>phi</code>
+prior to Box-Cox transformation.  The argument is <code>phi</code> and the
+returned value is <code>theta</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>log_j</code></td>
+<td>
+<p>A function returning the log of the Jacobian of the
+transformation from <code>theta</code> to <code>phi</code>, i.e. based on derivatives
+of <code class="reqn">\phi</code> with respect to <code class="reqn">\theta</code>. Takes <code>theta</code> as its
+argument. If this is not supplied then a constant Jacobian is used.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The general idea is to estimate quantiles of <code class="reqn">f</code> corresponding
+to a set of equally-spaced probabilities in <code>probs</code> and to use these
+estimated quantiles as data in a standard estimation of the Box-Cox
+transformation parameter lambda.
+</p>
+<p>The density <code>f</code> is first evaluated at <code>num</code> points equally
+spaced over the interval (<code>min_phi</code>, <code>max_phi</code>).  The continuous
+density <code class="reqn">f</code> is approximated by attaching trapezium-rule estimates of
+probabilities to the midpoints of the intervals between the points.  After
+standardizing to account for the fact that <code class="reqn">f</code> may not be normalized,
+(<code>min_phi</code>, <code>max_phi</code>) is reset so that values with small
+estimated probability (determined by <code>xdiv</code>) are excluded and the
+procedure is repeated on this new range.  Then the required quantiles are
+estimated by inferring them from a weighted empirical distribution
+function based on treating the midpoints as data and the estimated
+probabilities at the midpoints as weights.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list containing the following components
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>A numeric scalar.  The value of lambda.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gm</code></td>
+<td>
+<p>A numeric scalar.  Box-Cox scaling parameter, estimated by the
+geometric mean of the quantiles used in the optimisation to find the
+value of lambda.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init_psi</code></td>
+<td>
+<p>A numeric scalar.  An initial estimate of the mode of the
+Box-Cox transformed density</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sd_psi</code></td>
+<td>
+<p>A numeric scalar.  Estimates of the marginal standard
+deviations of the Box-Cox transformed variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phi_to_theta</code></td>
+<td>
+<p>as detailed above (only if <code>phi_to_theta</code> is
+supplied)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>log_j</code></td>
+<td>
+<p>as detailed above (only if <code>log_j</code> is supplied)</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Box, G. and Cox, D. R. (1964) An Analysis of Transformations.
+Journal of the Royal Statistical Society. Series B (Methodological), 26(2),
+211-252.
+</p>
+<p>Andrews, D. F. and Gnanadesikan, R. and Warner, J. L. (1971)
+Transformations of Multivariate Data, Biometrics, 27(4).
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>ru</code> and <code>ru_rcpp</code> to perform
+ratio-of-uniforms sampling.
+</p>
+<p><code>find_lambda</code> and <code>find_lambda_rcpp</code>
+to produce (somewhat) automatically
+a list for the argument lambda of <code>ru</code>/<code>ru_rcpp</code>
+for any value of <code>d</code>.
+</p>
+<p><code>find_lambda_one_d_rcpp</code> for a version of
+<code>find_lambda_one_d</code> that uses the Rcpp package to improve
+efficiency.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Log-normal density ===================
+
+# Note: the default value of max_phi = 10 is OK here but this will not
+# always be the case.
+
+lambda &lt;- find_lambda_one_d(logf = dlnorm, log = TRUE)
+lambda
+x &lt;- ru(logf = dlnorm, log = TRUE, d = 1, n = 1000, trans = "BC",
+        lambda = lambda)
+
+# Gamma density ===================
+
+alpha &lt;- 1
+# Choose a sensible value of max_phi
+max_phi &lt;- qgamma(0.999, shape = alpha)
+# [I appreciate that typically the quantile function won't be available.
+# In practice the value of lambda chosen is quite insensitive to the choice
+# of max_phi, provided that max_phi is not far too large or far too small.]
+
+lambda &lt;- find_lambda_one_d(logf = dgamma, shape = alpha, log = TRUE,
+                            max_phi = max_phi)
+lambda
+x &lt;- ru(logf = dgamma, shape = alpha, log = TRUE, d = 1, n = 1000,
+        trans = "BC", lambda = lambda)
+
+alpha &lt;- 0.1
+# NB. for alpha &lt; 1 the gamma(alpha, beta) density is not bounded
+# So the ratio-of-uniforms emthod can't be used but it may work after a
+# Box-Cox transformation.
+# find_lambda_one_d() works much better than find_lambda() here.
+
+max_phi &lt;- qgamma(0.999, shape = alpha)
+lambda &lt;- find_lambda_one_d(logf = dgamma, shape = alpha, log = TRUE,
+                            max_phi = max_phi)
+lambda
+x &lt;- ru(logf = dgamma, shape = alpha, log = TRUE, d = 1, n = 1000,
+        trans = "BC", lambda = lambda)
+
+
+plot(x)
+plot(x, ru_scale = TRUE)
+
+</code></pre>
+
+
+</div>

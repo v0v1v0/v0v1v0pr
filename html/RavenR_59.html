@@ -1,0 +1,164 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rvn_rvh_cleanhrus</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Clean HRU data table.</h2>
+
+<h3>Description</h3>
+
+<p>Takes <code>rvn_rvh_read</code>-generated HRUtable and SBTable and returns cleaned HRUtable
+with (hopefully) fewer HRUs
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rvn_rvh_cleanhrus(
+  HRUtab,
+  SBtab,
+  area_tol = 0.01,
+  merge = FALSE,
+  elev_tol = 50,
+  slope_tol = 4,
+  aspect_tol = 20,
+  ProtectedHRUs = c(),
+  LockedHRUs = c(),
+  LockedSubbasins = c()
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>HRUtab</code></td>
+<td>
+<p>table of HRUs generated (typically) by <code>rvn_rvh_read</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SBtab</code></td>
+<td>
+<p>table of Subbasins generated (typically) by <code>rvn_rvh_read</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>area_tol</code></td>
+<td>
+<p>percentage of watershed area beneath which HRUs should be removed (e.g.,
+default value of 0.01 would indicate anything smaller than 1 percent of watershed extent should be removed)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>merge</code></td>
+<td>
+<p>TRUE if similar HRUs are to be merged (this can be slow for large models)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>elev_tol</code></td>
+<td>
+<p>elevation difference (in metres) considered similar. only used if <code>merge=TRUE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>slope_tol</code></td>
+<td>
+<p>slope difference (in degrees) considered similar. only used if <code>merge=TRUE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aspect_tol</code></td>
+<td>
+<p>slope difference (in degrees) considered similar. only used if <code>merge=TRUE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ProtectedHRUs</code></td>
+<td>
+<p>vector of HRU IDs that are sacrosanct (not to be removed, but may still increase in area)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>LockedHRUs</code></td>
+<td>
+<p>vector of HRU IDs that are locked (not to be modified)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>LockedSubbasins</code></td>
+<td>
+<p>vector of subbasin IDs that are locked (not to be modified).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>rvn_rvh_cleanhrus</code> removes HRUs in two ways:
+</p>
+<p>1. it removes all HRUs smaller than the area_tol percentage of total area. Adjacent HRUs in the
+subbasin are expanded by the lost area to keep the same relative coverage.
+</p>
+<p>2. it consolidates similar HRUs within the same subbasin (those with same land cover,
+vegetation, soil profile and similar slope, aspect, and elevation)
+</p>
+<p>The ProtectedHRUs allows the specification of HRUs that should not be removed, even if they
+would otherwise be merged or removed. These HRUs may still increase in size as other HRUs are
+consolidated.
+</p>
+<p>The LockedHRUs allows for the specification of HRUs that will not change (removed or increase
+in size), which may be useful for specific land types such as glaciers or water bodies. It is
+possible that locking HRUs may prevent the script from resizing remaining HRUs within a subbasin,
+in which case a warning is issued to the user that the area has changed. If this is the case, it
+is suggested to reduce the area threshold to try and prevent this issue, or consider simply locking some
+subbasins.
+</p>
+<p>Note that merging can be a computationally expensive process, and for this reason is set as <code>FALSE</code> by default.
+</p>
+
+
+<h3>Value</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>hru_table</code></td>
+<td>
+<p>cleaned HRU table as a dataframe</p>
+</td>
+</tr></table>
+<h3>Author(s)</h3>
+
+<p>James R. Craig, University of Waterloo
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>rvn_rvh_read</code> for the function used to read in the HRU and Subbasin data, and
+<code>rvn_rvh_write</code> to write rvh information to file.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# read in example rvh file
+nith &lt;- system.file("extdata","Nith.rvh",package = "RavenR")
+rvh &lt;- rvn_rvh_read(nith)
+
+# number of HRUs in existing configuration
+nrow(rvh$HRUtable)
+
+# clean contents (in this case, remove all HRUs covering less than 5% of the total area)
+newHRUs &lt;- rvn_rvh_cleanhrus(rvh$HRUtable,rvh$SBtable,area_tol = 0.05, merge=TRUE)
+
+# clean contents but locking urban areas (two HRUs locked)
+newHRUs &lt;- rvn_rvh_cleanhrus(rvh$HRUtable,rvh$SBtable,area_tol = 0.05, merge=TRUE,
+   LockedHRUs=rvh$HRUtable[rvh$HRUtable$LandUse=="URBAN", "ID"])
+
+</code></pre>
+
+
+</div>

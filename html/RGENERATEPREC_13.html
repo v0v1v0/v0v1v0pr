@@ -1,0 +1,175 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PrecipitationAmountModel</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Creates a Precipitation Amount Model</h2>
+
+<h3>Description</h3>
+
+<p>Creates a Precipitation Amount Model
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PrecipitationAmountModel(
+  x,
+  valmin = 1,
+  station = names(x),
+  sample = "monthly",
+  origin = "1961-1-1",
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>observed precipitation amount time series (data frame)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>valmin</code></td>
+<td>
+<p>maximum admitted value of precipitation depth</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>station</code></td>
+<td>
+<p>string vector containing station identification codes</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sample</code></td>
+<td>
+<p>character string. If it is <code>"monthly"</code> (Default), the corralaton matrix is calculeted per each month.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>origin</code></td>
+<td>
+<p>date of the day referred by he first row of <code>x</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further agruments for <code>normalizeGaussian_severalstations</code></p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The function returns AN S3 OBJECT ...... the correlation matrix of precipitation amount values (excluding the zeros). 
+In case <code>sample=="monthly"</code> the runction return a <code>MonlthyList</code> S3 object.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>predict.PrecipitationAmountModel</code>,<code>normalizeGaussian_severalstations</code>,<code>generate</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+set.seed(1245)
+
+data(trentino)
+
+year_min &lt;- 1961
+year_max &lt;- 1990
+
+origin &lt;- paste(year_min,1,1,sep="-")
+end &lt;- paste(year_max,12,31,sep="-")
+
+period &lt;- PRECIPITATION$year&gt;=year_min &amp; PRECIPITATION$year&lt;=year_max
+period_temp &lt;- TEMPERATURE_MAX$year&gt;=year_min &amp; TEMPERATURE_MAX$year&lt;=year_max
+
+prec_mes &lt;- PRECIPITATION[period,]
+Tx_mes &lt;- TEMPERATURE_MAX[period_temp,]
+Tn_mes &lt;- TEMPERATURE_MIN[period_temp,]
+accepted &lt;- array(TRUE,length(names(prec_mes)))
+names(accepted) &lt;- names(prec_mes)
+for (it in names(prec_mes)) {
+	acc &lt;- TRUE
+	acc &lt;- (length(which(!is.na(Tx_mes[,it])))==length(Tx_mes[,it]))
+	acc &lt;- (length(which(!is.na(Tn_mes[,it])))==length(Tn_mes[,it])) &amp; acc
+	accepted[it]  &lt;- (length(which(!is.na(prec_mes[,it])))==length(prec_mes[,it])) &amp; acc
+	
+}
+
+valmin &lt;- 1.0
+prec_mes &lt;- prec_mes[,accepted]
+
+
+
+Tx_mes &lt;- Tx_mes[,accepted]
+Tn_mes &lt;- Tn_mes[,accepted]
+prec_occurrence_mes &lt;- prec_mes&gt;=valmin
+
+station &lt;- names(prec_mes)[!(names(prec_mes) %in% c("day","month","year"))]
+
+precamount &lt;- PrecipitationAmountModel(prec_mes,station=station,origin=origin)
+
+val &lt;- predict(precamount)
+
+prec_gen &lt;- generate(precamount)  
+
+
+
+
+month &lt;- adddate(as.data.frame(residuals(precamount$T0090)),origin=origin)$month
+#####plot(month,residuals(precamount$T0090))
+plot(factor(month),residuals(precamount$T0090))
+
+qqplot(prec_mes$T0083,prec_gen$T0083)
+abline(0,1)
+
+
+## SINGLE STATION
+
+station &lt;- "T0083"
+
+precamount_single &lt;- PrecipitationAmountModel(prec_mes,station=station,origin=origin)
+
+val_single &lt;- predict(precamount_single)
+
+prec_gen_single &lt;- generate(precamount_single)  
+
+
+
+month &lt;- adddate(as.data.frame(residuals(precamount_single[[station[1]]])),origin=origin)$month
+plot(factor(month),residuals(precamount_single[[station[1]]]))
+
+
+### Comparison (Q-Q plot) between multi and single sites. 
+
+qqplot(prec_mes$T0083,prec_gen$T0083,col=1)
+abline(0,1)
+points(sort(prec_mes$T0083),sort(prec_gen_single$T0083),pch=2,col=2)
+legend("bottomright",pch=c(1,2),col=c(1,2),legend=c("Multi Sites","Single Site"))
+
+
+
+
+
+
+
+abline(0,1)
+
+
+
+</code></pre>
+
+
+</div>

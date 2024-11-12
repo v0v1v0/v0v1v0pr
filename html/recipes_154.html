@@ -1,0 +1,228 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>roles</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Manually alter roles</h2>
+
+<h3>Description</h3>
+
+<p><code>update_role()</code> alters an existing role in the recipe or assigns an initial
+role to variables that do not yet have a declared role.
+</p>
+<p><code>add_role()</code> adds an <em>additional</em> role to variables that already have a role
+in the recipe. It does not overwrite old roles, as a single variable can have
+multiple roles.
+</p>
+<p><code>remove_role()</code> eliminates a single existing role in the recipe.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">add_role(recipe, ..., new_role = "predictor", new_type = NULL)
+
+update_role(recipe, ..., new_role = "predictor", old_role = NULL)
+
+remove_role(recipe, ..., old_role)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>recipe</code></td>
+<td>
+<p>An existing <code>recipe()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>One or more selector functions to choose which variables are being
+assigned a role. See <code>selections()</code> for more details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>new_role</code></td>
+<td>
+<p>A character string for a single role.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>new_type</code></td>
+<td>
+<p>A character string for specific type that the variable should
+be identified as. If left as <code>NULL</code>, the type is automatically identified
+as the <em>first</em> type you see for that variable in <code>summary(recipe)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>old_role</code></td>
+<td>
+<p>A character string for the specific role to update for the
+variables selected by <code>...</code>. <code>update_role()</code> accepts a <code>NULL</code> as long as
+the variables have only a single role.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>update_role()</code>, <code>add_role()</code> and <code>remove_role()</code> will be applied on a recipe
+before any of the steps or checks, regardless of where they are located in
+position. This means that roles can only be changed with these three
+functions for columns that are already present in the original data supplied
+to <code>recipe()</code>. See the <code>role</code> argument in some step functions to update
+roles for columns created by steps.
+</p>
+<p>Variables can have any arbitrary role (see the examples) but there are three
+special standard roles, <code>"predictor"</code>, <code>"outcome"</code>, and <code>"case_weights"</code>.
+The first two roles are typically required when fitting a model.
+</p>
+<p><code>update_role()</code> should be used when a variable doesn't currently have a role
+in the recipe, or to replace an <code>old_role</code> with a <code>new_role</code>. <code>add_role()</code>
+only adds additional roles to variables that already have roles and will
+throw an error when the current role is missing (i.e. <code>NA</code>).
+</p>
+<p>When using <code>add_role()</code>, if a variable is selected that already has the
+<code>new_role</code>, a warning is emitted and that variable is skipped so no duplicate
+roles are added.
+</p>
+<p>Adding or updating roles is a useful way to group certain variables that
+don't fall in the standard <code>"predictor"</code> bucket. You can perform a step on
+all of the variables that have a custom role with the selector <code>has_role()</code>.
+</p>
+
+
+<h4>Effects of non-standard roles</h4>
+
+<p>Recipes can label and retain column(s) of your data set that should not be treated as outcomes or predictors. A unique identifier column or some other ancillary data could be used to troubleshoot issues during model development but may not be either an outcome or predictor.
+</p>
+<p>For example, the <code>modeldata::biomass</code> dataset has a column named <code>sample</code> with information about the specific sample type. We can change that role:
+</p>
+<div class="sourceCode r"><pre>library(recipes)
+
+data(biomass, package = "modeldata")
+biomass_train &lt;- biomass[1:100,]
+biomass_test &lt;- biomass[101:200,]
+
+rec &lt;- recipe(HHV ~ ., data = biomass_train) %&gt;%
+  update_role(sample, new_role = "id variable") %&gt;%
+  step_center(carbon)
+
+rec &lt;- prep(rec, biomass_train)
+</pre></div>
+<p>This means that <code>sample</code> is no longer treated as a <code>"predictor"</code> (the default role for columns on the right-hand side of the formula supplied to <code>recipe()</code>) and won't be used in model fitting or analysis, but will still be retained in the data set.
+</p>
+<p>If you really aren't using <code>sample</code> in your recipe, we recommend that you instead remove <code>sample</code> from your dataset before passing it to <code>recipe()</code>. The reason for this is because recipes assumes that all non-standard roles are required at <code>bake()</code> time (or <code>predict()</code> time, if you are using a workflow). Since you didn't use <code>sample</code> in any steps of the recipe, you might think that you don't need to pass it to <code>bake()</code>, but this isn't true because recipes doesn't know that you didn't use it:
+</p>
+<div class="sourceCode r"><pre>biomass_test$sample &lt;- NULL
+
+bake(rec, biomass_test)
+#&gt; Error in `bake()`:
+#&gt; x The following required columns are missing from `new_data`: `sample`.
+#&gt; i These columns have one of the following roles, which are required at `bake()`
+#&gt;   time: `id variable`.
+#&gt; i If these roles are not required at `bake()` time, use
+#&gt;   `update_role_requirements(role = "your_role", bake = FALSE)`.
+</pre></div>
+<p>As we mentioned before, the best way to avoid this issue is to not even use a role, just remove the <code>sample</code> column from <code>biomass</code> before calling <code>recipe()</code>. In general, predictors and non-standard roles that are supplied to <code>recipe()</code> should be present at both <code>prep()</code> and <code>bake()</code> time.
+</p>
+<p>If you can't remove <code>sample</code> for some reason, then the second best way to get around this issue is to tell recipes that the <code>"id variable"</code> role isn't required at <code>bake()</code> time. You can do that by using <code>update_role_requirements()</code>:
+</p>
+<div class="sourceCode r"><pre>rec &lt;- recipe(HHV ~ ., data = biomass_train) %&gt;%
+  update_role(sample, new_role = "id variable") %&gt;%
+  update_role_requirements("id variable", bake = FALSE) %&gt;%
+  step_center(carbon)
+
+rec &lt;- prep(rec, biomass_train)
+
+# No errors!
+biomass_test_baked &lt;- bake(rec, biomass_test)
+</pre></div>
+<p>It should be very rare that you need this feature.
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>An updated recipe object.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(recipes)
+data(biomass, package = "modeldata")
+
+# Using the formula method, roles are created for any outcomes and predictors:
+recipe(HHV ~ ., data = biomass) %&gt;%
+  summary()
+
+# However `sample` and `dataset` aren't predictors. Since they already have
+# roles, `update_role()` can be used to make changes, to any arbitrary role:
+recipe(HHV ~ ., data = biomass) %&gt;%
+  update_role(sample, new_role = "id variable") %&gt;%
+  update_role(dataset, new_role = "splitting variable") %&gt;%
+  summary()
+
+# `update_role()` cannot set a role to NA, use `remove_role()` for that
+## Not run: 
+recipe(HHV ~ ., data = biomass) %&gt;%
+  update_role(sample, new_role = NA_character_)
+
+## End(Not run)
+
+# ------------------------------------------------------------------------------
+
+# Variables can have more than one role. `add_role()` can be used
+# if the column already has at least one role:
+recipe(HHV ~ ., data = biomass) %&gt;%
+  add_role(carbon, sulfur, new_role = "something") %&gt;%
+  summary()
+
+# `update_role()` has an argument called `old_role` that is required to
+# unambiguously update a role when the column currently has multiple roles.
+recipe(HHV ~ ., data = biomass) %&gt;%
+  add_role(carbon, new_role = "something") %&gt;%
+  update_role(carbon, new_role = "something else", old_role = "something") %&gt;%
+  summary()
+
+# `carbon` has two roles at the end, so the last `update_roles()` fails since
+# `old_role` was not given.
+## Not run: 
+recipe(HHV ~ ., data = biomass) %&gt;%
+  add_role(carbon, sulfur, new_role = "something") %&gt;%
+  update_role(carbon, new_role = "something else")
+
+## End(Not run)
+
+# ------------------------------------------------------------------------------
+
+# To remove a role, `remove_role()` can be used to remove a single role.
+recipe(HHV ~ ., data = biomass) %&gt;%
+  add_role(carbon, new_role = "something") %&gt;%
+  remove_role(carbon, old_role = "something") %&gt;%
+  summary()
+
+# To remove all roles, call `remove_role()` multiple times to reset to `NA`
+recipe(HHV ~ ., data = biomass) %&gt;%
+  add_role(carbon, new_role = "something") %&gt;%
+  remove_role(carbon, old_role = "something") %&gt;%
+  remove_role(carbon, old_role = "predictor") %&gt;%
+  summary()
+
+# ------------------------------------------------------------------------------
+
+# If the formula method is not used, all columns have a missing role:
+recipe(biomass) %&gt;%
+  summary()
+
+</code></pre>
+
+
+</div>

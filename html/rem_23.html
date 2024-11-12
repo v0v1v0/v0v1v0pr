@@ -1,0 +1,283 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>triadStat</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate triad statistics</h2>
+
+<h3>Description</h3>
+
+<p>Calculate the endogenous network statistic <code>triads</code> that measures the tendency for events to close open triads.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">triadStat(data, time, sender, target, halflife, 
+    weight = NULL, 
+    eventtypevar = NULL, 
+    eventtypevalues = NULL, 
+    eventfiltervar = NULL,
+    eventfilterAI = NULL, 
+    eventfilterBI = NULL,
+    eventfilterAB = NULL, 
+    eventvar = NULL,
+    variablename = 'triad', 
+    returnData = FALSE, 
+    showprogressbar = FALSE, 
+    inParallel = FALSE, cluster = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p> A data frame containing all the variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time</code></td>
+<td>
+<p> Numeric variable that represents the event sequence. The variable has to be sorted in ascending order.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sender</code></td>
+<td>
+<p> A string (or factor or numeric) variable that represents the sender of the event.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target</code></td>
+<td>
+<p> A string (or factor or numeric) variable that represents the target of the event.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>halflife</code></td>
+<td>
+<p> A numeric value that is used in the decay function. The vector of past events is weighted by an exponential decay function using the specified halflife. The halflife parameter determins after how long a period the event weight should be halved. E.g. if <code>halflife = 5</code>, the weight of an event that occured 5 units in the past is halved. Smaller halflife values give more importance to more recent events, while larger halflife values should be used if time does not affect the sequence of events that much.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weight</code></td>
+<td>
+<p> An optional numeric variable that represents the weight of each event. If <code>weight = NULL</code> each event is given an event weight of <code>1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eventtypevar</code></td>
+<td>
+<p> An optional dummy variable that represents the type of the event. Use <code>eventtypevalues</code> to specify how the <code>eventtypevar</code> should be used to filter past events. Specifying the <code>eventtypevar</code> is needed to calculate effects of social balance theory, such as 'friend-of-friend' or 'enemy-of-enemy' statistics.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eventtypevalues</code></td>
+<td>
+<p> Two string values that represent the type of the past events. The first string value represents the eventtype that exists for all past events that include the current sender (either as sender or target) and a third actor. The second value represents the eventtype for all past events that include the target (either as sender or target) as well as the third actor.
+An example: Let the <code>eventtypevar</code> indicate whether an event is of cooperative or hostile nature.
+To test whether the hypothesis 'the friend of my friend is my friend' holds, both <code>eventtypevalues</code> must be the same and point to the cooperative type (e.g. <code>eventtypevalues = c("cooperation", "cooperation")</code>) depending on
+how the <code>eventtypevar</code> is coded.
+To test whether the hypothesis 'the friend of my enemy is my enemy' holds, 
+the first value in <code>eventtypevalues</code> represents the hostile event between current sender and a third actor and the second value represents the cooperative event between the third actor and the target.
+To test the hypothesis 'the enemy of my enemy is my friend', the first value represents the hostile events between current sender and a third actor and the second value represents the hostile event between the current target and the third actor.
+For the fourth hypothesis, to test social balance theory 'the enemy of my friend is my enemy', the first value represents a cooperative event between the current sender and a third actor and the second value represents a hostile event between the current target and the third actor.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eventfiltervar</code></td>
+<td>
+<p> An optional string (or factor or numeric) variable that can be used to filter past and current events. Use <code>eventfilterAI</code>, <code>eventfilterBI</code> or <code>eventfilterAB</code> to specify which past events should be filtered and by what value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eventfilterAI</code></td>
+<td>
+<p> An optional value used to specify how paste events should be filtered depending on their attribute. Each distinct edge that form a triad can be filtered. <code>eventfilterAI</code> refers to the past event involving the current sender (a) and a third actor (i). <code>eventfilterBI</code>referrs to past events involving target (b) and the third actor (i). <code>eventfilterAB</code> refers to the current event involving sender (a) and target (b).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eventfilterBI</code></td>
+<td>
+<p> see <code>eventfilterAI</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eventfilterAB</code></td>
+<td>
+<p> see <code>eventfilterAI</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eventvar</code></td>
+<td>
+<p> An optional dummy variable with 0 values for null-events and 1 values for true events. If the <code>data</code> is in the form of counting process data, use the <code>eventvar</code>-option to specify which variable contains the 0/1-dummy for event occurrence. If this variable is not specified, all events in the past will be considered for the calulation of the triad statistic, regardless if they occurred or not (= are null-events).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>variablename</code></td>
+<td>
+<p> An optional value (or values) with the name the triad
+statistic variable should be given. To be used if <code>returnData = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>returnData</code></td>
+<td>
+ <p><code>TRUE/FALSE</code>. Set to <code>FALSE</code> by default. The new 
+variable is bound directly to the <code>data.frame</code> provided and the
+data frame is returned in full.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>showprogressbar</code></td>
+<td>
+ <p><code>TRUE/FALSE</code>. Can only be set to TRUE if the function is not run in parallel.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inParallel</code></td>
+<td>
+ <p><code>TRUE/FALSE</code>. An optional boolean to specify if the loop should be run in parallel.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cluster</code></td>
+<td>
+<p> An optional numeric or character value that defines the cluster. By specifying a single number, the cluster option uses the provided number of nodes to parallellize. By specifying a cluster using the <code>makeCluster</code>-command in the <code>doParallel</code>-package, the loop can be run on multiple nodes/cores. E.g., <code>cluster = makeCluster(12, type="FORK")</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The <code>triadStat()</code>-function calculates an endogenous statistic that measures whether events have a tendency to form closing triads.
+</p>
+<p>The effect is calculated as follows:
+</p>
+<p style="text-align: center;"><code class="reqn">G_t = G_t(E) = (A, B, w_t), </code>
+</p>
+
+<p><code class="reqn">G_t</code> represents the network of past events and includes all events <code class="reqn">E</code>. These events consist
+each of  a sender <code class="reqn">a \in A</code> and a target <code class="reqn">b \in B</code> and a weight function <code class="reqn">w_t</code>:
+</p>
+<p style="text-align: center;"><code class="reqn">  w_t(i, j) = \sum_{e:a = i, b = j} | w_e | \cdot e^{-(t-t_e)\cdot\frac{ln(2)}{T_{1/2}}} \cdot \frac{ln(2)}{T_{1/2}}, </code>
+</p>
+
+<p>where <code class="reqn">w_e</code> is the event weight (usually a constant set to 1 for each event), <code class="reqn">t</code> is the current event time, <code class="reqn">t_e</code> is the past event time and <code class="reqn">T_{1/2}</code> is a halflife parameter.
+</p>
+<p>For the triad effect, the past events <code class="reqn">G_t</code> are filtered to include only events
+where the current event closes an open triad in the past.
+</p>
+<p style="text-align: center;"><code class="reqn">triad(G_t , a , b) = \sqrt{\sum_{i \in A} w_t(a, i) \cdot w_t(i, b)}</code>
+</p>
+
+<p>An exponential decay function is used to model the effect of time on the endogenous statistics. The further apart the past event is from the present event, the less weight is given to this event. The halflife parameter in the <code>triadStat()</code>-function determines at which rate the weights of past events should be reduced. Therefore, if the one (or more) of the two events in the triad have occurred further in the past, less weight is given to this triad because it becomes less likely that the sender and target actors reacted to each other in the way the triad assumes.
+</p>
+<p>The <code>eventtypevar</code>- and <code>eventattributevar</code>-options help filter the past events more specifically. How they are filtered depends on the <code>eventtypevalue</code>- and <code>eventattributevalue</code>-option.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Laurence Brandenberger <a href="mailto:laurence.brandenberger@eawag.ch">laurence.brandenberger@eawag.ch</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p>rem-package
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># create some data with 'sender', 'target' and a 'time'-variable
+# (Note: Data used here are random events from the Correlates of War Project)
+sender &lt;- c('TUN', 'UNK', 'NIR', 'TUR', 'TUR', 'USA', 'URU', 
+            'IRQ', 'MOR', 'BEL', 'EEC', 'USA', 'IRN', 'IRN', 
+            'USA', 'AFG', 'ETH', 'USA', 'SAU', 'IRN', 'IRN',
+            'ROM', 'USA', 'USA', 'PAN', 'USA', 'USA', 'YEM', 
+            'SYR', 'AFG', 'NAT', 'UNK', 'IRN')
+target &lt;- c('BNG', 'RUS', 'JAM', 'SAU', 'MOM', 'CHN', 'IRQ', 
+            'AFG', 'AFG', 'EEC', 'BEL', 'ITA', 'RUS', 'UNK',
+            'IRN', 'RUS', 'AFG', 'ISR', 'ARB', 'USA', 'USA',
+            'USA', 'AFG', 'IRN', 'IRN', 'IRN', 'AFG', 'PAL',
+            'ARB', 'USA', 'EEC', 'IRN', 'CHN')
+time &lt;- c('800107', '800107', '800107', '800109', '800109', 
+          '800109', '800111', '800111', '800111', '800113',
+          '800113', '800113', '800114', '800114', '800114', 
+          '800116', '800116', '800116', '800119', '800119',
+          '800119', '800122', '800122', '800122', '800124', 
+          '800125', '800125', '800127', '800127', '800127', 
+          '800204', '800204', '800204')
+type &lt;- sample(c('cooperation', 'conflict'), 33,
+               replace = TRUE)
+important &lt;- sample(c('important', 'not important'), 33,
+                    replace = TRUE)
+
+# combine them into a data.frame
+dt &lt;- data.frame(sender, target, time, type, important)
+
+# create event sequence and order the data
+dt &lt;- eventSequence(datevar = dt$time, dateformat = "%y%m%d", 
+                    data = dt, type = "continuous", 
+                    byTime = "daily", returnData = TRUE,
+                    sortData = TRUE)
+
+# create counting process data set (with null-events) - conditional logit setting
+dts &lt;- createRemDataset(dt, dt$sender, dt$target, dt$event.seq.cont, 
+                          eventAttribute = dt$type, 
+                          atEventTimesOnly = TRUE, untilEventOccurrs = TRUE, 
+						  returnInputData = TRUE)
+dtrem &lt;- dts[[1]]
+dt &lt;- dts[[2]]
+# manually sort the data set
+dtrem &lt;- dtrem[order(dtrem$eventTime), ]
+# merge type-variable back in
+dtrem$type &lt;- dt$type[match(dtrem$eventID, dt$eventID)]
+
+# calculate triad statistic
+dtrem$triad &lt;- triadStat(data = dtrem, time = dtrem$eventTime, 
+                      sender = dtrem$sender, target = dtrem$target, 
+                      eventvar = dtrem$eventDummy,
+                      halflife = 2)
+
+# calculate friend-of-friend statistic
+dtrem$triad.fof &lt;- triadStat(data = dtrem, time = dtrem$eventTime, 
+                          sender = dtrem$sender, target = dtrem$target, 
+                          halflife = 2, eventtypevar = dtrem$type, 
+                          eventtypevalues = c("cooperation",
+                                              "cooperation"), 
+                          eventvar = dtrem$eventDummy)
+
+# calculate friend-of-enemy statistic
+dtrem$triad.foe &lt;- triadStat(data = dtrem, time = dtrem$eventTime, 
+                             sender = dtrem$sender, target = dtrem$target, 
+                             halflife = 2, eventtypevar = dtrem$type, 
+                             eventtypevalues = c("conflict",
+                                                 "cooperation"), 
+                             eventvar = dtrem$eventDummy)
+
+# calculate enemy-of-friend statistic
+dtrem$triad.eof &lt;- triadStat(data = dtrem, time = dtrem$eventTime, 
+                             sender = dtrem$sender, target = dtrem$target, 
+                             halflife = 2, eventtypevar = dtrem$type, 
+                             eventtypevalues = c("cooperation",
+                                                 "conflict"), 
+                             eventvar = dtrem$eventDummy)
+
+# calculate enemy-of-enemy statistic
+dtrem$triad.eoe &lt;- triadStat(data = dtrem, time = dtrem$eventTime, 
+                             sender = dtrem$sender, target = dtrem$target, 
+                             halflife = 2, eventtypevar = dtrem$type, 
+                             eventtypevalues = c("conflict",
+                                                 "conflict"), 
+                             eventvar = dtrem$eventDummy)
+</code></pre>
+
+
+</div>

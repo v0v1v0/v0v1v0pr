@@ -1,0 +1,179 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>robincar_SL</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>BETA: Covariate adjustment using working models from the super learner libraries
+through the AIPW package with cross-fitting.</h2>
+
+<h3>Description</h3>
+
+<p>Estimate treatment-group-specific response means and (optionally)
+treatment group contrasts using a generalized linear working model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">robincar_SL(
+  df,
+  treat_col,
+  response_col,
+  car_strata_cols = NULL,
+  covariate_cols = NULL,
+  car_scheme = "simple",
+  covariate_to_include_strata = NULL,
+  SL_libraries = c(),
+  SL_learners = c(),
+  k_split = 2,
+  g_accuracy = 7,
+  contrast_h = NULL,
+  contrast_dh = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>df</code></td>
+<td>
+<p>A data.frame with the required columns</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>treat_col</code></td>
+<td>
+<p>Name of column in df with treatment variable</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>response_col</code></td>
+<td>
+<p>Name of the column in df with response variable</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>car_strata_cols</code></td>
+<td>
+<p>Names of columns in df with car_strata variables</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covariate_cols</code></td>
+<td>
+<p>Names of columns in df with covariate variables</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>car_scheme</code></td>
+<td>
+<p>Name of the type of covariate-adaptive randomization scheme. One of: "simple", "pocock-simon", "biased-coin", "permuted-block".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covariate_to_include_strata</code></td>
+<td>
+<p>Whether to include car_strata variables in covariate adjustment. Defaults to F for ANOVA and ANCOVA; defaults to T for ANHECOVA. User may override by passing in this argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SL_libraries</code></td>
+<td>
+<p>Vector of super-learner libraries to use for the covariate adjustment (see SuperLearner::listWrappers)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SL_learners</code></td>
+<td>
+<p>Optional list of super-learner "learners" to use for the covariate adjustment (see SuperLearner::create.Learner())</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k_split</code></td>
+<td>
+<p>Number of splits to use in cross-fitting</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g_accuracy</code></td>
+<td>
+<p>Level of accuracy to check prediction un-biasedness (in digits).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>contrast_h</code></td>
+<td>
+<p>An optional function to specify a desired contrast</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>contrast_dh</code></td>
+<td>
+<p>An optional jacobian function for the contrast (otherwise use numerical derivative)</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>*WARNING: This function is still under development and has not been extensively tested.*
+This function currently only works for two treatment groups.
+Before using this function, you must load the SuperLearner library with
+'library(SuperLearner)', otherwise the function call will fail.
+</p>
+
+
+<h3>Value</h3>
+
+<p>See value of RobinCar::robincar_glm, but the working model for <code class="reqn">\hat{\mu}(X_i)</code> is based on the AIPW package that uses specified SuperLearner libraries and cross-fitting.
+Also, 'mod' attribute is an object of class AIPW::AIPW.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(SuperLearner)
+library(ranger)
+n &lt;- 1000
+set.seed(10)
+DATA2 &lt;- data.frame(A=rbinom(n, size=1, prob=0.5),
+                    y=rbinom(n, size=1, prob=0.2),
+                    x1=rnorm(n),
+                    x2=rnorm(n),
+                    x3=as.factor(rbinom(n, size=1, prob=0.5)),
+                    z1=rbinom(n, size=1, prob=0.5),
+                    z2=rbinom(n, size=1, prob=0.5))
+DATA2[, "y"] &lt;- NA
+As &lt;- DATA2$A == 1
+DATA2[DATA2$A == 1, "y"] &lt;- rbinom(
+  sum(As),
+  size=1,
+  prob=exp(DATA2[As,]$x1)/(1+exp(DATA2[As,]$x1)))
+DATA2[DATA2$A == 0, "y"] &lt;- rbinom(
+  n-sum(As),
+  size=1,
+  prob=exp(1 +
+    5*DATA2[!As,]$x1 + DATA2[!As,]$x2)/
+    (1+exp(1 + 5*DATA2[!As,]$x1 + DATA2[!As,]$x2)))
+DATA2$A &lt;- as.factor(DATA2$A)
+
+sl.mod &lt;- robincar_SL(
+  df=DATA2,
+  response_col="y",
+  treat_col="A",
+  car_strata_cols=c("z1"),
+  covariate_cols=c("x1"),
+  SL_libraries=c("SL.ranger"),
+  car_scheme="permuted-block",
+  covariate_to_include_strata=TRUE
+)
+
+sl.mod$result
+
+</code></pre>
+
+
+</div>

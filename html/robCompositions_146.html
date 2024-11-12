@@ -1,0 +1,182 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>smoothSplines</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate density from histogram</h2>
+
+<h3>Description</h3>
+
+<p>Given raw (discretized) distributional observations, <code>smoothSplines</code> computes the density
+function that 'best' fits data, in a trade-off between smooth and least squares approximation, using B-spline basis functions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">smoothSplines(
+  k,
+  l,
+  alpha,
+  data,
+  xcp,
+  knots,
+  weights = matrix(1, dim(data)[1], dim(data)[2]),
+  num_points = 100,
+  prior = "default",
+  cores = 1,
+  fast = 0
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>smoothing splines degree</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>l</code></td>
+<td>
+<p>order of derivative in the penalization term</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>weight for penalization</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>an object of class "matrix" containing data to be smoothed, row by row</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xcp</code></td>
+<td>
+<p>vector of control points</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>knots</code></td>
+<td>
+<p>either vector of knots for the splines or a integer for the number of equispaced knots</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>matrix of weights. If not given, all data points will be weighted the same.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>num_points</code></td>
+<td>
+<p>number of points of the grid where to evaluate the density estimated</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior</code></td>
+<td>
+<p>prior used for zero-replacements. This must be one of "perks", "jeffreys", "bayes_laplace", "sq" or "default"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cores</code></td>
+<td>
+<p>number of cores for parallel execution, if the option was enabled before installing the package</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fast</code></td>
+<td>
+<p>1 if maximal performance is required (print statements suppressed), 0 otherwise</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The original discretized densities are not directly smoothed, but instead the centred logratio transformation is
+first applied, to deal with the unit integral constraint related to density functions. <br>
+Then the constrained variational problem is set. This minimization problem for the optimal
+density is a compromise between staying close to the given data, at the corresponding <code>xcp</code>,
+and obtaining a smooth function.
+The non-smoothness measure takes into account the <code>l</code>th derivative, while the fidelity term is weigthed by <code>alpha</code>. <br>
+The solution is a natural spline. The vector of its coefficients is obtained by the minimum norm solution of a linear system.
+The resulting splines can be either back-transformed to the original Bayes space of density
+functions (in order to provide their smoothed counterparts for vizualization and interpretation
+purposes), or retained for further statistical analysis in the clr space.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>smoothSpl</code>, containing among the other the following variables:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>bspline</code></td>
+<td>
+<p>each row is the vector of B-spline coefficients</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>the values of the smoothed curve, for the grid given</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y_clr</code></td>
+<td>
+<p>the values of the smoothed curve, in the clr setting, for the grid given</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Alessia Di Blasi, Federico Pavone, Gianluca Zeni, Matthias Templ
+</p>
+
+
+<h3>References</h3>
+
+<p>J. Machalova, K. Hron &amp; G.S. Monti (2016):
+Preprocessing of centred logratio transformed density functions
+using smoothing splines. Journal of Applied Statistics, 43:8, 1419-1435.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">SepalLengthCm &lt;- iris$Sepal.Length
+Species &lt;- iris$Species
+
+iris1 &lt;- SepalLengthCm[iris$Species==levels(iris$Species)[1]]
+h1 &lt;- hist(iris1, nclass = 12, plot = FALSE)
+
+midx1 &lt;- h1$mids
+midy1 &lt;- matrix(h1$density, nrow=1, ncol = length(h1$density), byrow=TRUE)
+knots &lt;- 7
+## Not run: 
+sol1 &lt;- smoothSplines(k=3,l=2,alpha=1000,midy1,midx1,knots)
+plot(sol1)
+
+h1 &lt;- hist(iris1, freq = FALSE, nclass = 12, xlab = "Sepal Length     [cm]", main = "Iris setosa")
+# black line: kernel method; red line: smoothSplines result
+lines(density(iris1), col = "black", lwd = 1.5)
+xx1 &lt;- seq(sol1$Xcp[1],tail(sol1$Xcp,n=1),length.out = sol1$NumPoints)
+lines(xx1,sol1$Y[1,], col = 'red', lwd = 2)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,195 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>read.gt3x</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Read GT3X</h2>
+
+<h3>Description</h3>
+
+<p>Read activity samples from a GT3X file as a matrix.
+Please note that all timestamps are in local time (of the device)
+even though they are represented as <code>POSIXct</code> with GMT timezone.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">read.gt3x(
+  path,
+  verbose = FALSE,
+  asDataFrame = FALSE,
+  imputeZeroes = FALSE,
+  flag_idle_sleep = FALSE,
+  cleanup = FALSE,
+  ...,
+  add_light = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>path</code></td>
+<td>
+<p>Path to gt3x folder</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>print diagnostic messages</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>asDataFrame</code></td>
+<td>
+<p>convert to an <code>activity_df</code>, see
+<code>as.data.frame.activity</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>imputeZeroes</code></td>
+<td>
+<p>Impute zeros in case there are missingness?
+Default is FALSE, in which case
+the time series will be incomplete in case there is missingness.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flag_idle_sleep</code></td>
+<td>
+<p>flag idle sleep mode.  If <code>imputeZeroes = TRUE</code>,
+this finds where all 3 axes are zero.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cleanup</code></td>
+<td>
+<p>should any unzipped files be deleted?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments to pass to <code>parseGT3X</code> C++ code, e.g. batch-loading options as now documented in vignette "Batch loading a gt3x file"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>add_light</code></td>
+<td>
+<p>add light data to the <code>data.frame</code> if data exists in the
+GT3X</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A numeric matrix with 3 columns (X, Y, Z) and the following
+attributes:
+</p>
+
+<ul>
+<li> <p><code>start_time</code> :  Start time from info file in <code>POSIXct</code> format.
+</p>
+</li>
+<li> <p><code>subject_name</code> : Subject name from info file
+</p>
+</li>
+<li> <p><code>time_zone</code> : Time zone from info file
+</p>
+</li>
+<li> <p><code>missingness</code> : Named integer vector. Names are <code>POSIXct</code>
+timestamps and values are the number of missing values.
+</p>
+</li>
+</ul>
+<h3>Note</h3>
+
+<p>The timestamps in the .gt3x data format are saved in .NET format, which is
+nanoseconds in local time since 0001-01-01.
+This is a bit tricky to parse into an R datetime format. DateTimes are
+therefore represented as <code>POSIXct</code> format with the
+'GMT' timezone attribute, which is false; the datetime actually
+represents local time.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other gt3x-parsers: 
+<code>as.data.frame.activity()</code>,
+<code>parse_gt3x_info()</code>,
+<code>print.gt3x_info()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+gt3xfile &lt;-
+  system.file(
+    "extdata", "TAS1H30182785_2019-09-17.gt3x",
+    package = "read.gt3x")
+is_gt3x(gt3xfile)
+have_log_and_info(gt3xfile, verbose = TRUE)
+
+x &lt;- read.gt3x(gt3xfile, imputeZeroes = FALSE, asDataFrame = FALSE,
+verbose = TRUE)
+attr(x, "features")
+df2 &lt;- as.data.frame(x, verbose = TRUE)
+attr(df2, "features")
+head(df2)
+rm(x); gc(); gc()
+rm(df2); gc()
+
+x &lt;- read.gt3x(gt3xfile, imputeZeroes = TRUE, asDataFrame = TRUE,
+verbose = TRUE)
+
+## Not run: 
+# first unzip, then read
+datadir &lt;- gt3x_datapath()
+gt3xfolders &lt;- unzip.gt3x(datadir)
+gt3xfile &lt;- gt3xfolders[2]
+# temporary unzip, read, convert to a data frame
+gt3xfile &lt;- gt3x_datapath(1)
+memory.limit()
+df &lt;- read.gt3x(gt3xfile, asDataFrame = FALSE, verbose = 2)
+head(df)
+rm(df); gc(); gc()
+
+
+df &lt;- read.gt3x(gt3xfile, asDataFrame = TRUE, verbose = 2)
+head(df)
+
+## End(Not run)
+
+## Not run: 
+
+
+
+url &lt;- paste0("https://github.com/THLfi/read.gt3x/",
+"files/", "3522749/", "GT3X%2B.01.day.gt3x.zip")
+destfile &lt;- tempfile(fileext = ".zip")
+dl &lt;- download.file(url, destfile = destfile, mode = "wb")
+gt3x_file &lt;- unzip(destfile, exdir = tempdir())
+gt3x_file &lt;- gt3x_file[!grepl("__MACOSX", gt3x_file)]
+path &lt;- gt3x_file
+
+res &lt;- read.gt3x(path)
+
+gz &lt;- R.utils::gzip(path, remove = FALSE, overwrite = FALSE)
+df2 &lt;- read.gt3x(gz, asDataFrame = FALSE, verbose = 2)
+head(df2)
+
+rm(df2); gc(); gc()
+
+
+## End(Not run)
+</code></pre>
+
+
+</div>

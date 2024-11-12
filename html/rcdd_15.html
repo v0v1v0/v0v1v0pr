@@ -1,0 +1,201 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>lpcdd</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>linear programming with exact arithmetic</h2>
+
+<h3>Description</h3>
+
+<p>Solve linear program or explain why it has no solution.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">lpcdd(hrep, objgrd, objcon, minimize = TRUE,
+    solver = c("DualSimplex", "CrissCross"))
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>hrep</code></td>
+<td>
+<p>H-representation of convex polyhedron (see details) over
+which an affine function is maximized or minimized.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>objgrd</code></td>
+<td>
+<p>gradient vector of affine function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>objcon</code></td>
+<td>
+<p>constant term of affine function. May be missing, in
+which case, taken to be zero.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minimize</code></td>
+<td>
+<p>minimize if <code>TRUE</code>, otherwise maximize.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>solver</code></td>
+<td>
+<p>type of solver.  Use the default unless you know better.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>See <code>cddlibman.pdf</code> in the <code>doc</code> directory of this package,
+especially Sections 1 and 2 and the documentation of the function
+<code>dd_LPSolve</code> in Section 4.2.
+</p>
+<p>This function minimizes or maximizes an affine function <code>x</code>
+maps to <code>sum(objgrd * x) + objcon</code> over a convex polyhedron
+given by the H-representation given by the matrix <code>hrep</code>.
+Let
+</p>
+<pre>
+      l &lt;- hrep[ , 1]
+      b &lt;- hrep[ , 2]
+      v &lt;- hrep[ , - c(1, 2)]
+      a &lt;- (- v)
+  </pre>
+<p>Then the convex polyhedron in question is the set of
+points <code>x</code> satisfying
+</p>
+<pre>
+      axb &lt;- a %*% x - b
+      all(axb &lt;= 0)
+      all(l * axb == 0)
+  </pre>
+
+
+<h3>Value</h3>
+
+<p>a list containing some of the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>solution.type</code></td>
+<td>
+<p>character string describing the solution type.
+<code>"Optimal"</code> indicates the optimum is achieved.
+<code>"Inconsistent"</code> indicates the feasible region is empty
+(no points satisfy the constraints, the polyhedron specified
+by <code>hrep</code> is empty).
+<code>"DualInconsistent"</code> or <code>"StrucDualInconsistent"</code> indicates
+the feasible region is unbounded
+and the objective function is unbounded below when <code>minimize = TRUE</code>
+or above when <code>minimize = FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>primal.solution</code></td>
+<td>
+<p>Returned only when <code>solution.type = "Optimal"</code>,
+the solution to the stated (primal) problem.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dual.solution</code></td>
+<td>
+<p>Returned only when <code>solution.type = "Optimal"</code>,
+the solution to the dual problem, Lagrange multipliers for the primal
+problem.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dual.direction</code></td>
+<td>
+<p>Returned only when
+<code>solution.type = "Inconsistent"</code>,
+coefficients of a linear combination of original inequalities
+and equalities that proves the inconsistency.  Coefficients for original
+inequalities are nonnegative.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>primal.direction</code></td>
+<td>
+<p>Returned only when
+<code>solution.type = "DualInconsistent"</code>
+or <code>solution.type = "StrucDualInconsistent"</code>,
+coefficients of the linear combination of columns
+that proves the dual inconsistency, also an unbounded direction
+for the primal LP.</p>
+</td>
+</tr>
+</table>
+<h3>Rational Arithmetic</h3>
+
+<p>The arguments <code>hrep</code>, <code>objgrd</code>, and <code>objcon</code> may
+have type <code>"character"</code> in which case their elements are interpreted
+as unlimited precision rational numbers.  They consist of an optional
+minus sign, a string of digits of any length (the numerator),
+a slash, and another string of digits of any length (the denominator).
+The denominator must be positive.  If the denominator is one, the
+slash and the denominator may be omitted.  This package
+provides several functions (see ConvertGMP and ArithmeticGMP)
+for conversion back and forth between R floating point numbers and rationals
+and for arithmetic on GMP rationals.
+</p>
+
+
+<h3>Warning</h3>
+
+<p>If you want correct answers, use rational arithmetic.  If you do not,
+this function may (1) produce approximately correct answers, (2) fail with
+an error, (3) give answers that are nowhere near correct with no error or
+warning, or (4) crash R losing all work done to that point.  In large
+simulations (1) is most frequent, (2) occurs roughly one time in a thousand,
+(3) occurs roughly one time in ten thousand, and (4) has only occurred once
+and only with the <code>redundant</code> function.  So the R floating point
+arithmetic version does mostly work, but you cannot trust its results unless
+you can check them independently.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scdd</code>, <code>ArithmeticGMP</code>,
+<code>ConvertGMP</code></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># first two rows are inequalities, second two equalities
+hrep &lt;- rbind(c("0", "0", "1", "1", "0", "0"),
+              c("0", "0", "0", "2", "0", "0"),
+              c("1", "3", "0", "-1", "0", "0"),
+              c("1", "9/2", "0", "0", "-1", "-1"))
+a &lt;- c("2", "3/5", "0", "0")
+lpcdd(hrep, a)
+
+# primal inconsistent problem
+hrep &lt;- rbind(c("0", "0", "1", "0"),
+              c("0", "0", "0", "1"),
+              c("0", "-2", "-1", "-1"))
+a &lt;- c("1", "1")
+lpcdd(hrep, a)
+
+# dual inconsistent problem
+hrep &lt;- rbind(c("0", "0", "1", "0"),
+              c("0", "0", "0", "1"))
+a &lt;- c("1", "1")
+lpcdd(hrep, a, minimize = FALSE)
+</code></pre>
+
+
+</div>

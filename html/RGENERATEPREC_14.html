@@ -1,0 +1,152 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PrecipitationOccurrenceModel</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Precipitation Occurrence Model</h2>
+
+<h3>Description</h3>
+
+<p>This functions creates a stochastic Occurrence Model for the variable  <code>x</code> (<code>PrecipitationOccurrenceModel</code> S3 object) through a calibration from observed data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PrecipitationOccurrenceModel(
+  x,
+  exogen = NULL,
+  p = 1,
+  monthly.factor = NULL,
+  valmin = 0.5,
+  id.name = NULL,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>variable utilized for the auto-regression of its occurrence, e.g. daily precipitaton</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exogen</code></td>
+<td>
+<p>exogenous predictors</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>auto-regression order</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>monthly.factor</code></td>
+<td>
+<p>vector of factors indicating the month of the days</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>valmin</code></td>
+<td>
+<p>minimum admitted value for daily precipitation amount</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id.name</code></td>
+<td>
+<p>identification name of the station</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The function returns a <code>PrecipitationOccurrenceModel-class</code> S3 object containing the following elements:
+</p>
+<p><code>predictor</code> data frame containg the endogenous and exogenous predictors of the logistic regression model;
+</p>
+<p><code>glm</code> the genaralized liner model using for the logistic regression;
+</p>
+<p><code>p</code> auto-regression order 
+</p>
+<p><code>valmin</code> minimum admitted value for daily precipitation amount
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>glm</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(RGENERATEPREC)
+
+data(trentino)
+
+year_min &lt;- 1961
+year_max &lt;- 1990
+
+period &lt;- PRECIPITATION$year&gt;=year_min &amp; PRECIPITATION$year&lt;=year_max
+period_temp &lt;- TEMPERATURE_MAX$year&gt;=year_min &amp; TEMPERATURE_MAX$year&lt;=year_max
+
+prec_mes &lt;- PRECIPITATION[period,]
+Tx_mes &lt;- TEMPERATURE_MAX[period_temp,]
+Tn_mes &lt;- TEMPERATURE_MIN[period_temp,]
+accepted &lt;- array(TRUE,length(names(prec_mes)))
+names(accepted) &lt;- names(prec_mes)
+for (it in names(prec_mes)) {
+	acc &lt;- TRUE
+	acc &lt;- (length(which(!is.na(Tx_mes[,it])))==length(Tx_mes[,it]))
+	acc &lt;- (length(which(!is.na(Tn_mes[,it])))==length(Tn_mes[,it])) &amp; acc
+	accepted[it]  &lt;- (length(which(!is.na(prec_mes[,it])))==length(prec_mes[,it])) &amp; acc
+	
+}
+
+valmin &lt;- 1.0
+prec_mes &lt;- prec_mes[,accepted]
+
+
+
+Tx_mes &lt;- Tx_mes[,accepted]
+Tn_mes &lt;- Tn_mes[,accepted]
+prec_occurrence_mes &lt;- prec_mes&gt;=valmin
+
+station &lt;- names(prec_mes)[!(names(prec_mes) %in% c("day","month","year"))]
+it &lt;- station[2]
+vect &lt;- Tx_mes[,it]-Tn_mes[,it]
+months &lt;- factor(prec_mes$month)
+model &lt;- PrecipitationOccurrenceModel(x=prec_mes[,it],exogen=vect,monthly.factor=months)
+
+probs &lt;- predict(model$glm,type="response")
+
+
+
+
+
+plot(months[-1],probs)
+
+newdata &lt;- model$predictor[2000:2007,]
+probs0 &lt;- predict(model,newdata=newdata)
+
+
+
+</code></pre>
+
+
+</div>

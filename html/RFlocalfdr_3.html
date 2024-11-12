@@ -1,0 +1,156 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>determine_cutoff</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>evaluate a measure that can be used to determining a significance level for the Mean Decrease in Impurity measure returned by a Random Forest model</h2>
+
+<h3>Description</h3>
+
+<p>evaluate a measure that can be used to determining a significance level for the Mean Decrease in Impurity measure returned by a Random Forest model
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">determine_cutoff(
+  imp,
+  t2,
+  cutoff = c(0, 1, 4, 10, 15, 20),
+  Q = 0.75,
+  plot = NULL,
+  verbose = 0,
+  try.counter = 3
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>imp</code></td>
+<td>
+<p>vector of MDI variable importances</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>t2</code></td>
+<td>
+<p>number of times each variable is used in the a ranger forest. Returned by
+count_variables for a ranger RF</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cutoff</code></td>
+<td>
+<p>values to evaluate</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Q</code></td>
+<td>
+<p>– we examine the fit up to the quartile Q</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>for 4 selected values of the cutoff. The plot contains
+</p>
+
+<ul>
+<li>
+<p> The data (black) and  the  fitted density  (red)
+</p>
+</li>
+<li>
+<p> The skew-normal fit (blue)
+</p>
+</li>
+<li>
+<p> The quantile Q (vertical red line)
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>verbose=0, no output to screen
+verbose=1, track the cutoff value being used</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>try.counter</code></td>
+<td>
+<p>passed to fit.to.data.set.wrapper</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>res a matrix if size length(cutoff) by 3.
+We model the histogram of imp with a kernel density estimate, y.
+Let t1 be  fitted values of the skew normal. Then res contains three columns
+</p>
+
+<ul>
+<li>
+<p> sum((y-t1)^2)
+</p>
+</li>
+<li>
+<p> sum(abs(y-t1)) and
+</p>
+</li>
+<li>
+<p> max(abs(y-t1)),
+evaluated up to the quantile Q
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(imp20000)
+imp &lt;- log(imp20000$importances)
+t2&lt;- imp20000$counts
+length(imp)
+hist(imp,col=6,lwd=2,breaks=100,main="histogram of importances")
+res.temp &lt;- determine_cutoff(imp, t2 ,cutoff=c(0,1,2,3),plot=c(0,1,2,3),Q=0.75,try.counter=1)
+
+plot(c(0,1,2,3),res.temp[,3])
+# the minimum is at 1 so
+imp&lt;-imp[t2 &gt; 1]
+
+qq &lt;- plotQ(imp,debug.flag = 0)
+ppp&lt;-run.it.importances(qq,imp,debug=0)
+aa&lt;-significant.genes(ppp,imp,cutoff=0.2,debug.flag=0,do.plot=2, use_95_q=TRUE)
+length(aa$probabilities) #11#
+names(aa$probabilities)
+#[1] "X101"   "X102"   "X103"   "X104"   "X105"   "X2994"  "X9365"  "X10718"
+# [9] "X13371" "X15517" "X16460"
+# so the observed FDR is 0.54
+
+
+library(ranger)
+library(RFlocalfdr.data)
+data(smoking)
+y&lt;-smoking$y
+smoking_data&lt;-smoking$rma
+y.numeric &lt;-ifelse((y=="never-smoked"),0,1)
+rf1 &lt;- ranger::ranger(y=y.numeric ,x=smoking_data,importance="impurity",seed=123, num.trees = 10000,     
+         classification=TRUE)
+t2 &lt;-count_variables(rf1)
+imp&lt;-log(rf1$variable.importance)
+plot(density((imp)))
+# Detemine a cutoff to get a unimodal density.
+res.temp &lt;- determine_cutoff(imp, t2 ,cutoff=c(1,2,3,4),plot=c(1,2,3,4),Q=0.75)
+plot(c(1,2,3,4),res.temp[,3])
+
+</code></pre>
+
+
+</div>

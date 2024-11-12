@@ -1,0 +1,458 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>track.table-class</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Class <code>"track.table"</code>
+</h2>
+
+<h3>Description</h3>
+
+<p><code>"track.table"</code> describes a collection of features localized on a genome, defined by a chromosomal location ("chrom"), two boundaries ("start" and "end") and various data (other columns).
+</p>
+<p>Objects can be created by two distincts means :
+</p>
+
+<ul>
+<li>
+<p>The <code>track.table</code> constructor, similar to the <code>data.frame</code> constructor. It imports a single <code>data.frame</code> or a collection of vectors into the object, reorder it to meet the <code>track.table</code> class restrictions (see below) and check immediatly for validity.
+</p>
+</li>
+<li>
+<p>The <code>new</code> function (standard behavior for S4 and reference classes), which produces an empty object and do NOT check for validity. It takes as named arguments the values to store in the fields of the various classes the new object will inherit from.
+</p>
+</li>
+</ul>
+<p>3 columns are mandatory in <code>"track.table"</code>, with restricted names and types :
+</p>
+
+<dl>
+<dt>name</dt>
+<dd>
+<p>The unique name of the feature, as <code>character</code>.</p>
+</dd>
+<dt>chrom</dt>
+<dd>
+<p>The chromosomal location of the feature, as <code>integer</code> or <code>factor</code>.</p>
+</dd>
+<dt>start</dt>
+<dd>
+<p>The starting position of the feature on the chromosome, as <code>integer</code>.</p>
+</dd>
+<dt>end</dt>
+<dd>
+<p>The ending position of the feature on the chromosome, as <code>integer</code>.</p>
+</dd>
+</dl>
+<p>The track is supposed to be ordered by chromosome, then by starting position. When chromosomes are stored as <code>factors</code>, they need to be numerically ordered by their internal codes (as the <code>order</code> function does), not alphabetically by their labels.
+</p>
+<p>As the <code>slice</code> method relies on a row index, each update in the feature coordinates must be followed by a call to the <code>buildIndex</code> method, a behavior that is enforced by overloading most of <code>refTable</code>-inherited methods.
+</p>
+<p>As the <code>slice</code> method relies on a R call object using <code>refTable</code> column references, each update in the column names must be followed by a call to the <code>buildCalls</code> method, a behavior that is enforced by overloading most of <code>refTable</code>-inherited methods. 
+</p>
+
+
+<h3>Extends</h3>
+
+<p>Class <code>refTable</code>, directly.<br>
+Class <code>crossable</code>, directly.<br>
+Class <code>sliceable</code>, by class <code>crossable</code>, distance 2.<br>
+Class <code>drawable</code>, by class <code>crossable</code>, distance 3.
+</p>
+<p>All reference classes extend and inherit methods from <code>envRefClass</code>.
+</p>
+
+
+<h3>Fields</h3>
+
+
+<dl>
+<dt>
+<code>assembly</code>:</dt>
+<dd>
+<p>Single <code>character</code> value, the assembly version for the coordinates stored in the object. Must have length 1, should not be <code>NA</code>.</p>
+</dd>
+<dt>
+<code>checktrack</code>:</dt>
+<dd>
+<p>A <code>call</code> to the C external "checktrack", for faster object check (see the <code>check</code> method).</p>
+</dd>
+<dt>
+<code>index</code>:</dt>
+<dd>
+<p><code>integer</code> vector, giving the index of the first row in each chromosome. See the <code>subtrack</code> function for further details.</p>
+</dd>
+<dt>
+<code>organism</code>:</dt>
+<dd>
+<p>Single <code>character</code> value, the name of the organism whose data is stored in the object. Must have length 1, should not be <code>NA</code>.</p>
+</dd>
+<dt>
+<code>sizetrack</code>:</dt>
+<dd>
+<p>A <code>call</code> to the C external "track", for faster row counting (see the <code>size</code> method).</p>
+</dd>
+<dt>
+<code>subtrack</code>:</dt>
+<dd>
+<p>A <code>call</code> to the C external "track", for faster slicing (see the <code>slice</code> method).</p>
+</dd>
+</dl>
+<p>The following fields are inherited (from the corresponding class):
+</p>
+
+<ul>
+<li>
+<p> colCount (refTable)
+</p>
+</li>
+<li>
+<p> colIterator (refTable)
+</p>
+</li>
+<li>
+<p> colNames (refTable)
+</p>
+</li>
+<li>
+<p> colReferences (refTable)
+</p>
+</li>
+<li>
+<p> name (drawable)
+</p>
+</li>
+<li>
+<p> parameters (drawable)
+</p>
+</li>
+<li>
+<p> rowCount (refTable)
+</p>
+</li>
+<li>
+<p> rowNamed (refTable)
+</p>
+</li>
+<li>
+<p> rowNames (refTable)
+</p>
+</li>
+<li>
+<p> values (refTable)
+</p>
+</li>
+</ul>
+<h3>Methods</h3>
+
+
+<dl>
+<dt>
+<code>addArms(centromeres, temp = )</code>:</dt>
+<dd>
+<p>Adds an arm localization ('p' or 'q') to the 'chrom' column.<br>
+- <strong>centromeres</strong>   : named numeric vector, providing the centromere position of each chromosome. Can also be a band track, as returned by track.UCSC_bands().<br>
+- <strong>temp</strong>          : single logical value, whether to alter the object or return an altered copy.
+</p>
+</dd>
+<dt>
+<code>buildCalls()</code>:</dt>
+<dd>
+<p>Updates 'checktrack' and 'subtrack' fields. To be performed after each modification of colNames and colReferences (concerned methods are overloaded to enforce this).
+</p>
+</dd>
+<dt>
+<code>buildGroupPosition(groupBy, colName = , reverse = )</code>:</dt>
+<dd>
+<p>Adds a column to be used as 'groupPosition' by draw.boxes()<br>
+- <strong>groupBy</strong>   : single character value, the name of a column to group rows on.<br>
+- <strong>colName</strong>   : single character value, the name of the column to buid.<br>
+- <strong>reverse</strong>   : single logical value, whether to reverse numbering on reverse strand or not.
+</p>
+</dd>
+<dt>
+<code>buildGroupSize(groupBy, colName = )</code>:</dt>
+<dd>
+<p>Adds a column to be used as 'groupSize' by draw.boxes()<br>
+- <strong>groupBy</strong>   : single character value, the name of a column to group rows on.<br>
+- <strong>colName</strong>   : single character value, the name of the column to buid.
+</p>
+</dd>
+<dt>
+<code>buildIndex()</code>:</dt>
+<dd>
+<p>Updates the 'index' parameter, should be done after any change made on the 'chrom' column (concerned methods are overloaded to enforce this).
+</p>
+</dd>
+<dt>
+<code>eraseArms(temp = )</code>:</dt>
+<dd>
+<p>Removes 'p' and 'q' added by the addArms() method from the 'chrom' column.<br>
+- <strong>temp</strong>   : single logical value, whether to alter the object or return an altered copy.
+</p>
+</dd>
+<dt>
+<code>isArmed()</code>:</dt>
+<dd>
+<p>Detects whether the 'chrom' column refers to whole chromosomes or chromosome arms.
+</p>
+</dd>
+<dt>
+<code>segMerge(...)</code>:</dt>
+<dd>
+<p>Apply the segMerge() function to the track content.<br>
+- <strong>...</strong>   : arguments to be passed to segMerge().
+</p>
+</dd>
+<dt>
+<code>segOverlap(...)</code>:</dt>
+<dd>
+<p>Apply the segOverlap() function to the track content.<br>
+- <strong>...</strong>   : arguments to be passed to segOverlap().
+</p>
+</dd>
+<dt>
+<code>size(chrom, start, end)</code>:</dt>
+<dd>
+<p>Count elements in the specified window.<br>
+- <strong>chrom</strong>   : single integer, numeric or character value, the chromosomal location.<br>
+- <strong>start</strong>   : single integer or numeric value, inferior boundary of the window.<br>
+- <strong>end</strong>     : single integer or numeric value, superior boundary of the window.
+</p>
+</dd>
+</dl>
+<p>The following methods are inherited (from the corresponding class):
+</p>
+
+<ul>
+<li>
+<p> addColumn (refTable, overloaded)
+</p>
+</li>
+<li>
+<p> addDataFrame (refTable)
+</p>
+</li>
+<li>
+<p> addEmptyRows (refTable)
+</p>
+</li>
+<li>
+<p> addList (refTable, overloaded)
+</p>
+</li>
+<li>
+<p> addVectors (refTable)
+</p>
+</li>
+<li>
+<p> callParams (drawable)
+</p>
+</li>
+<li>
+<p> callSuper (envRefClass)
+</p>
+</li>
+<li>
+<p> check (refTable, overloaded)
+</p>
+</li>
+<li>
+<p> chromosomes (drawable, overloaded)
+</p>
+</li>
+<li>
+<p> coerce (refTable, overloaded)
+</p>
+</li>
+<li>
+<p> colOrder (refTable)
+</p>
+</li>
+<li>
+<p> copy (refTable)
+</p>
+</li>
+<li>
+<p> cross (crossable)
+</p>
+</li>
+<li>
+<p> defaultParams (sliceable, overloaded)
+</p>
+</li>
+<li>
+<p> delColumns (refTable, overloaded)
+</p>
+</li>
+<li>
+<p> draw (sliceable)
+</p>
+</li>
+<li>
+<p> erase (refTable)
+</p>
+</li>
+<li>
+<p> export (envRefClass)
+</p>
+</li>
+<li>
+<p> extract (refTable)
+</p>
+</li>
+<li>
+<p> field (envRefClass)
+</p>
+</li>
+<li>
+<p> fill (refTable, overloaded)
+</p>
+</li>
+<li>
+<p> fix.param (drawable)
+</p>
+</li>
+<li>
+<p> getChromEnd (sliceable, overloaded)
+</p>
+</li>
+<li>
+<p> getClass (envRefClass)
+</p>
+</li>
+<li>
+<p> getColCount (refTable)
+</p>
+</li>
+<li>
+<p> getColNames (refTable)
+</p>
+</li>
+<li>
+<p> getLevels (refTable)
+</p>
+</li>
+<li>
+<p> getName (drawable)
+</p>
+</li>
+<li>
+<p> getParam (drawable)
+</p>
+</li>
+<li>
+<p> getRefClass (envRefClass)
+</p>
+</li>
+<li>
+<p> getRowCount (refTable)
+</p>
+</li>
+<li>
+<p> getRowNames (refTable)
+</p>
+</li>
+<li>
+<p> import (envRefClass)
+</p>
+</li>
+<li>
+<p> indexes (refTable)
+</p>
+</li>
+<li>
+<p> initFields (envRefClass)
+</p>
+</li>
+<li>
+<p> initialize (refTable, overloaded)
+</p>
+</li>
+<li>
+<p> metaFields (refTable, overloaded)
+</p>
+</li>
+<li>
+<p> rowOrder (refTable, overloaded)
+</p>
+</li>
+<li>
+<p> setColNames (refTable, overloaded)
+</p>
+</li>
+<li>
+<p> setLevels (refTable, overloaded)
+</p>
+</li>
+<li>
+<p> setName (drawable)
+</p>
+</li>
+<li>
+<p> setParam (drawable)
+</p>
+</li>
+<li>
+<p> setRowNames (refTable)
+</p>
+</li>
+<li>
+<p> show (refTable, overloaded)
+</p>
+</li>
+<li>
+<p> slice (sliceable, overloaded)
+</p>
+</li>
+<li>
+<p> trace (envRefClass)
+</p>
+</li>
+<li>
+<p> types (refTable)
+</p>
+</li>
+<li>
+<p> untrace (envRefClass)
+</p>
+</li>
+<li>
+<p> usingMethods (envRefClass)
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>Sylvain Mareschal
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>refTable-class</code>
+</p>
+<p><code>track.table</code>, <code>subtrack</code>, <code>istrack</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">  # Exemplar data : subset of human genes
+  data(hsGenes)
+  
+  # Construction
+  trackTable &lt;- track.table(
+    hsGenes,
+    .name = "NCBI Genes",
+    .organism = "Homo sapiens",
+    .assembly = "GRCh37"
+  )
+  
+  # Slicing
+  print(trackTable$slice(chrom="1", as.integer(15e6), as.integer(20e6)))
+</code></pre>
+
+
+</div>

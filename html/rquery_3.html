@@ -1,0 +1,93 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>affine_transform</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Implement an affine transformaton</h2>
+
+<h3>Description</h3>
+
+<p>Implement an affine transformaton
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">affine_transform(source, linear_transform, offset, ..., env = parent.frame())
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>source</code></td>
+<td>
+<p>relop source (or data.frame source)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>linear_transform</code></td>
+<td>
+<p>matrix with row names taken from source column names (inputs), and column names are outputs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>offset</code></td>
+<td>
+<p>vector of offsets with names same as column names of linear_transform.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>force later arguments to bind by name</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>env</code></td>
+<td>
+<p>environment to look for values in.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>relop node
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+if (requireNamespace("DBI", quietly = TRUE) &amp;&amp;
+    requireNamespace("RSQLite", quietly = TRUE)) {
+  my_db &lt;- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+  d &lt;- data.frame(AUC = 0.6, R2 = 0.2)
+  source &lt;- rq_copy_to(my_db, 'd',
+                       d,
+                       overwrite = TRUE,
+                       temporary = TRUE)
+  linear_transform &lt;- matrix(c(1 ,1, 2, -1, 1, 0, 0, 0), nrow = 2)
+  rownames(linear_transform) &lt;- c("AUC", "R2")
+  colnames(linear_transform) &lt;- c("res1", "res2", "res3", "res4")
+  offset &lt;- c(5, 7, 1, 0)
+  names(offset) &lt;- colnames(linear_transform)
+
+  optree &lt;- affine_transform(source, linear_transform, offset)
+  cat(format(optree))
+
+  sql &lt;- to_sql(optree, my_db)
+  cat(sql)
+
+  print(DBI::dbGetQuery(my_db, sql))
+  print(as.matrix(d) %*% linear_transform + offset)
+
+  DBI::dbDisconnect(my_db)
+}
+
+</code></pre>
+
+
+</div>

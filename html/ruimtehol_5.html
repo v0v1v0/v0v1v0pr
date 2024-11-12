@@ -1,0 +1,97 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>embed_docspace</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Build a Starspace model for content-based recommendation</h2>
+
+<h3>Description</h3>
+
+<p>Build a Starspace model for content-based recommendation (docspace). For example a user clicks on a webpage and this webpage contains a bunch or words.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">embed_docspace(
+  x,
+  model = "docspace.bin",
+  early_stopping = 0.75,
+  useBytes = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a data.frame with user interest containing the columns user_id, doc_id and text
+The user_id is an identifier of a user
+The doc_id is just an article or document identifier
+the text column is a character field which contains words which are part of the doc_id, words should be separated by a space and
+should not contain any tab characters</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>name of the model which will be saved, passed on to <code>starspace</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>early_stopping</code></td>
+<td>
+<p>the percentage of the data that will be used as training data. If set to a value smaller than 1, 1-<code>early_stopping</code> percentage of the data which will be used as the validation set and early stopping will be executed. Defaults to 0.75.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>useBytes</code></td>
+<td>
+<p>set to TRUE to avoid re-encoding when writing out train and/or test files. See <code>writeLines</code> for details</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments passed on to <code>starspace</code> except file, trainMode and fileFormat</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>an object of class <code>textspace</code> as returned by <code>starspace</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(udpipe)
+data(dekamer, package = "ruimtehol")
+data(dekamer_theme_terminology, package = "ruimtehol")
+## Which person is interested in which theme (aka document)
+x &lt;- table(dekamer$aut_person, dekamer$question_theme_main)
+x &lt;- as.data.frame(x)
+colnames(x) &lt;- c("user_id", "doc_id", "freq")
+## Characterise the themes (aka document)
+docs &lt;- split(dekamer_theme_terminology, dekamer_theme_terminology$theme)
+docs &lt;- lapply(docs, FUN=function(x){
+  data.frame(theme = x$theme[1], text = paste(x$term, collapse = " "),
+             stringsAsFactors=FALSE)
+})
+docs &lt;- do.call(rbind, docs)
+
+## Build a model
+train &lt;- merge(x, docs, by.x = "doc_id", by.y = "theme")
+train &lt;- subset(train, user_id %in% sample(levels(train$user_id), 4))
+set.seed(123456789)
+model &lt;- embed_docspace(train, dim = 10, early_stopping = 1)
+plot(model)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,207 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>influenceTest</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Influence test [Experimental!!]</h2>
+
+<h3>Description</h3>
+
+<p>Compare two estimates using their influence function
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">influenceTest(object, ...)
+
+## S3 method for class 'list'
+influenceTest(
+  object,
+  newdata,
+  times,
+  type,
+  cause,
+  keep.newdata = TRUE,
+  keep.strata = FALSE,
+  ...
+)
+
+## Default S3 method:
+influenceTest(object, object2, band = TRUE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>either a list of models or an object of class predictCox or predictCSC.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments to be passed to lower level functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newdata</code></td>
+<td>
+<p>[data.frame or data.table] Contain
+the values of the predictor variables defining subject specific
+predictions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>times</code></td>
+<td>
+<p>[numeric vector] Time points at which to return
+the estimated absolute risk.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>[character]the type of predicted value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cause</code></td>
+<td>
+<p>[integer/character] Identifies the cause of interest among the competing
+events.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep.newdata</code></td>
+<td>
+<p>[logical] If <code>TRUE</code> add the value of the covariates
+used to make the prediction in the output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep.strata</code></td>
+<td>
+<p>[logical] If <code>TRUE</code> add the value of the strata
+used to make the prediction in the output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>object2</code></td>
+<td>
+<p>same as predict1 but for another model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>band</code></td>
+<td>
+<p>[logical] If <code>TRUE</code> add the influence function to the output
+such that <code>confint</code> will be able to compute the confidence bands.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(lava)
+library(survival)
+library(prodlim)
+library(data.table)
+n &lt;- 100
+
+#### Under H1
+set.seed(1)
+newdata &lt;- data.frame(X1=0:1)
+
+## simulate non proportional hazard using lava
+m &lt;- lvm()
+regression(m) &lt;- y ~ 1
+regression(m) &lt;- s ~ exp(-2*X1)
+distribution(m,~X1) &lt;- binomial.lvm()
+distribution(m,~cens) &lt;- coxWeibull.lvm(scale=1)
+distribution(m,~y) &lt;- coxWeibull.lvm(scale=1,shape=~s)
+eventTime(m) &lt;- eventtime ~ min(y=1,cens=0)
+d &lt;- as.data.table(sim(m,n))
+setkey(d, eventtime)
+
+## fit cox models
+m.cox &lt;- coxph(Surv(eventtime, status) ~ X1, 
+               data = d, y = TRUE, x = TRUE)
+
+mStrata.cox &lt;- coxph(Surv(eventtime, status) ~ strata(X1), 
+                     data = d, y = TRUE, x = TRUE)
+
+## compare models
+# one time point
+outIF &lt;- influenceTest(list(m.cox, mStrata.cox), 
+              type = "survival", newdata = newdata, times = 0.5)
+confint(outIF)
+                                 
+# several timepoints
+outIF &lt;- influenceTest(list(m.cox, mStrata.cox), 
+              type = "survival", newdata = newdata, times = c(0.5,1,1.5))
+confint(outIF)
+
+#### Under H0 (Cox) ####
+set.seed(1)
+## simulate proportional hazard using lava
+m &lt;- lvm()
+regression(m) &lt;- y ~ 1
+distribution(m,~X1) &lt;- binomial.lvm()
+distribution(m,~cens) &lt;- coxWeibull.lvm()
+distribution(m,~y) &lt;- coxWeibull.lvm()
+eventTime(m) &lt;- eventtime ~ min(y=1,cens=0)
+d &lt;- as.data.table(sim(m,n))
+setkey(d, eventtime)
+
+## fit cox models
+Utime &lt;- sort(unique(d$eventtime))
+m.cox &lt;- coxph(Surv(eventtime, status) ~ X1, 
+               data = d, y = TRUE, x = TRUE)
+
+mStrata.cox &lt;- coxph(Surv(eventtime, status) ~ strata(X1), 
+                     data = d, y = TRUE, x = TRUE)
+
+p.cox &lt;- predictCox(m.cox, newdata = newdata, time = Utime, type = "survival")
+p.coxStrata &lt;- predictCox(mStrata.cox, newdata = newdata, time = Utime, type = "survival")
+
+## display
+library(ggplot2)
+autoplot(p.cox)
+autoplot(p.coxStrata)
+ 
+## compare models
+outIF &lt;- influenceTest(list(m.cox, mStrata.cox), 
+                       type = "survival", newdata = newdata, times = Utime[1:6])
+confint(outIF)
+
+#### Under H0 (CSC) ####
+set.seed(1)
+ff &lt;- ~ f(X1,2) + f(X2,-0.033)
+ff &lt;- update(ff, ~ .+ f(X3,0) + f(X4,0) + f(X5,0))
+ff &lt;- update(ff, ~ .+ f(X6,0) + f(X7,0) + f(X8,0) + f(X9,0))
+d &lt;- sampleData(n, outcome = "competing.risk", formula = ff)
+d[,X1:=as.numeric(as.character(X1))]
+d[,X2:=as.numeric(as.character(X2))]
+d[,X3:=as.numeric(as.character(X3))]
+d[,X4:=as.numeric(as.character(X4))]
+d[,X5:=as.numeric(as.character(X5))]
+setkey(d, time)
+
+Utime &lt;- sort(unique(d$time))
+
+## fit cox models
+m.CSC &lt;- CSC(Hist(time, event) ~ X1 + X2, data = d)
+mStrata.CSC &lt;- CSC(Hist(time, event) ~ strata(X1) + X2 + X3, data = d)
+
+## compare models
+outIF &lt;- influenceTest(list(m.CSC, mStrata.CSC), 
+             cause = 1, newdata = unique(d[,.(X1,X2,X3)]), times = Utime[1:5])
+confint(outIF)
+</code></pre>
+
+
+</div>

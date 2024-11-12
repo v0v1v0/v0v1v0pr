@@ -1,0 +1,325 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rfpi</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Prediction intervals with random forests</h2>
+
+<h3>Description</h3>
+
+<p>Constructs prediction intervals with 15 distinct variations proposed by Roy
+and Larocque (2020). The variations include two aspects: The method used to
+build the forest and the method used to build the prediction interval. There
+are three methods to build the forest, (i) least-squares (LS), (ii) L1 and
+(iii) shortest prediction interval (SPI) from the CART paradigm. There are
+five methods for constructing prediction intervals, classical method,
+shortest prediction interval, quantile method, highest density region, and
+contiguous HDR.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rfpi(
+  formula,
+  traindata,
+  testdata,
+  alpha = 0.05,
+  split_rule = c("ls", "l1", "spi"),
+  pi_method = c("lm", "spi", "quant", "hdr", "chdr"),
+  calibration = TRUE,
+  rf_package = c("rfsrc", "ranger"),
+  params_rfsrc = list(ntree = 2000, mtry = ceiling(px/3), nodesize = 5, samptype =
+    "swr"),
+  params_ranger = list(num.trees = 2000, mtry = ceiling(px/3), min.node.size = 5,
+    replace = TRUE),
+  params_calib = list(range = c(1 - alpha - 0.005, 1 - alpha + 0.005), start = (1 -
+    alpha), step = 0.01, refine = TRUE),
+  oob = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>Object of class <code>formula</code> or <code>character</code> describing
+the model to fit.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>traindata</code></td>
+<td>
+<p>Training data of class <code>data.frame</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>testdata</code></td>
+<td>
+<p>Test data of class <code>data.frame</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>Confidence level. (1 - <code>alpha</code>) is the desired coverage
+level. The default is <code>alpha</code> = 0.05 for the 95% prediction interval.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>split_rule</code></td>
+<td>
+<p>Split rule for building a forest. Options are <code>"ls"</code>
+for CART with least-squares (LS) splitting rule, <code>"l1"</code> for CART with
+L1 splitting rule, <code>"spi"</code> for CART with shortest prediction interval
+(SPI) splitting rule. The default is <code>"ls"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pi_method</code></td>
+<td>
+<p>Methods for building a prediction interval. Options are
+<code>"lm"</code> for classical method, <code>"spi"</code> for shortest prediction
+interval, <code>"quant"</code> for quantile method, <code>"hdr"</code> for highest
+density region, and <code>"chdr"</code> for contiguous HDR. The default is to use
+all methods for PI construction. Single method or a subset of methods can
+be applied.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>calibration</code></td>
+<td>
+<p>Apply OOB calibration for finding working level of
+<code>alpha</code>, i.e. <code class="reqn">\alpha_w</code>. See below for details. The default is
+<code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rf_package</code></td>
+<td>
+<p>Random forest package that can be used for RF training.
+Options are <code>"rfsrc"</code> for <code>randomForestSRC</code> and <code>"ranger"</code>
+for <code>ranger</code> packages. Split rule <code>"ls"</code> can be used with both
+packages. However, <code>"l1"</code> and <code>"spi"</code> split rules can only be
+used with <code>"rfsrc"</code>. The default is <code>"rfsrc"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>params_rfsrc</code></td>
+<td>
+<p>List of parameters that should be passed to
+<code>randomForestSRC</code>. In the default parameter set, <code>ntree</code> = 2000,
+<code>mtry</code> = <code class="reqn">px/3</code>  (rounded up), <code>nodesize</code> = 5,
+<code>samptype</code> = "swr". See <code>randomForestSRC</code> for possible
+parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>params_ranger</code></td>
+<td>
+<p>List of parameters that should be passed to
+<code>ranger</code>. In the default parameter set, <code>num.trees</code> = 2000,
+<code>mtry</code> = <code class="reqn">px/3</code>  (rounded up), <code>min.node.size</code> = 5,
+<code>replace</code> = TRUE. See <code>ranger</code> for possible parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>params_calib</code></td>
+<td>
+<p>List of parameters for calibration procedure.
+<code>range</code> is the allowed target calibration range for coverage level.
+The value that provides a coverage level within the range is chosen as
+<code class="reqn">\alpha_w</code>. <code>start</code> is the initial coverage level to start
+calibration procedure. <code>step</code> is the coverage step size for each
+calibration iteration. <code>refine</code> is the gradual decrease in <code>step</code>
+value when close to target coverage level, the default is <code>TRUE</code> which
+allows gradual decrease.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>oob</code></td>
+<td>
+<p>Should out-of-bag (OOB) predictions and prediction intervals for
+the training observations be returned?</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list with the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>lm_interval</code></td>
+<td>
+<p>Prediction intervals for test data with the classical
+method. A list containing lower and upper bounds.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>spi_interval</code></td>
+<td>
+<p>Prediction intervals for test data with SPI method. A
+list containing lower and upper bounds.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hdr_interval</code></td>
+<td>
+<p>Prediction intervals for test data with HDR method. A
+list containing lower and upper bounds of prediction interval for each test
+observation. There may be multiple PIs for a single observation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chdr_interval</code></td>
+<td>
+<p>Prediction intervals for test data with contiguous HDR
+method. A list containing lower and upper bounds.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quant_interval</code></td>
+<td>
+<p>Prediction intervals for test data with quantiles
+method. A list containing lower and upper bounds.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test_pred</code></td>
+<td>
+<p>Random forest predictions for test data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test_response</code></td>
+<td>
+<p>If available, test response.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alphaw</code></td>
+<td>
+<p>Working level of <code>alpha</code>, i.e. <code class="reqn">\alpha_w</code>. A numeric
+array for the PI methods entered with <code>pi_method</code>. If
+<code>calibration = FALSE</code>, it returns <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>split_rule</code></td>
+<td>
+<p>Split rule used for building the random forest.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rf_package</code></td>
+<td>
+<p>Random forest package that was used for RF training.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>oob_pred_interval</code></td>
+<td>
+<p>Out-of-bag (OOB) prediction intervals for train
+data. Prediction intervals are built with <code>alpha</code>. If
+<code>oob = FALSE</code>, it returns <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>oob_pred</code></td>
+<td>
+<p>Out-of-bag (OOB) predictions for train data.
+If <code>oob = FALSE</code>, it returns <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>train_response</code></td>
+<td>
+<p>Train response.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><strong>Calibration process</strong>
+</p>
+<p>The calibration procedure uses the "Bag of Observations for Prediction"
+(BOP) idea. BOP for a new observation is built with the set inbag
+observations that are in the same terminal nodes as the new observation.
+The calibration procedure uses the BOPs constructed for the training
+observations. BOP for a training observation is built using only the trees
+where this training observation is out-of-bag (OOB).
+</p>
+<p>Let (<code class="reqn">1-\alpha</code>) be the target coverage level. The goal of the
+calibration is to find the value of <code class="reqn">\alpha_w</code>, which is the working
+level of <code class="reqn">\alpha</code> called by Roy and Larocque (2020), such that the
+coverage level of the prediction intervals for the training observations is
+closest to the target coverage level. The idea is to find the value of
+<code class="reqn">\alpha_w</code> using the OOB-BOPs. Once found, (<code class="reqn">1-\alpha_w</code>) becomes
+the level used to build the prediction intervals for the new observations.
+</p>
+
+
+<h3>References</h3>
+
+<p>Roy, M. H., &amp; Larocque, D. (2020). Prediction intervals with
+random forests. Statistical methods in medical research, 29(1), 205-229.
+doi:10.1177/0962280219829885.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>piall</code> <code>pibf</code>
+<code>print.rfpredinterval</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## load example data
+data(BostonHousing, package = "RFpredInterval")
+set.seed(2345)
+
+## define train/test split
+testindex &lt;- 1:10
+trainindex &lt;- sample(11:nrow(BostonHousing), size = 100, replace = FALSE)
+traindata &lt;- BostonHousing[trainindex, ]
+testdata &lt;- BostonHousing[testindex, ]
+px &lt;- ncol(BostonHousing) - 1
+
+## contruct 90% PI with "l1" split rule and "spi" PI method with calibration
+out &lt;- rfpi(formula = medv ~ ., traindata = traindata,
+  testdata = testdata, alpha = 0.1, calibration = TRUE,
+  split_rule = "l1", pi_method = "spi", params_rfsrc = list(ntree = 50),
+  params_calib = list(range = c(0.89, 0.91), start = 0.9, step = 0.01,
+  refine = TRUE))
+
+## get the PI with "spi" method for first observation in the testdata
+c(out$spi_interval$lower[1], out$spi_interval$upper[1])
+
+## get the random forest predictions for testdata
+out$test_pred
+
+## get the working level of alpha (alphaw)
+out$alphaw
+
+## contruct 95% PI with "ls" split rule, "lm" and "quant" PI methods
+## with calibration and use "ranger" package for RF training
+out2 &lt;- rfpi(formula = medv ~ ., traindata = traindata,
+  testdata = testdata, split_rule = "ls", pi_method = c("lm", "quant"),
+  rf_package = "ranger", params_ranger = list(num.trees = 50))
+
+## get the PI with "quant" method for the testdata
+cbind(out2$quant_interval$lower, out2$quant_interval$upper)
+
+
+</code></pre>
+
+
+</div>

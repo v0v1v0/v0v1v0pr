@@ -1,0 +1,111 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>embed_tagspace</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Build a Starspace model to be used for classification purposes</h2>
+
+<h3>Description</h3>
+
+<p>Build a Starspace model to be used for classification purposes
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">embed_tagspace(
+  x,
+  y,
+  model = "tagspace.bin",
+  early_stopping = 0.75,
+  useBytes = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a character vector of text where tokens are separated by spaces</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>a character vector of classes to predict or a list with the same length of <code>x</code> with several classes for each respective element of <code>x</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>name of the model which will be saved, passed on to <code>starspace</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>early_stopping</code></td>
+<td>
+<p>the percentage of the data that will be used as training data. If set to a value smaller than 1, 1-<code>early_stopping</code> percentage of the data which will be used as the validation set and early stopping will be executed. Defaults to 0.75.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>useBytes</code></td>
+<td>
+<p>set to TRUE to avoid re-encoding when writing out train and/or test files. See <code>writeLines</code> for details</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments passed on to <code>starspace</code> except file, trainMode and fileFormat</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>an object of class <code>textspace</code> as returned by <code>starspace</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(dekamer, package = "ruimtehol")
+dekamer &lt;- subset(dekamer, depotdat &lt; as.Date("2017-02-01"))
+dekamer$text &lt;- strsplit(dekamer$question, "\\W")
+dekamer$text &lt;- lapply(dekamer$text, FUN = function(x) x[x != ""])
+dekamer$text &lt;- sapply(dekamer$text,
+                       FUN = function(x) paste(x, collapse = " "))
+dekamer$question_theme_main &lt;- gsub(" ", "-", dekamer$question_theme_main)
+
+set.seed(123456789)
+model &lt;- embed_tagspace(x = tolower(dekamer$text),
+                        y = dekamer$question_theme_main,
+                        early_stopping = 0.8,
+                        dim = 10, minCount = 5)
+plot(model)
+predict(model, "de nmbs heeft het treinaanbod uitgebreid", k = 3)
+predict(model, "de migranten komen naar europa, in asielcentra ...")
+starspace_embedding(model, "de nmbs heeft het treinaanbod uitgebreid")
+starspace_embedding(model, "__label__MIGRATIEBELEID", type = "ngram")
+
+dekamer$question_themes &lt;- gsub(" ", "-", dekamer$question_theme)
+dekamer$question_themes &lt;- strsplit(dekamer$question_themes, split = ",")
+set.seed(123456789)
+model &lt;- embed_tagspace(x = tolower(dekamer$text),
+                        y = dekamer$question_themes,
+                        early_stopping = 0.8,
+                        dim = 50, minCount = 2, epoch = 50)
+plot(model)
+predict(model, "de nmbs heeft het treinaanbod uitgebreid")
+predict(model, "de migranten komen naar europa , in asielcentra ...")
+embeddings_labels &lt;- as.matrix(model, type = "labels")
+emb &lt;- starspace_embedding(model, "de nmbs heeft het treinaanbod uitgebreid")
+embedding_similarity(emb, embeddings_labels, type = "cosine", top_n = 5)
+</code></pre>
+
+
+</div>

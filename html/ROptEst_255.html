@@ -1,0 +1,535 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>roptest</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2> Optimally robust estimation </h2>
+
+<h3>Description</h3>
+
+<p>Function to compute optimally robust estimates for L2-differentiable
+parametric families via k-step construction.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">roptest(x, L2Fam, eps, eps.lower, eps.upper, fsCor = 1, initial.est, 
+        neighbor = ContNeighborhood(), risk = asMSE(), steps = 1L, 
+        distance = CvMDist, startPar = NULL, verbose = NULL,
+        OptOrIter = "iterate",
+        useLast = getRobAStBaseOption("kStepUseLast"),
+        withUpdateInKer = getRobAStBaseOption("withUpdateInKer"),
+        IC.UpdateInKer = getRobAStBaseOption("IC.UpdateInKer"),
+        withICList = getRobAStBaseOption("withICList"),
+        withPICList = getRobAStBaseOption("withPICList"),
+        na.rm = TRUE, initial.est.ArgList, ...,
+        withLogScale = TRUE, ..withCheck = FALSE, withTimings = FALSE,
+        withMDE = NULL, withEvalAsVar = NULL, withMakeIC = FALSE,
+        modifyICwarn = NULL, E.argList = NULL, diagnostic = FALSE)
+roptest.old(x, L2Fam, eps, eps.lower, eps.upper, fsCor = 1, initial.est,
+        neighbor = ContNeighborhood(), risk = asMSE(), steps = 1L,
+        distance = CvMDist, startPar = NULL, verbose = NULL,
+        OptOrIter = "iterate",
+        useLast = getRobAStBaseOption("kStepUseLast"),
+        withUpdateInKer = getRobAStBaseOption("withUpdateInKer"),
+        IC.UpdateInKer = getRobAStBaseOption("IC.UpdateInKer"),
+        withICList = getRobAStBaseOption("withICList"),
+        withPICList = getRobAStBaseOption("withPICList"),
+        na.rm = TRUE, initial.est.ArgList, ...,
+        withLogScale = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p> sample </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>L2Fam</code></td>
+<td>
+<p> object of class <code>"L2ParamFamily"</code> </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eps</code></td>
+<td>
+<p> positive real (0 &lt; <code>eps</code> &lt;= 0.5): amount of gross errors. 
+See details below. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eps.lower</code></td>
+<td>
+<p> positive real (0 &lt;= <code>eps.lower</code> &lt;= <code>eps.upper</code>): 
+lower bound for the amount of gross errors. See details below. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eps.upper</code></td>
+<td>
+<p> positive real (<code>eps.lower</code> &lt;= <code>eps.upper</code> &lt;= 0.5): 
+upper bound for the amount of gross errors. See details below. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fsCor</code></td>
+<td>
+<p> positive real: factor used to correct the neighborhood radius;
+see details. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>initial.est</code></td>
+<td>
+<p> initial estimate for unknown parameter. If missing, a
+minimum distance estimator is computed. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>neighbor</code></td>
+<td>
+<p> object of class <code>"UncondNeighborhood"</code> </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>risk</code></td>
+<td>
+<p> object of class <code>"RiskType"</code> </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>steps</code></td>
+<td>
+<p> positive integer: number of steps used for k-steps construction </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>distance</code></td>
+<td>
+<p> distance function used in <code>MDEstimator</code>, which in turn
+is used as (default) starting estimator. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>startPar</code></td>
+<td>
+<p> initial information used by <code>optimize</code> resp. <code>optim</code>;
+i.e; if (total) parameter is of length 1, <code>startPar</code> is 
+a search interval, else it is an initial parameter value; if <code>NULL</code>
+slot <code>startPar</code> of <code>ParamFamily</code> is used to produce it;
+in the multivariate case, <code>startPar</code> may also be of class <code>Estimate</code>,
+in which case slot <code>untransformed.estimate</code> is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p> logical: if <code>TRUE</code>, some messages are printed </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>useLast</code></td>
+<td>
+<p> which parameter estimate (initial estimate or
+k-step estimate) shall be used to fill the slots <code>pIC</code>,
+<code>asvar</code> and <code>asbias</code> of the return value. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>OptOrIter</code></td>
+<td>
+<p>character; which method to be used for determining Lagrange
+multipliers <code>A</code> and <code>a</code>: if (partially) matched to <code>"optimize"</code>,
+<code>getLagrangeMultByOptim</code> is used; otherwise: by default, or if matched to
+<code>"iterate"</code> or to <code>"doubleiterate"</code>,
+<code>getLagrangeMultByIter</code> is used. More specifically,
+when using <code>getLagrangeMultByIter</code>, and if argument <code>risk</code> is of
+class <code>"asGRisk"</code>, by default and if matched to <code>"iterate"</code>
+we use only one (inner) iteration, if matched to <code>"doubleiterate"</code>
+we use up to <code>Maxiter</code> (inner) iterations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>withUpdateInKer</code></td>
+<td>
+<p>if there is a non-trivial trafo in the model with matrix <code class="reqn">D</code>, shall
+the parameter be updated on <code class="reqn">{\rm ker}(D)</code>?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>IC.UpdateInKer</code></td>
+<td>
+<p>if there is a non-trivial trafo in the model with matrix <code class="reqn">D</code>,
+the IC to be used for this; if <code>NULL</code> the result of <code>getboundedIC(L2Fam,D)</code> is taken;
+this IC will then be projected onto <code class="reqn">{\rm ker}(D)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>withPICList</code></td>
+<td>
+<p>logical: shall slot <code>pICList</code> of return value
+be filled?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>withICList</code></td>
+<td>
+<p>logical: shall slot <code>ICList</code> of return value
+be filled?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na.rm</code></td>
+<td>
+<p>logical: if  <code>TRUE</code>, the estimator is evaluated at <code>complete.cases(x)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>initial.est.ArgList</code></td>
+<td>
+<p>a list of arguments to be given to argument <code>start</code> if the latter
+is a function; this list by default already starts with two unnamed items,
+the sample <code>x</code>, and the model <code>L2Fam</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p> further arguments </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>withLogScale</code></td>
+<td>
+<p>logical; shall a scale component (if existing and found
+with name <code>scalename</code>) be computed on log-scale and backtransformed
+afterwards? This avoids crossing 0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>..withCheck</code></td>
+<td>
+<p>logical: if <code>TRUE</code>, debugging info is issued.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>withTimings</code></td>
+<td>
+<p>logical: if <code>TRUE</code>, separate (and aggregate)
+timings for the three steps evaluating the starting value, finding
+the starting influence curve, and evaluating the k-step estimator is
+issued.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>withMDE</code></td>
+<td>
+<p> logical or <code>NULL</code>: Shall a minimum distance estimator be used as
+starting estimator—in addition to the function given in slot
+<code>startPar</code> of the L2 family? If <code>NULL</code> (default), the content
+of slot <code>.withMDE</code> in the L2 family is used instead to take
+this decision.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>withEvalAsVar</code></td>
+<td>
+<p>logical or <code>NULL</code>: if <code>TRUE</code> (default), tells R
+to evaluate the asymptotic variance or if <code>FALSE</code> just to produces a call
+to do so. If <code>withEvalAsVar</code> is <code>NULL</code> (default),  the content
+of slot <code>.withEvalAsVar</code> in the L2 family is used instead to take
+this decision.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>withMakeIC</code></td>
+<td>
+<p>logical; if <code>TRUE</code> the [p]IC is passed through
+<code>makeIC</code> before return.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>modifyICwarn</code></td>
+<td>
+<p>logical: should a (warning) information be added if
+<code>modifyIC</code> is applied and hence some optimality information could
+no longer be valid? Defaults to <code>NULL</code> in which case this value
+is taken from <code>RobAStBaseOptions</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>E.argList</code></td>
+<td>
+<p><code>NULL</code> (default) or a list of arguments to be passed
+to calls to <code>E</code> from (a) <code>MDEstimator</code>
+(here this additional argument is only used if
+<code>initial.est</code> is missing), (b) <code>getStartIC</code>,
+and (c) <code>kStepEstimator</code>. Potential clashes with
+arguments of the same name in <code>...</code> are resolved by inserting
+the items of argument list <code>E.argList</code> as named items, so
+in case of collisions the item of <code>E.argList</code> overwrites the
+existing one from <code>...</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>diagnostic</code></td>
+<td>
+<p> logical; if <code>TRUE</code>,
+diagnostic information on the performed integrations is gathered and
+shipped out as attributes <code>kStepDiagnostic</code> (for the kStepEstimator-step)
+and <code>diagnostic</code> for the remaining steps of the return value
+of <code>roptest</code>. </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Computes the optimally robust estimator for a given L2 differentiable
+parametric family. The computation uses a k-step construction with an 
+appropriate initial estimate; cf. also <code>kStepEstimator</code>. 
+Valid candidates are e.g. Kolmogorov(-Smirnov) or von Mises minimum 
+distance estimators (default); cf. Rieder (1994) and Kohl (2005).
+</p>
+<p>Before package version 0.9, this computation was done with the code of
+function <code>roptest.old</code> (with the same formals). From package version
+0.9 on, this function uses the modularized function <code>robest</code>
+internally.
+</p>
+<p>If the amount of gross errors (contamination) is known, it can be 
+specified by <code>eps</code>. The radius of the corresponding infinitesimal 
+contamination neighborhood is obtained by multiplying <code>eps</code> 
+by the square root of the sample size. 
+</p>
+<p>If the amount of gross errors (contamination) is unknown, try to find a 
+rough estimate for the amount of gross errors, such that it lies 
+between <code>eps.lower</code> and <code>eps.upper</code>.
+</p>
+<p>In case <code>eps.lower</code> is specified and <code>eps.upper</code> is missing, 
+<code>eps.upper</code> is set to 0.5. In case <code>eps.upper</code> is specified and
+<code>eps.lower</code> is missing, <code>eps.lower</code> is set to 0.
+</p>
+<p>If neither <code>eps</code> nor <code>eps.lower</code> and/or <code>eps.upper</code> is 
+specified, <code>eps.lower</code> and <code>eps.upper</code> are set to 0 and 0.5, 
+respectively.
+</p>
+<p>If <code>eps</code> is missing, the radius-minimax estimator in sense of 
+Rieder et al. (2001, 2008), respectively Section 2.2 of Kohl (2005) is returned.
+</p>
+<p>Finite-sample and higher order results suggest that the asymptotically
+optimal procedure is to liberal. Using <code>fsCor</code> the radius can be
+modified - as a rule enlarged - to obtain a more conservative estimate.
+In case of normal location and scale there is function 
+<code>finiteSampleCorrection</code> which returns a finite-sample 
+corrected (enlarged) radius based on the results of large Monte-Carlo
+studies.
+</p>
+<p>The logic in argument <code>initial.est</code> is as follows: It can be
+a numeric vector of the length of the unknow parameter or a function or
+it can be missing. If it is missing, one consults argument <code>startPar</code>
+for a search interval (if a one dimensional unknown parameter) or a starting
+value for the search (if the dimension of the unknown parameter is larger
+than one). If <code>startPar</code> is missing, too, it takes the value from
+the corresponding slot of argument <code>L2Fam</code>. Then, if argument <code>withMDE</code>
+is <code>TRUE</code> a Minimum-Distance estimator is computed as initial value
+<code>initial.est</code> with distance as specified in argument <code>distance</code>
+and possibly further arguments as passed through <code>...</code>.
+</p>
+<p>In the next step, the value of <code>initial.est</code> (either if not missing
+from beginning or as computed through the MDE) is then passed on to
+<code>kStepEstimator.start</code> which  then takes out the essential
+information for the sequel, i.e., a numeric vector of the estimate.
+</p>
+<p>At this initial value the optimal influence curve is computed through
+interface <code>getStartIC</code>, which in turn, depending on the risk calls
+<code>optIC</code>, <code>radiusMinimaxIC</code>, or computes the IC
+from precomputed grid values in case of <code>risk</code> being of class
+<code>interpolRisk</code>. With the obtained optimal IC, <code>kStepEstimator</code>
+is called.
+</p>
+<p>The default value of argument <code>useLast</code> is set by the
+global option <code>kStepUseLast</code> which by default is set to 
+<code>FALSE</code>. In case of general models <code>useLast</code> 
+remains unchanged during the computations. However, if 
+slot <code>CallL2Fam</code> of <code>IC</code> generates an object of 
+class <code>"L2GroupParamFamily"</code> the value of <code>useLast</code> 
+is changed to <code>TRUE</code>.
+Explicitly setting <code>useLast</code> to <code>TRUE</code> should
+be done with care as in this situation the influence curve
+is re-computed using the value of the one-step estimate
+which may take quite a long time depending on the model.
+</p>
+<p>If <code>useLast</code> is set to <code>TRUE</code> the computation of <code>asvar</code>, 
+<code>asbias</code> and <code>IC</code> is based on the k-step estimate.
+</p>
+<p>Timings for the steps run through in <code>roptest</code> are available
+in attributes <code>timings</code>, and for the step of the
+<code>kStepEstimator</code> in <code>kStepTimings</code>.
+</p>
+<p>One may also use the arguments <code>startCtrl</code>, <code>startICCtrl</code>, and
+<code>kStepCtrl</code> of function <code>robest</code>. This allows for individual
+settings of <code>E.argList</code>, <code>withEvalAsVar</code>, and
+<code>withMakeIC</code> for the different steps. If any of the three arguments
+<code>startCtrl</code>, <code>startICCtrl</code>, and <code>kStepCtrl</code> is used, the
+respective attributes set in the correspondig argument are used and, if
+colliding with arguments directly passed to <code>roptest</code>, the directly
+passed ones are ignored.
+</p>
+<p>Diagnostics on the involved integrations are available if argument
+<code>diagnostic</code> is <code>TRUE</code>. Then there are attributes <code>diagnostic</code>
+and <code>kStepDiagnostic</code> attached to the return value, which may be inspected
+and assessed through <code>showDiagnostic</code> and
+<code>getDiagnostic</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Object of class <code>"kStepEstimate"</code>.  In addition, it has
+an attribute <code>"timings"</code> where computation time is stored.</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Matthias Kohl <a href="mailto:Matthias.Kohl@stamats.de">Matthias.Kohl@stamats.de</a>,<br>
+Peter Ruckdeschel <a href="mailto:peter.ruckdeschel@uni-oldenburg.de">peter.ruckdeschel@uni-oldenburg.de</a></p>
+
+
+<h3>References</h3>
+
+<p>Kohl, M. (2005) <em>Numerical Contributions to the Asymptotic Theory of Robustness</em>. 
+Bayreuth: Dissertation. <a href="https://epub.uni-bayreuth.de/id/eprint/839/2/DissMKohl.pdf">https://epub.uni-bayreuth.de/id/eprint/839/2/DissMKohl.pdf</a>.
+</p>
+<p>Kohl, M. and Ruckdeschel, P. (2010): R package distrMod: 
+Object-Oriented Implementation of Probability Models. 
+J. Statist. Softw.  <b>35</b>(10), 1–27. <a href="https://doi.org/10.18637/jss.v035.i10">doi:10.18637/jss.v035.i10</a>.
+</p>
+<p>Kohl, M. and Ruckdeschel, P., and Rieder, H. (2010):
+Infinitesimally Robust Estimation in General Smoothly Parametrized Models.
+<em>Stat. Methods Appl.</em>, <b>19</b>, 333–354. 
+<a href="https://doi.org/10.1007/s10260-010-0133-0">doi:10.1007/s10260-010-0133-0</a>.
+</p>
+<p>Rieder, H. (1994) <em>Robust Asymptotic Statistics</em>. New York: Springer.
+<a href="https://doi.org/10.1007/978-1-4684-0624-5">doi:10.1007/978-1-4684-0624-5</a>.
+</p>
+<p>Rieder, H., Kohl, M. and Ruckdeschel, P. (2008) The Costs of not Knowing
+the Radius. Statistical Methods and Applications <b>17</b>(1) 13-40.
+<a href="https://doi.org/10.1007/s10260-007-0047-7">doi:10.1007/s10260-007-0047-7</a>.
+</p>
+<p>Rieder, H., Kohl, M. and Ruckdeschel, P. (2001) The Costs of not Knowing
+the Radius. Appeared as discussion paper Nr. 81. 
+SFB 373 (Quantification and Simulation of Economic Processes),
+Humboldt University, Berlin; also available under
+<a href="https://doi.org/10.18452/3638">doi:10.18452/3638</a>
+</p>
+
+
+<h3>See Also</h3>
+
+ <p><code>roblox</code>, 
+<code>L2ParamFamily-class</code>
+<code>UncondNeighborhood-class</code>,
+<code>RiskType-class</code> </p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Don't run to reduce check time on CRAN
+## Not run: 
+#############################
+## 1. Binomial data
+#############################
+## generate a sample of contaminated data
+set.seed(123)
+ind &lt;- rbinom(100, size=1, prob=0.05)
+x &lt;- rbinom(100, size=25, prob=(1-ind)*0.25 + ind*0.9)
+
+## ML-estimate
+MLest &lt;- MLEstimator(x, BinomFamily(size = 25))
+estimate(MLest)
+confint(MLest)
+
+## compute optimally robust estimator (known contamination)
+robest1 &lt;- roptest(x, BinomFamily(size = 25), eps = 0.05, steps = 3)
+robest1.0 &lt;- roptest.old(x, BinomFamily(size = 25), eps = 0.05, steps = 3)
+identical(robest1,robest1.0)
+estimate(robest1)
+confint(robest1, method = symmetricBias())
+## neglecting bias
+confint(robest1)
+plot(pIC(robest1))
+tmp &lt;- qqplot(x, robest1, cex.pch=1.5, exp.cex2.pch = -.25,
+              exp.fadcol.pch = .55, jit.fac=.9)
+
+## compute optimally robust estimator (unknown contamination)
+robest2 &lt;- roptest(x, BinomFamily(size = 25), eps.lower = 0, eps.upper = 0.2, steps = 3)
+estimate(robest2)
+confint(robest2, method = symmetricBias())
+plot(pIC(robest2))
+
+## total variation neighborhoods (known deviation)
+robest3 &lt;- roptest(x, BinomFamily(size = 25), eps = 0.025, 
+                   neighbor = TotalVarNeighborhood(), steps = 3)
+estimate(robest3)
+confint(robest3, method = symmetricBias())
+plot(pIC(robest3))
+
+## total variation neighborhoods (unknown deviation)
+robest4 &lt;- roptest(x, BinomFamily(size = 25), eps.lower = 0, eps.upper = 0.1, 
+                   neighbor = TotalVarNeighborhood(), steps = 3)
+estimate(robest4)
+confint(robest4, method = symmetricBias())
+plot(pIC(robest4))
+
+#############################
+## 2. Poisson data
+#############################
+## Example: Rutherford-Geiger (1910); cf. Feller~(1968), Section VI.7 (a)
+x &lt;- c(rep(0, 57), rep(1, 203), rep(2, 383), rep(3, 525), rep(4, 532), 
+       rep(5, 408), rep(6, 273), rep(7, 139), rep(8, 45), rep(9, 27), 
+       rep(10, 10), rep(11, 4), rep(12, 0), rep(13, 1), rep(14, 1))
+
+## ML-estimate
+MLest &lt;- MLEstimator(x, PoisFamily())
+estimate(MLest)
+confint(MLest)
+
+## compute optimally robust estimator (unknown contamination)
+robest &lt;- roptest(x, PoisFamily(), eps.upper = 0.1, steps = 3)
+estimate(robest)
+confint(robest, symmetricBias())
+
+plot(pIC(robest))
+tmp &lt;- qqplot(x, robest, cex.pch=1.5, exp.cex2.pch = -.25,
+              exp.fadcol.pch = .55, jit.fac=.9)
+ 
+## total variation neighborhoods (unknown deviation)
+robest1 &lt;- roptest(x, PoisFamily(), eps.upper = 0.05, 
+                  neighbor = TotalVarNeighborhood(), steps = 3)
+estimate(robest1)
+confint(robest1, symmetricBias())
+plot(pIC(robest1))
+
+## End(Not run)
+
+#############################
+## 3. Normal (Gaussian) location and scale
+#############################
+
+## this example of a two dimensional parameter
+## to be estimated will need more time than 
+## 5 seconds to run 
+## you can find it in 
+## system.file("scripts", "examples_taking_longer.R", 
+##              package="ROptEst")
+
+</code></pre>
+
+
+</div>

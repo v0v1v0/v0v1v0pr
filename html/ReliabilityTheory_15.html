@@ -1,0 +1,175 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>nonParBayesSystemInference</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Non-parametric Bayesian posterior predictive system survival inference</h2>
+
+<h3>Description</h3>
+
+<p>Computes a non-parametric Bayesian posterior predictive survival probability
+given the survival signature of a system and test data on each of the
+components as described in Aslett <em>et al</em> (2015).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">nonParBayesSystemInference(at.times, survival.signature, test.data, alpha=1, beta=1)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>at.times</code></td>
+<td>
+
+<p>a vector of times at which the posterior predictive estimate of survival
+probability should be computed.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>survival.signature</code></td>
+<td>
+
+<p>the survival signature matrix of the system/network for which inference is
+performed.  This should be in the same format as returned by
+<code>computeSystemSurvivalSignature</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test.data</code></td>
+<td>
+
+<p>a list of vectors containing the component test data.  The elements of the
+list should be named identically to the component columns in the
+<code>survival.signature</code> argument.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha, beta</code></td>
+<td>
+
+<p>the Beta prior shape parameters.  Each must match in type and can be:
+</p>
+
+<ul>
+<li>
+<p> a single scalar for a fixed prior across time and component types;
+</p>
+</li>
+<li>
+<p> a vector of parameters of the same length as the <code>at.times</code>
+argument, which indicates the time-varying prior parameter at the
+corresponding time in <code>at.times</code>.  This is therefore time-varying,
+but indicates the same time-varying prior for all component types;
+</p>
+</li>
+<li>
+<p> a data frame where each column is named using the same names as for
+the <code>survival.signature</code> argument and each row corresponds to the
+time-varying prior parameter at the corresponding time in
+<code>at.times</code>.
+</p>
+</li>
+</ul>
+<p>By default the 'uninformative' prior with <code>alpha=1</code> and <code>beta=1</code>
+is used for all components at all times.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function implements the technique described in detail in Section 4 of Aslett <em>et al</em> (2015).
+</p>
+<p>In brief, at any fixed time <code class="reqn">t</code>, the functioning of a single component of type <code class="reqn">k</code> is Bernoulli(<code class="reqn">p_t^k</code>) distributed for suitable <code class="reqn">p_t^k</code>, irrespective of the lifetime distribution of the component.  Correspondingly, the distribution of the number of components still functioning at time <code class="reqn">t</code> in a collection of <code class="reqn">n_k</code> iid components of type <code class="reqn">k</code> is Binomial(<code class="reqn">n_k, p_t^k</code>).
+</p>
+<p>Taking the priors <code class="reqn">p_t^k \sim</code> Beta(<code class="reqn">\alpha_t^k, \beta_t^k</code>), Aslett <em>et al</em> (2015) show that this leads to a posterior predictive survival distribution with a nice closed form (see equations 9 and 10 in Section 4).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A vector of the same length as the <code>at.times</code> argument, where each element is the posterior predictive probability of a new system surviving to the corresponding time in <code>at.times</code>.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Please feel free to email <a href="mailto:louis.aslett@durham.ac.uk">louis.aslett@durham.ac.uk</a> with any queries or if you encounter errors when running this function.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Louis J. M. Aslett <a href="mailto:louis.aslett@durham.ac.uk">louis.aslett@durham.ac.uk</a> (<a href="https://www.louisaslett.com/">https://www.louisaslett.com/</a>)
+</p>
+
+
+<h3>References</h3>
+
+<p>Aslett, L. J. M., Coolen, F. P. A. and Wilson, S. P. (2015), ‘Bayesian Inference for Reliability of Systems and Networks using the Survival Signature’, <em>Risk Analysis</em> <b>39</b>(9), 1640–1651.  <a href="https://www.louisaslett.com/Papers/Aslett_Coolen_Wilson_2014.html">Download paper</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>computeSystemSurvivalSignature</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Exactly reproduce the example in Section 4.1 of Aslett et al (2015), including Figure 5
+# First specify the system layout, numbered as per Figure 4
+sys &lt;- createSystem(s -- 1 -- 2:4:5, 2 -- 3 -- t, 4:5 -- 6 -- t,
+                    s -- 7 -- 8 -- t, s -- 9 -- 10 -- 11 -- t, 7 -- 10 -- 8,
+                    types = list(T1 = c(1, 6, 11),
+                                 T2 = c(2, 3, 9),
+                                 T3 = c(4, 5, 10),
+                                 T4 = c(7, 8)))
+
+# Compute the survival signature table from Appendix
+sig &lt;- computeSystemSurvivalSignature(sys)
+
+# Simulate the test data (same seed as used in the paper)
+set.seed(233)
+t1 &lt;- rexp(100, rate=0.55)
+t2 &lt;- rweibull(100, scale=1.8, shape=2.2)
+t3 &lt;- rlnorm(100, 0.4, 0.9)
+t4 &lt;- rgamma(100, scale=0.9, shape=3.2)
+
+# Compile into a list as required by this function
+test.data &lt;- list("T1"=t1, "T2"=t2, "T3"=t3, "T4"=t4)
+
+# Create a vector of times at which to evaluate the posterior predictive
+# survival probability and compute using this function
+t &lt;- seq(0, 5, length.out=300)
+yS &lt;- nonParBayesSystemInference(t, sig, test.data)
+
+# Compute the survival curves for the individual components (just to match
+# Figure 5)
+y1 &lt;- sapply(t, pexp, rate=0.55, lower.tail=FALSE)
+y2 &lt;- sapply(t, pweibull, scale=1.8, shape=2.2, lower.tail=FALSE)
+y3 &lt;- sapply(t, plnorm, meanlog=0.4, sdlog=0.9, lower.tail=FALSE)
+y4 &lt;- sapply(t, pgamma, scale=0.9, shape=3.2, lower.tail=FALSE)
+
+# Plot
+
+library(ggplot2)
+p &lt;- ggplot(data.frame(Time=rep(t,5), Probability=c(yS,y1,y2,y3,y4),
+            Item=c(rep(c("System", "T1", "T2", "T3", "T4"), each=300))))
+p &lt;- p + geom_line(aes(x=Time, y=Probability, linetype=Item))
+p &lt;- p + xlab("Time") + ylab("Survival Probability")
+p
+</code></pre>
+
+
+</div>

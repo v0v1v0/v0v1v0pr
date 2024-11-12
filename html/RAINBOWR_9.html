@@ -1,0 +1,355 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>EM3.general</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Equation of mixed model for multi-kernel including using other packages (with other packages, much faster than EM3.cpp)</h2>
+
+<h3>Description</h3>
+
+<p>This function solves the following multi-kernel linear mixed effects model
+using <code>MMEst</code> function in 'MM4LMM' package,
+<code>lmm.aireml</code> or <code>lmm.diago</code> functions in 'gaston' package,
+or <code>EM3.cpp</code> function in 'RAINBOWR' package.
+</p>
+<p><code class="reqn">y = X \beta + \sum _{l=1} ^ {L} Z _ {l} u _ {l} + \epsilon</code>
+</p>
+<p>where <code class="reqn">Var[y] = \sum _{l=1} ^ {L} Z _ {l} K _ {l} Z _ {l}' \sigma _ {l} ^ 2 + I \sigma _ {e} ^ {2}</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">EM3.general(
+  y,
+  X0 = NULL,
+  ZETA,
+  eigen.G = NULL,
+  package = "gaston",
+  tol = NULL,
+  n.core = 1,
+  optimizer = "nlminb",
+  REML = TRUE,
+  pred = TRUE,
+  return.u.always = TRUE,
+  return.u.each = TRUE,
+  return.Hinv = TRUE,
+  recheck.RAINBOWR = TRUE,
+  var.ratio.range = c(1e-09, 1e+07)
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>A <code class="reqn">n \times 1</code> vector. A vector of phenotypic values should be used. NA is allowed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X0</code></td>
+<td>
+<p>A <code class="reqn">n \times p</code> matrix. You should assign mean vector (rep(1, n)) and covariates. NA is not allowed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ZETA</code></td>
+<td>
+<p>A list of variance matrices and its design matrices of random effects. You can use more than one kernel matrix.
+For example, ZETA = list(A = list(Z = Z.A, K = K.A), D = list(Z = Z.D, K = K.D)) (A for additive, D for dominance)
+Please set names of lists "Z" and "K"!</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eigen.G</code></td>
+<td>
+<p>A list with
+</p>
+
+<dl>
+<dt>$values</dt>
+<dd>
+<p>Eigen values</p>
+</dd>
+<dt>$vectors</dt>
+<dd>
+<p>Eigen vectors</p>
+</dd>
+</dl>
+<p>The result of the eigen decompsition of <code class="reqn">G = ZKZ'</code>. You can use "spectralG.cpp" function in RAINBOWR.
+If this argument is NULL, the eigen decomposition will be performed in this function.
+We recommend you assign the result of the eigen decomposition beforehand for time saving.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>package</code></td>
+<td>
+<p>Package name to be used in this function. We only offer the following three packages:
+"RAINBOWR", "MM4LMM" and "gaston". Default package is 'gaston'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>The tolerance for detecting linear dependencies in the columns of G = ZKZ'.
+Eigen vectors whose eigen values are less than "tol" argument will be omitted from results.
+If tol is NULL, top 'n' eigen values will be effective.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.core</code></td>
+<td>
+<p>Setting n.core &gt; 1 will enable parallel execution on a machine with multiple cores.
+(‘n.core' will be replaced by 1 for 'package = ’gaston'')</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optimizer</code></td>
+<td>
+<p>The function used in the optimization process.
+We offer "optim", "optimx", and "nlminb" functions.
+This argument is only valid when ‘package = ’RAINBOWR''.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>REML</code></td>
+<td>
+<p>You can choose which method you will use, "REML" or "ML".
+If REML = TRUE, you will perform "REML", and if REML = FALSE, you will perform "ML".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pred</code></td>
+<td>
+<p>If TRUE, the fitting values of y is returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return.u.always</code></td>
+<td>
+<p>When using the "gaston" package with missing values or
+using the "MM4LMM" package (with/without missings), computing BLUP will take
+some time in addition to solving the mixed-effects model. You can choose
+whether BLUP ('u'; <code class="reqn">u</code>) will be returned or not.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return.u.each</code></td>
+<td>
+<p>If TRUE, the function also computes each BLUP corresponding
+to different kernels (when solving multi-kernel mixed-effects model). It takes
+additional time compared to the one with 'return.u.each = FALSE'  when using packages other than 'RAINBOWR'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return.Hinv</code></td>
+<td>
+<p>If TRUE, <code class="reqn">H ^ {-1} = (Var[y] / \sum _{l=1} ^ {L} \sigma _ {l} ^ 2) ^ {-1}</code>
+will be computed. It also returns <code class="reqn">V ^ {-1} = (Var[y]) ^ {-1}</code>.
+It will take some time in addition to solving the mixed-effects model when using packages other than 'RAINBOWR'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>recheck.RAINBOWR</code></td>
+<td>
+<p>When you use the package other than 'RAINBOWR' and the ratio of variance components
+is out of the range of 'var.ratio.range', the function will solve the mixed-effects model again
+with 'RAINBOWR' package, if 'recheck.RAINBOWR = TRUE'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>var.ratio.range</code></td>
+<td>
+<p>The range of variance components to check that the results by
+the package other than RAINBOWR is correct or not when 'recheck.RAINBOWR = TRUE'.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+
+<dl>
+<dt>$y.pred</dt>
+<dd>
+<p>The fitting values of y <code class="reqn">y = X\beta + Zu</code></p>
+</dd>
+<dt>$Vu</dt>
+<dd>
+<p>Estimator for <code class="reqn">\sigma^2_u</code>, all of the genetic variance</p>
+</dd>
+<dt>$Ve</dt>
+<dd>
+<p>Estimator for <code class="reqn">\sigma^2_e</code></p>
+</dd>
+<dt>$beta</dt>
+<dd>
+<p>BLUE(<code class="reqn">\beta</code>)</p>
+</dd>
+<dt>$u</dt>
+<dd>
+<p>BLUP(Sum of <code class="reqn">Zu</code>)</p>
+</dd>
+<dt>$u.each</dt>
+<dd>
+<p>BLUP(Each <code class="reqn">u</code>)</p>
+</dd>
+<dt>$weights</dt>
+<dd>
+<p>The proportion of each genetic variance (corresponding to each kernel of ZETA) to Vu</p>
+</dd>
+<dt>$LL</dt>
+<dd>
+<p>Maximized log-likelihood (full or restricted, depending on method)</p>
+</dd>
+<dt>$Vinv</dt>
+<dd>
+<p>The inverse of <code class="reqn">V = Vu \times ZKZ' + Ve \times I</code></p>
+</dd>
+<dt>$Hinv</dt>
+<dd>
+<p>The inverse of <code class="reqn">H = ZKZ' + \lambda I</code></p>
+</dd>
+</dl>
+<h3>References</h3>
+
+<p>Kang, H.M. et al. (2008) Efficient Control of Population Structure
+in Model Organism Association Mapping. Genetics. 178(3): 1709-1723.
+</p>
+<p>Zhou, X. and Stephens, M. (2012) Genome-wide efficient mixed-model analysis
+for association studies. Nat Genet. 44(7): 821-824.
+</p>
+<p>Johnson, D. L., &amp; Thompson, R. (1995). Restricted maximum likelihood estimation of variance
+components for univariate animal models using sparse matrix techniques and average information.
+Journal of dairy science, 78(2), 449-456.
+</p>
+<p>Hunter, D. R., &amp; Lange, K. (2004). A tutorial on MM algorithms.
+The American Statistician, 58(1), 30-37.
+</p>
+<p>Zhou, H., Hu, L., Zhou, J., &amp; Lange, K. (2015). MM algorithms for variance components models.
+arXiv preprint arXiv:1509.07426.
+</p>
+<p>Gilmour, A. R., Thompson, R., &amp; Cullis, B. R. (1995), Average information REML:
+an efficient algorithm for variance parameter estimation in linear mixed models,
+Biometrics, 1440-1450.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>MMEst</code>, <code>lmm.aireml</code>, <code>lmm.diago</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+
+
+  ### Import RAINBOWR
+  require(RAINBOWR)
+  
+  ### Load example datasets
+  data("Rice_Zhao_etal")
+  Rice_geno_score &lt;- Rice_Zhao_etal$genoScore
+  Rice_geno_map &lt;- Rice_Zhao_etal$genoMap
+  Rice_pheno &lt;- Rice_Zhao_etal$pheno
+  
+  ### View each dataset
+  See(Rice_geno_score)
+  See(Rice_geno_map)
+  See(Rice_pheno)
+  
+  ### Select one trait for example
+  trait.name &lt;- "Flowering.time.at.Arkansas"
+  y &lt;- as.matrix(Rice_pheno[, trait.name, drop = FALSE])
+  
+  ### Remove SNPs whose MAF &lt;= 0.05
+  x.0 &lt;- t(Rice_geno_score)
+  MAF.cut.res &lt;- MAF.cut(x.0 = x.0, map.0 = Rice_geno_map)
+  x &lt;- MAF.cut.res$x
+  map &lt;- MAF.cut.res$map
+  
+  
+  ### Estimate additive genomic relationship matrix (GRM) &amp; epistatic relationship matrix
+  K.A &lt;- calcGRM(genoMat = x) 
+  K.AA &lt;- K.A * K.A   ### additive x additive epistatic effects
+  
+  
+  ### Modify data
+  Z &lt;- design.Z(pheno.labels = rownames(y),
+                geno.names = rownames(K.A))  ### design matrix for random effects
+  pheno.mat &lt;- y[rownames(Z), , drop = FALSE]
+  ZETA &lt;- list(A = list(Z = Z, K = K.A),
+               AA = list(Z = Z, K = K.AA))
+  
+  
+  ### Solve multi-kernel linear mixed effects model using gaston package (2 random efects)
+  EM3.gaston.res &lt;- EM3.general(y = pheno.mat, X0 = NULL, ZETA = ZETA,
+                                package = "gaston", return.u.always = TRUE,
+                                pred = TRUE, return.u.each = TRUE,
+                                return.Hinv = TRUE)
+  (Vu &lt;- EM3.gaston.res$Vu)   ### estimated genetic variance
+  (Ve &lt;- EM3.gaston.res$Ve)   ### estimated residual variance
+  (weights &lt;- EM3.gaston.res$weights)   ### estimated proportion of two genetic variances
+  (herit &lt;- Vu * weights / (Vu + Ve))   ### genomic heritability (additive, additive x additive)
+  
+  (beta &lt;- EM3.gaston.res$beta)   ### Here, this is an intercept.
+  u.each &lt;- EM3.gaston.res$u.each   ### estimated genotypic values (additive, additive x additive)
+  See(u.each)
+  
+  
+  ### Perform genomic prediction with 10-fold cross validation using gaston package (multi-kernel)
+  noNA &lt;- !is.na(c(pheno.mat))   ### NA (missing) in the phenotype data
+  
+  phenoNoNA &lt;- pheno.mat[noNA, , drop = FALSE]   ### remove NA
+  ZETANoNA &lt;- ZETA
+  ZETANoNA &lt;- lapply(X = ZETANoNA, FUN = function (List) {
+    List$Z &lt;- List$Z[noNA, ]
+    
+    return(List)
+  })   ### remove NA
+  
+  
+  nFold &lt;- 10    ### # of folds
+  nLine &lt;- nrow(phenoNoNA)
+  idCV &lt;- sample(1:nLine %% nFold)   ### assign random ids for cross-validation
+  idCV[idCV == 0] &lt;- nFold
+  
+  yPred &lt;- rep(NA, nLine)
+  
+  for (noCV in 1:nFold) {
+    print(paste0("Fold: ", noCV))
+    yTrain &lt;- phenoNoNA
+    yTrain[idCV == noCV, ] &lt;- NA   ### prepare test data
+    
+    EM3.gaston.resCV &lt;- EM3.general(y = yTrain, X0 = NULL, ZETA = ZETANoNA,
+                                    package = "gaston", return.u.always = TRUE,
+                                    pred = TRUE, return.u.each = TRUE,
+                                    return.Hinv = TRUE)   ### prediction
+    yTest &lt;-  EM3.gaston.resCV$y.pred     ### predicted values
+    
+    yPred[idCV == noCV] &lt;- yTest[idCV == noCV]
+  }
+  
+  ### Plot the results
+  plotRange &lt;- range(phenoNoNA, yPred)
+  plot(x = phenoNoNA, y = yPred,xlim = plotRange, ylim = plotRange,
+       xlab = "Observed values", ylab = "Predicted values",
+       main = "Results of Genomic Prediction (multi-kernel)",
+       cex.lab = 1.5, cex.main = 1.5, cex.axis = 1.3)
+  abline(a = 0, b = 1, col = 2, lwd = 2, lty = 2)
+  R2 &lt;- cor(x = phenoNoNA[, 1], y = yPred) ^ 2
+  text(x = plotRange[2] - 10,
+       y = plotRange[1] + 10,
+       paste0("R2 = ", round(R2, 3)), 
+       cex = 1.5)
+
+</code></pre>
+
+
+</div>

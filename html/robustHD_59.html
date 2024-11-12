@@ -1,0 +1,179 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>lambda0</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Penalty parameter for sparse LTS regression</h2>
+
+<h3>Description</h3>
+
+<p>Use bivariate winsorization to estimate the smallest value of the penalty
+parameter for sparse least trimmed squares regression that sets all
+coefficients to zero.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">lambda0(
+  x,
+  y,
+  normalize = TRUE,
+  intercept = TRUE,
+  const = 2,
+  prob = 0.95,
+  tol = .Machine$double.eps^0.5,
+  eps = .Machine$double.eps,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a numeric matrix containing the predictor variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>a numeric vector containing the response variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>normalize</code></td>
+<td>
+<p>a logical indicating whether the winsorized predictor
+variables should be normalized to have unit <code class="reqn">L_{2}</code> norm (the
+default is <code>TRUE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intercept</code></td>
+<td>
+<p>a logical indicating whether a constant term should be
+included in the model (the default is <code>TRUE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>const</code></td>
+<td>
+<p>numeric; tuning constant to be used in univariate
+winsorization (defaults to 2).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prob</code></td>
+<td>
+<p>numeric; probability for the quantile of the
+<code class="reqn">\chi^{2}</code> distribution to be used in bivariate
+winsorization (defaults to 0.95).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>a small positive numeric value used to determine singularity
+issues in the computation of correlation estimates for bivariate
+winsorization (see <code>corHuber</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eps</code></td>
+<td>
+<p>a small positive numeric value used to determine whether the
+robust scale estimate of a variable is too small (an effective zero).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments to be passed to
+<code>robStandardize</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The estimation procedure is inspired by the calculation of the respective
+penalty parameter in the first step of the classical LARS algorithm.
+First, two-dimensional data blocks consisting of the response with each
+predictor variable are cleaned via bivariate winsorization.  For each block,
+the following computations are then performed.  If an intercept is included
+in the model, the cleaned response is centered and the corresponding cleaned
+predictor is centered and scaled to have unit norm.  Otherwise the variables
+are not centered, but the predictor is scaled to have unit norm.  Finally,
+the dot product of the response and the corresponding predictor is
+computed.  The largest absolute value of those dot products, rescaled to fit
+the parametrization of the sparse LTS definition, yields the estimate of the
+smallest penalty parameter that sets all coefficients to zero.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A robust estimate of the smallest value of the penalty parameter for
+sparse LTS regression that sets all coefficients to zero.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Andreas Alfons
+</p>
+
+
+<h3>References</h3>
+
+<p>Alfons, A., Croux, C. and Gelper, S. (2013) Sparse least trimmed squares
+regression for analyzing high-dimensional large data sets. <em>The Annals
+of Applied Statistics</em>, <b>7</b>(1), 226–248. <a href="https://doi.org/10.1214/12-AOAS575">doi:10.1214/12-AOAS575</a>
+</p>
+<p>Efron, B., Hastie, T., Johnstone, I. and Tibshirani, R. (2004) Least angle
+regression. <em>The Annals of Statistics</em>, <b>32</b>(2), 407–499.
+<a href="https://doi.org/10.1214/009053604000000067">doi:10.1214/009053604000000067</a>
+</p>
+<p>Khan, J.A., Van Aelst, S. and Zamar, R.H. (2007) Robust linear model
+selection based on least angle regression. <em>Journal of the American
+Statistical Association</em>, <b>102</b>(480), 1289–1299.
+<a href="https://doi.org/10.1198/016214507000000950">doi:10.1198/016214507000000950</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>sparseLTS</code>, <code>winsorize</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## generate data
+# example is not high-dimensional to keep computation time low
+library("mvtnorm")
+set.seed(1234)  # for reproducibility
+n &lt;- 100  # number of observations
+p &lt;- 25   # number of variables
+beta &lt;- rep.int(c(1, 0), c(5, p-5))  # coefficients
+sigma &lt;- 0.5      # controls signal-to-noise ratio
+epsilon &lt;- 0.1    # contamination level
+Sigma &lt;- 0.5^t(sapply(1:p, function(i, j) abs(i-j), 1:p))
+x &lt;- rmvnorm(n, sigma=Sigma)    # predictor matrix
+e &lt;- rnorm(n)                   # error terms
+i &lt;- 1:ceiling(epsilon*n)       # observations to be contaminated
+e[i] &lt;- e[i] + 5                # vertical outliers
+y &lt;- c(x %*% beta + sigma * e)  # response
+x[i,] &lt;- x[i,] + 5              # bad leverage points
+
+## estimate smallest value of the penalty parameter 
+## that sets all coefficients to 0
+lambda0(x, y)
+</code></pre>
+
+
+</div>

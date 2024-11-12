@@ -1,0 +1,118 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>custom_fill</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Specify custom fill behavior</h2>
+
+<h3>Description</h3>
+
+<p>If a tquery(), parents() or children() function has set a label, all children of the matched node (that are not matched by another query) will also be given this label.
+This is called the 'fill' heuristic.
+The custom_fill() function can be used to give more specific conditions for which children need to be labeled.
+</p>
+<p>The function can be used almost identically to the children() function. The specification of the look-up conditions works in the same way.
+NOTE that custom_fill, just like the children() function, should be passed as an unnamed argument, and NOT to the 'fill' argument 
+(which is the boolean argument for whether fill should be used)
+</p>
+<p>For the custom_fill function, the special BREAK() look-up function is particularly powerful.
+custom_fill will recursively search for children, children of children, etc.
+The look-up conditions in custom_fill determine which of all these direct and indirect children to label.
+Often, however, you would want to the recursive loop to 'break' when certain conditions are met.
+For instance, to ignore children in a relative clause: custom_fill(BREAK(relation = 'relcl'))
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">custom_fill(
+  ...,
+  g_id = NULL,
+  depth = Inf,
+  connected = FALSE,
+  max_window = c(Inf, Inf),
+  min_window = c(0, 0)
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Accepts two types of arguments: name-value pairs for finding nodes (i.e. rows), and functions to look for parents/children of these nodes.
+</p>
+<p>The name in the name-value pairs need to match a column in the data.table, and the value needs to be a vector of the same data type as the column.
+By default, search uses case sensitive matching, with the option of using common wildcards (* for any number of characters, and ? for a single character).
+Alternatively, flags can be used to to change this behavior to 'fixed' (__F), 'igoring case' (__I) or 'regex' (__R). See details for more information. 
+</p>
+<p>If multiple name-value pairs are given, they are considered as AND statements, but see details for syntax on using OR statements, and combinations.
+</p>
+<p>To look for parents and children of the nodes that are found, you can use the parents and children functions as (named or unnamed) arguments. 
+These functions have the same query arguments as tquery, but with some additional arguments.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g_id</code></td>
+<td>
+<p>Find nodes by global id, which is the combination of the doc_id, sentence and token_id. Passed as a data.frame or data.table with 3 columns: (1) doc_id, (2) sentence and (3) token_id.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>depth</code></td>
+<td>
+<p>A positive integer, determining how deep parents/children are sought. 1 
+means that only direct parents and children of the node are retrieved. 2 means children and grandchildren, etc.
+All parents/children must meet the filtering conditions (... or g_id)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>connected</code></td>
+<td>
+<p>Controls behavior if depth &gt; 1 and filters are used. If FALSE, all parents/children to the given depth are retrieved, and then filtered. 
+This way, grandchildren that satisfy the filter conditions are retrieved even if their parents do not satisfy the conditions.
+If TRUE, the filter is applied at each level of depth, so that only fully connected branches of nodes that satisfy the conditions are retrieved.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_window</code></td>
+<td>
+<p>Set the max token distance of the children/parents to the node. Has to be either a numerical vector of length 1 for distance in both directions, or a 
+vector of length 2, where the first value is the max distance to the left, and the second value the max distance to the right. Default is c(Inf, Inf) meaning that no max distance is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min_window</code></td>
+<td>
+<p>Like max_window, but for the min distance. Default is c(0,0) meaning that no min is used.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Should not be used outside of tquery
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">tokens = tokens_spacy[tokens_spacy$doc_id == 'text4',]
+
+## custom fill rule that ignores relative clauses
+no_relcl_fill = custom_fill(BREAK(relation='relcl'))
+
+## add custom fill as argument in children(). NOTE that it should be
+## passed as an unnamed argument (and not to the fill boolean argument)
+tq = tquery(label = 'verb', pos='VERB', fill=FALSE,
+         children(label = 'subject', relation = 'nsubj', no_relcl_fill),
+         children(label = 'object', relation = 'dobj', no_relcl_fill))
+         
+tokens = annotate_tqueries(tokens, "clause", tq)
+tokens
+</code></pre>
+
+
+</div>

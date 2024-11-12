@@ -1,0 +1,124 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pick_top_k</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Build an optree pipeline that selects up to the top k rows from each group in the given order.</h2>
+
+<h3>Description</h3>
+
+<p>This is an example of building up a desired pre-prepared pipeline fragment from relop nodes.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pick_top_k(
+  source,
+  ...,
+  partitionby = NULL,
+  orderby = NULL,
+  reverse = NULL,
+  k = 1L,
+  order_expression = "row_number()",
+  order_column = "row_number",
+  keep_order_column = TRUE,
+  env = parent.frame()
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>source</code></td>
+<td>
+<p>relop tree or data.frame source.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>force later arguments to bind by name.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>partitionby</code></td>
+<td>
+<p>partitioning (window function) column names.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>orderby</code></td>
+<td>
+<p>character, ordering (in window function) column names.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reverse</code></td>
+<td>
+<p>character, reverse ordering (in window function) of these column names.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>integer, number of rows to limit to in each group.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>order_expression</code></td>
+<td>
+<p>character, command to compute row-order/rank.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>order_column</code></td>
+<td>
+<p>character, column name to write per-group rank in (no ties).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep_order_column</code></td>
+<td>
+<p>logical, if TRUE retain the order column in the result.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>env</code></td>
+<td>
+<p>environment to look for values in.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# by hand logistic regression example
+scale &lt;- 0.237
+d &lt;- mk_td("survey_table",
+           c("subjectID", "surveyCategory", "assessmentTotal"))
+optree &lt;- d %.&gt;%
+  extend(.,
+             probability %:=%
+               exp(assessmentTotal * scale))  %.&gt;%
+  normalize_cols(.,
+                 "probability",
+                 partitionby = 'subjectID') %.&gt;%
+  pick_top_k(.,
+             partitionby = 'subjectID',
+             orderby = c('probability', 'surveyCategory'),
+             reverse = c('probability', 'surveyCategory')) %.&gt;%
+  rename_columns(., 'diagnosis' %:=% 'surveyCategory') %.&gt;%
+  select_columns(., c('subjectID',
+                      'diagnosis',
+                      'probability')) %.&gt;%
+  orderby(., 'subjectID')
+cat(format(optree))
+
+</code></pre>
+
+
+</div>

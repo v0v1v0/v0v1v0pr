@@ -1,0 +1,301 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rdt</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Rank difference test</h2>
+
+<h3>Description</h3>
+
+<p>Performs Kornbrot's rank difference test. It's a modified Wilcoxon signed-rank
+test which produces consistent and meaningful results for ordinal or monotonically
+transformed data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rdt(
+  data,
+  formula,
+  zero.method = c("Pratt", "Wilcoxon"),
+  distribution = c("asymptotic", "approximate", "exact"),
+  alternative = c("two.sided", "greater", "less"),
+  return = c("data.frame", "coin"),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data.frame</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>A formula of either form:
+</p>
+
+<dl>
+<dt>y ~ x | block</dt>
+<dd>
+<p>For use when <code>data</code> is in long format. <code>y</code> is the numeric outcome,
+<code>x</code> is the binary grouping factor, and <code>block</code> is the
+observation-level grouping factor. <code>x</code> and <code>block</code> must be factors.
+</p>
+</dd>
+<dt>y ~ x</dt>
+<dd>
+<p>For use when <code>data</code> is in wide format. <code>y</code> is the first measurement
+and <code>x</code> is the second measurement on the same observation.
+</p>
+</dd>
+</dl>
+<p>The differences in ranks are calculated as <code>y - x</code> or, when <code>x</code> is a
+factor, the first factor level minus the second.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zero.method</code></td>
+<td>
+<p>A string for the method used to handle differences equal to
+zero: <code>"Pratt"</code> (default) or <code>"Wilcoxon"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>distribution</code></td>
+<td>
+<p>A string for the method used to calculate the conditional
+null distribution of the test statistic: Asymptotic distribution
+<code>"asymptotic"</code> (default), Monte Carlo resampling <code>"approximate"</code>,
+or the exact distribution <code>"exact"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alternative</code></td>
+<td>
+<p>A string for the alternative hypothesis: <code>"two.sided"</code>
+(default), <code>"greater"</code>, or <code>"less"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return</code></td>
+<td>
+<p>A string for the return object: <code>"data.frame"</code> (default) or
+<code>"coin"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments passed to <code>coin::wilcoxsign_test</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For ordinal scale data, the Wilcoxon signed-rank test results in subtraction
+of those ordinal scale values. However, this subtraction is not meaningful on
+the ordinal scale. In addition, any monotone transformation of the data will
+result in different signed ranks, thus different p-values. However, ranking
+the original data allows for meaningful addition and subtraction of ranks and
+preserves ranks over monotonic transformation. Kornbrot described the rank
+difference test for this reason.
+</p>
+<p>Kornbrot recommends that the rank difference procedure be used in preference
+to the Wilcoxon signed-rank test in all paired comparison designs where the data
+are not both of interval scale type and of known distribution type. The rank
+difference test preserves good power compared to Wilcoxon's signed-rank test,
+is more powerful than the sign test, and has the benefit of being a true
+distribution-free test.
+</p>
+<p>The procedure for Wilcoxon's signed-rank test is as follows:
+</p>
+
+<ol>
+<li>
+<p> Calculate differences for each paired observation.
+</p>
+</li>
+<li>
+<p> Remove differences equal to zero.
+</p>
+</li>
+<li>
+<p> Order the absolute differences from smallest to largest.
+</p>
+</li>
+<li>
+<p> Assign ranks <code class="reqn">1, \dots, n</code> with average rank for ties.
+</p>
+</li>
+<li>
+<p> Calculate W+ = sum of the ranks for positive differences. The sum of W+ and
+W- is <code class="reqn">n(n+1)/2</code>, so either can be calculated from the other.
+</p>
+</li>
+<li>
+<p> Choose the smaller of W+ and W- as the test statistic W.
+</p>
+</li>
+<li>
+<p> Since the test statistic is the smaller of W+ and W-, the critical region
+is the left tail of the distribution. W is distributed approximately normal
+with mean <code class="reqn">mu = (n(n+1))/4</code> and variance
+<code class="reqn">sigma^2 = (Tn(n+1)(2n+1))/24</code>, where T is a correction for ties and
+<code class="reqn">T = 1-(sum(t^3-t)/(N^3-N))</code>, summed over all ties, where t is the
+length of a tie. The continuity corrected mean <code class="reqn">mu = ((n(n+1))/4)+0.5</code>.
+</p>
+</li>
+</ol>
+<p>The procedure for Kornbrot's rank difference test is as follows:
+</p>
+
+<ol>
+<li>
+<p> Combine all 2n observations.
+</p>
+</li>
+<li>
+<p> Assign ranks <code class="reqn">1, \dots, 2n</code> with average rank for ties.
+</p>
+</li>
+<li>
+<p> Perform the Wilcoxon signed-rank test using the paired ranks.
+</p>
+</li>
+</ol>
+<p>The test statistic for the rank difference test (D) is not exactly equal to the
+test statistic (W) of the naive rank-transformed Wilcoxon signed-rank test
+(the latter being implemented in <code>rdt()</code>). Using W should result in a
+conservative estimate for D, and they approach in distribution as the sample
+size increases. Kornbrot (1990)
+discusses methods for calculating D when n&lt;7 and 8&lt;n&lt;=20.
+</p>
+<p><code>zero.method = "Pratt"</code> uses the method by Pratt (1959), which first
+rank-transforms the absolute differences (including zeros) and then removes
+the ranks corresponding to zero-differences. <code>zero.method = "Wilcoxon"</code> uses
+the method by Wilcoxon (1950), which first removes the zero-differences and
+then rank-transforms the remaining absolute differences.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If <code>return = "data.frame"</code>, a data.frame with columns <code>p.value</code>, <code>z.statistic</code>,
+<code>formula</code>, <code>alternative</code>, and <code>method</code>.
+</p>
+<p>If <code>return = "coin"</code>, an object inheriting from class
+<code>"IndependenceTest"</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Kornbrot DE (1990).
+“The rank difference test: A new and meaningful alternative to the Wilcoxon signed ranks test for ordinal data.”
+<em>British Journal of Mathematical and Statistical Psychology</em>, <b>43</b>(2), 241–264.
+ISSN 00071102, doi: <a href="https://doi.org/10.1111/j.2044-8317.1990.tb00939.x">10.1111/j.2044-8317.1990.tb00939.x</a>.
+</p>
+<p>Pratt JW (1959).
+“Remarks on Zeros and Ties in the Wilcoxon Signed Rank Procedures.”
+<em>Journal of the American Statistical Association</em>, <b>54</b>(287), 655–667.
+ISSN 0162-1459, 1537-274X, doi: <a href="https://doi.org/10.1080/01621459.1959.10501526">10.1080/01621459.1959.10501526</a>.
+</p>
+<p>Wilcoxon F (1950).
+“SOME RAPID APPROXIMATE STATISTICAL PROCEDURES.”
+<em>Annals of the New York Academy of Sciences</em>, <b>52</b>(6), 808–814.
+ISSN 00778923, 17496632, doi: <a href="https://doi.org/10.1111/j.1749-6632.1950.tb53974.x">10.1111/j.1749-6632.1950.tb53974.x</a>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#----------------------------------------------------------------------------
+# rdt() example
+#----------------------------------------------------------------------------
+library(rankdifferencetest)
+
+# Use example data from Kornbrot (1990)
+data &lt;- kornbrot_table1
+
+# Create long-format data for demonstration purposes
+data_long &lt;- reshape(
+  data = kornbrot_table1,
+  direction = "long",
+  varying = c("placebo", "drug"),
+  v.names = c("time"),
+  idvar = "subject",
+  times = c("placebo", "drug"),
+  timevar = "treatment",
+  new.row.names = seq_len(prod(length(c("placebo", "drug")), nrow(kornbrot_table1)))
+)
+# Subject and treatment must be factors. The ordering of the treatment factor
+# will determine the difference (placebo - drug).
+data_long$subject &lt;- factor(data_long$subject)
+data_long$treatment &lt;- factor(data_long$treatment, levels = c("placebo", "drug"))
+
+# Recreate analysis and results from section 7.1 in Kornbrot (1990)
+## The p-value shown in Kornbrot (1990) was continuity corrected. rdt() does
+## not apply a continuity correction, so the p-value here will be slightly
+## lower. It does match the uncorrected p-value shown in footnote on page 246.
+rdt(
+  data = data,
+  formula = placebo ~ drug,
+  alternative = "two.sided",
+  distribution = "asymptotic"
+)$p.value/2
+rdt(
+  data = data_long,
+  formula = time ~ treatment | subject,
+  alternative = "two.sided",
+  distribution = "asymptotic"
+)$p.value/2
+
+# The same outcome is seen after transforming time to rate.
+## The rate transformation inverts the rank ordering.
+data$placebo_rate &lt;- 60 / data$placebo
+data$drug_rate &lt;- 60 / data$drug
+data_long$rate &lt;- 60 / data_long$time
+
+rdt(
+  data = data,
+  formula = placebo_rate ~ drug_rate,
+  alternative = "two.sided",
+  distribution = "asymptotic"
+)$p.value/2
+rdt(
+  data = data_long,
+  formula = rate ~ treatment | subject,
+  alternative = "two.sided",
+  distribution = "asymptotic"
+)$p.value/2
+
+# In contrast to the rank difference test, the Wilcoxon signed-rank test
+# produces differing results. See table 1 and table 2 in Kornbrot (1990).
+wilcox.test(
+  x = data$placebo,
+  y = data$drug,
+  paired = TRUE,
+  exact = TRUE,
+  alternative = "two.sided"
+)$p.value/2
+wilcox.test(
+  x = data$placebo_rate,
+  y = data$drug_rate,
+  paired = TRUE,
+  exact = TRUE,
+  alternative = "two.sided"
+)$p.value/2
+
+</code></pre>
+
+
+</div>

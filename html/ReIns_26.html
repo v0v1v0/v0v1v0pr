@@ -1,0 +1,165 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>crSurv</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Non-parametric estimator of conditional survival function
+</h2>
+
+<h3>Description</h3>
+
+<p>Non-parametric estimator of the conditional survival function of <code class="reqn">Y</code> given <code class="reqn">X</code> for censored data, see Akritas and Van Keilegom (2003).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">crSurv(x, y, Xtilde, Ytilde, censored, h, 
+       kernel = c("biweight", "normal", "uniform", "triangular", "epanechnikov"))
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+
+<p>The value of the conditioning variable <code class="reqn">X</code> to evaluate the survival function at. <code>x</code> needs to be a single number or a vector with the same length as <code>y</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+
+<p>The value(s) of the variable <code class="reqn">Y</code> to evaluate the survival function at.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Xtilde</code></td>
+<td>
+
+<p>Vector of length <code class="reqn">n</code> containing the censored sample of the conditioning variable <code class="reqn">X</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Ytilde</code></td>
+<td>
+
+<p>Vector of length <code class="reqn">n</code> containing the censored sample  of the variable <code class="reqn">Y</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>censored</code></td>
+<td>
+
+<p>A logical vector of length <code class="reqn">n</code> indicating if an observation is censored.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>h</code></td>
+<td>
+
+<p>Bandwidth of the non-parametric estimator.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kernel</code></td>
+<td>
+
+<p>Kernel of the non-parametric estimator. One of <code>"biweight"</code> (default), <code>"normal"</code>, <code>"uniform"</code>, <code>"triangular"</code> and <code>"epanechnikov"</code>.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>We estimate the conditional survival function </p>
+<p style="text-align: center;"><code class="reqn">1-F_{Y|X}(y|x)</code>
+</p>
+<p> using the censored sample <code class="reqn">(\tilde{X}_i, \tilde{Y}_i)</code>, for <code class="reqn">i=1,\ldots,n</code>, where <code class="reqn">X</code> and <code class="reqn">Y</code> are censored at the same time. We assume that <code class="reqn">Y</code> and the censoring variable are conditionally independent given <code class="reqn">X</code>.
+</p>
+<p>The estimator is given by
+</p>
+<p style="text-align: center;"><code class="reqn">1-\hat{F}_{Y|X}(y|x) = \prod_{\tilde{Y}_i \le y} (1-W_{n,i}(x;h_n)/(\sum_{j=1}^nW_{n,j}(x;h_n) I\{\tilde{Y}_j \ge \tilde{Y}_i\}))^{\Delta_i}</code>
+</p>
+
+<p>where <code class="reqn">\Delta_i=1</code> when <code class="reqn">(\tilde{X}_i, \tilde{Y}_i)</code> is censored and 0 otherwise. The weights are given by
+</p>
+<p style="text-align: center;"><code class="reqn">W_{n,i}(x;h_n) = K((x-\tilde{X}_i)/h_n)/\sum_{\Delta_j=1}K((x-\tilde{X}_j)/h_n)</code>
+</p>
+<p> when <code class="reqn">\Delta_i=1</code> and 0 otherwise.
+</p>
+<p>See Section 4.4.3 in Albrecher et al. (2017) for more details.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Estimates for <code class="reqn">1-F_{Y|X}(y|x)</code> as described above.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Tom Reynkens
+</p>
+
+
+<h3>References</h3>
+
+<p>Akritas, M.G. and Van Keilegom, I. (2003). "Estimation of Bivariate and Marginal Distributions
+With Censored Data." <em>Journal of the Royal Statistical Society: Series B</em>, 65, 457–471.
+</p>
+<p>Albrecher, H., Beirlant, J. and Teugels, J. (2017). <em>Reinsurance: Actuarial and Statistical Aspects</em>, Wiley, Chichester.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>crParetoQQ</code>, <code>crHill</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Set seed
+set.seed(29072016)
+
+# Pareto random sample
+Y &lt;- rpareto(200, shape=2)
+
+# Censoring variable
+C &lt;- rpareto(200, shape=1)
+
+# Observed (censored) sample of variable Y
+Ytilde &lt;- pmin(Y, C)
+
+# Censoring indicator
+censored &lt;- (Y&gt;C)
+
+# Conditioning variable
+X &lt;- seq(1, 10, length.out=length(Y))
+
+# Observed (censored) sample of conditioning variable
+Xtilde &lt;- X
+Xtilde[censored] &lt;- X[censored] - runif(sum(censored), 0, 1)
+
+# Plot estimates of the conditional survival function
+x &lt;- 5
+y &lt;- seq(0, 5, 1/100)
+plot(y, crSurv(x, y, Xtilde=Xtilde, Ytilde=Ytilde, censored=censored, h=5), type="l", 
+     xlab="y", ylab="Conditional survival function")
+</code></pre>
+
+
+</div>
